@@ -72614,11 +72614,21 @@ var LarkCanvas = class {
         return true;
       }
     }
+    const erdTh = target.closest(".erd-table .erd-th");
+    if (erdTh) {
+      this.editLabelAt(node2, erdTh);
+      return true;
+    }
+    const umlName = target.closest(".uml .uml-name");
+    if (umlName) {
+      this.editLabelAt(node2, umlName);
+      return true;
+    }
     const erdKey = target.closest(".erd-col .kk");
     if (erdKey) {
       const idx = +((_c = (_b2 = erdKey.closest(".erd-col")) == null ? void 0 : _b2.getAttribute("data-col-idx")) != null ? _c : "-1");
       if (idx >= 0) {
-        this.cycleErdKey(node2, idx);
+        this.pickErdKey(node2, idx, erdKey);
         return true;
       }
     }
@@ -72731,19 +72741,37 @@ var LarkCanvas = class {
       }
     });
   }
-  /** Cycle ERD column key marker: "" → PK → FK → "". */
-  cycleErdKey(node2, idx) {
+  /** Open a small menu over an ERD key cell to set its marker (PK / FK / none). */
+  pickErdKey(node2, idx, anchor3) {
     var _a2;
     const ex = this.nodeExtra(node2);
     const cols = ((_a2 = ex.cols) != null ? _a2 : []).slice();
     if (idx < 0 || idx >= cols.length) return;
-    const order = ["", "PK", "FK"];
     const cur = cols[idx].k;
-    const next = order[(order.indexOf(cur) + 1) % order.length];
-    cols[idx] = { ...cols[idx], k: next };
-    node2.setData({ ...node2.getData(), cols });
-    this.rerender(node2);
-    this.onChange();
+    const menu = el("div", "lk-context-menu lk-key-menu");
+    const opts = [
+      { k: "PK", label: "PK \u2014 Primary Key" },
+      { k: "FK", label: "FK \u2014 Foreign Key" },
+      { k: "", label: "Kh\xF4ng (\u0111\u1EC3 tr\u1ED1ng)" }
+    ];
+    opts.forEach((o5) => {
+      const item = el("div", "lk-menu-item" + (o5.k === cur ? " active" : ""));
+      item.appendChild(el("span", "kk " + (o5.k.toLowerCase() || "none"), o5.k || "\u2014"));
+      item.appendChild(el("span", void 0, o5.label));
+      item.onclick = () => {
+        var _a3;
+        const next = ((_a3 = this.nodeExtra(node2).cols) != null ? _a3 : []).slice();
+        if (idx < next.length) {
+          next[idx] = { ...next[idx], k: o5.k };
+          node2.setData({ ...node2.getData(), cols: next });
+          this.rerender(node2);
+          this.onChange();
+        }
+        this.hidePopup();
+      };
+      menu.appendChild(item);
+    });
+    this.showPopup(menu, anchor3);
   }
   /** Inline edit a UML field/method line. */
   editUmlLine(node2, comp, idx, anchor3) {

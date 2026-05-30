@@ -671,11 +671,17 @@ export class LarkCanvas {
       const laneId = laneHead.closest(".bp-pool-lane")?.getAttribute("data-lane-id");
       if (laneId) { this.editLaneLabel(node, laneId, laneHead); return true; }
     }
-    // 3. ERD column key marker (cycle PK → FK → blank)
+    // 2b. ERD entity title band
+    const erdTh = target.closest(".erd-table .erd-th") as HTMLElement | null;
+    if (erdTh) { this.editLabelAt(node, erdTh); return true; }
+    // 2c. UML class / interface name band
+    const umlName = target.closest(".uml .uml-name") as HTMLElement | null;
+    if (umlName) { this.editLabelAt(node, umlName); return true; }
+    // 3. ERD column key marker → small menu (PK / FK / none)
     const erdKey = target.closest(".erd-col .kk") as HTMLElement | null;
     if (erdKey) {
       const idx = +(erdKey.closest(".erd-col")?.getAttribute("data-col-idx") ?? "-1");
-      if (idx >= 0) { this.cycleErdKey(node, idx); return true; }
+      if (idx >= 0) { this.pickErdKey(node, idx, erdKey); return true; }
     }
     // 4. ERD column name
     const cname = target.closest(".erd-col .cname") as HTMLElement | null;
@@ -761,18 +767,35 @@ export class LarkCanvas {
     });
   }
 
-  /** Cycle ERD column key marker: "" → PK → FK → "". */
-  private cycleErdKey(node: Node, idx: number): void {
+  /** Open a small menu over an ERD key cell to set its marker (PK / FK / none). */
+  private pickErdKey(node: Node, idx: number, anchor: HTMLElement): void {
     const ex = this.nodeExtra(node);
     const cols = (ex.cols ?? []).slice();
     if (idx < 0 || idx >= cols.length) return;
-    const order: Array<"" | "PK" | "FK"> = ["", "PK", "FK"];
     const cur = cols[idx].k as "" | "PK" | "FK";
-    const next = order[(order.indexOf(cur) + 1) % order.length];
-    cols[idx] = { ...cols[idx], k: next };
-    node.setData({ ...node.getData(), cols });
-    this.rerender(node);
-    this.onChange();
+    const menu = el("div", "lk-context-menu lk-key-menu");
+    const opts: Array<{ k: "PK" | "FK" | ""; label: string }> = [
+      { k: "PK", label: "PK — Primary Key" },
+      { k: "FK", label: "FK — Foreign Key" },
+      { k: "", label: "Không (để trống)" },
+    ];
+    opts.forEach((o) => {
+      const item = el("div", "lk-menu-item" + (o.k === cur ? " active" : ""));
+      item.appendChild(el("span", "kk " + (o.k.toLowerCase() || "none"), o.k || "—"));
+      item.appendChild(el("span", undefined, o.label));
+      item.onclick = () => {
+        const next = (this.nodeExtra(node).cols ?? []).slice();
+        if (idx < next.length) {
+          next[idx] = { ...next[idx], k: o.k };
+          node.setData({ ...node.getData(), cols: next });
+          this.rerender(node);
+          this.onChange();
+        }
+        this.hidePopup();
+      };
+      menu.appendChild(item);
+    });
+    this.showPopup(menu, anchor);
   }
 
   /** Inline edit a UML field/method line. */

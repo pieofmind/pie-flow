@@ -614,16 +614,20 @@
    column `.sq-line { flex:1 }` lifeline collapsed to 0. inset:0 fixes the lifeline. */
 .lk-root .sq-life { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; color: var(--pg-text); }
 .lk-root .sq-pill {
+  position: relative; z-index: 1;
   padding: 9px 14px; border-radius: 9px; text-align: center;
   background: var(--pg-surface); border: 1.6px solid var(--pg-border-strong);
   box-shadow: var(--sh-sm); font-size: 13px; font-weight: 700; color: var(--pg-text);
   white-space: nowrap; flex: 0 0 auto;
 }
 .lk-root .sq-who { display: block; font-size: 10.5px; font-weight: 500; color: var(--pg-text-soft); }
-.lk-root .sq-actor-head { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 0 0 auto; color: var(--pg-text); }
+.lk-root .sq-actor-head { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 0 0 auto; color: var(--pg-text); }
 .lk-root .sq-actor-fig { width: 28px; height: 38px; color: var(--pg-accent); }
 .lk-root .sq-actor-lbl { font-size: 12px; font-weight: 700; }
-.lk-root .sq-line { flex: 1 1 auto; width: 0; border-left: 1.5px dashed var(--pg-border-strong); margin-top: 6px; }
+/* Lifeline = inline SVG line (absolute, full height, behind the head). No flex / no
+   %-height, so Safari can't collapse it. The head sits above it via z-index. */
+.lk-root .sq-line { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; display: block; }
+.lk-root .sq-line line { stroke: var(--pg-border-strong); stroke-width: 1.5; stroke-dasharray: 3 5; vector-effect: non-scaling-stroke; }
 .lk-root .sq-act {
   width: 100%; height: 100%; box-sizing: border-box;
   background: color-mix(in srgb, var(--pg-accent) 26%, var(--pg-surface));

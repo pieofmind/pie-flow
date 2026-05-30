@@ -69835,10 +69835,10 @@ function nodeHtmlBase(kind, label, extra) {
     case "mm-leaf":
       return `<div class="mm l2">${nl(L4) || "L\xE1"}</div>`;
     case "sq-actor":
-      return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${ACTOR}</div><div class="sq-actor-lbl">${L4 || "Actor"}</div></div><div class="sq-line"></div></div>`;
+      return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${ACTOR}</div><div class="sq-actor-lbl">${L4 || "Actor"}</div></div>${SQ_LINE}</div>`;
     case "sq-participant": {
       const who = (_f = extra == null ? void 0 : extra.who) != null ? _f : "";
-      return `<div class="sq-life"><div class="sq-head sq-pill">${L4 || "Participant"}${who ? `<span class="sq-who">${esc(who)}</span>` : ""}</div><div class="sq-line"></div></div>`;
+      return `<div class="sq-life"><div class="sq-head sq-pill">${L4 || "Participant"}${who ? `<span class="sq-who">${esc(who)}</span>` : ""}</div>${SQ_LINE}</div>`;
     }
     case "sq-activation":
       return `<div class="sq-act"></div>`;
@@ -69920,11 +69920,12 @@ function nodeHtmlBase(kind, label, extra) {
       return `<div class="fc rect">${L4}</div>`;
   }
 }
+var SQ_LINE = `<svg class="sq-line" preserveAspectRatio="none"><line x1="50%" y1="0" x2="50%" y2="100%"></line></svg>`;
 var SQ_BOUNDARY = svg(`<circle cx="14" cy="9" r="5"/><path d="M5 4v10M5 9h4"/>`);
 var SQ_CONTROL = svg(`<circle cx="12" cy="10" r="5"/><path d="M12 5l-2.5 1.5L12 7"/>`);
 var SQ_ENTITY = svg(`<circle cx="12" cy="8" r="5"/><path d="M7 15h10"/>`);
 function seqLife(icon, label) {
-  return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${icon}</div><div class="sq-actor-lbl">${esc(label)}</div></div><div class="sq-line"></div></div>`;
+  return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${icon}</div><div class="sq-actor-lbl">${esc(label)}</div></div>${SQ_LINE}</div>`;
 }
 function seqFrag(tag, label, divider) {
   return `<div class="sq-frag"><span class="sq-frag-tab">${esc(tag)}</span>${label ? `<span class="sq-frag-cond">[${esc(label)}]</span>` : ""}${divider ? `<div class="sq-frag-div"></div>` : ""}</div>`;

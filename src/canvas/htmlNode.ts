@@ -196,10 +196,10 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
     // ── Sequence ── (Claude Pie design tokens)
     // Actor/Participant: compact pill on top + dashed lifeline below
     // Optional `extra.who` renders the subtitle ("actor" / "KALIX" / "ERP" …)
-    case "sq-actor": return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${ACTOR}</div><div class="sq-actor-lbl">${L || "Actor"}</div></div><div class="sq-line"></div></div>`;
+    case "sq-actor": return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${ACTOR}</div><div class="sq-actor-lbl">${L || "Actor"}</div></div>${SQ_LINE}</div>`;
     case "sq-participant": {
       const who = extra?.who ?? "";
-      return `<div class="sq-life"><div class="sq-head sq-pill">${L || "Participant"}${who ? `<span class="sq-who">${esc(who)}</span>` : ""}</div><div class="sq-line"></div></div>`;
+      return `<div class="sq-life"><div class="sq-head sq-pill">${L || "Participant"}${who ? `<span class="sq-who">${esc(who)}</span>` : ""}</div>${SQ_LINE}</div>`;
     }
     case "sq-activation": return `<div class="sq-act"></div>`;
     case "sq-note": return `<div class="sq-note">${L || "Ghi chú"}</div>`;
@@ -253,13 +253,17 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
   }
 }
 
+// Lifeline drawn as an inline SVG line (NOT a flex div) — Safari's flex algorithm
+// treats the column parent's %-height as indefinite and collapses a flex:1 line to 0.
+// An absolute-inset SVG with a y2="100%" line has no flex/%-height dependency.
+const SQ_LINE = `<svg class="sq-line" preserveAspectRatio="none"><line x1="50%" y1="0" x2="50%" y2="100%"></line></svg>`;
 const SQ_BOUNDARY = svg(`<circle cx="14" cy="9" r="5"/><path d="M5 4v10M5 9h4"/>`);
 const SQ_CONTROL = svg(`<circle cx="12" cy="10" r="5"/><path d="M12 5l-2.5 1.5L12 7"/>`);
 const SQ_ENTITY = svg(`<circle cx="12" cy="8" r="5"/><path d="M7 15h10"/>`);
 
 /** Lifeline (actor-like) with a custom head icon + dashed line below. */
 function seqLife(icon: string, label: string): string {
-  return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${icon}</div><div class="sq-actor-lbl">${esc(label)}</div></div><div class="sq-line"></div></div>`;
+  return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${icon}</div><div class="sq-actor-lbl">${esc(label)}</div></div>${SQ_LINE}</div>`;
 }
 /** Combined fragment frame (alt/opt/loop/par) with a label tab + optional divider. */
 function seqFrag(tag: string, label: string, divider: boolean): string {

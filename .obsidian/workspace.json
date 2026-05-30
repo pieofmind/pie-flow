@@ -4,17 +4,19 @@
     "type": "split",
     "children": [
       {
-        "id": "7f67207a66c9fbb8",
+        "id": "a378b10c0eaf1ee5",
         "type": "tabs",
         "children": [
           {
-            "id": "f59a1597cd031244",
+            "id": "6d8a500fd8507855",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
-              "icon": "lucide-file",
-              "title": "Tab mới"
+              "type": "omniboard-board",
+              "state": {
+                "file": "Board 20260530-140925.board"
+              },
+              "icon": "shapes",
+              "title": "Board 20260530-140925"
             }
           }
         ]
@@ -74,7 +76,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 200
   },
   "right": {
     "id": "914b9f2d4fc63123",
@@ -173,9 +175,12 @@
       "daily-notes:Mở ghi chú hôm nay": false,
       "templates:Chèn mẫu": false,
       "command-palette:Mở khay lệnh": false,
-      "bases:Tạo cơ sở mới": false
+      "bases:Tạo cơ sở mới": false,
+      "obsidian-omniboard:New board": false
     }
   },
-  "active": "f59a1597cd031244",
-  "lastOpenFiles": []
+  "active": "6d8a500fd8507855",
+  "lastOpenFiles": [
+    "Board 20260530-140925.board"
+  ]
 }

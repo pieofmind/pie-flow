@@ -69817,7 +69817,7 @@ function nodeHtmlBase(kind, label, extra) {
     case "uml-actor":
       return `<div style="width:100%;height:100%;display:grid;place-items:center;color:var(--pg-text);position:relative">
       <div style="width:34px;height:46px;color:var(--pg-accent)">${ACTOR}</div>
-      <div style="position:absolute;top:calc(100% + 2px);left:50%;transform:translateX(-50%);font-size:11px;font-weight:600;white-space:nowrap">${L4}</div></div>`;
+      <div style="position:absolute;top:calc(100% + 2px);left:0;right:0;text-align:center;font-size:11px;font-weight:600;white-space:nowrap">${L4}</div></div>`;
     case "uml-usecase":
       return `<div class="fc round" style="background:#e3f2fd;border-color:#0d47a1">${L4}</div>`;
     case "st-initial":
@@ -69932,7 +69932,7 @@ function seqFrag(tag, label, divider) {
 function lblStyle(extra) {
   const o5 = extra == null ? void 0 : extra.labelOffset;
   if (!o5) return "";
-  return ` style="transform:translate(${px(o5.x)}px,${px(o5.y)}px)"`;
+  return ` style="margin:${px(o5.y)}px 0 0 ${px(o5.x)}px"`;
 }
 function bpEvent(kind, label, icon, extra) {
   const inner = icon != null ? icon : kind === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`);
@@ -72670,7 +72670,7 @@ var LarkCanvas = class {
       const mv = (ev) => {
         const dx = (ev.clientX - start.x) / scale2;
         const dy = (ev.clientY - start.y) / scale2;
-        lbl.style.transform = `translate(${base.x + dx}px, ${base.y + dy}px)`;
+        lbl.style.margin = `${base.y + dy}px 0 0 ${base.x + dx}px`;
       };
       const up = (ev) => {
         document.removeEventListener("pointermove", mv);

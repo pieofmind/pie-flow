@@ -550,16 +550,21 @@
 .lk-root .bp-event.start { border: 2px solid #5BAE7B; } .lk-root .bp-event.start svg { color: #5BAE7B; }
 .lk-root .bp-event.end { border: 3.5px solid #C2603F; } .lk-root .bp-event.end svg { color: #C2603F; }
 .lk-root .bp-event svg { width: 22px; height: 22px; }
-.lk-root .bp-elabel { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--pg-text-muted); white-space: nowrap; font-weight: 600; }
+/* Center via left:0;right:0;text-align — NOT translateX. A CSS transform inside the
+   <foreignObject> makes this label its own WebKit compositing layer that paints at the
+   SVG origin (0,0) on iOS, while the node body (kept correct by the .x6-node filter)
+   stays put. Same reason opacity/clip-path are avoided on node content. */
+.lk-root .bp-elabel { position: absolute; top: calc(100% + 6px); left: 0; right: 0; text-align: center; font-size: 11px; color: var(--pg-text-muted); white-space: nowrap; font-weight: 600; }
 /* Auto-flip label to the opposite side of the incoming/outgoing edge (bpmn.io behaviour). */
 .lk-root .bp-event.label-top .bp-elabel { top: auto; bottom: calc(100% + 6px); }
 /* Allow user to drag node labels (BPMN event/gateway) when auto-flip isn't enough. */
 .lk-root .bp-elabel { cursor: move; pointer-events: auto; user-select: none; }
-.lk-root .bp-elabel.is-dragging { opacity: .85; }
+.lk-root .bp-elabel.is-dragging { color: var(--pg-accent); }
 .lk-root .bp-gw .bp-elabel { top: calc(100% + 2px); }
 .lk-root .bp-gw.label-top .bp-elabel { top: auto; bottom: calc(100% + 2px); }
 .lk-root .bp-task { width: 100%; height: 100%; border-radius: 9px; background: var(--pg-surface); border: 1.6px solid var(--pg-border-strong); box-shadow: var(--sh-sm); display: grid; place-items: center; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--pg-text); padding: 8px 10px; line-height: 1.3; position: relative; box-sizing: border-box; }
-.lk-root .bp-task .ticon { position: absolute; top: 6px; left: 7px; opacity: .6; } .lk-root .bp-task .ticon svg { width: 14px; height: 14px; }
+/* color, not opacity<1 (opacity makes the icon a WebKit compositing layer → 0,0 on iOS) */
+.lk-root .bp-task .ticon { position: absolute; top: 6px; left: 7px; color: var(--pg-text-soft); } .lk-root .bp-task .ticon svg { width: 14px; height: 14px; }
 .lk-root .bp-gw { width: 100%; height: 100%; display: grid; place-items: center; position: relative; }
 .lk-root .bp-gw .gwbox { width: 80%; height: 80%; transform: rotate(45deg); background: color-mix(in srgb, #E2B23A 22%, var(--pg-surface)); border: 1.8px solid #C99A2E; border-radius: 8px; display: grid; place-items: center; box-shadow: var(--sh-sm); }
 .lk-root .bp-gw .x { transform: rotate(-45deg); color: #B07F1E; font-weight: 800; font-size: 20px; line-height: 1; }
@@ -567,7 +572,7 @@
 /* ERD */
 .lk-root .erd-table { width: 100%; height: 100%; background: var(--pg-surface); border: 1.5px solid var(--pg-border-strong); border-radius: 9px; box-shadow: var(--sh-sm); overflow: hidden; box-sizing: border-box; }
 .lk-root .erd-th { display: flex; align-items: center; gap: 7px; padding: 8px 11px; background: var(--pg-accent); color: var(--pg-accent-ink); font-size: 13px; font-weight: 700; }
-.lk-root .erd-th svg { width: 14px; height: 14px; opacity: .9; }
+.lk-root .erd-th svg { width: 14px; height: 14px; }
 .lk-root .erd-col { display: flex; align-items: center; gap: 7px; padding: 6px 11px; font-size: 12px; color: var(--pg-text); border-top: 1px solid var(--pg-border); }
 .lk-root .erd-col .kk { font-size: 9px; font-weight: 800; letter-spacing: .04em; width: 22px; flex: none; }
 .lk-root .erd-col .kk.pk { color: #C99A2E; } .lk-root .erd-col .kk.fk { color: var(--pg-accent); }
@@ -653,7 +658,7 @@
 .lk-root .bp-anno { width: 100%; height: 100%; box-sizing: border-box; border-left: 2px solid var(--pg-border-strong); padding: 6px 9px; font-size: 12px; color: var(--pg-text); display: grid; align-items: center; }
 .lk-root .bp-frame.bp-sub { position: relative; width: 100%; height: 100%; box-sizing: border-box; border: 1.6px solid var(--pg-border-strong); border-radius: 9px; background: color-mix(in srgb, var(--pg-accent) 4%, var(--pg-surface)); box-shadow: var(--sh-sm); }
 .lk-root .bp-frame-lbl { position: absolute; top: 8px; left: 0; right: 0; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--pg-text); }
-.lk-root .bp-plus { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 15px; height: 15px; border: 1.4px solid var(--pg-text-muted); border-radius: 2px; display: grid; place-items: center; font-size: 12px; line-height: 1; color: var(--pg-text-muted); }
+.lk-root .bp-plus { position: absolute; bottom: 6px; left: 0; right: 0; margin: 0 auto; width: 15px; height: 15px; border: 1.4px solid var(--pg-text-muted); border-radius: 2px; display: grid; place-items: center; font-size: 12px; line-height: 1; color: var(--pg-text-muted); }
 .lk-root .bp-lane { width: 100%; height: 100%; box-sizing: border-box; border: 1.4px solid var(--pg-border-strong); background: transparent; display: flex; align-items: center; }
 .lk-root .bp-lane span { writing-mode: vertical-rl; transform: rotate(180deg); padding: 0 7px; font-size: 11px; font-weight: 700; color: var(--pg-text-muted); }
 /* BPMN Pool composite: header band + N lane bands stacked vertically */

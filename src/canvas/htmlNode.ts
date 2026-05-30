@@ -179,7 +179,7 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
     }
     case "uml-actor": return `<div style="width:100%;height:100%;display:grid;place-items:center;color:var(--pg-text);position:relative">
       <div style="width:34px;height:46px;color:var(--pg-accent)">${ACTOR}</div>
-      <div style="position:absolute;top:calc(100% + 2px);left:50%;transform:translateX(-50%);font-size:11px;font-weight:600;white-space:nowrap">${L}</div></div>`;
+      <div style="position:absolute;top:calc(100% + 2px);left:0;right:0;text-align:center;font-size:11px;font-weight:600;white-space:nowrap">${L}</div></div>`;
     case "uml-usecase": return `<div class="fc round" style="background:#e3f2fd;border-color:#0d47a1">${L}</div>`;
 
     // ── State ──
@@ -267,7 +267,9 @@ function seqFrag(tag: string, label: string, divider: boolean): string {
 }
 function lblStyle(extra?: NodeExtra): string {
   const o = extra?.labelOffset; if (!o) return "";
-  return ` style="transform:translate(${px(o.x)}px,${px(o.y)}px)"`;
+  // margin (not transform) so a dragged label offset doesn't become a WebKit
+  // compositing layer that paints at the SVG origin on iOS.
+  return ` style="margin:${px(o.y)}px 0 0 ${px(o.x)}px"`;
 }
 function bpEvent(kind: string, label: string, icon?: string, extra?: NodeExtra): string {
   const inner = icon ?? (kind === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`));

@@ -655,7 +655,9 @@ export class LarkCanvas {
       const mv = (ev: PointerEvent) => {
         const dx = (ev.clientX - start.x) / scale;
         const dy = (ev.clientY - start.y) / scale;
-        lbl.style.transform = `translate(${base.x + dx}px, ${base.y + dy}px)`;
+        // margin, not transform — transform makes the label a WebKit compositing
+        // layer that jumps to the SVG origin on iOS (matches lblStyle()).
+        lbl.style.margin = `${base.y + dy}px 0 0 ${base.x + dx}px`;
       };
       const up = (ev: PointerEvent) => {
         document.removeEventListener("pointermove", mv);

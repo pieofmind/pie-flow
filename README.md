@@ -53,15 +53,15 @@ Double-click to edit, **Enter** to commit, **Shift+Enter** for a new line, **Esc
 
 ## 📦 Installation
 
-This plugin lives at `.obsidian/plugins/obsidian-omniboard/` inside this repo.
-
 **Manual:**
 
-1. Download `main.js`, `manifest.json` and `styles.css` from a release (or build them — see below).
+1. Download `main.js`, `manifest.json`, `styles.css` and `mermaid.min.js` from a release (or build them — see below).
 2. Copy them into `<your-vault>/.obsidian/plugins/obsidian-omniboard/`.
 3. Reload Obsidian → **Settings → Community plugins** → enable **OmniBoard**.
 
-> Mermaid support also needs `mermaid.min.js` in the same folder (lazy-loaded on first use).
+**BRAT (beta):** add `nguyenkalix84/obsidian-omniboard` in the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
+
+> `mermaid.min.js` is lazy-loaded on first use of a `mermaid-dx` block.
 
 ---
 
@@ -89,10 +89,16 @@ A board is a single `.board` file containing JSON `CanvasModel { nodes, edges }`
 ## 🛠️ Development
 
 ```bash
-cd .obsidian/plugins/obsidian-omniboard
 npm install
 npm run build      # tsc strict + esbuild → main.js
 npm run dev        # watch mode
+npm test           # vitest round-trip suite
+```
+
+To test in Obsidian, symlink (or copy) this repo into a vault's plugins folder:
+
+```bash
+ln -s "$(pwd)" "<your-vault>/.obsidian/plugins/obsidian-omniboard"
 ```
 
 **Visual harness** (iterate UI without launching Obsidian):

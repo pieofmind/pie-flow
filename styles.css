@@ -534,7 +534,10 @@
 .lk-root .hn .uml-name,
 .lk-root .hn .uml-name * { pointer-events: auto; cursor: text; }
 .lk-root .hn .erd-col .kk { cursor: pointer; }
-.lk-root .hn { width: 100%; height: 100%; display: grid; place-items: center; --font-mono: ui-monospace, "SF Mono", Menlo, monospace; }
+/* grid-template-rows:100% gives the single cell a DEFINITE height so a child's
+   height:100% resolves on WebKit too (Safari returns auto/0 for %-height against an
+   auto-sized grid track — that collapsed the sequence lifeline `.sq-line flex:1`). */
+.lk-root .hn { width: 100%; height: 100%; display: grid; grid-template-rows: 100%; place-items: center; --font-mono: ui-monospace, "SF Mono", Menlo, monospace; }
 
 /* Flowchart */
 .lk-root .fc {

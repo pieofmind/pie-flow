@@ -111,6 +111,7 @@ function ensureMindmapConnector(): void {
 const ACCENT = "#5E8FB9";
 const EDGE_STROKE = "#9c8b7e"; // warm muted brown-grey
 const CURSOR_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l7 16 2-6 6-2z"/></svg>`;
+const HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6.5a1.5 1.5 0 0 0-3 0M15 10.5V5a1.5 1.5 0 0 0-3 0v5M12 10V6.5a1.5 1.5 0 0 0-3 0V11M9 11V8a1.5 1.5 0 0 0-3 0v6a6 6 0 0 0 6 6h1.5a5 5 0 0 0 5-5v-3"/></svg>`;
 const EDGE_ATTRS = { line: { stroke: EDGE_STROKE, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
 // Edge label body — opaque pill so the label is hit-testable (X6 needs a body
 // for the user to grab and drag); also wipes the line behind the text.
@@ -187,6 +188,9 @@ export class LarkCanvas {
   private minimapSvg: SVGSVGElement | null = null;
   private minimapVp: HTMLElement | null = null;
   private mm = { scale: 1, ox: 0, oy: 0, bx: 0, by: 0 }; // minimap↔graph mapping
+  private tool: "select" | "pan" = "select";
+  private railSelect: HTMLElement | null = null;
+  private railHand: HTMLElement | null = null;
   private wheelPan?: (e: WheelEvent) => void;
   private mmFabs: HTMLElement | null = null;
   private padLayer: HTMLElement | null = null;
@@ -308,6 +312,9 @@ export class LarkCanvas {
       return false;
     });
     graph.bindKey("esc", () => { this.hidePopup(); this.commitLabel(); graph.cleanSelection(); });
+    // Tool shortcuts (ignored while typing in an inline editor — keyboard plugin guards inputs).
+    graph.bindKey("v", () => { this.setTool("select"); });
+    graph.bindKey("h", () => { this.setTool("pan"); });
 
     // Mindmap quick-add via keyboard — only when a mindmap node is selected.
     graph.bindKey("tab", () => {
@@ -930,9 +937,19 @@ export class LarkCanvas {
     const sel = el("div", "lk-rail-item is-active");
     sel.innerHTML = CURSOR_ICON;
     sel.title = "Chọn (V)";
-    sel.onclick = () => this.graph.cleanSelection();
+    sel.onclick = () => this.setTool("select");
     sel.onmouseenter = () => this.scheduleFlyoutClose();
     rail.appendChild(sel);
+    this.railSelect = sel;
+
+    // Hand / pan tool — drag the board (essential on touch where there's no Space key).
+    const hand = el("div", "lk-rail-item");
+    hand.innerHTML = HAND_ICON;
+    hand.title = "Kéo board (H)";
+    hand.onclick = () => this.setTool(this.tool === "pan" ? "select" : "pan");
+    hand.onmouseenter = () => this.scheduleFlyoutClose();
+    rail.appendChild(hand);
+    this.railHand = hand;
 
     rail.appendChild(el("div", "lk-rail-sep"));
 
@@ -950,6 +967,23 @@ export class LarkCanvas {
       rail.appendChild(item);
     }
     this.root.appendChild(rail);
+  }
+
+  /**
+   * Switch between the select tool and a free-pan ("hand") tool. In pan mode the
+   * board is draggable anywhere without a modifier key (essential on touch, where
+   * there is no Space key) and node interaction is suspended so drags always pan.
+   */
+  private setTool(tool: "select" | "pan"): void {
+    this.tool = tool;
+    const pan = tool === "pan";
+    const opts = this.graph.options as { panning?: { modifiers?: unknown }; interacting?: unknown };
+    if (opts.panning) opts.panning.modifiers = pan ? [] : ["space"];
+    opts.interacting = pan ? false : { edgeLabelMovable: true };
+    if (pan) this.graph.cleanSelection();
+    this.graphMount.style.cursor = pan ? "grab" : "";
+    this.railSelect?.classList.toggle("is-active", !pan);
+    this.railHand?.classList.toggle("is-active", pan);
   }
 
   private openFlyout(cat: ShapeCategory, anchor: HTMLElement) {

@@ -72012,6 +72012,7 @@ function ensureMindmapConnector() {
 var ACCENT = "#5E8FB9";
 var EDGE_STROKE2 = "#9c8b7e";
 var CURSOR_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l7 16 2-6 6-2z"/></svg>`;
+var HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6.5a1.5 1.5 0 0 0-3 0M15 10.5V5a1.5 1.5 0 0 0-3 0v5M12 10V6.5a1.5 1.5 0 0 0-3 0V11M9 11V8a1.5 1.5 0 0 0-3 0v6a6 6 0 0 0 6 6h1.5a5 5 0 0 0 5-5v-3"/></svg>`;
 var EDGE_ATTRS = { line: { stroke: EDGE_STROKE2, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
 var EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" };
 var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move" };
@@ -72103,6 +72104,10 @@ var LarkCanvas = class {
     this.minimapSvg = null;
     this.minimapVp = null;
     this.mm = { scale: 1, ox: 0, oy: 0, bx: 0, by: 0 };
+    // minimap↔graph mapping
+    this.tool = "select";
+    this.railSelect = null;
+    this.railHand = null;
     this.mmFabs = null;
     this.padLayer = null;
     this.pendingDrop = null;
@@ -72224,6 +72229,12 @@ var LarkCanvas = class {
       this.hidePopup();
       this.commitLabel();
       graph.cleanSelection();
+    });
+    graph.bindKey("v", () => {
+      this.setTool("select");
+    });
+    graph.bindKey("h", () => {
+      this.setTool("pan");
     });
     graph.bindKey("tab", () => {
       const n3 = this.singleSelectedMindmapNode();
@@ -72937,9 +72948,17 @@ var LarkCanvas = class {
     const sel = el("div", "lk-rail-item is-active");
     sel.innerHTML = CURSOR_ICON;
     sel.title = "Ch\u1ECDn (V)";
-    sel.onclick = () => this.graph.cleanSelection();
+    sel.onclick = () => this.setTool("select");
     sel.onmouseenter = () => this.scheduleFlyoutClose();
     rail.appendChild(sel);
+    this.railSelect = sel;
+    const hand = el("div", "lk-rail-item");
+    hand.innerHTML = HAND_ICON;
+    hand.title = "K\xE9o board (H)";
+    hand.onclick = () => this.setTool(this.tool === "pan" ? "select" : "pan");
+    hand.onmouseenter = () => this.scheduleFlyoutClose();
+    rail.appendChild(hand);
+    this.railHand = hand;
     rail.appendChild(el("div", "lk-rail-sep"));
     const REP = {
       "C\u01A1 b\u1EA3n": "bs-rect",
@@ -72961,6 +72980,23 @@ var LarkCanvas = class {
       rail.appendChild(item);
     }
     this.root.appendChild(rail);
+  }
+  /**
+   * Switch between the select tool and a free-pan ("hand") tool. In pan mode the
+   * board is draggable anywhere without a modifier key (essential on touch, where
+   * there is no Space key) and node interaction is suspended so drags always pan.
+   */
+  setTool(tool) {
+    var _a2, _b2;
+    this.tool = tool;
+    const pan = tool === "pan";
+    const opts = this.graph.options;
+    if (opts.panning) opts.panning.modifiers = pan ? [] : ["space"];
+    opts.interacting = pan ? false : { edgeLabelMovable: true };
+    if (pan) this.graph.cleanSelection();
+    this.graphMount.style.cursor = pan ? "grab" : "";
+    (_a2 = this.railSelect) == null ? void 0 : _a2.classList.toggle("is-active", !pan);
+    (_b2 = this.railHand) == null ? void 0 : _b2.classList.toggle("is-active", pan);
   }
   openFlyout(cat, anchor3) {
     this.cancelFlyoutClose();

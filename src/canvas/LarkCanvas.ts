@@ -980,6 +980,10 @@ export class LarkCanvas {
     const opts = this.graph.options as { panning?: { modifiers?: unknown }; interacting?: unknown };
     if (opts.panning) opts.panning.modifiers = pan ? [] : ["space"];
     opts.interacting = pan ? false : { edgeLabelMovable: true };
+    // Disable the rubberband (blue selection box) while panning so a blank drag pans
+    // instead of drawing a selection rectangle.
+    const g = this.graph as unknown as { enableRubberband?: () => void; disableRubberband?: () => void };
+    if (pan) g.disableRubberband?.(); else g.enableRubberband?.();
     if (pan) this.graph.cleanSelection();
     this.graphMount.style.cursor = pan ? "grab" : "";
     this.railSelect?.classList.toggle("is-active", !pan);

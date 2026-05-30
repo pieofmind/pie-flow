@@ -72987,16 +72987,19 @@ var LarkCanvas = class {
    * there is no Space key) and node interaction is suspended so drags always pan.
    */
   setTool(tool) {
-    var _a2, _b2;
+    var _a2, _b2, _c, _d;
     this.tool = tool;
     const pan = tool === "pan";
     const opts = this.graph.options;
     if (opts.panning) opts.panning.modifiers = pan ? [] : ["space"];
     opts.interacting = pan ? false : { edgeLabelMovable: true };
+    const g3 = this.graph;
+    if (pan) (_a2 = g3.disableRubberband) == null ? void 0 : _a2.call(g3);
+    else (_b2 = g3.enableRubberband) == null ? void 0 : _b2.call(g3);
     if (pan) this.graph.cleanSelection();
     this.graphMount.style.cursor = pan ? "grab" : "";
-    (_a2 = this.railSelect) == null ? void 0 : _a2.classList.toggle("is-active", !pan);
-    (_b2 = this.railHand) == null ? void 0 : _b2.classList.toggle("is-active", pan);
+    (_c = this.railSelect) == null ? void 0 : _c.classList.toggle("is-active", !pan);
+    (_d = this.railHand) == null ? void 0 : _d.classList.toggle("is-active", pan);
   }
   openFlyout(cat, anchor3) {
     this.cancelFlyoutClose();

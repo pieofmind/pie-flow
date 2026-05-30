@@ -73028,14 +73028,12 @@ var LarkCanvas = class {
       m6.addEventListener("pointermove", this.onPanMove);
       m6.addEventListener("pointerup", this.onPanUp);
       m6.addEventListener("pointercancel", this.onPanUp);
-      m6.style.touchAction = "none";
       m6.style.cursor = "grab";
     } else {
       m6.removeEventListener("pointerdown", this.onPanDown);
       m6.removeEventListener("pointermove", this.onPanMove);
       m6.removeEventListener("pointerup", this.onPanUp);
       m6.removeEventListener("pointercancel", this.onPanUp);
-      m6.style.touchAction = "";
       m6.style.cursor = "";
       this.panStart = null;
     }

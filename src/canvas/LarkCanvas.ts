@@ -993,14 +993,12 @@ export class LarkCanvas {
       m.addEventListener("pointermove", this.onPanMove);
       m.addEventListener("pointerup", this.onPanUp);
       m.addEventListener("pointercancel", this.onPanUp);
-      m.style.touchAction = "none";
-      m.style.cursor = "grab";
+      m.style.cursor = "grab";   // touch-action:none is permanent via CSS (.lk-graph-mount)
     } else {
       m.removeEventListener("pointerdown", this.onPanDown);
       m.removeEventListener("pointermove", this.onPanMove);
       m.removeEventListener("pointerup", this.onPanUp);
       m.removeEventListener("pointercancel", this.onPanUp);
-      m.style.touchAction = "";
       m.style.cursor = "";
       this.panStart = null;
     }

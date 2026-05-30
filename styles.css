@@ -145,7 +145,11 @@
   --sh-lg: 0 12px 28px rgba(0,0,0,.4), 0 28px 64px rgba(0,0,0,.45);
 }
 
-.lk-graph-mount { position: absolute; inset: 0; }
+/* touch-action:none → the canvas owns all touch gestures so a horizontal swipe
+   pans/draws here instead of leaking to Obsidian's mobile drawer (open file tree /
+   right sidebar). Same approach as the Excalidraw plugin. Scrollable panels keep
+   their own touch-action. */
+.lk-graph-mount { position: absolute; inset: 0; touch-action: none; }
 .lk-root .x6-graph { background: transparent !important; }
 .lk-root .x6-node { filter: drop-shadow(0 1px 2px rgba(59,31,26,.10)) drop-shadow(0 2px 6px rgba(59,31,26,.06)); }
 .theme-dark .lk-root .x6-node { filter: drop-shadow(0 1px 3px rgba(0,0,0,.4)); }

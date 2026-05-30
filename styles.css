@@ -187,6 +187,27 @@
 .lk-rail-item svg { width: 24px; height: 24px; }
 .lk-rail-sep { height: 1px; margin: 5px 7px; background: var(--pg-border); }
 
+/* Mobile bottom toolbar (Excalidraw-style; built only on is-mobile). Tools + quick
+   shapes + "more" sheet + fit, all in the thumb zone. Scrolls if it overflows. */
+.lk-mbar {
+  position: absolute; left: 50%; transform: translateX(-50%);
+  bottom: calc(3px + env(safe-area-inset-bottom)); z-index: 45;
+  max-width: calc(100vw - 12px);
+  display: flex; align-items: center; gap: 1px; padding: 4px;
+  background: var(--pg-surface); border: 1px solid var(--pg-border);
+  border-radius: 13px; box-shadow: var(--sh-md);
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.lk-mbar::-webkit-scrollbar { display: none; }
+.lk-mbar-item {
+  flex: 0 0 auto; width: 36px; height: 36px; border-radius: 9px;
+  display: grid; place-items: center; cursor: pointer; color: var(--pg-text);
+}
+.lk-mbar-item:active { background: var(--pg-hover); }
+.lk-mbar-item.is-active { background: var(--pg-accent-soft); color: var(--pg-accent); }
+.lk-mbar-item svg { width: 21px; height: 21px; }
+.lk-mbar-sep { flex: 0 0 auto; width: 1px; height: 22px; background: var(--pg-border); margin: 0 2px; }
+
 .lk-flyout {
   position: absolute; z-index: 60; padding: 10px;
   background: var(--pg-surface); border: 1px solid var(--pg-border);
@@ -736,12 +757,14 @@
   .da-topbar > * { flex: 0 0 auto; }
   .da-tb-ic { width: 40px; height: 40px; }
 
-  /* 2. Context / edge toolbar: clamp inside the viewport and scroll.
-        left/top are set inline by refreshContextBar → override with !important. */
-  .lk-context-bar { left: 8px !important; right: 8px !important; max-width: none;
+  /* 2. Context / edge toolbar: size to content (JS sets inline left/top and clamps
+        within the viewport), just cap width and allow horizontal scroll if needed.
+        No full-width stretch → no empty trailing space. Compact touch targets. */
+  .lk-context-bar { max-width: calc(100vw - 16px);
     overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .lk-context-bar::-webkit-scrollbar { display: none; }
-  .lk-cb-btn { min-width: 40px; height: 40px; }
+  .lk-cb-btn { min-width: 34px; height: 34px; }
+  .lk-edge-bar .lk-cb-btn { min-width: 30px; height: 34px; }
 
   /* 3. Hide chrome that doesn't suit touch. */
   .lk-canvas-help { display: none; }   /* keyboard/trackpad hints — irrelevant on touch */

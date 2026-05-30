@@ -214,6 +214,8 @@ export class LarkCanvas {
   private pendingShape: PaletteItem | null = null;
   private pendingHint: HTMLElement | null = null;
   private selDrag: { id: number; node: Node; px: number; py: number; nx: number; ny: number; moved: boolean } | null = null;
+  // Two-finger pinch: zoom around the finger midpoint while also panning with it.
+  private pinch: { d0: number; scale0: number; lx: number; ly: number } | null = null;
   private wheelPan?: (e: WheelEvent) => void;
   private mmFabs: HTMLElement | null = null;
   private padLayer: HTMLElement | null = null;
@@ -250,8 +252,13 @@ export class LarkCanvas {
     ensureSeqConnector();
     ensureMindmapConnector();
     this.graph = this.initGraph();
-    this.buildLeftToolbar();
-    this.buildBottomControls();
+    if (this.isMobile) {
+      // Excalidraw-style single bottom bar (thumb zone); no left rail / zoom +/-.
+      this.buildMobileToolbar();
+    } else {
+      this.buildLeftToolbar();
+      this.buildBottomControls();
+    }
     this.buildPropsPanel();
     this.buildCanvasHelp();
     this.buildMinimap();
@@ -280,6 +287,7 @@ export class LarkCanvas {
 
     this.bindEvents();
     this.enableTrackpadPan();
+    this.enablePinch();       // mobile: two-finger pinch-zoom + pan
     this.enableLabelDrag();
     this.enableInlineLabelEdit();
     this.refreshProps();
@@ -660,6 +668,40 @@ export class LarkCanvas {
   }
 
   /**
+   * Two-finger pinch on touch: zoom around the finger midpoint and pan with it.
+   * A single transform handles both — we re-anchor the graph-local point that was
+   * under the midpoint at gesture start back under the (possibly moved) midpoint.
+   * Touch's native page pinch-zoom is suppressed via preventDefault (non-passive).
+   */
+  private enablePinch() {
+    const dist = (t: TouchList) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const mid = (t: TouchList) => ({ x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 });
+    const start = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      const m = mid(e.touches);
+      const lp = this.graph.clientToLocal(m.x, m.y);
+      this.pinch = { d0: dist(e.touches) || 1, scale0: this.graph.scale().sx, lx: lp.x, ly: lp.y };
+      this.selDrag = null; this.panStart = null;   // cancel any one-finger gesture
+      e.preventDefault();
+    };
+    const moveFn = (e: TouchEvent) => {
+      const p = this.pinch; if (!p || e.touches.length !== 2) return;
+      e.preventDefault();
+      const m = mid(e.touches);
+      const next = Math.min(3, Math.max(0.2, p.scale0 * (dist(e.touches) / p.d0)));
+      this.graph.zoom(next, { absolute: true });
+      const cur = this.graph.localToClient(p.lx, p.ly);
+      this.graph.translateBy(m.x - cur.x, m.y - cur.y);
+      this.updateZoom();
+    };
+    const end = (e: TouchEvent) => { if (e.touches.length < 2) this.pinch = null; };
+    this.graphMount.addEventListener("touchstart", start, { passive: false });
+    this.graphMount.addEventListener("touchmove", moveFn, { passive: false });
+    this.graphMount.addEventListener("touchend", end, { passive: true });
+    this.graphMount.addEventListener("touchcancel", end, { passive: true });
+  }
+
+  /**
    * Make BPMN node labels (.bp-elabel) draggable so users can manually move
    * them out of overlapping arrows when auto-flip isn't enough.
    * Persists the offset in node.data.labelOffset and re-renders the template.
@@ -879,11 +921,12 @@ export class LarkCanvas {
     this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
     this.graph.on("edge:selected", ({ edge }) => {
       this.applyEdgeStyle(edge, true); // highlight without losing custom color
-      // Reshape: drag waypoints (vertices) or whole orthogonal segments (ngang/dọc);
-      // round handles at both ends to drag-reconnect.
+      // Reshape Larksuite-style: drag a whole orthogonal segment via its midpoint
+      // handle (the "segments" tool). No free vertex-adding — grabbing arbitrary
+      // points on the line spawned too many bends and was hard to control. Round
+      // handles at both ends still drag-reconnect the endpoints.
       const dot = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
       edge.addTools([
-        { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6 } } },
         { name: "segments", args: { threshold: 8 } },
         { name: "source-arrowhead", args: dot },
         { name: "target-arrowhead", args: dot },
@@ -1023,6 +1066,72 @@ export class LarkCanvas {
     this.root.appendChild(rail);
   }
 
+  // Representative shape icon for each diagram category (rail + mobile bar).
+  private static readonly CAT_REP: Record<string, string> = {
+    "Cơ bản": "bs-rect", "Flowchart": "fc-decision", "ERD": "erd-entity", "UML": "uml-class",
+    "State": "st-state", "Sequence": "sq-actor", "Mindmap": "mm-root", "BPMN": "bpmn-gateway-x",
+  };
+
+  /**
+   * Mobile toolbar (Excalidraw-style): one bottom bar in the thumb zone.
+   * Tools (select / pan / arrow) · quick shapes (Flowchart, BPMN) · "Sơ đồ khác"
+   * sheet for the rest · fit-to-frame. Zoom +/- is omitted — pinch handles zoom.
+   */
+  private buildMobileToolbar() {
+    const FIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>`;
+    const MORE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;
+    const bar = el("div", "lk-mbar");
+    const btn = (html: string, title: string, onClick: () => void) => {
+      const b = el("div", "lk-mbar-item"); b.innerHTML = html; b.title = title; b.onclick = onClick;
+      bar.appendChild(b); return b;
+    };
+    const sep = () => bar.appendChild(el("div", "lk-mbar-sep"));
+
+    this.railSelect = btn(CURSOR_ICON, "Chọn", () => this.setTool("select"));
+    this.railSelect.classList.add("is-active");
+    this.railHand = btn(HAND_ICON, "Kéo board", () => this.setTool(this.tool === "pan" ? "select" : "pan"));
+    const arrow = btn(ARROW_ICON, "Mũi tên", () => {});
+    arrow.onclick = () => this.openArrowFlyout(arrow);
+
+    sep();
+
+    const byTitle = (t: string) => this.categories.find((c) => c.title === t);
+    for (const title of ["Flowchart", "BPMN"]) {
+      const cat = byTitle(title); if (!cat) continue;
+      const b = btn(shapeIcon(LarkCanvas.CAT_REP[title] ?? cat.items[0].shape), title, () => {});
+      b.onclick = () => this.openFlyout(cat, b);
+    }
+    const more = btn(MORE, "Sơ đồ khác", () => {});
+    more.onclick = () => this.openMoreSheet(more);
+
+    sep();
+
+    btn(FIT, "Vừa khung", () => { this.graph.zoomToFit({ padding: 40, maxScale: 1.2 }); this.updateZoom(); });
+
+    this.root.appendChild(bar);
+  }
+
+  /** Bottom-sheet of the remaining diagram categories (mobile "Sơ đồ khác"). */
+  private openMoreSheet(anchor: HTMLElement) {
+    this.cancelFlyoutClose();
+    this.closeFlyoutNow();
+    const rest = this.categories.filter((c) => c.title !== "Flowchart" && c.title !== "BPMN");
+    const fly = el("div", "lk-flyout");
+    fly.appendChild(el("div", "lk-flyout-title", "Sơ đồ khác"));
+    const grid = el("div", "lk-flyout-grid");
+    for (const cat of rest) {
+      const cell = el("div", "lk-flyout-cell",
+        `${shapeIcon(LarkCanvas.CAT_REP[cat.title] ?? cat.items[0].shape)}<span class="lbl">${cat.title}</span>`);
+      cell.style.cursor = "pointer";
+      cell.onclick = () => this.openFlyout(cat, anchor);
+      grid.appendChild(cell);
+    }
+    fly.appendChild(grid);
+    this.root.appendChild(fly);
+    this.positionFlyout(fly, anchor);
+    this.flyout = fly;
+  }
+
   /** Arrow-type flyout (mirrors openFlyout but drops edges, not nodes). */
   private openArrowFlyout(anchor: HTMLElement) {
     this.cancelFlyoutClose();
@@ -1112,14 +1221,42 @@ export class LarkCanvas {
     this.railHand?.classList.toggle("is-active", pan);
   }
 
-  /** Find the X6 node whose rendered DOM is under a client point (touch hit-test). */
+  /**
+   * Node under a client point — geometric bbox test, NOT elementFromPoint.
+   * On mobile the node body is a foreignObject hidden via `visibility:hidden`
+   * (WebKit overlay fix), so it isn't returned by elementFromPoint and ERD/UML
+   * nodes became unselectable. Bbox containment works regardless. Topmost wins.
+   */
   private nodeAtPoint(x: number, y: number): Node | null {
-    const el = document.elementFromPoint(x, y) as HTMLElement | null;
-    const cellEl = el?.closest?.("[data-cell-id]") as HTMLElement | null;
-    const id = cellEl?.getAttribute("data-cell-id");
-    if (!id) return null;
-    const cell = this.graph.getCellById(id);
-    return cell && cell.isNode() ? (cell as Node) : null;
+    const p = this.graph.clientToLocal(x, y);
+    let hit: Node | null = null; let hitZ = -Infinity;
+    for (const n of this.graph.getNodes()) {
+      const b = n.getBBox();
+      if (p.x >= b.x && p.x <= b.x + b.width && p.y >= b.y && p.y <= b.y + b.height) {
+        const z = (n.getZIndex?.() as number) ?? 0;
+        if (z >= hitZ) { hit = n; hitZ = z; }
+      }
+    }
+    return hit;
+  }
+
+  /**
+   * Edge near a client point — geometric distance to each edge's rendered path
+   * (EdgeView.getClosestPoint covers manhattan bends). A thin ~2px line is hard to
+   * tap, so accept anything within ~14 screen px. Closest edge wins.
+   */
+  private edgeAtPoint(x: number, y: number): Edge | null {
+    const p = this.graph.clientToLocal(x, y);
+    let best: Edge | null = null;
+    let bestD = 14 / (this.graph.scale().sx || 1);   // ~14px tolerance, in local units
+    for (const edge of this.graph.getEdges()) {
+      const view = this.graph.findViewByCell(edge) as { getClosestPoint?: (pt: { x: number; y: number }) => { x: number; y: number } | null } | null;
+      const cp = view?.getClosestPoint?.(p);
+      if (!cp) continue;
+      const d = Math.hypot(cp.x - p.x, cp.y - p.y);
+      if (d <= bestD) { bestD = d; best = edge; }
+    }
+    return best;
   }
 
   /** Arm a shape for tap-to-place (mobile-friendly add); shows a hint banner. */
@@ -1155,11 +1292,22 @@ export class LarkCanvas {
       this.selDrag = { id: e.pointerId, node, px: e.clientX, py: e.clientY, nx: pos.x, ny: pos.y, moved: false };
       try { this.graphMount.setPointerCapture(e.pointerId); } catch { /* unsupported */ }
       e.preventDefault();
+      return;
+    }
+    const edge = this.edgeAtPoint(e.clientX, e.clientY);
+    if (edge) {
+      this.graph.resetSelection([edge]);   // fires edge:selected → reshape tools + edge bar
+      e.preventDefault();
     } else {
+      // Tap on blank canvas → dismiss any open shape flyout / popup picker and
+      // clear selection (touch has no hover-out or reliable X6 blank:click).
+      this.closeFlyoutNow();
+      this.hidePopup();
       this.graph.cleanSelection();
     }
   };
   private onSelMove = (e: PointerEvent): void => {
+    if (this.pinch) return;   // two fingers down → gesture owns the move
     const d = this.selDrag; if (!d || e.pointerId !== d.id) return;
     const s = this.graph.scale().sx || 1;
     if (Math.abs(e.clientX - d.px) + Math.abs(e.clientY - d.py) > 3) d.moved = true;
@@ -1175,6 +1323,7 @@ export class LarkCanvas {
 
   private onPanDown = (e: PointerEvent): void => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    this.closeFlyoutNow(); this.hidePopup();   // tapping canvas dismisses overlays
     const t = this.graph.translate();
     this.panStart = { px: e.clientX, py: e.clientY, tx: t.tx, ty: t.ty, id: e.pointerId };
     try { this.graphMount.setPointerCapture(e.pointerId); } catch { /* capture unsupported */ }
@@ -1182,6 +1331,7 @@ export class LarkCanvas {
     e.preventDefault();
   };
   private onPanMove = (e: PointerEvent): void => {
+    if (this.pinch) return;   // two fingers down → gesture owns the move
     const s = this.panStart; if (!s || e.pointerId !== s.id) return;
     this.graph.translate(s.tx + (e.clientX - s.px), s.ty + (e.clientY - s.py));
     e.preventDefault();
@@ -1202,8 +1352,12 @@ export class LarkCanvas {
     for (const item of cat.items) {
       const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape)}<span class="lbl">${item.label}</span>`);
       cell.title = `Kéo "${item.label}" vào canvas`;
-      // Pointer events (not mouse) so drag-to-place works on touch as well as mouse.
-      cell.addEventListener("pointerdown", (e) => this.startDrag(e, item, cell));
+      // Mouse uses Pointer Events; touch uses Touch Events (iOS WebKit doesn't fire
+      // pointermove reliably once the finger leaves the cell, so a touch "drag" was
+      // never detected and always fell back to tap-to-place). touchmove/touchend
+      // always dispatch to the touchstart target → a real drag is detected.
+      cell.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") this.startDrag(e, item, cell); });
+      cell.addEventListener("touchstart", (e) => this.startTouchDrag(e, item, cell), { passive: false });
       grid.appendChild(cell);
     }
     fly.appendChild(grid);
@@ -1217,6 +1371,14 @@ export class LarkCanvas {
   private positionFlyout(fly: HTMLElement, anchor: HTMLElement) {
     const ir = anchor.getBoundingClientRect();
     const rr = this.root.getBoundingClientRect();
+    if (this.isMobile) {
+      // Bottom bar → open the flyout ABOVE the anchor, centered and clamped.
+      const w = fly.offsetWidth;
+      const left = Math.min(Math.max(8, ir.left - rr.left + ir.width / 2 - w / 2), Math.max(8, rr.width - w - 8));
+      fly.style.left = left + "px";
+      fly.style.top = Math.max(8, ir.top - rr.top - fly.offsetHeight - 10) + "px";
+      return;
+    }
     fly.style.left = (ir.right - rr.left + 8) + "px";
     const maxTop = rr.height - fly.offsetHeight - 12;
     fly.style.top = Math.min(Math.max(8, ir.top - rr.top - 6), Math.max(8, maxTop)) + "px";
@@ -1257,11 +1419,12 @@ export class LarkCanvas {
       const onCanvas = this.pointInGraph(ev.clientX, ev.clientY);
       const onFlyout = this.flyout ? this.pointInRect(ev.clientX, ev.clientY, this.flyout) : false;
       this.closeFlyoutNow();
-      // Only MOUSE drag-and-drop places at the release point. On touch a "tap" on
-      // a cell often carries a few px of finger jitter; treating that as a drop
-      // dropped the node at the cell's (top-left) location. So on touch we ALWAYS
-      // arm tap-to-place and let the next canvas tap decide the real position.
-      if (ev.pointerType === "mouse" && moved && onCanvas && !onFlyout) {
+      // A real DRAG onto the canvas (mouse or touch) drops the node at the release
+      // point — `moved` (>6px) rules out finger-jitter on a tap, and pointer capture
+      // on the source keeps pointermove firing once the finger is over the canvas.
+      // A pure TAP (no drag) falls back to tap-to-place: arm the shape, next canvas
+      // tap positions it. This avoids the old "node lands at top-left" jitter bug.
+      if (moved && onCanvas && !onFlyout) {
         const p = this.graph.clientToLocal(ev.clientX, ev.clientY);
         const node = this.addHtmlNode(item.shape, p.x - item.w / 2, p.y - item.h / 2, item.w, item.h, item.label);
         this.graph.resetSelection([node]);
@@ -1274,6 +1437,50 @@ export class LarkCanvas {
     source.addEventListener("pointermove", move);
     source.addEventListener("pointerup", end);
     source.addEventListener("pointercancel", end);
+  }
+
+  /**
+   * Touch counterpart of startDrag (iOS WebKit). touchmove/touchend reliably fire
+   * on the touchstart target even after the finger leaves it, so a single press →
+   * drag → release drops the node at the release point. No second tap needed.
+   */
+  private startTouchDrag(e: TouchEvent, item: PaletteItem, source: HTMLElement) {
+    if (e.touches.length !== 1) return;
+    e.preventDefault();
+    const t0 = e.touches[0];
+    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape));
+    document.body.appendChild(ghost);
+    const place = (x: number, y: number) => { ghost.style.left = x + 8 + "px"; ghost.style.top = y + 8 + "px"; };
+    place(t0.clientX, t0.clientY);
+    let moved = false;
+    const move = (ev: TouchEvent) => {
+      const t = ev.touches[0]; if (!t) return;
+      if (Math.abs(t.clientX - t0.clientX) + Math.abs(t.clientY - t0.clientY) > 6) moved = true;
+      place(t.clientX, t.clientY);
+      ev.preventDefault();
+    };
+    const end = (ev: TouchEvent) => {
+      source.removeEventListener("touchmove", move);
+      source.removeEventListener("touchend", end);
+      source.removeEventListener("touchcancel", end);
+      ghost.remove();
+      const t = ev.changedTouches[0];
+      const onCanvas = !!t && this.pointInGraph(t.clientX, t.clientY);
+      const onFlyout = !!t && !!this.flyout && this.pointInRect(t.clientX, t.clientY, this.flyout);
+      this.closeFlyoutNow();
+      if (moved && onCanvas && !onFlyout && t) {
+        const p = this.graph.clientToLocal(t.clientX, t.clientY);
+        const node = this.addHtmlNode(item.shape, p.x - item.w / 2, p.y - item.h / 2, item.w, item.h, item.label);
+        this.graph.resetSelection([node]);
+        this.onChange();
+      } else {
+        if (this.tool === "pan") this.setTool("select");
+        this.setPending(item);
+      }
+    };
+    source.addEventListener("touchmove", move, { passive: false });
+    source.addEventListener("touchend", end);
+    source.addEventListener("touchcancel", end);
   }
 
   private pointInRect(x: number, y: number, el: HTMLElement): boolean {
@@ -1567,7 +1774,8 @@ export class LarkCanvas {
     // (see refreshMindmapFabs) — keep the context bar focused on style controls.
     // Duplicate / Delete / More
     this.contextBar.appendChild(mkBtn("⧉", "Nhân bản", () => this.duplicateSelection()));
-    this.contextBar.appendChild(mkBtn("🗑", "Xóa", () => { this.graph.removeCells(this.graph.getSelectedCells()); }));
+    const TRASH_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6m5 4v6m4-6v6"/></svg>`;
+    this.contextBar.appendChild(mkBtn(TRASH_ICON, "Xóa", () => { this.graph.removeCells(this.graph.getSelectedCells()); }));
     this.contextBar.appendChild(mkBtn("⋯", "Thêm", (ev) => { const r = (ev.currentTarget as HTMLElement).getBoundingClientRect(); this.showContextMenu(r.left, r.bottom + 4); }));
 
     // BPMN Pool — quick-action buttons (bpmn.io UX).
@@ -1592,7 +1800,8 @@ export class LarkCanvas {
     this.contextBar.style.display = "flex";
     const bw = this.contextBar.offsetWidth || 280;
     const bh = this.contextBar.offsetHeight || 40;
-    this.contextBar.style.left = Math.max(8, left - bw / 2) + "px";
+    const rw = this.root.clientWidth;
+    this.contextBar.style.left = Math.max(8, Math.min(left - bw / 2, rw - bw - 8)) + "px";
     // Sit above the top "+" pad (pad center at top-24, r≈11) so they don't overlap.
     this.contextBar.style.top = Math.max(8, top - 42 - bh) + "px";
   }
@@ -2234,7 +2443,8 @@ export class LarkCanvas {
       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18 8 8l4 10M5.2 15h5.6"/><path d="M17 8v9M17 17l-2.2-2.2M17 17l2.2-2.2"/></svg>`,
       "Xoay chữ 90°", () => { this.toggleEdgeTextAngle(edge); }));
     bar.appendChild(el("div", "lk-cb-sep"));
-    bar.appendChild(mkBtn("🗑", "Xóa", () => { this.graph.removeCells([edge]); this.hideEdgeBar(); }));
+    const TRASH_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6m5 4v6m4-6v6"/></svg>`;
+    bar.appendChild(mkBtn(TRASH_ICON, "Xóa", () => { this.graph.removeCells([edge]); this.hideEdgeBar(); }));
 
     // Position above the edge midpoint; flip below if it would clip the top edge.
     const bbox = edge.getBBox(); const s = this.graph.scale().sx; const t = this.graph.translate();

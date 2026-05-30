@@ -72106,7 +72106,7 @@ function arrowPreview(style2) {
   return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
 }
 var _a2;
-var LarkCanvas = class {
+var _LarkCanvas = class _LarkCanvas {
   constructor(root2, categories, onChange) {
     this.edgeBar = null;
     this.labelInput = null;
@@ -72126,6 +72126,8 @@ var LarkCanvas = class {
     this.pendingShape = null;
     this.pendingHint = null;
     this.selDrag = null;
+    // Two-finger pinch: zoom around the finger midpoint while also panning with it.
+    this.pinch = null;
     this.mmFabs = null;
     this.padLayer = null;
     this.pendingDrop = null;
@@ -72164,11 +72166,20 @@ var LarkCanvas = class {
         } catch (e5) {
         }
         e4.preventDefault();
+        return;
+      }
+      const edge = this.edgeAtPoint(e4.clientX, e4.clientY);
+      if (edge) {
+        this.graph.resetSelection([edge]);
+        e4.preventDefault();
       } else {
+        this.closeFlyoutNow();
+        this.hidePopup();
         this.graph.cleanSelection();
       }
     };
     this.onSelMove = (e4) => {
+      if (this.pinch) return;
       const d4 = this.selDrag;
       if (!d4 || e4.pointerId !== d4.id) return;
       const s5 = this.graph.scale().sx || 1;
@@ -72188,6 +72199,8 @@ var LarkCanvas = class {
     };
     this.onPanDown = (e4) => {
       if (e4.pointerType === "mouse" && e4.button !== 0) return;
+      this.closeFlyoutNow();
+      this.hidePopup();
       const t5 = this.graph.translate();
       this.panStart = { px: e4.clientX, py: e4.clientY, tx: t5.tx, ty: t5.ty, id: e4.pointerId };
       try {
@@ -72198,6 +72211,7 @@ var LarkCanvas = class {
       e4.preventDefault();
     };
     this.onPanMove = (e4) => {
+      if (this.pinch) return;
       const s5 = this.panStart;
       if (!s5 || e4.pointerId !== s5.id) return;
       this.graph.translate(s5.tx + (e4.clientX - s5.px), s5.ty + (e4.clientY - s5.py));
@@ -72226,8 +72240,12 @@ var LarkCanvas = class {
     ensureSeqConnector();
     ensureMindmapConnector();
     this.graph = this.initGraph();
-    this.buildLeftToolbar();
-    this.buildBottomControls();
+    if (this.isMobile) {
+      this.buildMobileToolbar();
+    } else {
+      this.buildLeftToolbar();
+      this.buildBottomControls();
+    }
     this.buildPropsPanel();
     this.buildCanvasHelp();
     this.buildMinimap();
@@ -72248,6 +72266,7 @@ var LarkCanvas = class {
     this.root.appendChild(this.popupLayer);
     this.bindEvents();
     this.enableTrackpadPan();
+    this.enablePinch();
     this.enableLabelDrag();
     this.enableInlineLabelEdit();
     this.refreshProps();
@@ -72668,6 +72687,43 @@ var LarkCanvas = class {
     this.graphMount.addEventListener("wheel", this.wheelPan, { passive: false });
   }
   /**
+   * Two-finger pinch on touch: zoom around the finger midpoint and pan with it.
+   * A single transform handles both — we re-anchor the graph-local point that was
+   * under the midpoint at gesture start back under the (possibly moved) midpoint.
+   * Touch's native page pinch-zoom is suppressed via preventDefault (non-passive).
+   */
+  enablePinch() {
+    const dist = (t5) => Math.hypot(t5[0].clientX - t5[1].clientX, t5[0].clientY - t5[1].clientY);
+    const mid = (t5) => ({ x: (t5[0].clientX + t5[1].clientX) / 2, y: (t5[0].clientY + t5[1].clientY) / 2 });
+    const start = (e4) => {
+      if (e4.touches.length !== 2) return;
+      const m6 = mid(e4.touches);
+      const lp = this.graph.clientToLocal(m6.x, m6.y);
+      this.pinch = { d0: dist(e4.touches) || 1, scale0: this.graph.scale().sx, lx: lp.x, ly: lp.y };
+      this.selDrag = null;
+      this.panStart = null;
+      e4.preventDefault();
+    };
+    const moveFn = (e4) => {
+      const p6 = this.pinch;
+      if (!p6 || e4.touches.length !== 2) return;
+      e4.preventDefault();
+      const m6 = mid(e4.touches);
+      const next = Math.min(3, Math.max(0.2, p6.scale0 * (dist(e4.touches) / p6.d0)));
+      this.graph.zoom(next, { absolute: true });
+      const cur = this.graph.localToClient(p6.lx, p6.ly);
+      this.graph.translateBy(m6.x - cur.x, m6.y - cur.y);
+      this.updateZoom();
+    };
+    const end = (e4) => {
+      if (e4.touches.length < 2) this.pinch = null;
+    };
+    this.graphMount.addEventListener("touchstart", start, { passive: false });
+    this.graphMount.addEventListener("touchmove", moveFn, { passive: false });
+    this.graphMount.addEventListener("touchend", end, { passive: true });
+    this.graphMount.addEventListener("touchcancel", end, { passive: true });
+  }
+  /**
    * Make BPMN node labels (.bp-elabel) draggable so users can manually move
    * them out of overlapping arrows when auto-flip isn't enough.
    * Persists the offset in node.data.labelOffset and re-renders the template.
@@ -72932,7 +72988,6 @@ var LarkCanvas = class {
       this.applyEdgeStyle(edge, true);
       const dot2 = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
       edge.addTools([
-        { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6 } } },
         { name: "segments", args: { threshold: 8 } },
         { name: "source-arrowhead", args: dot2 },
         { name: "target-arrowhead", args: dot2 }
@@ -73091,6 +73146,74 @@ var LarkCanvas = class {
     }
     this.root.appendChild(rail);
   }
+  /**
+   * Mobile toolbar (Excalidraw-style): one bottom bar in the thumb zone.
+   * Tools (select / pan / arrow) · quick shapes (Flowchart, BPMN) · "Sơ đồ khác"
+   * sheet for the rest · fit-to-frame. Zoom +/- is omitted — pinch handles zoom.
+   */
+  buildMobileToolbar() {
+    var _a3;
+    const FIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>`;
+    const MORE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;
+    const bar = el("div", "lk-mbar");
+    const btn = (html3, title2, onClick) => {
+      const b3 = el("div", "lk-mbar-item");
+      b3.innerHTML = html3;
+      b3.title = title2;
+      b3.onclick = onClick;
+      bar.appendChild(b3);
+      return b3;
+    };
+    const sep = () => bar.appendChild(el("div", "lk-mbar-sep"));
+    this.railSelect = btn(CURSOR_ICON, "Ch\u1ECDn", () => this.setTool("select"));
+    this.railSelect.classList.add("is-active");
+    this.railHand = btn(HAND_ICON, "K\xE9o board", () => this.setTool(this.tool === "pan" ? "select" : "pan"));
+    const arrow = btn(ARROW_ICON, "M\u0169i t\xEAn", () => {
+    });
+    arrow.onclick = () => this.openArrowFlyout(arrow);
+    sep();
+    const byTitle = (t5) => this.categories.find((c6) => c6.title === t5);
+    for (const title2 of ["Flowchart", "BPMN"]) {
+      const cat = byTitle(title2);
+      if (!cat) continue;
+      const b3 = btn(shapeIcon((_a3 = _LarkCanvas.CAT_REP[title2]) != null ? _a3 : cat.items[0].shape), title2, () => {
+      });
+      b3.onclick = () => this.openFlyout(cat, b3);
+    }
+    const more = btn(MORE, "S\u01A1 \u0111\u1ED3 kh\xE1c", () => {
+    });
+    more.onclick = () => this.openMoreSheet(more);
+    sep();
+    btn(FIT, "V\u1EEBa khung", () => {
+      this.graph.zoomToFit({ padding: 40, maxScale: 1.2 });
+      this.updateZoom();
+    });
+    this.root.appendChild(bar);
+  }
+  /** Bottom-sheet of the remaining diagram categories (mobile "Sơ đồ khác"). */
+  openMoreSheet(anchor3) {
+    var _a3;
+    this.cancelFlyoutClose();
+    this.closeFlyoutNow();
+    const rest = this.categories.filter((c6) => c6.title !== "Flowchart" && c6.title !== "BPMN");
+    const fly = el("div", "lk-flyout");
+    fly.appendChild(el("div", "lk-flyout-title", "S\u01A1 \u0111\u1ED3 kh\xE1c"));
+    const grid = el("div", "lk-flyout-grid");
+    for (const cat of rest) {
+      const cell = el(
+        "div",
+        "lk-flyout-cell",
+        `${shapeIcon((_a3 = _LarkCanvas.CAT_REP[cat.title]) != null ? _a3 : cat.items[0].shape)}<span class="lbl">${cat.title}</span>`
+      );
+      cell.style.cursor = "pointer";
+      cell.onclick = () => this.openFlyout(cat, anchor3);
+      grid.appendChild(cell);
+    }
+    fly.appendChild(grid);
+    this.root.appendChild(fly);
+    this.positionFlyout(fly, anchor3);
+    this.flyout = fly;
+  }
   /** Arrow-type flyout (mirrors openFlyout but drops edges, not nodes). */
   openArrowFlyout(anchor3) {
     this.cancelFlyoutClose();
@@ -73175,15 +73298,50 @@ var LarkCanvas = class {
     (_c = this.railSelect) == null ? void 0 : _c.classList.toggle("is-active", !pan);
     (_d = this.railHand) == null ? void 0 : _d.classList.toggle("is-active", pan);
   }
-  /** Find the X6 node whose rendered DOM is under a client point (touch hit-test). */
+  /**
+   * Node under a client point — geometric bbox test, NOT elementFromPoint.
+   * On mobile the node body is a foreignObject hidden via `visibility:hidden`
+   * (WebKit overlay fix), so it isn't returned by elementFromPoint and ERD/UML
+   * nodes became unselectable. Bbox containment works regardless. Topmost wins.
+   */
   nodeAtPoint(x4, y5) {
+    var _a3, _b2;
+    const p6 = this.graph.clientToLocal(x4, y5);
+    let hit = null;
+    let hitZ = -Infinity;
+    for (const n3 of this.graph.getNodes()) {
+      const b3 = n3.getBBox();
+      if (p6.x >= b3.x && p6.x <= b3.x + b3.width && p6.y >= b3.y && p6.y <= b3.y + b3.height) {
+        const z5 = (_b2 = (_a3 = n3.getZIndex) == null ? void 0 : _a3.call(n3)) != null ? _b2 : 0;
+        if (z5 >= hitZ) {
+          hit = n3;
+          hitZ = z5;
+        }
+      }
+    }
+    return hit;
+  }
+  /**
+   * Edge near a client point — geometric distance to each edge's rendered path
+   * (EdgeView.getClosestPoint covers manhattan bends). A thin ~2px line is hard to
+   * tap, so accept anything within ~14 screen px. Closest edge wins.
+   */
+  edgeAtPoint(x4, y5) {
     var _a3;
-    const el2 = document.elementFromPoint(x4, y5);
-    const cellEl = (_a3 = el2 == null ? void 0 : el2.closest) == null ? void 0 : _a3.call(el2, "[data-cell-id]");
-    const id = cellEl == null ? void 0 : cellEl.getAttribute("data-cell-id");
-    if (!id) return null;
-    const cell = this.graph.getCellById(id);
-    return cell && cell.isNode() ? cell : null;
+    const p6 = this.graph.clientToLocal(x4, y5);
+    let best = null;
+    let bestD = 14 / (this.graph.scale().sx || 1);
+    for (const edge of this.graph.getEdges()) {
+      const view = this.graph.findViewByCell(edge);
+      const cp = (_a3 = view == null ? void 0 : view.getClosestPoint) == null ? void 0 : _a3.call(view, p6);
+      if (!cp) continue;
+      const d4 = Math.hypot(cp.x - p6.x, cp.y - p6.y);
+      if (d4 <= bestD) {
+        bestD = d4;
+        best = edge;
+      }
+    }
+    return best;
   }
   /** Arm a shape for tap-to-place (mobile-friendly add); shows a hint banner. */
   setPending(item) {
@@ -73206,7 +73364,10 @@ var LarkCanvas = class {
     for (const item of cat.items) {
       const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape)}<span class="lbl">${item.label}</span>`);
       cell.title = `K\xE9o "${item.label}" v\xE0o canvas`;
-      cell.addEventListener("pointerdown", (e4) => this.startDrag(e4, item, cell));
+      cell.addEventListener("pointerdown", (e4) => {
+        if (e4.pointerType === "mouse") this.startDrag(e4, item, cell);
+      });
+      cell.addEventListener("touchstart", (e4) => this.startTouchDrag(e4, item, cell), { passive: false });
       grid.appendChild(cell);
     }
     fly.appendChild(grid);
@@ -73220,6 +73381,13 @@ var LarkCanvas = class {
   positionFlyout(fly, anchor3) {
     const ir2 = anchor3.getBoundingClientRect();
     const rr2 = this.root.getBoundingClientRect();
+    if (this.isMobile) {
+      const w5 = fly.offsetWidth;
+      const left4 = Math.min(Math.max(8, ir2.left - rr2.left + ir2.width / 2 - w5 / 2), Math.max(8, rr2.width - w5 - 8));
+      fly.style.left = left4 + "px";
+      fly.style.top = Math.max(8, ir2.top - rr2.top - fly.offsetHeight - 10) + "px";
+      return;
+    }
     fly.style.left = ir2.right - rr2.left + 8 + "px";
     const maxTop = rr2.height - fly.offsetHeight - 12;
     fly.style.top = Math.min(Math.max(8, ir2.top - rr2.top - 6), Math.max(8, maxTop)) + "px";
@@ -73275,7 +73443,7 @@ var LarkCanvas = class {
       const onCanvas = this.pointInGraph(ev.clientX, ev.clientY);
       const onFlyout = this.flyout ? this.pointInRect(ev.clientX, ev.clientY, this.flyout) : false;
       this.closeFlyoutNow();
-      if (ev.pointerType === "mouse" && moved && onCanvas && !onFlyout) {
+      if (moved && onCanvas && !onFlyout) {
         const p6 = this.graph.clientToLocal(ev.clientX, ev.clientY);
         const node2 = this.addHtmlNode(item.shape, p6.x - item.w / 2, p6.y - item.h / 2, item.w, item.h, item.label);
         this.graph.resetSelection([node2]);
@@ -73288,6 +73456,53 @@ var LarkCanvas = class {
     source.addEventListener("pointermove", move);
     source.addEventListener("pointerup", end);
     source.addEventListener("pointercancel", end);
+  }
+  /**
+   * Touch counterpart of startDrag (iOS WebKit). touchmove/touchend reliably fire
+   * on the touchstart target even after the finger leaves it, so a single press →
+   * drag → release drops the node at the release point. No second tap needed.
+   */
+  startTouchDrag(e4, item, source) {
+    if (e4.touches.length !== 1) return;
+    e4.preventDefault();
+    const t0 = e4.touches[0];
+    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape));
+    document.body.appendChild(ghost);
+    const place = (x4, y5) => {
+      ghost.style.left = x4 + 8 + "px";
+      ghost.style.top = y5 + 8 + "px";
+    };
+    place(t0.clientX, t0.clientY);
+    let moved = false;
+    const move = (ev) => {
+      const t5 = ev.touches[0];
+      if (!t5) return;
+      if (Math.abs(t5.clientX - t0.clientX) + Math.abs(t5.clientY - t0.clientY) > 6) moved = true;
+      place(t5.clientX, t5.clientY);
+      ev.preventDefault();
+    };
+    const end = (ev) => {
+      source.removeEventListener("touchmove", move);
+      source.removeEventListener("touchend", end);
+      source.removeEventListener("touchcancel", end);
+      ghost.remove();
+      const t5 = ev.changedTouches[0];
+      const onCanvas = !!t5 && this.pointInGraph(t5.clientX, t5.clientY);
+      const onFlyout = !!t5 && !!this.flyout && this.pointInRect(t5.clientX, t5.clientY, this.flyout);
+      this.closeFlyoutNow();
+      if (moved && onCanvas && !onFlyout && t5) {
+        const p6 = this.graph.clientToLocal(t5.clientX, t5.clientY);
+        const node2 = this.addHtmlNode(item.shape, p6.x - item.w / 2, p6.y - item.h / 2, item.w, item.h, item.label);
+        this.graph.resetSelection([node2]);
+        this.onChange();
+      } else {
+        if (this.tool === "pan") this.setTool("select");
+        this.setPending(item);
+      }
+    };
+    source.addEventListener("touchmove", move, { passive: false });
+    source.addEventListener("touchend", end);
+    source.addEventListener("touchcancel", end);
   }
   pointInRect(x4, y5, el2) {
     const r4 = el2.getBoundingClientRect();
@@ -73651,7 +73866,8 @@ var LarkCanvas = class {
     this.contextBar.appendChild(mkBtn(`<span class="lk-color-ring" style="border-color:${st3.stroke || "#888"}"></span>`, "M\xE0u vi\u1EC1n", (ev) => this.openColorPopup(node2, "stroke", ev.currentTarget)));
     this.contextBar.appendChild(mkBtn(`<b style="font-size:15px">A</b>`, "Ch\u1EEF", (ev) => this.openTextPopup(node2, ev.currentTarget)));
     this.contextBar.appendChild(mkBtn("\u29C9", "Nh\xE2n b\u1EA3n", () => this.duplicateSelection()));
-    this.contextBar.appendChild(mkBtn("\u{1F5D1}", "X\xF3a", () => {
+    const TRASH_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6m5 4v6m4-6v6"/></svg>`;
+    this.contextBar.appendChild(mkBtn(TRASH_ICON, "X\xF3a", () => {
       this.graph.removeCells(this.graph.getSelectedCells());
     }));
     this.contextBar.appendChild(mkBtn("\u22EF", "Th\xEAm", (ev) => {
@@ -73690,7 +73906,8 @@ var LarkCanvas = class {
     this.contextBar.style.display = "flex";
     const bw = this.contextBar.offsetWidth || 280;
     const bh = this.contextBar.offsetHeight || 40;
-    this.contextBar.style.left = Math.max(8, left4 - bw / 2) + "px";
+    const rw = this.root.clientWidth;
+    this.contextBar.style.left = Math.max(8, Math.min(left4 - bw / 2, rw - bw - 8)) + "px";
     this.contextBar.style.top = Math.max(8, top4 - 42 - bh) + "px";
   }
   // ── Popups ───────────────────────────────────────────────────────────────
@@ -74489,7 +74706,8 @@ var LarkCanvas = class {
       }
     ));
     bar.appendChild(el("div", "lk-cb-sep"));
-    bar.appendChild(mkBtn("\u{1F5D1}", "X\xF3a", () => {
+    const TRASH_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6m5 4v6m4-6v6"/></svg>`;
+    bar.appendChild(mkBtn(TRASH_ICON, "X\xF3a", () => {
       this.graph.removeCells([edge]);
       this.hideEdgeBar();
     }));
@@ -75095,6 +75313,18 @@ var LarkCanvas = class {
     this.graph.dispose();
   }
 };
+// Representative shape icon for each diagram category (rail + mobile bar).
+_LarkCanvas.CAT_REP = {
+  "C\u01A1 b\u1EA3n": "bs-rect",
+  "Flowchart": "fc-decision",
+  "ERD": "erd-entity",
+  "UML": "uml-class",
+  "State": "st-state",
+  "Sequence": "sq-actor",
+  "Mindmap": "mm-root",
+  "BPMN": "bpmn-gateway-x"
+};
+var LarkCanvas = _LarkCanvas;
 
 // src/view/BoardView.ts
 registerAllShapes();

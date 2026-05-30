@@ -999,7 +999,8 @@ export class LarkCanvas {
     for (const item of cat.items) {
       const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape)}<span class="lbl">${item.label}</span>`);
       cell.title = `Kéo "${item.label}" vào canvas`;
-      cell.onmousedown = (e: MouseEvent) => { this.startDrag(e, item); this.closeFlyoutNow(); };
+      // Pointer events (not mouse) so drag-to-place works on touch as well as mouse.
+      cell.addEventListener("pointerdown", (e) => this.startDrag(e, item, cell));
       grid.appendChild(cell);
     }
     fly.appendChild(grid);
@@ -1022,16 +1023,27 @@ export class LarkCanvas {
   }
 
   // Drag a shape from the panel onto the canvas
-  private startDrag(e: MouseEvent, item: PaletteItem) {
+  /**
+   * Drag a palette shape onto the canvas. Uses Pointer Events + pointer capture
+   * so it works identically with mouse and touch — on touch, `mousemove` is not
+   * emitted during a drag, so the old mouse-only handler dropped nodes at (0,0).
+   * The source cell is captured (and `.lk-flyout-cell` has `touch-action:none`)
+   * so the whole drag routes here without the browser hijacking it for scrolling.
+   */
+  private startDrag(e: PointerEvent, item: PaletteItem, source: HTMLElement) {
     e.preventDefault();
     const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape));
     document.body.appendChild(ghost);
-    const move = (ev: MouseEvent) => { ghost.style.left = ev.clientX + 8 + "px"; ghost.style.top = ev.clientY + 8 + "px"; };
+    const move = (ev: PointerEvent) => { ghost.style.left = ev.clientX + 8 + "px"; ghost.style.top = ev.clientY + 8 + "px"; };
     move(e);
-    const up = (ev: MouseEvent) => {
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", up);
+    try { source.setPointerCapture(e.pointerId); } catch { /* capture unsupported — document fallback below */ }
+    const end = (ev: PointerEvent) => {
+      source.removeEventListener("pointermove", move);
+      source.removeEventListener("pointerup", end);
+      source.removeEventListener("pointercancel", end);
+      try { source.releasePointerCapture(ev.pointerId); } catch { /* already released */ }
       ghost.remove();
+      this.closeFlyoutNow();
       const rect = this.graphMount.getBoundingClientRect();
       if (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
         const p = this.graph.clientToLocal(ev.clientX, ev.clientY);
@@ -1039,8 +1051,9 @@ export class LarkCanvas {
         this.graph.select(node);
       }
     };
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mouseup", up);
+    source.addEventListener("pointermove", move);
+    source.addEventListener("pointerup", end);
+    source.addEventListener("pointercancel", end);
   }
 
   // ── Zoom control (bottom-left, design style) ─────────────────────────────

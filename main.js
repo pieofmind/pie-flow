@@ -73010,10 +73010,7 @@ var LarkCanvas = class {
     for (const item of cat.items) {
       const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape)}<span class="lbl">${item.label}</span>`);
       cell.title = `K\xE9o "${item.label}" v\xE0o canvas`;
-      cell.onmousedown = (e4) => {
-        this.startDrag(e4, item);
-        this.closeFlyoutNow();
-      };
+      cell.addEventListener("pointerdown", (e4) => this.startDrag(e4, item, cell));
       grid.appendChild(cell);
     }
     fly.appendChild(grid);
@@ -73043,7 +73040,14 @@ var LarkCanvas = class {
     this.flyoutTimer = window.setTimeout(() => this.closeFlyoutNow(), 160);
   }
   // Drag a shape from the panel onto the canvas
-  startDrag(e4, item) {
+  /**
+   * Drag a palette shape onto the canvas. Uses Pointer Events + pointer capture
+   * so it works identically with mouse and touch — on touch, `mousemove` is not
+   * emitted during a drag, so the old mouse-only handler dropped nodes at (0,0).
+   * The source cell is captured (and `.lk-flyout-cell` has `touch-action:none`)
+   * so the whole drag routes here without the browser hijacking it for scrolling.
+   */
+  startDrag(e4, item, source) {
     e4.preventDefault();
     const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape));
     document.body.appendChild(ghost);
@@ -73052,10 +73056,20 @@ var LarkCanvas = class {
       ghost.style.top = ev.clientY + 8 + "px";
     };
     move(e4);
-    const up = (ev) => {
-      document.removeEventListener("mousemove", move);
-      document.removeEventListener("mouseup", up);
+    try {
+      source.setPointerCapture(e4.pointerId);
+    } catch (e5) {
+    }
+    const end = (ev) => {
+      source.removeEventListener("pointermove", move);
+      source.removeEventListener("pointerup", end);
+      source.removeEventListener("pointercancel", end);
+      try {
+        source.releasePointerCapture(ev.pointerId);
+      } catch (e5) {
+      }
       ghost.remove();
+      this.closeFlyoutNow();
       const rect2 = this.graphMount.getBoundingClientRect();
       if (ev.clientX >= rect2.left && ev.clientX <= rect2.right && ev.clientY >= rect2.top && ev.clientY <= rect2.bottom) {
         const p6 = this.graph.clientToLocal(ev.clientX, ev.clientY);
@@ -73063,8 +73077,9 @@ var LarkCanvas = class {
         this.graph.select(node2);
       }
     };
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mouseup", up);
+    source.addEventListener("pointermove", move);
+    source.addEventListener("pointerup", end);
+    source.addEventListener("pointercancel", end);
   }
   // ── Zoom control (bottom-left, design style) ─────────────────────────────
   buildBottomControls() {

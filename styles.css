@@ -183,6 +183,7 @@
   width: 66px; display: flex; flex-direction: column; align-items: center; gap: 5px;
   padding: 9px 4px; border-radius: 9px; cursor: grab; border: 1px solid transparent;
   transition: background .12s, border-color .12s;
+  touch-action: none;  /* let pointermove fire during a touch drag (don't scroll) */
 }
 .lk-flyout-cell:hover { background: var(--pg-hover); border-color: var(--pg-border); }
 .lk-flyout-cell:active { cursor: grabbing; }

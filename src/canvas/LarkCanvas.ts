@@ -192,6 +192,9 @@ export class LarkCanvas {
   private railSelect: HTMLElement | null = null;
   private railHand: HTMLElement | null = null;
   private panStart: { px: number; py: number; tx: number; ty: number; id: number } | null = null;
+  private pendingShape: PaletteItem | null = null;
+  private pendingHint: HTMLElement | null = null;
+  private selDrag: { id: number; node: Node; px: number; py: number; nx: number; ny: number; moved: boolean } | null = null;
   private wheelPan?: (e: WheelEvent) => void;
   private mmFabs: HTMLElement | null = null;
   private padLayer: HTMLElement | null = null;
@@ -254,6 +257,7 @@ export class LarkCanvas {
     this.enableLabelDrag();
     this.enableInlineLabelEdit();
     this.refreshProps();
+    this.setTool("select");   // wire the touch select/move handlers
   }
 
   // ── Graph ──────────────────────────────────────────────────────────────
@@ -321,7 +325,7 @@ export class LarkCanvas {
       if (pasted.length) graph.resetSelection(pasted);
       return false;
     });
-    graph.bindKey("esc", () => { this.hidePopup(); this.commitLabel(); graph.cleanSelection(); });
+    graph.bindKey("esc", () => { this.hidePopup(); this.commitLabel(); this.setPending(null); graph.cleanSelection(); });
     // Tool shortcuts (ignored while typing in an inline editor — keyboard plugin guards inputs).
     graph.bindKey("v", () => { this.setTool("select"); });
     graph.bindKey("h", () => { this.setTool("pan"); });
@@ -997,23 +1001,97 @@ export class LarkCanvas {
     // listens for mouse, so it doesn't work on touch). touch-action:none stops
     // the browser from turning the drag into a page scroll.
     const m = this.graphMount;
+    // Detach both handler sets, then attach the active one. On touch we drive
+    // selection/move/placement ourselves via Pointer Events because X6's touch
+    // support is unreliable in the Obsidian webview (and our touch-event block,
+    // needed to stop Obsidian's drawer swipe, also suppresses X6's touch drag).
+    m.removeEventListener("pointerdown", this.onPanDown);
+    m.removeEventListener("pointermove", this.onPanMove);
+    m.removeEventListener("pointerup", this.onPanUp);
+    m.removeEventListener("pointercancel", this.onPanUp);
+    m.removeEventListener("pointerdown", this.onSelDown);
+    m.removeEventListener("pointermove", this.onSelMove);
+    m.removeEventListener("pointerup", this.onSelUp);
+    m.removeEventListener("pointercancel", this.onSelUp);
     if (pan) {
       m.addEventListener("pointerdown", this.onPanDown);
       m.addEventListener("pointermove", this.onPanMove);
       m.addEventListener("pointerup", this.onPanUp);
       m.addEventListener("pointercancel", this.onPanUp);
       m.style.cursor = "grab";   // touch-action:none is permanent via CSS (.lk-graph-mount)
+      this.setPending(null);
     } else {
-      m.removeEventListener("pointerdown", this.onPanDown);
-      m.removeEventListener("pointermove", this.onPanMove);
-      m.removeEventListener("pointerup", this.onPanUp);
-      m.removeEventListener("pointercancel", this.onPanUp);
+      m.addEventListener("pointerdown", this.onSelDown);
+      m.addEventListener("pointermove", this.onSelMove);
+      m.addEventListener("pointerup", this.onSelUp);
+      m.addEventListener("pointercancel", this.onSelUp);
       m.style.cursor = "";
       this.panStart = null;
     }
     this.railSelect?.classList.toggle("is-active", !pan);
     this.railHand?.classList.toggle("is-active", pan);
   }
+
+  /** Find the X6 node whose rendered DOM is under a client point (touch hit-test). */
+  private nodeAtPoint(x: number, y: number): Node | null {
+    const el = document.elementFromPoint(x, y) as HTMLElement | null;
+    const cellEl = el?.closest?.("[data-cell-id]") as HTMLElement | null;
+    const id = cellEl?.getAttribute("data-cell-id");
+    if (!id) return null;
+    const cell = this.graph.getCellById(id);
+    return cell && cell.isNode() ? (cell as Node) : null;
+  }
+
+  /** Arm a shape for tap-to-place (mobile-friendly add); shows a hint banner. */
+  private setPending(item: PaletteItem | null): void {
+    this.pendingShape = item;
+    this.graphMount.style.cursor = item ? "copy" : (this.tool === "pan" ? "grab" : "");
+    if (item && !this.pendingHint) {
+      this.pendingHint = el("div", "lk-place-hint", "Chạm vào canvas để đặt hình");
+      this.root.appendChild(this.pendingHint);
+    } else if (!item && this.pendingHint) {
+      this.pendingHint.remove(); this.pendingHint = null;
+    }
+  }
+
+  // ── Touch interaction (select tool): tap-select, drag-move, tap-to-place ──
+  private onSelDown = (e: PointerEvent): void => {
+    const node = this.nodeAtPoint(e.clientX, e.clientY);
+    // Tap-to-place a pending shape (works for mouse and touch).
+    if (this.pendingShape && !node) {
+      const it = this.pendingShape;
+      const p = this.graph.clientToLocal(e.clientX, e.clientY);
+      const created = this.addHtmlNode(it.shape, p.x - it.w / 2, p.y - it.h / 2, it.w, it.h, it.label);
+      this.graph.resetSelection([created]);
+      this.setPending(null);
+      this.onChange();
+      e.preventDefault();
+      return;
+    }
+    if (e.pointerType === "mouse") return;   // desktop mouse select/move → X6 handles it
+    if (node) {
+      this.graph.resetSelection([node]);
+      const pos = node.position();
+      this.selDrag = { id: e.pointerId, node, px: e.clientX, py: e.clientY, nx: pos.x, ny: pos.y, moved: false };
+      try { this.graphMount.setPointerCapture(e.pointerId); } catch { /* unsupported */ }
+      e.preventDefault();
+    } else {
+      this.graph.cleanSelection();
+    }
+  };
+  private onSelMove = (e: PointerEvent): void => {
+    const d = this.selDrag; if (!d || e.pointerId !== d.id) return;
+    const s = this.graph.scale().sx || 1;
+    if (Math.abs(e.clientX - d.px) + Math.abs(e.clientY - d.py) > 3) d.moved = true;
+    d.node.position(d.nx + (e.clientX - d.px) / s, d.ny + (e.clientY - d.py) / s);
+    e.preventDefault();
+  };
+  private onSelUp = (e: PointerEvent): void => {
+    const d = this.selDrag; if (!d || e.pointerId !== d.id) return;
+    try { this.graphMount.releasePointerCapture(e.pointerId); } catch { /* released */ }
+    if (d.moved) this.onChange();
+    this.selDrag = null;
+  };
 
   private onPanDown = (e: PointerEvent): void => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -1067,38 +1145,58 @@ export class LarkCanvas {
     this.flyoutTimer = window.setTimeout(() => this.closeFlyoutNow(), 160);
   }
 
-  // Drag a shape from the panel onto the canvas
+  // Add a shape from the palette to the canvas.
   /**
-   * Drag a palette shape onto the canvas. Uses Pointer Events + pointer capture
-   * so it works identically with mouse and touch — on touch, `mousemove` is not
-   * emitted during a drag, so the old mouse-only handler dropped nodes at (0,0).
-   * The source cell is captured (and `.lk-flyout-cell` has `touch-action:none`)
-   * so the whole drag routes here without the browser hijacking it for scrolling.
+   * Two ways to add, both via Pointer Events (mouse + touch):
+   *  - DRAG the cell onto the bare canvas → drop the node at the release point.
+   *  - TAP the cell (no real drag, or release still over the flyout) → arm the
+   *    shape for tap-to-place; the next tap on the canvas drops it there. This is
+   *    the mobile path and also fixes the old bug where a tap created the node at
+   *    the flyout's location (top-left) because the flyout overlays the canvas.
    */
   private startDrag(e: PointerEvent, item: PaletteItem, source: HTMLElement) {
     e.preventDefault();
     const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape));
     document.body.appendChild(ghost);
-    const move = (ev: PointerEvent) => { ghost.style.left = ev.clientX + 8 + "px"; ghost.style.top = ev.clientY + 8 + "px"; };
+    let moved = false;
+    const move = (ev: PointerEvent) => {
+      if (Math.abs(ev.clientX - e.clientX) + Math.abs(ev.clientY - e.clientY) > 6) moved = true;
+      ghost.style.left = ev.clientX + 8 + "px"; ghost.style.top = ev.clientY + 8 + "px";
+    };
     move(e);
-    try { source.setPointerCapture(e.pointerId); } catch { /* capture unsupported — document fallback below */ }
+    try { source.setPointerCapture(e.pointerId); } catch { /* capture unsupported */ }
     const end = (ev: PointerEvent) => {
       source.removeEventListener("pointermove", move);
       source.removeEventListener("pointerup", end);
       source.removeEventListener("pointercancel", end);
       try { source.releasePointerCapture(ev.pointerId); } catch { /* already released */ }
       ghost.remove();
+      const onCanvas = this.pointInGraph(ev.clientX, ev.clientY);
+      const onFlyout = this.flyout ? this.pointInRect(ev.clientX, ev.clientY, this.flyout) : false;
       this.closeFlyoutNow();
-      const rect = this.graphMount.getBoundingClientRect();
-      if (ev.clientX >= rect.left && ev.clientX <= rect.right && ev.clientY >= rect.top && ev.clientY <= rect.bottom) {
+      if (moved && onCanvas && !onFlyout) {
+        // Real drag-and-drop onto the canvas → place at the release point.
         const p = this.graph.clientToLocal(ev.clientX, ev.clientY);
         const node = this.addHtmlNode(item.shape, p.x - item.w / 2, p.y - item.h / 2, item.w, item.h, item.label);
-        this.graph.select(node);
+        this.graph.resetSelection([node]);
+        this.onChange();
+      } else {
+        // Tap (or released over the flyout) → arm tap-to-place.
+        if (this.tool === "pan") this.setTool("select");
+        this.setPending(item);
       }
     };
     source.addEventListener("pointermove", move);
     source.addEventListener("pointerup", end);
     source.addEventListener("pointercancel", end);
+  }
+
+  private pointInRect(x: number, y: number, el: HTMLElement): boolean {
+    const r = el.getBoundingClientRect();
+    return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+  }
+  private pointInGraph(x: number, y: number): boolean {
+    return this.pointInRect(x, y, this.graphMount);
   }
 
   // ── Zoom control (bottom-left, design style) ─────────────────────────────

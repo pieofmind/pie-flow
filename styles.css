@@ -153,6 +153,17 @@
 .lk-root .x6-graph { background: transparent !important; }
 .lk-root .x6-node { filter: drop-shadow(0 1px 2px rgba(59,31,26,.10)) drop-shadow(0 2px 6px rgba(59,31,26,.06)); }
 .theme-dark .lk-root .x6-node { filter: drop-shadow(0 1px 3px rgba(0,0,0,.4)); }
+
+/* ── Mobile HTML overlay ──────────────────────────────────────────
+   WebKit/iOS mis-positions <foreignObject> HTML (position:absolute, clip-path,
+   transform, %-height flex all jump to the SVG origin). On mobile we hide the
+   foreignObject visuals and mirror each node into a real <div> (.lk-hnode) inside
+   .lk-html-layer, where that CSS works. Interaction stays on the SVG hit rect.
+   Desktop never gets .lk-mobile, so it is completely unaffected. */
+.lk-mobile .x6-node foreignObject { visibility: hidden; }
+.lk-html-layer { position: absolute; inset: 0; transform-origin: 0 0; pointer-events: none; z-index: 4; }
+.lk-hnode { position: absolute; }
+.lk-hnode > .hn { width: 100%; height: 100%; }
 .lk-root .x6-port circle { visibility: hidden; cursor: crosshair; }
 .lk-root .x6-widget-selection-box {
   border: 1.5px solid var(--pg-accent) !important; border-radius: 6px;

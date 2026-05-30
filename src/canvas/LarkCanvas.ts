@@ -200,6 +200,13 @@ export class LarkCanvas {
   private padLayer: HTMLElement | null = null;
   private pendingDrop: Edge | null = null; // dangling edge awaiting a shape pick (drag-to-blank)
   private lastSelectedAt = new Map<string, number>(); // when each node became selected (for click-to-edit)
+  // Mobile-only HTML overlay: WebKit/iOS mis-positions <foreignObject> HTML content
+  // (position:absolute, clip-path, transform, %-height flex all jump to 0,0). We hide
+  // the foreignObject visuals on mobile and render each node into a real <div> overlay
+  // (where that CSS works), positioned to match. Interaction stays on the SVG hit rect.
+  private readonly isMobile = typeof document !== "undefined" && !!document.body?.classList.contains("is-mobile");
+  private htmlLayer: HTMLElement | null = null;
+  private htmlNodes = new Map<string, HTMLElement>();
   private flyout: HTMLElement | null = null;
   private flyoutTimer: number | null = null;
 
@@ -258,6 +265,7 @@ export class LarkCanvas {
     this.enableInlineLabelEdit();
     this.refreshProps();
     this.setTool("select");   // wire the touch select/move handlers
+    this.initHtmlOverlay();   // mobile-only: real-div node rendering (no-op on desktop)
   }
 
   // ── Graph ──────────────────────────────────────────────────────────────
@@ -1767,6 +1775,61 @@ export class LarkCanvas {
     if (k === "mm-root" || k === "mm-branch" || k === "mm-leaf") {
       this.scheduleMindmapAutoGrow(n);
     }
+    this.upsertHtmlNode(n);   // keep the mobile HTML overlay in sync (no-op on desktop)
+  }
+
+  // ── Mobile HTML overlay (real <div> mirror of node content) ──────────────
+  private initHtmlOverlay(): void {
+    if (!this.isMobile) return;
+    this.root.classList.add("lk-mobile");          // CSS hides the buggy foreignObject visuals
+    this.htmlLayer = el("div", "lk-html-layer");
+    this.graphMount.appendChild(this.htmlLayer);
+    const xform = () => this.syncHtmlTransform();
+    this.graph.on("scale", xform);
+    this.graph.on("translate", xform);
+    this.graph.on("resize", xform);
+    this.graph.on("node:added", ({ node }) => this.upsertHtmlNode(node));
+    this.graph.on("node:removed", ({ node }) => this.removeHtmlNode(node.id));
+    this.graph.on("node:change:position", ({ cell }) => this.placeHtmlNode(cell as Node));
+    this.graph.on("node:change:size", ({ cell }) => this.placeHtmlNode(cell as Node));
+    this.graph.on("node:change:zIndex", ({ cell }) => this.placeHtmlNode(cell as Node));
+    this.graph.on("node:change:data", ({ cell }) => this.upsertHtmlNode(cell as Node));
+    this.resyncHtmlNodes();
+  }
+  /** Rebuild the whole overlay from the current node set (after loadModel). */
+  private resyncHtmlNodes(): void {
+    if (!this.htmlLayer) return;
+    const live = new Set<string>();
+    for (const n of this.graph.getNodes()) { this.upsertHtmlNode(n); live.add(n.id); }
+    for (const id of [...this.htmlNodes.keys()]) if (!live.has(id)) this.removeHtmlNode(id);
+    this.syncHtmlTransform();
+  }
+  private syncHtmlTransform(): void {
+    if (!this.htmlLayer) return;
+    const t = this.graph.translate(); const s = this.graph.scale().sx || 1;
+    this.htmlLayer.style.transform = `translate(${t.tx}px, ${t.ty}px) scale(${s})`;
+  }
+  private upsertHtmlNode(node: Node): void {
+    if (!this.htmlLayer) return;
+    let div = this.htmlNodes.get(node.id);
+    if (!div) {
+      div = el("div", "lk-hnode");
+      this.htmlLayer.appendChild(div);
+      this.htmlNodes.set(node.id, div);
+    }
+    div.innerHTML = `<div class="hn">${nodeHtml(this.nodeKind(node), this.nodeLabel(node), this.nodeStyle(node), this.nodeExtra(node))}</div>`;
+    this.placeHtmlNode(node);
+  }
+  private placeHtmlNode(node: Node): void {
+    const div = this.htmlNodes.get(node.id); if (!div) return;
+    const p = node.position(); const sz = node.size();
+    div.style.left = p.x + "px"; div.style.top = p.y + "px";
+    div.style.width = sz.width + "px"; div.style.height = sz.height + "px";
+    div.style.zIndex = String((node.getZIndex?.() as number) ?? 1);
+  }
+  private removeHtmlNode(id: string): void {
+    const div = this.htmlNodes.get(id);
+    if (div) { div.remove(); this.htmlNodes.delete(id); }
   }
   private setStyle(n: Node, patch: NodeStyle) { n.setData({ ...n.getData(), style: { ...this.nodeStyle(n), ...patch } }); this.rerender(n); this.onChange(); }
 
@@ -2332,6 +2395,7 @@ export class LarkCanvas {
       if (mm) this.applyMindmapRoutingIfNeeded(created); // re-anchor right/left ports (old boards had none)
     }
     this.graph.stopBatch("load");
+    this.resyncHtmlNodes();   // rebuild the mobile overlay from the freshly loaded nodes
     // Auto-grow every mindmap node once the foreignObject DOM is mounted &
     // measurable — covers long labels saved with too-small initial height.
     setTimeout(() => {

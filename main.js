@@ -816,7 +816,7 @@ var init_browser = __esm({
     wblk = function(dat, out, final, syms, lf, df, eb, li, bs, bl, p6) {
       wbits(out, p6++, final);
       ++lf[256];
-      var _a2 = hTree(lf, 15), dlt = _a2.t, mlb = _a2.l;
+      var _a3 = hTree(lf, 15), dlt = _a3.t, mlb = _a3.l;
       var _b2 = hTree(df, 15), ddt = _b2.t, mdb = _b2.l;
       var _c = lc(dlt), lclt = _c.c, nlc = _c.n;
       var _d = lc(ddt), lcdt = _d.c, ndc = _d.n;
@@ -6699,11 +6699,11 @@ var init_PngDecoder = __esm({
         }
       }
       decodeImage() {
-        var _a2;
+        var _a3;
         if (this._inflator.err) {
           throw new Error(`Error while decompressing the data: ${this._inflator.err}`);
         }
-        const data2 = this._isAnimated ? ((_a2 = this._frames) == null ? void 0 : _a2.at(0)).data : this._inflator.result;
+        const data2 = this._isAnimated ? ((_a3 = this._frames) == null ? void 0 : _a3.at(0)).data : this._inflator.result;
         if (this._filterMethod !== FilterMethod.ADAPTIVE) {
           throw new Error(`Filter method ${this._filterMethod} not supported`);
         }
@@ -7483,7 +7483,7 @@ var require_html2canvas = __commonJS({
         if (!options) {
           options = { lineBreak: "normal", wordBreak: "normal" };
         }
-        var _a2 = codePointsToCharacterClasses(codePoints, options.lineBreak), indicies = _a2[0], classTypes = _a2[1], isLetterNumber = _a2[2];
+        var _a3 = codePointsToCharacterClasses(codePoints, options.lineBreak), indicies = _a3[0], classTypes = _a3[1], isLetterNumber = _a3[2];
         if (options.wordBreak === "break-all" || options.wordBreak === "break-word") {
           classTypes = classTypes.map(function(type) {
             return [NU, AL, SA].indexOf(type) !== -1 ? ID : type;
@@ -7511,7 +7511,7 @@ var require_html2canvas = __commonJS({
       );
       var LineBreaker = function(str, options) {
         var codePoints = toCodePoints$1(str);
-        var _a2 = cssFormattedClasses(codePoints, options), indicies = _a2[0], classTypes = _a2[1], forbiddenBreakpoints = _a2[2];
+        var _a3 = cssFormattedClasses(codePoints, options), indicies = _a3[0], classTypes = _a3[1], forbiddenBreakpoints = _a3[2];
         var length2 = codePoints.length;
         var lastEnd = 0;
         var nextIndex = 0;
@@ -8153,7 +8153,7 @@ var require_html2canvas = __commonJS({
             return [stringToNumber(repr), type];
           };
           Tokenizer2.prototype.consumeNumericToken = function() {
-            var _a2 = this.consumeNumber(), number = _a2[0], flags = _a2[1];
+            var _a3 = this.consumeNumber(), number = _a3[0], flags = _a3[1];
             var c1 = this.peekCodePoint(0);
             var c22 = this.peekCodePoint(1);
             var c32 = this.peekCodePoint(2);
@@ -8542,7 +8542,7 @@ var require_html2canvas = __commonJS({
       var rgb = function(_context, args) {
         var tokens = args.filter(nonFunctionArgSeparator);
         if (tokens.length === 3) {
-          var _a2 = tokens.map(getTokenColorValue), r4 = _a2[0], g3 = _a2[1], b3 = _a2[2];
+          var _a3 = tokens.map(getTokenColorValue), r4 = _a3[0], g3 = _a3[1], b3 = _a3[2];
           return pack(r4, g3, b3, 1);
         }
         if (tokens.length === 4) {
@@ -8818,8 +8818,8 @@ var require_html2canvas = __commonJS({
             gapBegin = null;
           }
         }
-        return stops.map(function(_a2, i8) {
-          var color2 = _a2.color;
+        return stops.map(function(_a3, i8) {
+          var color2 = _a3.color;
           return { color: color2, stop: Math.max(Math.min(1, processStops[i8] / lineLength), 0) };
         });
       };
@@ -8882,7 +8882,7 @@ var require_html2canvas = __commonJS({
               rx = ry = Math.min(distance(x4, y5), distance(x4, y5 - height2), distance(x4 - width2, y5), distance(x4 - width2, y5 - height2));
             } else if (gradient.shape === 1) {
               var c6 = Math.min(Math.abs(y5), Math.abs(y5 - height2)) / Math.min(Math.abs(x4), Math.abs(x4 - width2));
-              var _a2 = findCorner(width2, height2, x4, y5, true), cx = _a2[0], cy = _a2[1];
+              var _a3 = findCorner(width2, height2, x4, y5, true), cx = _a3[0], cy = _a3[1];
               rx = distance(cx - x4, (cy - y5) / c6);
               ry = c6 * rx;
             }
@@ -10351,7 +10351,7 @@ var require_html2canvas = __commonJS({
         /** @class */
         function() {
           function CSSParsedDeclaration2(context, declaration) {
-            var _a2, _b2;
+            var _a3, _b2;
             this.animationDuration = parse2(context, duration, declaration.animationDuration);
             this.backgroundClip = parse2(context, backgroundClip, declaration.backgroundClip);
             this.backgroundColor = parse2(context, backgroundColor, declaration.backgroundColor);
@@ -10408,7 +10408,7 @@ var require_html2canvas = __commonJS({
             this.paintOrder = parse2(context, paintOrder, declaration.paintOrder);
             this.position = parse2(context, position2, declaration.position);
             this.textAlign = parse2(context, textAlign, declaration.textAlign);
-            this.textDecorationColor = parse2(context, textDecorationColor, (_a2 = declaration.textDecorationColor) !== null && _a2 !== void 0 ? _a2 : declaration.color);
+            this.textDecorationColor = parse2(context, textDecorationColor, (_a3 = declaration.textDecorationColor) !== null && _a3 !== void 0 ? _a3 : declaration.color);
             this.textDecorationLine = parse2(context, textDecorationLine, (_b2 = declaration.textDecorationLine) !== null && _b2 !== void 0 ? _b2 : declaration.textDecoration);
             this.textShadow = parse2(context, textShadow, declaration.textShadow);
             this.textTransform = parse2(context, textTransform, declaration.textTransform);
@@ -12017,8 +12017,8 @@ var require_html2canvas = __commonJS({
             var iframeLoad = iframeLoader(iframe).then(function() {
               return __awaiter(_this, void 0, void 0, function() {
                 var onclone, referenceElement;
-                return __generator(this, function(_a2) {
-                  switch (_a2.label) {
+                return __generator(this, function(_a3) {
+                  switch (_a3.label) {
                     case 0:
                       this.scrolledElements.forEach(restoreNodeScroll);
                       if (cloneWindow) {
@@ -12036,14 +12036,14 @@ var require_html2canvas = __commonJS({
                       if (!(documentClone.fonts && documentClone.fonts.ready)) return [3, 2];
                       return [4, documentClone.fonts.ready];
                     case 1:
-                      _a2.sent();
-                      _a2.label = 2;
+                      _a3.sent();
+                      _a3.label = 2;
                     case 2:
                       if (!/(AppleWebKit)/g.test(navigator.userAgent)) return [3, 4];
                       return [4, imagesReady(documentClone)];
                     case 3:
-                      _a2.sent();
-                      _a2.label = 4;
+                      _a3.sent();
+                      _a3.label = 4;
                     case 4:
                       if (typeof onclone === "function") {
                         return [2, Promise.resolve().then(function() {
@@ -12124,7 +12124,7 @@ var require_html2canvas = __commonJS({
             return node2.cloneNode(false);
           };
           DocumentCloner2.prototype.createCanvasClone = function(canvas) {
-            var _a2;
+            var _a3;
             if (this.options.inlineImages && canvas.ownerDocument) {
               var img = canvas.ownerDocument.createElement("img");
               try {
@@ -12144,7 +12144,7 @@ var require_html2canvas = __commonJS({
                 if (!this.options.allowTaint && ctx) {
                   clonedCtx.putImageData(ctx.getImageData(0, 0, canvas.width, canvas.height), 0, 0);
                 } else {
-                  var gl = (_a2 = canvas.getContext("webgl2")) !== null && _a2 !== void 0 ? _a2 : canvas.getContext("webgl");
+                  var gl = (_a3 = canvas.getContext("webgl2")) !== null && _a3 !== void 0 ? _a3 : canvas.getContext("webgl");
                   if (gl) {
                     var attribs = gl.getContextAttributes();
                     if ((attribs === null || attribs === void 0 ? void 0 : attribs.preserveDrawingBuffer) === false) {
@@ -12281,7 +12281,7 @@ var require_html2canvas = __commonJS({
                     anonymousReplacedElement.appendChild(document2.createTextNode(node2.getAttribute(attr2[0].value) || ""));
                   }
                 } else if (token.name === "counter") {
-                  var _a2 = token.values.filter(nonFunctionArgSeparator), counter = _a2[0], counterStyle = _a2[1];
+                  var _a3 = token.values.filter(nonFunctionArgSeparator), counter = _a3[0], counterStyle = _a3[1];
                   if (counter && isIdentToken(counter)) {
                     var counterState = _this.counters.getCounterValue(counter.value);
                     var counterType = counterStyle && isIdentToken(counterStyle) ? listStyleType.parse(_this.context, counterStyle.value) : 3;
@@ -12426,8 +12426,8 @@ var require_html2canvas = __commonJS({
           ownerDocument.defaultView.scrollTo(x4, y5);
         }
       };
-      var restoreNodeScroll = function(_a2) {
-        var element = _a2[0], x4 = _a2[1], y5 = _a2[2];
+      var restoreNodeScroll = function(_a3) {
+        var element = _a3[0], x4 = _a3[1], y5 = _a3[2];
         element.scrollLeft = x4;
         element.scrollTop = y5;
       };
@@ -12499,8 +12499,8 @@ var require_html2canvas = __commonJS({
             return __awaiter(this, void 0, void 0, function() {
               var isSameOrigin, useCORS, useProxy, src;
               var _this = this;
-              return __generator(this, function(_a2) {
-                switch (_a2.label) {
+              return __generator(this, function(_a3) {
+                switch (_a3.label) {
                   case 0:
                     isSameOrigin = CacheStorage.isSameOrigin(key);
                     useCORS = !isInlineImage(key) && this._options.useCORS === true && FEATURES.SUPPORT_CORS_IMAGES && !isSameOrigin;
@@ -12515,8 +12515,8 @@ var require_html2canvas = __commonJS({
                     if (!useProxy) return [3, 2];
                     return [4, this.proxy(src)];
                   case 1:
-                    src = _a2.sent();
-                    _a2.label = 2;
+                    src = _a3.sent();
+                    _a3.label = 2;
                   case 2:
                     this.context.logger.debug("Added image " + key.substring(0, 256));
                     return [4, new Promise(function(resolve3, reject) {
@@ -12541,7 +12541,7 @@ var require_html2canvas = __commonJS({
                       }
                     })];
                   case 3:
-                    return [2, _a2.sent()];
+                    return [2, _a3.sent()];
                 }
               });
             });
@@ -12671,7 +12671,7 @@ var require_html2canvas = __commonJS({
           function BoundCurves2(element) {
             var styles = element.styles;
             var bounds = element.bounds;
-            var _a2 = getAbsoluteValueForTuple(styles.borderTopLeftRadius, bounds.width, bounds.height), tlh = _a2[0], tlv = _a2[1];
+            var _a3 = getAbsoluteValueForTuple(styles.borderTopLeftRadius, bounds.width, bounds.height), tlh = _a3[0], tlv = _a3[1];
             var _b2 = getAbsoluteValueForTuple(styles.borderTopRightRadius, bounds.width, bounds.height), trh = _b2[0], trv = _b2[1];
             var _c = getAbsoluteValueForTuple(styles.borderBottomRightRadius, bounds.width, bounds.height), brh = _c[0], brv = _c[1];
             var _d = getAbsoluteValueForTuple(styles.borderBottomLeftRadius, bounds.width, bounds.height), blh = _d[0], blv = _d[1];
@@ -13181,8 +13181,8 @@ var require_html2canvas = __commonJS({
       var hasIntrinsicValue = function(value) {
         return typeof value === "number";
       };
-      var calculateBackgroundSize = function(size, _a2, bounds) {
-        var intrinsicWidth = _a2[0], intrinsicHeight = _a2[1], intrinsicProportion = _a2[2];
+      var calculateBackgroundSize = function(size, _a3, bounds) {
+        var intrinsicWidth = _a3[0], intrinsicHeight = _a3[1], intrinsicProportion = _a3[2];
         var first = size[0], second = size[1];
         if (!first) {
           return [0, 0];
@@ -13257,8 +13257,8 @@ var require_html2canvas = __commonJS({
         }
         return value;
       };
-      var calculateBackgroundRepeatPath = function(repeat, _a2, _b2, backgroundPositioningArea, backgroundPaintingArea) {
-        var x4 = _a2[0], y5 = _a2[1];
+      var calculateBackgroundRepeatPath = function(repeat, _a3, _b2, backgroundPositioningArea, backgroundPaintingArea) {
+        var x4 = _a3[0], y5 = _a3[1];
         var width2 = _b2[0], height2 = _b2[1];
         switch (repeat) {
           case 2:
@@ -13410,15 +13410,15 @@ var require_html2canvas = __commonJS({
           CanvasRenderer2.prototype.renderStack = function(stack) {
             return __awaiter(this, void 0, void 0, function() {
               var styles;
-              return __generator(this, function(_a2) {
-                switch (_a2.label) {
+              return __generator(this, function(_a3) {
+                switch (_a3.label) {
                   case 0:
                     styles = stack.element.container.styles;
                     if (!styles.isVisible()) return [3, 2];
                     return [4, this.renderStackContent(stack)];
                   case 1:
-                    _a2.sent();
-                    _a2.label = 2;
+                    _a3.sent();
+                    _a3.label = 2;
                   case 2:
                     return [
                       2
@@ -13430,8 +13430,8 @@ var require_html2canvas = __commonJS({
           };
           CanvasRenderer2.prototype.renderNode = function(paint) {
             return __awaiter(this, void 0, void 0, function() {
-              return __generator(this, function(_a2) {
-                switch (_a2.label) {
+              return __generator(this, function(_a3) {
+                switch (_a3.label) {
                   case 0:
                     if (contains2(
                       paint.container.flags,
@@ -13443,11 +13443,11 @@ var require_html2canvas = __commonJS({
                     if (!paint.container.styles.isVisible()) return [3, 3];
                     return [4, this.renderNodeBackgroundAndBorders(paint)];
                   case 1:
-                    _a2.sent();
+                    _a3.sent();
                     return [4, this.renderNodeContent(paint)];
                   case 2:
-                    _a2.sent();
-                    _a2.label = 3;
+                    _a3.sent();
+                    _a3.label = 3;
                   case 3:
                     return [
                       2
@@ -13483,10 +13483,10 @@ var require_html2canvas = __commonJS({
           };
           CanvasRenderer2.prototype.renderTextNode = function(text4, styles) {
             return __awaiter(this, void 0, void 0, function() {
-              var _a2, font, fontFamily2, fontSize2, _b2, baseline, middle, paintOrder2;
+              var _a3, font, fontFamily2, fontSize2, _b2, baseline, middle, paintOrder2;
               var _this = this;
               return __generator(this, function(_c) {
-                _a2 = this.createFontStyle(styles), font = _a2[0], fontFamily2 = _a2[1], fontSize2 = _a2[2];
+                _a3 = this.createFontStyle(styles), font = _a3[0], fontFamily2 = _a3[1], fontSize2 = _a3[2];
                 this.ctx.font = font;
                 this.ctx.direction = styles.direction === 1 ? "rtl" : "ltr";
                 this.ctx.textAlign = "left";
@@ -13564,7 +13564,7 @@ var require_html2canvas = __commonJS({
           };
           CanvasRenderer2.prototype.renderNodeContent = function(paint) {
             return __awaiter(this, void 0, void 0, function() {
-              var container, curves, styles, _i, _a2, child, image2, image2, iframeRenderer, canvas, size, _b2, fontFamily2, fontSize2, baseline, bounds, x4, textBounds, img, image2, url, fontFamily2, bounds;
+              var container, curves, styles, _i, _a3, child, image2, image2, iframeRenderer, canvas, size, _b2, fontFamily2, fontSize2, baseline, bounds, x4, textBounds, img, image2, url, fontFamily2, bounds;
               return __generator(this, function(_c) {
                 switch (_c.label) {
                   case 0:
@@ -13575,11 +13575,11 @@ var require_html2canvas = __commonJS({
                     container = paint.container;
                     curves = paint.curves;
                     styles = container.styles;
-                    _i = 0, _a2 = container.textNodes;
+                    _i = 0, _a3 = container.textNodes;
                     _c.label = 1;
                   case 1:
-                    if (!(_i < _a2.length)) return [3, 4];
-                    child = _a2[_i];
+                    if (!(_i < _a3.length)) return [3, 4];
+                    child = _a3[_i];
                     return [4, this.renderTextNode(child, styles)];
                   case 2:
                     _c.sent();
@@ -13744,7 +13744,7 @@ var require_html2canvas = __commonJS({
           };
           CanvasRenderer2.prototype.renderStackContent = function(stack) {
             return __awaiter(this, void 0, void 0, function() {
-              var _i, _a2, child, _b2, _c, child, _d, _e3, child, _f, _g, child, _h, _j, child, _k, _l, child, _m, _o, child;
+              var _i, _a3, child, _b2, _c, child, _d, _e3, child, _f, _g, child, _h, _j, child, _k, _l, child, _m, _o, child;
               return __generator(this, function(_p) {
                 switch (_p.label) {
                   case 0:
@@ -13758,11 +13758,11 @@ var require_html2canvas = __commonJS({
                     return [4, this.renderNodeBackgroundAndBorders(stack.element)];
                   case 1:
                     _p.sent();
-                    _i = 0, _a2 = stack.negativeZIndex;
+                    _i = 0, _a3 = stack.negativeZIndex;
                     _p.label = 2;
                   case 2:
-                    if (!(_i < _a2.length)) return [3, 5];
-                    child = _a2[_i];
+                    if (!(_i < _a3.length)) return [3, 5];
+                    child = _a3[_i];
                     return [4, this.renderStack(child)];
                   case 3:
                     _p.sent();
@@ -13897,11 +13897,11 @@ var require_html2canvas = __commonJS({
             this.ctx.translate(-offsetX, -offsetY);
           };
           CanvasRenderer2.prototype.resizeImage = function(image2, width2, height2) {
-            var _a2;
+            var _a3;
             if (image2.width === width2 && image2.height === height2) {
               return image2;
             }
-            var ownerDocument = (_a2 = this.canvas.ownerDocument) !== null && _a2 !== void 0 ? _a2 : document;
+            var ownerDocument = (_a3 = this.canvas.ownerDocument) !== null && _a3 !== void 0 ? _a3 : document;
             var canvas = ownerDocument.createElement("canvas");
             canvas.width = Math.max(1, width2);
             canvas.height = Math.max(1, height2);
@@ -13911,7 +13911,7 @@ var require_html2canvas = __commonJS({
           };
           CanvasRenderer2.prototype.renderBackgroundImage = function(container) {
             return __awaiter(this, void 0, void 0, function() {
-              var index3, _loop_1, this_1, _i, _a2, backgroundImage2;
+              var index3, _loop_1, this_1, _i, _a3, backgroundImage2;
               return __generator(this, function(_b2) {
                 switch (_b2.label) {
                   case 0:
@@ -14008,11 +14008,11 @@ var require_html2canvas = __commonJS({
                       });
                     };
                     this_1 = this;
-                    _i = 0, _a2 = container.styles.backgroundImage.slice(0).reverse();
+                    _i = 0, _a3 = container.styles.backgroundImage.slice(0).reverse();
                     _b2.label = 1;
                   case 1:
-                    if (!(_i < _a2.length)) return [3, 4];
-                    backgroundImage2 = _a2[_i];
+                    if (!(_i < _a3.length)) return [3, 4];
+                    backgroundImage2 = _a3[_i];
                     return [5, _loop_1(backgroundImage2)];
                   case 2:
                     _b2.sent();
@@ -14031,7 +14031,7 @@ var require_html2canvas = __commonJS({
           };
           CanvasRenderer2.prototype.renderSolidBorder = function(color2, side, curvePoints) {
             return __awaiter(this, void 0, void 0, function() {
-              return __generator(this, function(_a2) {
+              return __generator(this, function(_a3) {
                 this.path(parsePathForBorder(curvePoints, side));
                 this.ctx.fillStyle = asString(color2);
                 this.ctx.fill();
@@ -14045,13 +14045,13 @@ var require_html2canvas = __commonJS({
           CanvasRenderer2.prototype.renderDoubleBorder = function(color2, width2, side, curvePoints) {
             return __awaiter(this, void 0, void 0, function() {
               var outerPaths, innerPaths;
-              return __generator(this, function(_a2) {
-                switch (_a2.label) {
+              return __generator(this, function(_a3) {
+                switch (_a3.label) {
                   case 0:
                     if (!(width2 < 3)) return [3, 2];
                     return [4, this.renderSolidBorder(color2, side, curvePoints)];
                   case 1:
-                    _a2.sent();
+                    _a3.sent();
                     return [
                       2
                       /*return*/
@@ -14076,8 +14076,8 @@ var require_html2canvas = __commonJS({
             return __awaiter(this, void 0, void 0, function() {
               var styles, hasBackground, borders, backgroundPaintingArea, side, _i, borders_1, border;
               var _this = this;
-              return __generator(this, function(_a2) {
-                switch (_a2.label) {
+              return __generator(this, function(_a3) {
+                switch (_a3.label) {
                   case 0:
                     this.applyEffects(paint.getEffects(
                       2
@@ -14102,7 +14102,7 @@ var require_html2canvas = __commonJS({
                     }
                     return [4, this.renderBackgroundImage(paint.container)];
                   case 1:
-                    _a2.sent();
+                    _a3.sent();
                     this.ctx.restore();
                     styles.boxShadow.slice(0).reverse().forEach(function(shadow) {
                       _this.ctx.save();
@@ -14126,11 +14126,11 @@ var require_html2canvas = __commonJS({
                       _this.ctx.fill();
                       _this.ctx.restore();
                     });
-                    _a2.label = 2;
+                    _a3.label = 2;
                   case 2:
                     side = 0;
                     _i = 0, borders_1 = borders;
-                    _a2.label = 3;
+                    _a3.label = 3;
                   case 3:
                     if (!(_i < borders_1.length)) return [3, 13];
                     border = borders_1[_i];
@@ -14145,7 +14145,7 @@ var require_html2canvas = __commonJS({
                       /* DASHED */
                     )];
                   case 4:
-                    _a2.sent();
+                    _a3.sent();
                     return [3, 11];
                   case 5:
                     if (!(border.style === 3)) return [3, 7];
@@ -14158,22 +14158,22 @@ var require_html2canvas = __commonJS({
                       /* DOTTED */
                     )];
                   case 6:
-                    _a2.sent();
+                    _a3.sent();
                     return [3, 11];
                   case 7:
                     if (!(border.style === 4)) return [3, 9];
                     return [4, this.renderDoubleBorder(border.color, border.width, side, paint.curves)];
                   case 8:
-                    _a2.sent();
+                    _a3.sent();
                     return [3, 11];
                   case 9:
                     return [4, this.renderSolidBorder(border.color, side, paint.curves)];
                   case 10:
-                    _a2.sent();
-                    _a2.label = 11;
+                    _a3.sent();
+                    _a3.label = 11;
                   case 11:
                     side++;
-                    _a2.label = 12;
+                    _a3.label = 12;
                   case 12:
                     _i++;
                     return [3, 3];
@@ -14189,7 +14189,7 @@ var require_html2canvas = __commonJS({
           CanvasRenderer2.prototype.renderDashedDottedBorder = function(color2, width2, side, curvePoints, style2) {
             return __awaiter(this, void 0, void 0, function() {
               var strokePaths, boxPaths, startX, startY, endX, endY, length2, dashLength, spaceLength, useLineDash, multiplier, numberOfDashes, minSpace, maxSpace, path1, path2, path1, path2;
-              return __generator(this, function(_a2) {
+              return __generator(this, function(_a3) {
                 this.ctx.save();
                 strokePaths = parsePathForBorderStroke(curvePoints, side);
                 boxPaths = parsePathForBorder(curvePoints, side);
@@ -14284,8 +14284,8 @@ var require_html2canvas = __commonJS({
           CanvasRenderer2.prototype.render = function(element) {
             return __awaiter(this, void 0, void 0, function() {
               var stack;
-              return __generator(this, function(_a2) {
-                switch (_a2.label) {
+              return __generator(this, function(_a3) {
+                switch (_a3.label) {
                   case 0:
                     if (this.options.backgroundColor) {
                       this.ctx.fillStyle = asString(this.options.backgroundColor);
@@ -14294,7 +14294,7 @@ var require_html2canvas = __commonJS({
                     stack = parseStackingContexts(element);
                     return [4, this.renderStack(stack)];
                   case 1:
-                    _a2.sent();
+                    _a3.sent();
                     this.applyEffects([]);
                     return [2, this.canvas];
                 }
@@ -14363,13 +14363,13 @@ var require_html2canvas = __commonJS({
           ForeignObjectRenderer2.prototype.render = function(element) {
             return __awaiter(this, void 0, void 0, function() {
               var svg3, img;
-              return __generator(this, function(_a2) {
-                switch (_a2.label) {
+              return __generator(this, function(_a3) {
+                switch (_a3.label) {
                   case 0:
                     svg3 = createForeignObjectSVG(this.options.width * this.options.scale, this.options.height * this.options.scale, this.options.scale, this.options.scale, element);
                     return [4, loadSerializedSVG(svg3)];
                   case 1:
-                    img = _a2.sent();
+                    img = _a3.sent();
                     if (this.options.backgroundColor) {
                       this.ctx.fillStyle = asString(this.options.backgroundColor);
                       this.ctx.fillRect(0, 0, this.options.width * this.options.scale, this.options.height * this.options.scale);
@@ -14396,8 +14396,8 @@ var require_html2canvas = __commonJS({
       var Logger = (
         /** @class */
         function() {
-          function Logger2(_a2) {
-            var id = _a2.id, enabled = _a2.enabled;
+          function Logger2(_a3) {
+            var id = _a3.id, enabled = _a3.enabled;
             this.id = id;
             this.enabled = enabled;
             this.start = Date.now();
@@ -14463,11 +14463,11 @@ var require_html2canvas = __commonJS({
         /** @class */
         function() {
           function Context2(options, windowBounds) {
-            var _a2;
+            var _a3;
             this.windowBounds = windowBounds;
             this.instanceName = "#" + Context2.instanceCount++;
             this.logger = new Logger({ id: this.instanceName, enabled: options.logging });
-            this.cache = (_a2 = options.cache) !== null && _a2 !== void 0 ? _a2 : new Cache2(this, options);
+            this.cache = (_a3 = options.cache) !== null && _a3 !== void 0 ? _a3 : new Cache2(this, options);
           }
           Context2.instanceCount = 1;
           return Context2;
@@ -14484,7 +14484,7 @@ var require_html2canvas = __commonJS({
       }
       var renderElement = function(element, opts) {
         return __awaiter(void 0, void 0, void 0, function() {
-          var ownerDocument, defaultView, resourceOptions, contextOptions, windowOptions, windowBounds, context, foreignObjectRendering, cloneOptions, documentCloner, clonedElement, container, _a2, width2, height2, left4, top4, backgroundColor2, renderOptions, canvas, renderer, root2, renderer;
+          var ownerDocument, defaultView, resourceOptions, contextOptions, windowOptions, windowBounds, context, foreignObjectRendering, cloneOptions, documentCloner, clonedElement, container, _a3, width2, height2, left4, top4, backgroundColor2, renderOptions, canvas, renderer, root2, renderer;
           var _b2, _c, _d, _e3, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t3;
           return __generator(this, function(_u) {
             switch (_u.label) {
@@ -14532,7 +14532,7 @@ var require_html2canvas = __commonJS({
                 return [4, documentCloner.toIFrame(ownerDocument, windowBounds)];
               case 1:
                 container = _u.sent();
-                _a2 = isBodyElement(clonedElement) || isHTMLElement2(clonedElement) ? parseDocumentSize(clonedElement.ownerDocument) : parseBounds(context, clonedElement), width2 = _a2.width, height2 = _a2.height, left4 = _a2.left, top4 = _a2.top;
+                _a3 = isBodyElement(clonedElement) || isHTMLElement2(clonedElement) ? parseDocumentSize(clonedElement.ownerDocument) : parseBounds(context, clonedElement), width2 = _a3.width, height2 = _a3.height, left4 = _a3.left, top4 = _a3.top;
                 backgroundColor2 = parseBackgroundColor(context, clonedElement, opts.backgroundColor);
                 renderOptions = {
                   canvas: opts.canvas,
@@ -20830,10 +20830,10 @@ function processImageDataRGBA(imageData, topX, topY, width2, height2, radius) {
       var paInitial = aSum * mulSum >>> shgSum;
       pixels[yi + 3] = paInitial;
       if (paInitial !== 0) {
-        var _a2 = 255 / paInitial;
-        pixels[yi] = (rSum * mulSum >>> shgSum) * _a2;
-        pixels[yi + 1] = (gSum * mulSum >>> shgSum) * _a2;
-        pixels[yi + 2] = (bSum * mulSum >>> shgSum) * _a2;
+        var _a22 = 255 / paInitial;
+        pixels[yi] = (rSum * mulSum >>> shgSum) * _a22;
+        pixels[yi + 1] = (gSum * mulSum >>> shgSum) * _a22;
+        pixels[yi + 2] = (bSum * mulSum >>> shgSum) * _a22;
       } else {
         pixels[yi] = pixels[yi + 1] = pixels[yi + 2] = 0;
       }
@@ -47718,12 +47718,12 @@ var __rest2 = function(s5, e4) {
     }
   return t5;
 };
-var block = (_a2) => {
-  var { size, width: width2, height: height2, offset: offset3, open: open2 } = _a2, attrs = __rest2(_a2, ["size", "width", "height", "offset", "open"]);
+var block = (_a3) => {
+  var { size, width: width2, height: height2, offset: offset3, open: open2 } = _a3, attrs = __rest2(_a3, ["size", "width", "height", "offset", "open"]);
   return createClassicMarker({ size, width: width2, height: height2, offset: offset3 }, open2 === true, true, void 0, attrs);
 };
-var classic = (_a2) => {
-  var { size, width: width2, height: height2, offset: offset3, factor } = _a2, attrs = __rest2(_a2, ["size", "width", "height", "offset", "factor"]);
+var classic = (_a3) => {
+  var { size, width: width2, height: height2, offset: offset3, factor } = _a3, attrs = __rest2(_a3, ["size", "width", "height", "offset", "factor"]);
   return createClassicMarker({ size, width: width2, height: height2, offset: offset3 }, false, false, factor, attrs);
 };
 function createClassicMarker(options, open2, full, factor = 3 / 4, attrs = {}) {
@@ -47762,8 +47762,8 @@ var __rest3 = function(s5, e4) {
     }
   return t5;
 };
-var diamond = (_a2) => {
-  var { size, width: width2, height: height2, offset: offset3 } = _a2, attrs = __rest3(_a2, ["size", "width", "height", "offset"]);
+var diamond = (_a3) => {
+  var { size, width: width2, height: height2, offset: offset3 } = _a3, attrs = __rest3(_a3, ["size", "width", "height", "offset"]);
   const s5 = size || 10;
   const w5 = width2 || s5;
   const h5 = height2 || s5;
@@ -47784,8 +47784,8 @@ var __rest4 = function(s5, e4) {
     }
   return t5;
 };
-var path = (_a2) => {
-  var { d: d4, offsetX, offsetY } = _a2, attrs = __rest4(_a2, ["d", "offsetX", "offsetY"]);
+var path = (_a3) => {
+  var { d: d4, offsetX, offsetY } = _a3, attrs = __rest4(_a3, ["d", "offsetX", "offsetY"]);
   return Object.assign(Object.assign({}, attrs), { tagName: "path", d: normalize2(d4, offsetX, offsetY) });
 };
 
@@ -47801,8 +47801,8 @@ var __rest5 = function(s5, e4) {
     }
   return t5;
 };
-var cross = (_a2) => {
-  var { size, width: width2, height: height2, offset: offset3 } = _a2, attrs = __rest5(_a2, ["size", "width", "height", "offset"]);
+var cross = (_a3) => {
+  var { size, width: width2, height: height2, offset: offset3 } = _a3, attrs = __rest5(_a3, ["size", "width", "height", "offset"]);
   const s5 = size || 10;
   const w5 = width2 || s5;
   const h5 = height2 || s5;
@@ -47823,8 +47823,8 @@ var __rest6 = function(s5, e4) {
     }
   return t5;
 };
-var async = (_a2) => {
-  var { width: width2, height: height2, offset: offset3, open: open2, flip } = _a2, attrs = __rest6(_a2, ["width", "height", "offset", "open", "flip"]);
+var async = (_a3) => {
+  var { width: width2, height: height2, offset: offset3, open: open2, flip } = _a3, attrs = __rest6(_a3, ["width", "height", "offset", "open", "flip"]);
   let h5 = height2 || 6;
   const w5 = width2 || 10;
   const opened = open2 === true;
@@ -47860,13 +47860,13 @@ var __rest7 = function(s5, e4) {
     }
   return t5;
 };
-var circle = (_a2) => {
-  var { r: r4 } = _a2, attrs = __rest7(_a2, ["r"]);
+var circle = (_a3) => {
+  var { r: r4 } = _a3, attrs = __rest7(_a3, ["r"]);
   const radius = r4 || 5;
   return Object.assign(Object.assign({ cx: radius }, attrs), { tagName: "circle", r: radius });
 };
-var circlePlus = (_a2) => {
-  var { r: r4 } = _a2, attrs = __rest7(_a2, ["r"]);
+var circlePlus = (_a3) => {
+  var { r: r4 } = _a3, attrs = __rest7(_a3, ["r"]);
   const radius = r4 || 5;
   const path2 = new Path();
   path2.moveTo(radius, 0).lineTo(radius, radius * 2);
@@ -47891,8 +47891,8 @@ var __rest8 = function(s5, e4) {
     }
   return t5;
 };
-var ellipse = (_a2) => {
-  var { rx, ry } = _a2, attrs = __rest8(_a2, ["rx", "ry"]);
+var ellipse = (_a3) => {
+  var { rx, ry } = _a3, attrs = __rest8(_a3, ["rx", "ry"]);
   const radiusX = rx || 5;
   const radiusy = ry || 5;
   return Object.assign(Object.assign({ cx: radiusX }, attrs), { tagName: "ellipse", rx: radiusX, ry: radiusy });
@@ -47998,7 +47998,7 @@ var isEdgeView = (val, { view }) => {
 var connection = {
   qualify: isEdgeView,
   set(val, args) {
-    var _a2, _b2, _c, _d;
+    var _a3, _b2, _c, _d;
     const view = args.view;
     const reverse = val.reverse || false;
     const stubs = val.stubs || 0;
@@ -48032,7 +48032,7 @@ var connection = {
           length2 = len - stubs * 2;
         }
         const path2 = view.getConnection();
-        d4 = (_d = (_c = (_b2 = (_a2 = path2 === null || path2 === void 0 ? void 0 : path2.divideAtLength(offset3)) === null || _a2 === void 0 ? void 0 : _a2[1]) === null || _b2 === void 0 ? void 0 : _b2.divideAtLength(length2)) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.serialize();
+        d4 = (_d = (_c = (_b2 = (_a3 = path2 === null || path2 === void 0 ? void 0 : path2.divideAtLength(offset3)) === null || _a3 === void 0 ? void 0 : _a3[1]) === null || _b2 === void 0 ? void 0 : _b2.divideAtLength(length2)) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.serialize();
       }
     }
     return { d: d4 || view.getConnectionPathData() };
@@ -48614,8 +48614,8 @@ var bottom = (portsPositionArgs, elemBBox, groupPositionArgs) => {
 function lineLayout(portsPositionArgs, p1, p22, groupPositionArgs) {
   const line2 = new Line(p1, p22);
   const length2 = portsPositionArgs.length;
-  return portsPositionArgs.map((_a2, index3) => {
-    var { strict } = _a2, offset3 = __rest10(_a2, ["strict"]);
+  return portsPositionArgs.map((_a3, index3) => {
+    var { strict } = _a3, offset3 = __rest10(_a3, ["strict"]);
     const ratio2 = strict || groupPositionArgs.strict ? (index3 + 1) / (length2 + 1) : (index3 + 0.5) / length2;
     const p6 = line2.pointAt(ratio2);
     if (offset3.dx || offset3.dy) {
@@ -51029,7 +51029,7 @@ var Boundary = class extends ToolsView.ToolItem {
   onRender() {
     main_exports3.addClass(this.container, this.prefixClassName("cell-tool-boundary"));
     if (this.options.attrs) {
-      const _a2 = this.options.attrs, { class: className3 } = _a2, attrs = __rest12(_a2, ["class"]);
+      const _a3 = this.options.attrs, { class: className3 } = _a3, attrs = __rest12(_a3, ["class"]);
       main_exports3.attr(this.container, main_exports3.kebablizeAttrs(attrs));
       if (className3) {
         main_exports3.addClass(this.container, className3);
@@ -52063,7 +52063,7 @@ var Arrowhead = class extends ToolsView.ToolItem {
   }
   init() {
     if (this.options.attrs) {
-      const _a2 = this.options.attrs, { class: className3 } = _a2, attrs = __rest13(_a2, ["class"]);
+      const _a3 = this.options.attrs, { class: className3 } = _a3, attrs = __rest13(_a3, ["class"]);
       this.setAttrs(attrs, this.container);
       if (className3) {
         main_exports3.addClass(this.container, className3);
@@ -55311,8 +55311,8 @@ var Cell = class _Cell extends Basecoat {
     const childrenIds = this.store.get("children");
     if (childrenIds && childrenIds.length && this.model) {
       const children2 = childrenIds.map((id) => {
-        var _a2;
-        return (_a2 = this.model) === null || _a2 === void 0 ? void 0 : _a2.getCell(id);
+        var _a3;
+        return (_a3 = this.model) === null || _a3 === void 0 ? void 0 : _a3.getCell(id);
       }).filter((cell) => cell != null);
       this._children = children2;
       return [...children2];
@@ -55873,8 +55873,8 @@ __decorate5([
 })(Cell || (Cell = {}));
 (function(Cell2) {
   Cell2.config({
-    propHooks(_a2) {
-      var { tools } = _a2, metadata = __rest15(_a2, ["tools"]);
+    propHooks(_a3) {
+      var { tools } = _a3, metadata = __rest15(_a3, ["tools"]);
       if (tools) {
         metadata.tools = Cell2.normalizeTools(tools);
       }
@@ -56249,8 +56249,8 @@ var Node2 = class _Node extends Cell {
       }
       this.transition("position", translatedPosition, Object.assign(Object.assign({}, options.transition), { interp: Interp.object }));
       this.eachChild((child) => {
-        var _a2;
-        const excluded = (_a2 = options.exclude) === null || _a2 === void 0 ? void 0 : _a2.includes(child);
+        var _a3;
+        const excluded = (_a3 = options.exclude) === null || _a3 === void 0 ? void 0 : _a3.includes(child);
         if (!excluded) {
           child.translate(tx, ty, options);
         }
@@ -56259,8 +56259,8 @@ var Node2 = class _Node extends Cell {
       this.startBatch("translate", options);
       this.store.set("position", translatedPosition, options);
       this.eachChild((child) => {
-        var _a2;
-        const excluded = (_a2 = options.exclude) === null || _a2 === void 0 ? void 0 : _a2.includes(child);
+        var _a3;
+        const excluded = (_a3 = options.exclude) === null || _a3 === void 0 ? void 0 : _a3.includes(child);
         if (!excluded) {
           child.translate(tx, ty, options);
         }
@@ -56667,8 +56667,8 @@ Node2.defaults = {
 })(Node2 || (Node2 = {}));
 (function(Node4) {
   Node4.config({
-    propHooks(_a2) {
-      var { ports } = _a2, metadata = __rest16(_a2, ["ports"]);
+    propHooks(_a3) {
+      var { ports } = _a3, metadata = __rest16(_a3, ["ports"]);
       if (ports) {
         metadata.ports = Array.isArray(ports) ? { items: ports } : ports;
       }
@@ -60330,7 +60330,7 @@ var EdgeView = class _EdgeView extends CellView {
   update(options = {}) {
     this.cleanCache();
     this.updateConnection(options);
-    const _a2 = this.cell.getAttrs(), { text: text4 } = _a2, attrs = __rest23(_a2, ["text"]);
+    const _a3 = this.cell.getAttrs(), { text: text4 } = _a3, attrs = __rest23(_a3, ["text"]);
     if (attrs != null) {
       this.updateAttrs(this.container, attrs, {
         selectors: this.selectors
@@ -63381,8 +63381,8 @@ var PanningManager = class extends Base2 {
     return (eventTypes === null || eventTypes === void 0 ? void 0 : eventTypes.includes("leftMouseDown")) && e4.button === 0 || (eventTypes === null || eventTypes === void 0 ? void 0 : eventTypes.includes("mouseWheelDown")) && e4.button === 1;
   }
   allowMouseWheel(e4) {
-    var _a2;
-    return this.pannable && !e4.ctrlKey && ((_a2 = this.widgetOptions.eventTypes) === null || _a2 === void 0 ? void 0 : _a2.includes("mouseWheel"));
+    var _a3;
+    return this.pannable && !e4.ctrlKey && ((_a3 = this.widgetOptions.eventTypes) === null || _a3 === void 0 ? void 0 : _a3.includes("mouseWheel"));
   }
   autoPanning(x4, y5) {
     const buffer = 10;
@@ -64298,8 +64298,8 @@ var DefsManager = class extends Base2 {
         overflow: "visible",
         orient: markerOrient != null ? markerOrient : "auto",
         markerUnits: markerUnits || "userSpaceOnUse"
-      }, children2 ? children2.map((_a2) => {
-        var { tagName: tagName3 } = _a2, other = __rest26(_a2, ["tagName"]);
+      }, children2 ? children2.map((_a3) => {
+        var { tagName: tagName3 } = _a3, other = __rest26(_a3, ["tagName"]);
         return Vector.create(`${tagName3}` || "path", main_exports3.kebablizeAttrs(Object.assign(Object.assign({}, attrs), other)));
       }) : [Vector.create(tagName2 || "path", main_exports3.kebablizeAttrs(attrs))]);
       this.defs.appendChild(pathMarker.node);
@@ -65266,8 +65266,8 @@ var Graph = class _Graph extends Basecoat {
     }
     const aboutToChangePlugins = this.getPlugins(postPlugins);
     aboutToChangePlugins === null || aboutToChangePlugins === void 0 ? void 0 : aboutToChangePlugins.forEach((plugin) => {
-      var _a2;
-      (_a2 = plugin === null || plugin === void 0 ? void 0 : plugin.enable) === null || _a2 === void 0 ? void 0 : _a2.call(plugin);
+      var _a3;
+      (_a3 = plugin === null || plugin === void 0 ? void 0 : plugin.enable) === null || _a3 === void 0 ? void 0 : _a3.call(plugin);
     });
     return this;
   }
@@ -65278,15 +65278,15 @@ var Graph = class _Graph extends Basecoat {
     }
     const aboutToChangePlugins = this.getPlugins(postPlugins);
     aboutToChangePlugins === null || aboutToChangePlugins === void 0 ? void 0 : aboutToChangePlugins.forEach((plugin) => {
-      var _a2;
-      (_a2 = plugin === null || plugin === void 0 ? void 0 : plugin.disable) === null || _a2 === void 0 ? void 0 : _a2.call(plugin);
+      var _a3;
+      (_a3 = plugin === null || plugin === void 0 ? void 0 : plugin.disable) === null || _a3 === void 0 ? void 0 : _a3.call(plugin);
     });
     return this;
   }
   isPluginEnabled(pluginName) {
-    var _a2;
+    var _a3;
     const pluginIns = this.getPlugin(pluginName);
-    return (_a2 = pluginIns === null || pluginIns === void 0 ? void 0 : pluginIns.isEnabled) === null || _a2 === void 0 ? void 0 : _a2.call(pluginIns);
+    return (_a3 = pluginIns === null || pluginIns === void 0 ? void 0 : pluginIns.isEnabled) === null || _a3 === void 0 ? void 0 : _a3.call(pluginIns);
   }
   disposePlugins(plugins) {
     let postPlugins = plugins;
@@ -67186,7 +67186,7 @@ var Clipboard = class extends Basecoat {
   }
   // #endregion
   get commonOptions() {
-    const _a2 = this.options, { enabled } = _a2, others = __rest28(_a2, ["enabled"]);
+    const _a3 = this.options, { enabled } = _a3, others = __rest28(_a3, ["enabled"]);
     return others;
   }
   notify(name, args) {
@@ -67689,7 +67689,7 @@ var History = class _History extends Basecoat {
    * system itself.
    */
   consolidateCommands() {
-    var _a2;
+    var _a3;
     const lastCommandGroup = this.undoStack[this.undoStack.length - 1];
     const penultimateCommandGroup = this.undoStack[this.undoStack.length - 2];
     if (!Array.isArray(lastCommandGroup)) {
@@ -67700,8 +67700,8 @@ var History = class _History extends Basecoat {
       return;
     }
     if (!lastCommandGroup.every((cmd) => {
-      var _a3;
-      return cmd.batch && ((_a3 = cmd.options) === null || _a3 === void 0 ? void 0 : _a3.ui);
+      var _a4;
+      return cmd.batch && ((_a4 = cmd.options) === null || _a4 === void 0 ? void 0 : _a4.ui);
     })) {
       return;
     }
@@ -67709,7 +67709,7 @@ var History = class _History extends Basecoat {
       return;
     }
     const maybePositionChange = penultimateCommandGroup[0];
-    if (maybePositionChange.event !== "cell:change:position" || !((_a2 = maybePositionChange.options) === null || _a2 === void 0 ? void 0 : _a2.ui)) {
+    if (maybePositionChange.event !== "cell:change:position" || !((_a3 = maybePositionChange.options) === null || _a3 === void 0 ? void 0 : _a3.ui)) {
       return;
     }
     penultimateCommandGroup.push(...lastCommandGroup);
@@ -67961,9 +67961,9 @@ var KeyboardImpl = class _KeyboardImpl extends Disposable {
     return false;
   }
   isInputEvent(e4) {
-    var _a2;
+    var _a3;
     const target = e4.target;
-    const tagName2 = (_a2 = target === null || target === void 0 ? void 0 : target.tagName) === null || _a2 === void 0 ? void 0 : _a2.toLowerCase();
+    const tagName2 = (_a3 = target === null || target === void 0 ? void 0 : target.tagName) === null || _a3 === void 0 ? void 0 : _a3.toLowerCase();
     let isInput = ["input", "textarea"].includes(tagName2);
     if (main_exports3.attr(target, "contenteditable") === "true") {
       isInput = true;
@@ -69754,7 +69754,7 @@ function umlHtml(label, fields, methods, stereo) {
   return `<div class="uml">${name}${comps}</div>`;
 }
 function nodeHtmlBase(kind, label, extra) {
-  var _a2, _b2, _c, _d, _e3, _f;
+  var _a3, _b2, _c, _d, _e3, _f;
   const L4 = esc(label);
   switch (kind) {
     case "bs-rect":
@@ -69799,7 +69799,7 @@ function nodeHtmlBase(kind, label, extra) {
     case "fc-connector":
       return `<div class="fc round" style="font-size:11px">${L4}</div>`;
     case "erd-entity":
-      return erdHtml(label, (_a2 = extra == null ? void 0 : extra.cols) != null ? _a2 : defaultErdCols());
+      return erdHtml(label, (_a3 = extra == null ? void 0 : extra.cols) != null ? _a3 : defaultErdCols());
     case "erd-relationship":
       return `<div class="fc diamond">${L4}</div>`;
     case "erd-attribute":
@@ -69946,8 +69946,8 @@ function bpGateway(mark, label, extra) {
   return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${esc(label)}</div>` : ""}</div>`;
 }
 function bpPool(label, extra) {
-  var _a2;
-  const lanes = ((_a2 = extra == null ? void 0 : extra.lanes) == null ? void 0 : _a2.length) ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
+  var _a3;
+  const lanes = ((_a3 = extra == null ? void 0 : extra.lanes) == null ? void 0 : _a3.length) ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
   const laneHtml = lanes.map((ln3) => `<div class="bp-pool-lane" data-lane-id="${esc(ln3.id)}"><div class="bp-pool-lane-head">${esc(ln3.label)}</div><div class="bp-pool-lane-body"></div></div>`).join("");
   return `<div class="bp-pool"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
 }
@@ -70157,8 +70157,8 @@ var ICONS = {
   "bpmn-lane": I(`<rect x="4" y="9" width="24" height="14" fill="none" stroke="#546e7a" stroke-width="2"/><rect x="4" y="9" width="6" height="14" fill="#eceff1" stroke="#546e7a" stroke-width="2"/>`)
 };
 function shapeIcon(shape) {
-  var _a2;
-  return (_a2 = ICONS[shape]) != null ? _a2 : I(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
+  var _a3;
+  return (_a3 = ICONS[shape]) != null ? _a3 : I(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
 }
 
 // src/canvas/staticRender.ts
@@ -70226,8 +70226,8 @@ function edgePath(s5, sPort, t5, tPort) {
 }
 var esc2 = (s5) => String(s5 != null ? s5 : "").replace(/[&<>"]/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c6]);
 function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
-  var _a2, _b2;
-  const nodes = (_a2 = model.nodes) != null ? _a2 : [];
+  var _a3, _b2;
+  const nodes = (_a3 = model.nodes) != null ? _a3 : [];
   const edges = (_b2 = model.edges) != null ? _b2 : [];
   const byId = new Map(nodes.map((n3) => [n3.id, n3]));
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -70255,8 +70255,8 @@ function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
     return line2 + label;
   }).join("");
   const nodeSvg = nodes.map((n3) => {
-    var _a3, _b3, _c, _d, _e3;
-    const style2 = (_b3 = (_a3 = n3.attrs) == null ? void 0 : _a3.style) != null ? _b3 : {};
+    var _a4, _b3, _c, _d, _e3;
+    const style2 = (_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.style) != null ? _b3 : {};
     const extra = {
       cols: (_c = n3.attrs) == null ? void 0 : _c.cols,
       fields: (_d = n3.attrs) == null ? void 0 : _d.fields,
@@ -71983,8 +71983,8 @@ function ensureSeqConnector() {
   Graph.registerConnector(
     "seq-msg",
     function(sourcePoint, targetPoint, _routePoints, _args, view) {
-      var _a2, _b2, _c;
-      const yOverride = (_c = (_b2 = (_a2 = view == null ? void 0 : view.cell) == null ? void 0 : _a2.getData) == null ? void 0 : _b2.call(_a2)) == null ? void 0 : _c.y;
+      var _a3, _b2, _c;
+      const yOverride = (_c = (_b2 = (_a3 = view == null ? void 0 : view.cell) == null ? void 0 : _a3.getData) == null ? void 0 : _b2.call(_a3)) == null ? void 0 : _c.y;
       const y5 = typeof yOverride === "number" ? yOverride : sourcePoint.y;
       return `M ${sourcePoint.x} ${y5} L ${targetPoint.x} ${y5}`;
     },
@@ -72092,6 +72092,7 @@ var EDGE_SHAPES = {
   curved: { router: { name: "normal" }, connector: { name: "smooth" } }
 };
 var EDGE_JUMPS = { none: "none", arc: "arc", gap: "gap" };
+var _a2;
 var LarkCanvas = class {
   constructor(root2, categories, onChange) {
     this.edgeBar = null;
@@ -72118,6 +72119,13 @@ var LarkCanvas = class {
     // dangling edge awaiting a shape pick (drag-to-blank)
     this.lastSelectedAt = /* @__PURE__ */ new Map();
     // when each node became selected (for click-to-edit)
+    // Mobile-only HTML overlay: WebKit/iOS mis-positions <foreignObject> HTML content
+    // (position:absolute, clip-path, transform, %-height flex all jump to 0,0). We hide
+    // the foreignObject visuals on mobile and render each node into a real <div> overlay
+    // (where that CSS works), positioned to match. Interaction stays on the SVG hit rect.
+    this.isMobile = typeof document !== "undefined" && !!((_a2 = document.body) == null ? void 0 : _a2.classList.contains("is-mobile"));
+    this.htmlLayer = null;
+    this.htmlNodes = /* @__PURE__ */ new Map();
     this.flyout = null;
     this.flyoutTimer = null;
     // ── Touch interaction (select tool): tap-select, drag-move, tap-to-place ──
@@ -72231,6 +72239,7 @@ var LarkCanvas = class {
     this.enableInlineLabelEdit();
     this.refreshProps();
     this.setTool("select");
+    this.initHtmlOverlay();
   }
   // ── Graph ──────────────────────────────────────────────────────────────
   initGraph() {
@@ -72358,8 +72367,8 @@ var LarkCanvas = class {
     const gap = 80;
     const onSide = (cx) => side === "right" ? cx >= p6.x + s5.width / 2 : cx < p6.x + s5.width / 2;
     const existingChildren = this.graph.getEdges().filter((e4) => e4.getSourceCellId() === parent.id).map((e4) => {
-      var _a2;
-      return this.graph.getCellById((_a2 = e4.getTargetCellId()) != null ? _a2 : "");
+      var _a3;
+      return this.graph.getCellById((_a3 = e4.getTargetCellId()) != null ? _a3 : "");
     }).filter((c6) => !!c6 && c6.isNode()).filter((c6) => onSide(c6.getPosition().x + c6.getSize().width / 2));
     const baseY = p6.y + s5.height / 2 - def.h / 2;
     const stackY = existingChildren.length ? Math.max(...existingChildren.map((c6) => c6.getPosition().y + c6.getSize().height)) + 14 : baseY;
@@ -72652,9 +72661,9 @@ var LarkCanvas = class {
    */
   enableLabelDrag() {
     this.root.addEventListener("pointerdown", (e4) => {
-      var _a2, _b2, _c;
+      var _a3, _b2, _c;
       const t5 = e4.target;
-      const lbl = (_a2 = t5 == null ? void 0 : t5.closest) == null ? void 0 : _a2.call(t5, ".bp-elabel");
+      const lbl = (_a3 = t5 == null ? void 0 : t5.closest) == null ? void 0 : _a3.call(t5, ".bp-elabel");
       if (!lbl) return;
       const nodeEl = lbl.closest(".x6-node");
       const cellId = nodeEl == null ? void 0 : nodeEl.getAttribute("data-cell-id");
@@ -72695,7 +72704,7 @@ var LarkCanvas = class {
    * Routes through X6's node:dblclick + node:click events for cross-build reliability.
    */
   tryEditChildLabel(target, node2) {
-    var _a2, _b2, _c, _d, _e3, _f, _g, _h;
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h;
     if (!target) return false;
     const poolHead = target.closest(".bp-pool-head");
     if (poolHead) {
@@ -72704,7 +72713,7 @@ var LarkCanvas = class {
     }
     const laneHead = target.closest(".bp-pool-lane-head");
     if (laneHead) {
-      const laneId = (_a2 = laneHead.closest(".bp-pool-lane")) == null ? void 0 : _a2.getAttribute("data-lane-id");
+      const laneId = (_a3 = laneHead.closest(".bp-pool-lane")) == null ? void 0 : _a3.getAttribute("data-lane-id");
       if (laneId) {
         this.editLaneLabel(node2, laneId, laneHead);
         return true;
@@ -72795,10 +72804,10 @@ var LarkCanvas = class {
   }
   /** Inline edit data.who for sequence participants. */
   editWho(node2, anchor3) {
-    var _a2, _b2;
+    var _a3, _b2;
     const r4 = anchor3.getBoundingClientRect();
     const rr2 = this.root.getBoundingClientRect();
-    const cur = (_b2 = (_a2 = node2.getData()) == null ? void 0 : _a2.who) != null ? _b2 : "";
+    const cur = (_b2 = (_a3 = node2.getData()) == null ? void 0 : _a3.who) != null ? _b2 : "";
     this.inlineEdit({
       left: r4.left - rr2.left,
       top: r4.top - rr2.top,
@@ -72817,9 +72826,9 @@ var LarkCanvas = class {
   }
   /** Inline edit an ERD column field (name or type). */
   editErdCell(node2, idx, field, anchor3) {
-    var _a2;
+    var _a3;
     const ex = this.nodeExtra(node2);
-    const cols = ((_a2 = ex.cols) != null ? _a2 : []).slice();
+    const cols = ((_a3 = ex.cols) != null ? _a3 : []).slice();
     if (idx < 0 || idx >= cols.length) return;
     const r4 = anchor3.getBoundingClientRect();
     const rr2 = this.root.getBoundingClientRect();
@@ -72839,9 +72848,9 @@ var LarkCanvas = class {
   }
   /** Open a small menu over an ERD key cell to set its marker (PK / FK / none). */
   pickErdKey(node2, idx, anchor3) {
-    var _a2;
+    var _a3;
     const ex = this.nodeExtra(node2);
-    const cols = ((_a2 = ex.cols) != null ? _a2 : []).slice();
+    const cols = ((_a3 = ex.cols) != null ? _a3 : []).slice();
     if (idx < 0 || idx >= cols.length) return;
     const cur = cols[idx].k;
     const menu = el("div", "lk-context-menu lk-key-menu");
@@ -72855,8 +72864,8 @@ var LarkCanvas = class {
       item.appendChild(el("span", "kk " + (o5.k.toLowerCase() || "none"), o5.k || "\u2014"));
       item.appendChild(el("span", void 0, o5.label));
       item.onclick = () => {
-        var _a3;
-        const next = ((_a3 = this.nodeExtra(node2).cols) != null ? _a3 : []).slice();
+        var _a4;
+        const next = ((_a4 = this.nodeExtra(node2).cols) != null ? _a4 : []).slice();
         if (idx < next.length) {
           next[idx] = { ...next[idx], k: o5.k };
           node2.setData({ ...node2.getData(), cols: next });
@@ -72871,9 +72880,9 @@ var LarkCanvas = class {
   }
   /** Inline edit a UML field/method line. */
   editUmlLine(node2, comp, idx, anchor3) {
-    var _a2;
+    var _a3;
     const ex = this.nodeExtra(node2);
-    const arr = ((_a2 = comp === "fields" ? ex.fields : ex.methods) != null ? _a2 : []).slice();
+    const arr = ((_a3 = comp === "fields" ? ex.fields : ex.methods) != null ? _a3 : []).slice();
     if (idx < 0 || idx >= arr.length) return;
     const r4 = anchor3.getBoundingClientRect();
     const rr2 = this.root.getBoundingClientRect();
@@ -72972,9 +72981,9 @@ var LarkCanvas = class {
       this.editLabel(node2);
     });
     this.graph.on("node:click", ({ node: node2, e: e4 }) => {
-      var _a2;
+      var _a3;
       if (this.lastSelectedAt.get(node2.id) === void 0) return;
-      const sinceSel = Date.now() - ((_a2 = this.lastSelectedAt.get(node2.id)) != null ? _a2 : 0);
+      const sinceSel = Date.now() - ((_a3 = this.lastSelectedAt.get(node2.id)) != null ? _a3 : 0);
       if (sinceSel < 80) return;
       if (this.tryEditChildLabel(e4.target, node2)) e4.stopPropagation();
     });
@@ -73024,7 +73033,7 @@ var LarkCanvas = class {
   // Compact icon rail (Larksuite-style): one icon per category; hover reveals a
   // flyout grid of that category's shapes (draggable onto the canvas).
   buildLeftToolbar() {
-    var _a2;
+    var _a3;
     const rail = el("div", "lk-rail");
     const sel = el("div", "lk-rail-item is-active");
     sel.innerHTML = CURSOR_ICON;
@@ -73053,7 +73062,7 @@ var LarkCanvas = class {
     };
     for (const cat of this.categories) {
       const item = el("div", "lk-rail-item");
-      item.innerHTML = shapeIcon((_a2 = REP[cat.title]) != null ? _a2 : cat.items[0].shape);
+      item.innerHTML = shapeIcon((_a3 = REP[cat.title]) != null ? _a3 : cat.items[0].shape);
       item.title = cat.title;
       item.onmouseenter = () => this.openFlyout(cat, item);
       item.onmouseleave = () => this.scheduleFlyoutClose();
@@ -73068,12 +73077,12 @@ var LarkCanvas = class {
    * there is no Space key) and node interaction is suspended so drags always pan.
    */
   setTool(tool) {
-    var _a2, _b2, _c, _d;
+    var _a3, _b2, _c, _d;
     this.tool = tool;
     const pan = tool === "pan";
     this.graph.options.interacting = pan ? false : { edgeLabelMovable: true };
     const g3 = this.graph;
-    if (pan) (_a2 = g3.disableRubberband) == null ? void 0 : _a2.call(g3);
+    if (pan) (_a3 = g3.disableRubberband) == null ? void 0 : _a3.call(g3);
     else (_b2 = g3.enableRubberband) == null ? void 0 : _b2.call(g3);
     if (pan) this.graph.cleanSelection();
     const m6 = this.graphMount;
@@ -73105,9 +73114,9 @@ var LarkCanvas = class {
   }
   /** Find the X6 node whose rendered DOM is under a client point (touch hit-test). */
   nodeAtPoint(x4, y5) {
-    var _a2;
+    var _a3;
     const el2 = document.elementFromPoint(x4, y5);
-    const cellEl = (_a2 = el2 == null ? void 0 : el2.closest) == null ? void 0 : _a2.call(el2, "[data-cell-id]");
+    const cellEl = (_a3 = el2 == null ? void 0 : el2.closest) == null ? void 0 : _a3.call(el2, "[data-cell-id]");
     const id = cellEl == null ? void 0 : cellEl.getAttribute("data-cell-id");
     if (!id) return null;
     const cell = this.graph.getCellById(id);
@@ -73149,8 +73158,8 @@ var LarkCanvas = class {
     this.flyout = fly;
   }
   closeFlyoutNow() {
-    var _a2;
-    (_a2 = this.flyout) == null ? void 0 : _a2.remove();
+    var _a3;
+    (_a3 = this.flyout) == null ? void 0 : _a3.remove();
     this.flyout = null;
   }
   cancelFlyoutClose() {
@@ -73288,7 +73297,7 @@ var LarkCanvas = class {
     this.refreshMinimap();
   }
   refreshMinimap() {
-    var _a2, _b2;
+    var _a3, _b2;
     const box = this.minimap, svg3 = this.minimapSvg, vp = this.minimapVp;
     if (!box || !svg3 || !vp) return;
     const nodes = this.graph.getNodes();
@@ -73308,7 +73317,7 @@ var LarkCanvas = class {
     for (const n3 of nodes) {
       const p6 = n3.getPosition();
       const s5 = n3.getSize();
-      const st3 = (_b2 = (_a2 = n3.getData()) == null ? void 0 : _a2.style) != null ? _b2 : {};
+      const st3 = (_b2 = (_a3 = n3.getData()) == null ? void 0 : _a3.style) != null ? _b2 : {};
       const fill2 = st3.fill && st3.fill !== "transparent" ? st3.fill : "#cdd6df";
       html3 += `<rect x="${(ox + (p6.x - bb.x) * scale2).toFixed(1)}" y="${(oy + (p6.y - bb.y) * scale2).toFixed(1)}" width="${Math.max(2, s5.width * scale2).toFixed(1)}" height="${Math.max(2, s5.height * scale2).toFixed(1)}" rx="1.5" fill="${fill2}"/>`;
     }
@@ -73353,8 +73362,8 @@ var LarkCanvas = class {
     this.togglePropsPanel(false);
   }
   togglePropsPanel(open2) {
-    var _a2;
-    (_a2 = this.propsPanel) == null ? void 0 : _a2.classList.toggle("open", open2);
+    var _a3;
+    (_a3 = this.propsPanel) == null ? void 0 : _a3.classList.toggle("open", open2);
     if (this.propsFab) this.propsFab.style.display = open2 ? "none" : "grid";
   }
   refreshProps() {
@@ -73449,8 +73458,8 @@ var LarkCanvas = class {
     const list = el("div");
     sec.appendChild(list);
     const cols = () => {
-      var _a2;
-      return (_a2 = this.nodeExtra(node2).cols) != null ? _a2 : [];
+      var _a3;
+      return (_a3 = this.nodeExtra(node2).cols) != null ? _a3 : [];
     };
     const render = () => {
       list.innerHTML = "";
@@ -73468,8 +73477,8 @@ var LarkCanvas = class {
   erdRow(node2, col, idx, rerenderList) {
     const row = el("div", "lk-erd-row");
     const cols = () => {
-      var _a2;
-      return (_a2 = this.nodeExtra(node2).cols) != null ? _a2 : [];
+      var _a3;
+      return (_a3 = this.nodeExtra(node2).cols) != null ? _a3 : [];
     };
     const update = (patch) => this.setExtra(node2, { cols: cols().map((c6, i6) => i6 === idx ? { ...c6, ...patch } : c6) });
     const ksel = el("select", "lk-pinput");
@@ -73508,8 +73517,8 @@ var LarkCanvas = class {
       const list = el("div");
       sec.appendChild(list);
       const arr = () => {
-        var _a2;
-        return (_a2 = this.nodeExtra(node2)[key]) != null ? _a2 : [];
+        var _a3;
+        return (_a3 = this.nodeExtra(node2)[key]) != null ? _a3 : [];
       };
       const render = () => {
         list.innerHTML = "";
@@ -73530,8 +73539,8 @@ var LarkCanvas = class {
   umlRow(node2, key, line2, idx, rerenderList) {
     const row = el("div", "lk-erd-row");
     const arr = () => {
-      var _a2;
-      return (_a2 = this.nodeExtra(node2)[key]) != null ? _a2 : [];
+      var _a3;
+      return (_a3 = this.nodeExtra(node2)[key]) != null ? _a3 : [];
     };
     const inp = el("input", "lk-pinput");
     inp.value = line2;
@@ -73659,10 +73668,10 @@ var LarkCanvas = class {
       const st3 = this.nodeStyle(node2);
       const wRow = el("div", "lk-line-row");
       [1, 2, 3].forEach((bw, i6) => {
-        var _a2;
+        var _a3;
         const b3 = el(
           "div",
-          "lk-line-cell" + (((_a2 = st3.borderWidth) != null ? _a2 : 1) === bw ? " on" : ""),
+          "lk-line-cell" + (((_a3 = st3.borderWidth) != null ? _a3 : 1) === bw ? " on" : ""),
           `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="${bw}"/></svg>`
         );
         b3.title = ["M\u1EA3nh", "V\u1EEBa", "\u0110\u1EADm"][i6];
@@ -73677,10 +73686,10 @@ var LarkCanvas = class {
       wrap.appendChild(wRow);
       const dRow = el("div", "lk-line-row");
       [["solid", ""], ["dashed", "5 3"], ["dotted", "1.5 3"]].forEach(([key2, dash]) => {
-        var _a2;
+        var _a3;
         const b3 = el(
           "div",
-          "lk-line-cell" + (((_a2 = st3.borderDash) != null ? _a2 : "solid") === key2 ? " on" : ""),
+          "lk-line-cell" + (((_a3 = st3.borderDash) != null ? _a3 : "solid") === key2 ? " on" : ""),
           `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ""}/></svg>`
         );
         b3.title = key2;
@@ -73698,7 +73707,7 @@ var LarkCanvas = class {
   }
   /** Modern HSV picker: draggable saturation/value square + hue slider + synced hex. */
   openColorWheel(initial, onPick, anchor3) {
-    var _a2;
+    var _a3;
     const wrap = el("div", "lk-wheel");
     const sv = el("div", "lk-wheel-sv");
     const svThumb = el("div", "lk-wheel-sv-thumb");
@@ -73713,7 +73722,7 @@ var LarkCanvas = class {
     wrap.appendChild(sv);
     wrap.appendChild(hue);
     wrap.appendChild(hex);
-    const rgb0 = (_a2 = hexToRgb(initial)) != null ? _a2 : { r: 94, g: 143, b: 185 };
+    const rgb0 = (_a3 = hexToRgb(initial)) != null ? _a3 : { r: 94, g: 143, b: 185 };
     let { h: h5, s: s5, v: v6 } = rgbToHsv(rgb0.r, rgb0.g, rgb0.b);
     const render = (emit = true) => {
       sv.style.background = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${h5} 100% 50%))`;
@@ -73769,8 +73778,8 @@ var LarkCanvas = class {
     const wrap = el("div", "lk-line-popup");
     const szRow = el("div", "lk-line-row");
     FONT_SIZES.forEach((sz) => {
-      var _a2;
-      const b3 = el("div", "lk-line-cell" + (((_a2 = st3.fontSize) != null ? _a2 : 13) === sz ? " on" : ""), String(sz));
+      var _a3;
+      const b3 = el("div", "lk-line-cell" + (((_a3 = st3.fontSize) != null ? _a3 : 13) === sz ? " on" : ""), String(sz));
       b3.onclick = () => {
         this.setStyle(node2, { fontSize: sz });
         this.refreshContextBar();
@@ -73796,10 +73805,10 @@ var LarkCanvas = class {
     wrap.appendChild(tgRow);
     const alRow = el("div", "lk-line-row");
     [["left", "\u2261", "Tr\xE1i"], ["center", "\u2261", "Gi\u1EEFa"], ["right", "\u2261", "Ph\u1EA3i"]].forEach(([al, , title2]) => {
-      var _a2;
+      var _a3;
       const b3 = el(
         "div",
-        "lk-line-cell" + (((_a2 = st3.align) != null ? _a2 : "center") === al ? " on" : ""),
+        "lk-line-cell" + (((_a3 = st3.align) != null ? _a3 : "center") === al ? " on" : ""),
         `<span style="display:block;width:18px;text-align:${al};font-size:13px">\u2261</span>`
       );
       b3.title = title2;
@@ -73924,20 +73933,20 @@ var LarkCanvas = class {
     return out;
   }
   nodeKind(n3) {
-    var _a2, _b2;
-    return (_b2 = (_a2 = n3.getData()) == null ? void 0 : _a2.kind) != null ? _b2 : "bs-rect";
+    var _a3, _b2;
+    return (_b2 = (_a3 = n3.getData()) == null ? void 0 : _a3.kind) != null ? _b2 : "bs-rect";
   }
   nodeLabel(n3) {
-    var _a2, _b2;
-    return (_b2 = (_a2 = n3.getData()) == null ? void 0 : _a2.label) != null ? _b2 : "";
+    var _a3, _b2;
+    return (_b2 = (_a3 = n3.getData()) == null ? void 0 : _a3.label) != null ? _b2 : "";
   }
   nodeStyle(n3) {
-    var _a2, _b2;
-    return (_b2 = (_a2 = n3.getData()) == null ? void 0 : _a2.style) != null ? _b2 : {};
+    var _a3, _b2;
+    return (_b2 = (_a3 = n3.getData()) == null ? void 0 : _a3.style) != null ? _b2 : {};
   }
   nodeExtra(n3) {
-    var _a2;
-    const d4 = (_a2 = n3.getData()) != null ? _a2 : {};
+    var _a3;
+    const d4 = (_a3 = n3.getData()) != null ? _a3 : {};
     return { cols: d4.cols, fields: d4.fields, methods: d4.methods, who: d4.who, labelOffset: d4.labelOffset, lanes: d4.lanes };
   }
   rerender(n3) {
@@ -73945,6 +73954,72 @@ var LarkCanvas = class {
     const k5 = this.nodeKind(n3);
     if (k5 === "mm-root" || k5 === "mm-branch" || k5 === "mm-leaf") {
       this.scheduleMindmapAutoGrow(n3);
+    }
+    this.upsertHtmlNode(n3);
+  }
+  // ── Mobile HTML overlay (real <div> mirror of node content) ──────────────
+  initHtmlOverlay() {
+    if (!this.isMobile) return;
+    this.root.classList.add("lk-mobile");
+    this.htmlLayer = el("div", "lk-html-layer");
+    this.graphMount.appendChild(this.htmlLayer);
+    const xform = () => this.syncHtmlTransform();
+    this.graph.on("scale", xform);
+    this.graph.on("translate", xform);
+    this.graph.on("resize", xform);
+    this.graph.on("node:added", ({ node: node2 }) => this.upsertHtmlNode(node2));
+    this.graph.on("node:removed", ({ node: node2 }) => this.removeHtmlNode(node2.id));
+    this.graph.on("node:change:position", ({ cell }) => this.placeHtmlNode(cell));
+    this.graph.on("node:change:size", ({ cell }) => this.placeHtmlNode(cell));
+    this.graph.on("node:change:zIndex", ({ cell }) => this.placeHtmlNode(cell));
+    this.graph.on("node:change:data", ({ cell }) => this.upsertHtmlNode(cell));
+    this.resyncHtmlNodes();
+  }
+  /** Rebuild the whole overlay from the current node set (after loadModel). */
+  resyncHtmlNodes() {
+    if (!this.htmlLayer) return;
+    const live = /* @__PURE__ */ new Set();
+    for (const n3 of this.graph.getNodes()) {
+      this.upsertHtmlNode(n3);
+      live.add(n3.id);
+    }
+    for (const id of [...this.htmlNodes.keys()]) if (!live.has(id)) this.removeHtmlNode(id);
+    this.syncHtmlTransform();
+  }
+  syncHtmlTransform() {
+    if (!this.htmlLayer) return;
+    const t5 = this.graph.translate();
+    const s5 = this.graph.scale().sx || 1;
+    this.htmlLayer.style.transform = `translate(${t5.tx}px, ${t5.ty}px) scale(${s5})`;
+  }
+  upsertHtmlNode(node2) {
+    if (!this.htmlLayer) return;
+    let div = this.htmlNodes.get(node2.id);
+    if (!div) {
+      div = el("div", "lk-hnode");
+      this.htmlLayer.appendChild(div);
+      this.htmlNodes.set(node2.id, div);
+    }
+    div.innerHTML = `<div class="hn">${nodeHtml(this.nodeKind(node2), this.nodeLabel(node2), this.nodeStyle(node2), this.nodeExtra(node2))}</div>`;
+    this.placeHtmlNode(node2);
+  }
+  placeHtmlNode(node2) {
+    var _a3, _b2;
+    const div = this.htmlNodes.get(node2.id);
+    if (!div) return;
+    const p6 = node2.position();
+    const sz = node2.size();
+    div.style.left = p6.x + "px";
+    div.style.top = p6.y + "px";
+    div.style.width = sz.width + "px";
+    div.style.height = sz.height + "px";
+    div.style.zIndex = String((_b2 = (_a3 = node2.getZIndex) == null ? void 0 : _a3.call(node2)) != null ? _b2 : 1);
+  }
+  removeHtmlNode(id) {
+    const div = this.htmlNodes.get(id);
+    if (div) {
+      div.remove();
+      this.htmlNodes.delete(id);
     }
   }
   setStyle(n3, patch) {
@@ -73960,11 +74035,11 @@ var LarkCanvas = class {
     this.onChange();
   }
   autoHeight(n3) {
-    var _a2, _b2, _c, _d, _e3, _f;
+    var _a3, _b2, _c, _d, _e3, _f;
     const kind = this.nodeKind(n3);
     const ex = this.nodeExtra(n3);
     let h5 = 0;
-    if (kind === "erd-entity") h5 = 34 + ((_b2 = (_a2 = ex.cols) == null ? void 0 : _a2.length) != null ? _b2 : 0) * 25;
+    if (kind === "erd-entity") h5 = 34 + ((_b2 = (_a3 = ex.cols) == null ? void 0 : _a3.length) != null ? _b2 : 0) * 25;
     else if (kind === "uml-class" || kind === "uml-interface") {
       const f6 = (_d = (_c = ex.fields) == null ? void 0 : _c.length) != null ? _d : 0, m6 = (_f = (_e3 = ex.methods) == null ? void 0 : _e3.length) != null ? _f : 0;
       h5 = 38 + (f6 ? 14 + f6 * 20 : 0) + (m6 ? 14 + m6 * 20 : 0);
@@ -73983,9 +74058,9 @@ var LarkCanvas = class {
     return "l" + Math.random().toString(36).slice(2, 8);
   }
   addLaneToPool(node2, where) {
-    var _a2;
+    var _a3;
     const ex = this.nodeExtra(node2);
-    const lanes = [...(_a2 = ex.lanes) != null ? _a2 : [{ id: "l1", label: "Lane 1" }]];
+    const lanes = [...(_a3 = ex.lanes) != null ? _a3 : [{ id: "l1", label: "Lane 1" }]];
     const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}` };
     if (where === "above") lanes.unshift(next);
     else lanes.push(next);
@@ -74068,9 +74143,9 @@ var LarkCanvas = class {
     }, 10);
   }
   editLaneLabel(node2, laneId, anchor3) {
-    var _a2;
+    var _a3;
     const ex = this.nodeExtra(node2);
-    const lanes = ((_a2 = ex.lanes) != null ? _a2 : []).slice();
+    const lanes = ((_a3 = ex.lanes) != null ? _a3 : []).slice();
     const idx = lanes.findIndex((l5) => l5.id === laneId);
     if (idx < 0) return;
     const r4 = anchor3.getBoundingClientRect();
@@ -74143,9 +74218,9 @@ var LarkCanvas = class {
   }
   /** Re-measure rendered HTML and grow the node's height if the wrapped text overflows. */
   autoGrowMindmapNode(node2) {
-    var _a2, _b2;
+    var _a3, _b2;
     const view = this.graph.findViewByCell(node2);
-    const mm = (_b2 = (_a2 = view == null ? void 0 : view.container) == null ? void 0 : _a2.querySelector) == null ? void 0 : _b2.call(_a2, ".mm");
+    const mm = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, ".mm");
     if (!mm) return;
     const desired = mm.scrollHeight;
     const cur = node2.getSize().height;
@@ -74156,7 +74231,7 @@ var LarkCanvas = class {
   }
   // Inline-edit an edge's label (double-click the arrow).
   editEdgeLabel(edge) {
-    var _a2, _b2, _c, _d;
+    var _a3, _b2, _c, _d;
     this.commitLabel();
     const bbox2 = edge.getBBox();
     const s5 = this.graph.scale().sx;
@@ -74164,7 +74239,7 @@ var LarkCanvas = class {
     const cx = (bbox2.x + bbox2.width / 2) * s5 + t5.tx;
     const cy = (bbox2.y + bbox2.height / 2) * s5 + t5.ty;
     const input = el("input", "lk-label-input");
-    const cur = (_d = (_c = (_b2 = (_a2 = edge.getLabels()) == null ? void 0 : _a2[0]) == null ? void 0 : _b2.attrs) == null ? void 0 : _c.label) == null ? void 0 : _d.text;
+    const cur = (_d = (_c = (_b2 = (_a3 = edge.getLabels()) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.attrs) == null ? void 0 : _c.label) == null ? void 0 : _d.text;
     input.value = cur ? String(cur) : "";
     input.style.left = cx - 70 + "px";
     input.style.top = cy - 15 + "px";
@@ -74203,8 +74278,8 @@ var LarkCanvas = class {
   }
   // ── Edge style (relationship type / weight / dash / color) ────────────────
   edgeStyle(edge) {
-    var _a2, _b2;
-    return (_b2 = (_a2 = edge.getData()) == null ? void 0 : _a2.style) != null ? _b2 : {};
+    var _a3, _b2;
+    return (_b2 = (_a3 = edge.getData()) == null ? void 0 : _a3.style) != null ? _b2 : {};
   }
   setEdgeStyle(edge, patch) {
     const next = { ...this.edgeStyle(edge), ...patch };
@@ -74214,11 +74289,11 @@ var LarkCanvas = class {
   }
   // Render the edge's stored style onto its line + markers.
   applyEdgeStyle(edge, selected = false) {
-    var _a2, _b2, _c, _d, _e3, _f;
+    var _a3, _b2, _c, _d, _e3, _f;
     const st3 = this.edgeStyle(edge);
     const color = st3.stroke || EDGE_STROKE2;
     edge.attr("line/stroke", selected ? ACCENT : color, { silent: true });
-    edge.attr("line/strokeWidth", (_a2 = st3.width) != null ? _a2 : 1.8, { silent: true });
+    edge.attr("line/strokeWidth", (_a3 = st3.width) != null ? _a3 : 1.8, { silent: true });
     edge.attr("line/strokeDasharray", (_c = EDGE_DASHES[(_b2 = st3.dash) != null ? _b2 : "solid"]) != null ? _c : "", { silent: true });
     edge.attr("line/sourceMarker", buildMarker((_d = st3.start) != null ? _d : "none", color), { silent: true });
     edge.attr("line/targetMarker", buildMarker((_e3 = st3.end) != null ? _e3 : "arrow", color), { silent: true });
@@ -74229,8 +74304,8 @@ var LarkCanvas = class {
   // Line shape (orthogonal/elbow/straight/curved) — skip seq/mindmap (special routing).
   // A line jump (arc/gap) overrides the connector with X6's native jumpover.
   applyEdgeShape(edge) {
-    var _a2, _b2, _c, _d;
-    const sid = (_a2 = edge.getSourceCellId()) != null ? _a2 : void 0;
+    var _a3, _b2, _c, _d;
+    const sid = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
     if (this.isSeqLifeline(sid) || this.isMindmapNode(sid)) return;
     const st3 = this.edgeStyle(edge);
     const p6 = (_c = EDGE_SHAPES[(_b2 = st3.shape) != null ? _b2 : "orthogonal"]) != null ? _c : EDGE_SHAPES.orthogonal;
@@ -74252,8 +74327,8 @@ var LarkCanvas = class {
   }
   // Rotate the edge label 0° ↔ 90°.
   applyEdgeTextAngle(edge) {
-    var _a2, _b2, _c, _d;
-    const ang = (_a2 = this.edgeStyle(edge).textAngle) != null ? _a2 : 0;
+    var _a3, _b2, _c, _d;
+    const ang = (_a3 = this.edgeStyle(edge).textAngle) != null ? _a3 : 0;
     const labels = edge.getLabels();
     if (!labels.length) return;
     const text4 = (_d = (_c = (_b2 = labels[0]) == null ? void 0 : _b2.attrs) == null ? void 0 : _c.label) == null ? void 0 : _d.text;
@@ -74261,14 +74336,14 @@ var LarkCanvas = class {
     edge.setLabels([{ attrs: { body: EDGE_LABEL_BODY, label: { ...EDGE_LABEL_TEXT, text: text4, transform: ang ? `rotate(${ang})` : null } } }]);
   }
   toggleEdgeTextAngle(edge) {
-    var _a2;
-    const cur = (_a2 = this.edgeStyle(edge).textAngle) != null ? _a2 : 0;
+    var _a3;
+    const cur = (_a3 = this.edgeStyle(edge).textAngle) != null ? _a3 : 0;
     this.setEdgeStyle(edge, { textAngle: cur === 90 ? 0 : 90 });
     this.applyEdgeTextAngle(edge);
   }
   // Line + marker preview. side="start" mirrors it (marker on the left).
   markerSvg(kind, side = "end") {
-    var _a2;
+    var _a3;
     const head = {
       none: "",
       arrow: `<path d="M14 2 23 8 14 14 Z" fill="currentColor"/>`,
@@ -74286,12 +74361,12 @@ var LarkCanvas = class {
     };
     const crowKinds = /* @__PURE__ */ new Set(["crow", "bar", "crow-bar", "bar-bar"]);
     const lineEnd = kind === "none" ? 25 : crowKinds.has(kind) ? 12 : 13;
-    const inner = `<line x1="1" y1="8" x2="${lineEnd}" y2="8" stroke="currentColor" stroke-width="1.6"/>${(_a2 = head[kind]) != null ? _a2 : ""}`;
+    const inner = `<line x1="1" y1="8" x2="${lineEnd}" y2="8" stroke="currentColor" stroke-width="1.6"/>${(_a3 = head[kind]) != null ? _a3 : ""}`;
     const body = side === "start" ? `<g transform="translate(26,0) scale(-1,1)">${inner}</g>` : inner;
     return `<svg viewBox="0 0 26 16" width="26" height="16">${body}</svg>`;
   }
   showEdgeBar(edge) {
-    var _a2, _b2;
+    var _a3, _b2;
     const bar = this.edgeBar;
     if (!bar) return;
     bar.innerHTML = "";
@@ -74304,7 +74379,7 @@ var LarkCanvas = class {
       return b3;
     };
     bar.appendChild(mkBtn(
-      this.markerSvg((_a2 = st3.start) != null ? _a2 : "none", "start") + caret,
+      this.markerSvg((_a3 = st3.start) != null ? _a3 : "none", "start") + caret,
       "K\xFD hi\u1EC7u \u0111\u1EA7u tr\xE1i",
       (ev) => this.openEdgeMarkerPopup(edge, "start", ev.currentTarget)
     ));
@@ -74372,9 +74447,9 @@ var LarkCanvas = class {
     if (this.edgeBar) this.edgeBar.style.display = "none";
   }
   openEdgeMarkerPopup(edge, which, anchor3) {
-    var _a2, _b2, _c;
+    var _a3, _b2, _c;
     const grid = el("div", "lk-marker-grid");
-    const cur = which === "start" ? (_a2 = this.edgeStyle(edge).start) != null ? _a2 : "none" : (_b2 = this.edgeStyle(edge).end) != null ? _b2 : "arrow";
+    const cur = which === "start" ? (_a3 = this.edgeStyle(edge).start) != null ? _a3 : "none" : (_b2 = this.edgeStyle(edge).end) != null ? _b2 : "arrow";
     for (const kind of EDGE_MARKER_KINDS) {
       const cell = el("div", "lk-marker-cell" + (kind === cur ? " on" : ""), this.markerSvg(kind, which));
       cell.title = (_c = EDGE_MARKER_LABEL[kind]) != null ? _c : kind;
@@ -74389,7 +74464,7 @@ var LarkCanvas = class {
   }
   // Line popup: shape (orthogonal/elbow/straight/curved) + dash + weight.
   openEdgeLinePopup(edge, anchor3) {
-    var _a2, _b2;
+    var _a3, _b2;
     const st3 = this.edgeStyle(edge);
     const wrap = el("div", "lk-line-popup");
     const shapes = [
@@ -74400,7 +74475,7 @@ var LarkCanvas = class {
     ];
     const shapeRow = el("div", "lk-line-row");
     for (const [key, svg3] of shapes) {
-      const b3 = el("div", "lk-line-cell" + (((_a2 = st3.shape) != null ? _a2 : "orthogonal") === key ? " on" : ""), `<svg viewBox="0 0 18 14" width="22" height="16">${svg3}</svg>`);
+      const b3 = el("div", "lk-line-cell" + (((_a3 = st3.shape) != null ? _a3 : "orthogonal") === key ? " on" : ""), `<svg viewBox="0 0 18 14" width="22" height="16">${svg3}</svg>`);
       b3.title = key;
       b3.onclick = () => {
         this.setEdgeStyle(edge, { shape: key });
@@ -74412,10 +74487,10 @@ var LarkCanvas = class {
     wrap.appendChild(shapeRow);
     const dashRow = el("div", "lk-line-row");
     [["solid", ""], ["dashed", "5 3"], ["dotted", "1.5 3"]].forEach(([key, dash]) => {
-      var _a3;
+      var _a4;
       const b3 = el(
         "div",
-        "lk-line-cell" + (((_a3 = st3.dash) != null ? _a3 : "solid") === key ? " on" : ""),
+        "lk-line-cell" + (((_a4 = st3.dash) != null ? _a4 : "solid") === key ? " on" : ""),
         `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ""}/></svg>`
       );
       b3.onclick = () => {
@@ -74427,10 +74502,10 @@ var LarkCanvas = class {
     wrap.appendChild(dashRow);
     const wRow = el("div", "lk-line-row");
     EDGE_WIDTHS.forEach((w5, i6) => {
-      var _a3;
+      var _a4;
       const b3 = el(
         "div",
-        "lk-line-cell" + (Math.abs(((_a3 = st3.width) != null ? _a3 : 1.8) - w5) < 0.2 ? " on" : ""),
+        "lk-line-cell" + (Math.abs(((_a4 = st3.width) != null ? _a4 : 1.8) - w5) < 0.2 ? " on" : ""),
         `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="${w5}"/></svg>`
       );
       b3.title = ["M\u1EA3nh", "V\u1EEBa", "\u0110\u1EADm"][i6];
@@ -74493,16 +74568,16 @@ var LarkCanvas = class {
     this.showPopup(wrap, anchor3);
   }
   isSeqLifeline(cellId) {
-    var _a2;
+    var _a3;
     if (!cellId) return false;
     const c6 = this.graph.getCellById(cellId);
     if (!c6 || !c6.isNode()) return false;
-    const k5 = (_a2 = c6.getData()) == null ? void 0 : _a2.kind;
+    const k5 = (_a3 = c6.getData()) == null ? void 0 : _a3.kind;
     return !!k5 && SEQ_LIFELINE_KINDS.has(k5);
   }
   applySeqRoutingIfNeeded(edge) {
-    var _a2, _b2, _c, _d, _e3, _f;
-    const srcId = (_a2 = edge.getSourceCellId()) != null ? _a2 : void 0;
+    var _a3, _b2, _c, _d, _e3, _f;
+    const srcId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
     const tgtId = (_b2 = edge.getTargetCellId()) != null ? _b2 : void 0;
     if (!this.isSeqLifeline(srcId) || !this.isSeqLifeline(tgtId)) return;
     edge.setRouter("normal");
@@ -74516,8 +74591,8 @@ var LarkCanvas = class {
     });
     const baseY = (_e3 = (_d = edge.getSourcePoint()) == null ? void 0 : _d.y) != null ? _e3 : 100;
     const lowest = peers.reduce((acc, p6) => {
-      var _a3, _b3, _c2, _d2;
-      const y5 = (_d2 = (_c2 = (_a3 = p6.getData()) == null ? void 0 : _a3.y) != null ? _c2 : (_b3 = p6.getSourcePoint()) == null ? void 0 : _b3.y) != null ? _d2 : baseY;
+      var _a4, _b3, _c2, _d2;
+      const y5 = (_d2 = (_c2 = (_a4 = p6.getData()) == null ? void 0 : _a4.y) != null ? _c2 : (_b3 = p6.getSourcePoint()) == null ? void 0 : _b3.y) != null ? _d2 : baseY;
       return Math.max(acc, y5);
     }, baseY - 30);
     edge.setData({ ...(_f = edge.getData()) != null ? _f : {}, y: lowest + 30 });
@@ -74528,7 +74603,7 @@ var LarkCanvas = class {
    * up; if above, label stays at the default bottom.
    */
   refreshBpmnEventLabels() {
-    var _a2, _b2;
+    var _a3, _b2;
     for (const n3 of this.graph.getNodes()) {
       const k5 = this.nodeKind(n3);
       const isEvent = k5.startsWith("bpmn-start") || k5.startsWith("bpmn-end") || k5.startsWith("bpmn-intermediate");
@@ -74550,21 +74625,21 @@ var LarkCanvas = class {
       }
       const flipUp = bottom4 && !top4;
       const view = this.graph.findViewByCell(n3);
-      const el2 = (_b2 = (_a2 = view == null ? void 0 : view.container) == null ? void 0 : _a2.querySelector) == null ? void 0 : _b2.call(_a2, isGw ? ".bp-gw" : ".bp-event");
+      const el2 = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, isGw ? ".bp-gw" : ".bp-event");
       if (el2) el2.classList.toggle("label-top", flipUp);
     }
   }
   isMindmapNode(cellId) {
-    var _a2;
+    var _a3;
     if (!cellId) return false;
     const c6 = this.graph.getCellById(cellId);
     if (!c6 || !c6.isNode()) return false;
-    const k5 = (_a2 = c6.getData()) == null ? void 0 : _a2.kind;
+    const k5 = (_a3 = c6.getData()) == null ? void 0 : _a3.kind;
     return !!k5 && MM_KINDS.has(k5);
   }
   applyMindmapRoutingIfNeeded(edge) {
-    var _a2, _b2;
-    const srcId = (_a2 = edge.getSourceCellId()) != null ? _a2 : void 0;
+    var _a3, _b2;
+    const srcId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
     const tgtId = (_b2 = edge.getTargetCellId()) != null ? _b2 : void 0;
     if (!this.isMindmapNode(srcId) || !this.isMindmapNode(tgtId)) return;
     const src = this.graph.getCellById(srcId);
@@ -74579,11 +74654,11 @@ var LarkCanvas = class {
   }
   // ── Model load / serialize ───────────────────────────────────────────────
   loadModel(model) {
-    var _a2, _b2, _c;
+    var _a3, _b2, _c;
     this.graph.startBatch("load");
     this.graph.clearCells();
     for (const n3 of model.nodes) {
-      const a5 = (_a2 = n3.attrs) != null ? _a2 : {};
+      const a5 = (_a3 = n3.attrs) != null ? _a3 : {};
       const style2 = (_b2 = a5.style) != null ? _b2 : {};
       const extra = { cols: a5.cols, fields: a5.fields, methods: a5.methods, who: a5.who, labelOffset: a5.labelOffset, lanes: a5.lanes };
       this.addHtmlNode(n3.shape, n3.x, n3.y, n3.width, n3.height, n3.label, style2, n3.id, extra);
@@ -74616,6 +74691,7 @@ var LarkCanvas = class {
       if (mm) this.applyMindmapRoutingIfNeeded(created);
     }
     this.graph.stopBatch("load");
+    this.resyncHtmlNodes();
     setTimeout(() => {
       this.graph.getNodes().forEach((n3) => {
         const k5 = this.nodeKind(n3);
@@ -74656,10 +74732,10 @@ var LarkCanvas = class {
       };
     });
     const edges = this.graph.getEdges().map((e4) => {
-      var _a2, _b2, _c, _d;
+      var _a3, _b2, _c, _d;
       const src = e4.getSource();
       const tgt = e4.getTarget();
-      const d4 = (_a2 = e4.getData()) != null ? _a2 : {};
+      const d4 = (_a3 = e4.getData()) != null ? _a3 : {};
       const verts = e4.getVertices();
       const lbl = (_b2 = e4.getLabels()) == null ? void 0 : _b2[0];
       const labelPos = (lbl == null ? void 0 : lbl.position) && (lbl.position.distance != null || lbl.position.offset != null) ? { distance: lbl.position.distance, offset: lbl.position.offset } : void 0;
@@ -74699,7 +74775,7 @@ var LarkCanvas = class {
    * 8. zoomToFit + minimap + label-flip refresh.
    */
   autoLayout(dir = "LR") {
-    var _a2;
+    var _a3;
     const horiz = dir === "LR";
     const nodes = this.graph.getNodes();
     const layoutable = nodes.filter((n3) => {
@@ -74775,7 +74851,7 @@ var LarkCanvas = class {
       lf.position(n3.x - n3.width / 2 + offX, n3.y - n3.height / 2 + offY);
     }
     for (const c6 of containers) {
-      const kids = ((_a2 = childOf.get(c6.id)) != null ? _a2 : []).map((id) => this.graph.getCellById(id)).filter((x4) => !!x4 && x4.isNode());
+      const kids = ((_a3 = childOf.get(c6.id)) != null ? _a3 : []).map((id) => this.graph.getCellById(id)).filter((x4) => !!x4 && x4.isNode());
       if (!kids.length) continue;
       const k5 = this.nodeKind(c6);
       const pad = k5 === "bpmn-lane" || k5 === "bpmn-pool" ? 24 : 18;
@@ -74838,11 +74914,11 @@ var LarkCanvas = class {
   }
   /** Standalone, fully-styled SVG string (tokens + node CSS inlined, white bg). */
   exportSVG() {
-    var _a2;
+    var _a3;
     const SVGNS2 = "http://www.w3.org/2000/svg";
     const svgEl = this.graph.view.svg;
     const clone3 = svgEl.cloneNode(true);
-    const bbox2 = (_a2 = svgEl.getBBox) == null ? void 0 : _a2.call(svgEl);
+    const bbox2 = (_a3 = svgEl.getBBox) == null ? void 0 : _a3.call(svgEl);
     const pad = 24;
     let x4 = 0, y5 = 0, w5 = 800, h5 = 600;
     if (bbox2) {
@@ -74972,8 +75048,8 @@ var BoardView = class extends import_obsidian.TextFileView {
     return BOARD_VIEW_TYPE;
   }
   getDisplayText() {
-    var _a2, _b2;
-    return (_b2 = (_a2 = this.file) == null ? void 0 : _a2.basename) != null ? _b2 : "Board";
+    var _a3, _b2;
+    return (_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Board";
   }
   getIcon() {
     return "shapes";
@@ -74989,7 +75065,7 @@ var BoardView = class extends import_obsidian.TextFileView {
     this.canvas.loadModel(this.model);
   }
   buildTopBar() {
-    var _a2, _b2;
+    var _a3, _b2;
     const bar = this.contentEl.createDiv({ cls: "da-topbar" });
     const close = bar.createEl("button", { cls: "da-tb-close" });
     (0, import_obsidian.setIcon)(close, "x");
@@ -74998,7 +75074,7 @@ var BoardView = class extends import_obsidian.TextFileView {
     const badge = bar.createDiv({ cls: "da-tb-badge" });
     (0, import_obsidian.setIcon)(badge, "shapes");
     badge.createSpan({ text: "BOARD" });
-    this.boardTitleEl = bar.createDiv({ cls: "da-tb-title", text: (_b2 = (_a2 = this.file) == null ? void 0 : _a2.basename) != null ? _b2 : "Board" });
+    this.boardTitleEl = bar.createDiv({ cls: "da-tb-title", text: (_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Board" });
     bar.createDiv({ cls: "da-tb-grow" });
     const iconBtn = (icon, tip, fn2) => {
       const b3 = bar.createEl("button", { cls: "da-tb-ic" });
@@ -75009,30 +75085,30 @@ var BoardView = class extends import_obsidian.TextFileView {
       return b3;
     };
     iconBtn("undo-2", "Undo", () => {
-      var _a3;
-      return (_a3 = this.canvas) == null ? void 0 : _a3.undo();
+      var _a4;
+      return (_a4 = this.canvas) == null ? void 0 : _a4.undo();
     });
     iconBtn("redo-2", "Redo", () => {
-      var _a3;
-      return (_a3 = this.canvas) == null ? void 0 : _a3.redo();
+      var _a4;
+      return (_a4 = this.canvas) == null ? void 0 : _a4.redo();
     });
     iconBtn("copy", "Nh\xE2n b\u1EA3n (\u2318D)", () => {
-      var _a3;
-      return (_a3 = this.canvas) == null ? void 0 : _a3.duplicate();
+      var _a4;
+      return (_a4 = this.canvas) == null ? void 0 : _a4.duplicate();
     });
     iconBtn("trash-2", "X\xF3a", () => {
-      var _a3;
-      return (_a3 = this.canvas) == null ? void 0 : _a3.deleteSelection();
+      var _a4;
+      return (_a4 = this.canvas) == null ? void 0 : _a4.deleteSelection();
     });
     const layoutBtn = iconBtn("workflow", "T\u1EF1 s\u1EAFp x\u1EBFp (auto layout)", () => {
       const m6 = new import_obsidian.Menu();
       m6.addItem((i6) => i6.setTitle("S\u1EAFp x\u1EBFp ngang \u2192").setIcon("arrow-right").onClick(() => {
-        var _a3;
-        return (_a3 = this.canvas) == null ? void 0 : _a3.autoLayout("LR");
+        var _a4;
+        return (_a4 = this.canvas) == null ? void 0 : _a4.autoLayout("LR");
       }));
       m6.addItem((i6) => i6.setTitle("S\u1EAFp x\u1EBFp d\u1ECDc \u2193").setIcon("arrow-down").onClick(() => {
-        var _a3;
-        return (_a3 = this.canvas) == null ? void 0 : _a3.autoLayout("TB");
+        var _a4;
+        return (_a4 = this.canvas) == null ? void 0 : _a4.autoLayout("TB");
       }));
       const r4 = layoutBtn.getBoundingClientRect();
       m6.showAtPosition({ x: r4.left, y: r4.bottom + 4 });
@@ -75115,9 +75191,9 @@ var BoardView = class extends import_obsidian.TextFileView {
   }
   // Obsidian → view
   setViewData(data2, _clear) {
-    var _a2, _b2;
+    var _a3, _b2;
     this.rawData = data2;
-    if (this.boardTitleEl) this.boardTitleEl.setText((_b2 = (_a2 = this.file) == null ? void 0 : _a2.basename) != null ? _b2 : "Board");
+    if (this.boardTitleEl) this.boardTitleEl.setText((_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Board");
     const parsed = this.parse(data2);
     if (parsed === null) {
       this.invalidFormat = true;
@@ -75171,8 +75247,8 @@ var BoardView = class extends import_obsidian.TextFileView {
     }
   }
   async onClose() {
-    var _a2;
-    (_a2 = this.canvas) == null ? void 0 : _a2.destroy();
+    var _a3;
+    (_a3 = this.canvas) == null ? void 0 : _a3.destroy();
     this.canvas = null;
   }
 };
@@ -75755,7 +75831,7 @@ function PlaceholderEditor({ initialModel, onSave, onClose }) {
 
 // src/adapters/makeStubAdapter.ts
 function makeStubAdapter(spec) {
-  var _a2;
+  var _a3;
   return {
     id: spec.id,
     displayName: spec.displayName,
@@ -75766,7 +75842,7 @@ function makeStubAdapter(spec) {
     emptyTemplate: () => spec.template,
     Renderer: PlaceholderRenderer,
     Editor: PlaceholderEditor,
-    exportFormats: (_a2 = spec.exportFormats) != null ? _a2 : ["svg", "png"],
+    exportFormats: (_a3 = spec.exportFormats) != null ? _a3 : ["svg", "png"],
     validate: () => ({ ok: true, errors: [] })
   };
 }
@@ -75971,13 +76047,13 @@ var initialized = false;
 function loadMermaidScript() {
   if (loadPromise) return loadPromise;
   loadPromise = new Promise((resolve3, reject) => {
-    var _a2, _b2, _c, _d, _e3, _f, _g, _h, _i;
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
     if (window.mermaid) {
       resolve3();
       return;
     }
     const script = document.createElement("script");
-    const pluginDir = (_f = (_e3 = (_d = (_c = (_b2 = (_a2 = window.app) == null ? void 0 : _a2.plugins) == null ? void 0 : _b2.getPlugin) == null ? void 0 : _c.call(_b2, "omniboard")) == null ? void 0 : _d.manifest) == null ? void 0 : _e3.dir) != null ? _f : ".obsidian/plugins/omniboard";
+    const pluginDir = (_f = (_e3 = (_d = (_c = (_b2 = (_a3 = window.app) == null ? void 0 : _a3.plugins) == null ? void 0 : _b2.getPlugin) == null ? void 0 : _c.call(_b2, "omniboard")) == null ? void 0 : _d.manifest) == null ? void 0 : _e3.dir) != null ? _f : ".obsidian/plugins/omniboard";
     const basePath = (_i = (_h = (_g = window.app) == null ? void 0 : _g.vault) == null ? void 0 : _h.adapter) == null ? void 0 : _i.basePath;
     script.src = basePath ? `file://${basePath}/${pluginDir}/mermaid.min.js` : `${pluginDir}/mermaid.min.js`;
     script.onload = () => resolve3();
@@ -75987,10 +76063,10 @@ function loadMermaidScript() {
   return loadPromise;
 }
 function initMermaid(isDark) {
-  var _a2, _b2;
+  var _a3, _b2;
   if (initialized) return;
   initialized = true;
-  (_b2 = (_a2 = window.mermaid) == null ? void 0 : _a2.initialize) == null ? void 0 : _b2.call(_a2, {
+  (_b2 = (_a3 = window.mermaid) == null ? void 0 : _a3.initialize) == null ? void 0 : _b2.call(_a3, {
     startOnLoad: false,
     // "strict" disables raw HTML in labels and click handlers — prevents XSS
     // from a shared note's mermaid-dx block (matches Obsidian's built-in).
@@ -76015,11 +76091,11 @@ function MermaidRenderer({ model, theme }) {
     setLoading(true);
     setError(null);
     (async () => {
-      var _a2;
+      var _a3;
       try {
         await loadMermaidScript();
         if (cancelled) return;
-        initMermaid((_a2 = theme.isDark) != null ? _a2 : false);
+        initMermaid((_a3 = theme.isDark) != null ? _a3 : false);
         const id = `mermaid-dx-${++nextId}`;
         const src = model.trim() || "graph LR\n  A --> B";
         const { svg: svg3 } = await window.mermaid.render(id, src);
@@ -76148,7 +76224,7 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
   }
   /** Render an `![[x.board]]` internal embed as a preview card in read mode. */
   async renderBoardEmbed(host, sourcePath) {
-    var _a2, _b2, _c, _d;
+    var _a3, _b2, _c, _d;
     if (host.dataset.daRendered === "1") return;
     const src = host.getAttribute("src");
     if (!src) return;
@@ -76172,7 +76248,7 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
     try {
       const raw2 = await this.app.vault.cachedRead(file);
       const model = JSON.parse(raw2);
-      const nodes = (_b2 = (_a2 = model.nodes) == null ? void 0 : _a2.length) != null ? _b2 : 0;
+      const nodes = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
       meta.setText(`${nodes} ph\u1EA7n t\u1EED \xB7 ${(_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0} n\u1ED1i`);
       if (!nodes) {
         body.createDiv({ cls: "da-embed-empty", text: "Board tr\u1ED1ng \u2014 b\u1EA5m M\u1EDF \u0111\u1EC3 v\u1EBD." });

@@ -112,6 +112,7 @@ const ACCENT = "#5E8FB9";
 const EDGE_STROKE = "#9c8b7e"; // warm muted brown-grey
 const CURSOR_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l7 16 2-6 6-2z"/></svg>`;
 const HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6.5a1.5 1.5 0 0 0-3 0M15 10.5V5a1.5 1.5 0 0 0-3 0v5M12 10V6.5a1.5 1.5 0 0 0-3 0V11M9 11V8a1.5 1.5 0 0 0-3 0v6a6 6 0 0 0 6 6h1.5a5 5 0 0 0 5-5v-3"/></svg>`;
+const ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 const EDGE_ATTRS = { line: { stroke: EDGE_STROKE, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
 // Edge label body — opaque pill so the label is hit-testable (X6 needs a body
 // for the user to grab and drag); also wipes the line behind the text.
@@ -169,6 +170,24 @@ const EDGE_SHAPES: Record<string, { router: unknown; connector: unknown }> = {
 };
 // Line-crossing jumps (X6 native jumpover connector — no manual intersection math).
 const EDGE_JUMPS: Record<string, "none" | "arc" | "gap" | "cubic"> = { none: "none", arc: "arc", gap: "gap" };
+
+// Arrow / message presets for the rail "Mũi tên" flyout (sequence-diagram messages).
+// Picking one drops a standalone straight arrow on the canvas; drag its ends onto
+// two lifelines to make a message (the seq-msg connector then takes over).
+const ARROW_TYPES: Array<{ key: string; label: string; style: EdgeStyle }> = [
+  { key: "sync",  label: "Đồng bộ",     style: { end: "arrow",      dash: "solid",  shape: "straight" } },
+  { key: "async", label: "Bất đồng bộ", style: { end: "arrow-open", dash: "solid",  shape: "straight" } },
+  { key: "reply", label: "Phản hồi",    style: { end: "arrow-open", dash: "dashed", shape: "straight" } },
+  { key: "line",  label: "Đường thẳng", style: { end: "none",        dash: "solid",  shape: "straight" } },
+];
+/** Small horizontal-arrow preview for an arrow flyout cell. */
+function arrowPreview(style: EdgeStyle): string {
+  const dash = style.dash === "dashed" ? ` stroke-dasharray="3 3"` : style.dash === "dotted" ? ` stroke-dasharray="1 3"` : "";
+  const head = style.end === "none" ? ""
+    : style.end === "arrow-open" ? `<path d="M20 4 27 9 20 14" fill="none" stroke="currentColor" stroke-width="1.8"/>`
+    : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
+  return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
+}
 
 export class LarkCanvas {
   private graph: Graph;
@@ -990,7 +1009,59 @@ export class LarkCanvas {
       item.onclick = () => this.openFlyout(cat, item);
       rail.appendChild(item);
     }
+
+    rail.appendChild(el("div", "lk-rail-sep"));
+    // Arrow / message tool: hover (desktop) or tap (mobile) → pick an arrow type,
+    // which drops a straight arrow on the canvas (for drawing sequence messages).
+    const arrow = el("div", "lk-rail-item");
+    arrow.innerHTML = ARROW_ICON;
+    arrow.title = "Mũi tên";
+    arrow.onmouseenter = () => this.openArrowFlyout(arrow);
+    arrow.onmouseleave = () => this.scheduleFlyoutClose();
+    arrow.onclick = () => this.openArrowFlyout(arrow);
+    rail.appendChild(arrow);
+
     this.root.appendChild(rail);
+  }
+
+  /** Arrow-type flyout (mirrors openFlyout but drops edges, not nodes). */
+  private openArrowFlyout(anchor: HTMLElement) {
+    this.cancelFlyoutClose();
+    this.closeFlyoutNow();
+    const fly = el("div", "lk-flyout");
+    fly.appendChild(el("div", "lk-flyout-title", "Mũi tên"));
+    const grid = el("div", "lk-flyout-grid");
+    for (const a of ARROW_TYPES) {
+      const cell = el("div", "lk-flyout-cell", `${arrowPreview(a.style)}<span class="lbl">${a.label}</span>`);
+      cell.title = `Thêm mũi tên "${a.label}"`;
+      cell.addEventListener("pointerdown", (e) => { e.stopPropagation(); e.preventDefault(); this.placeArrow(a.style); this.closeFlyoutNow(); });
+      grid.appendChild(cell);
+    }
+    fly.appendChild(grid);
+    fly.onmouseenter = () => this.cancelFlyoutClose();
+    fly.onmouseleave = () => this.scheduleFlyoutClose();
+    this.root.appendChild(fly);
+    this.positionFlyout(fly, anchor);
+    this.flyout = fly;
+  }
+
+  /** Drop a standalone straight arrow at the centre of the visible canvas. */
+  private placeArrow(style: EdgeStyle) {
+    // Viewport centre → graph coords via rect + translate + scale (robust on iOS,
+    // unlike X6's getScreenCTM-based clientToLocal).
+    const r = this.graphMount.getBoundingClientRect();
+    const t = this.graph.translate(); const s = this.graph.scale().sx || 1;
+    const cx = (r.width / 2 - t.tx) / s, cy = (r.height / 2 - t.ty) / s;
+    const edge = this.graph.addEdge({
+      source: { x: Math.round(cx - 70), y: Math.round(cy) },
+      target: { x: Math.round(cx + 70), y: Math.round(cy) },
+      router: { name: "normal" }, connector: { name: "normal" },
+      attrs: EDGE_ATTRS,
+      data: { style },
+    });
+    this.applyEdgeStyle(edge);
+    this.graph.resetSelection([edge]);
+    this.onChange();
   }
 
   /**
@@ -1140,13 +1211,16 @@ export class LarkCanvas {
     fly.onmouseenter = () => this.cancelFlyoutClose();
     fly.onmouseleave = () => this.scheduleFlyoutClose();
     this.root.appendChild(fly);
-
+    this.positionFlyout(fly, anchor);
+    this.flyout = fly;
+  }
+  /** Place a flyout just to the right of its rail anchor, clamped within the root. */
+  private positionFlyout(fly: HTMLElement, anchor: HTMLElement) {
     const ir = anchor.getBoundingClientRect();
     const rr = this.root.getBoundingClientRect();
     fly.style.left = (ir.right - rr.left + 8) + "px";
     const maxTop = rr.height - fly.offsetHeight - 12;
     fly.style.top = Math.min(Math.max(8, ir.top - rr.top - 6), Math.max(8, maxTop)) + "px";
-    this.flyout = fly;
   }
   private closeFlyoutNow() { this.flyout?.remove(); this.flyout = null; }
   private cancelFlyoutClose() { if (this.flyoutTimer !== null) { window.clearTimeout(this.flyoutTimer); this.flyoutTimer = null; } }

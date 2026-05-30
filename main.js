@@ -72014,6 +72014,7 @@ var ACCENT = "#5E8FB9";
 var EDGE_STROKE2 = "#9c8b7e";
 var CURSOR_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l7 16 2-6 6-2z"/></svg>`;
 var HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6.5a1.5 1.5 0 0 0-3 0M15 10.5V5a1.5 1.5 0 0 0-3 0v5M12 10V6.5a1.5 1.5 0 0 0-3 0V11M9 11V8a1.5 1.5 0 0 0-3 0v6a6 6 0 0 0 6 6h1.5a5 5 0 0 0 5-5v-3"/></svg>`;
+var ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 var EDGE_ATTRS = { line: { stroke: EDGE_STROKE2, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
 var EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" };
 var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move" };
@@ -72093,6 +72094,17 @@ var EDGE_SHAPES = {
   curved: { router: { name: "normal" }, connector: { name: "smooth" } }
 };
 var EDGE_JUMPS = { none: "none", arc: "arc", gap: "gap" };
+var ARROW_TYPES = [
+  { key: "sync", label: "\u0110\u1ED3ng b\u1ED9", style: { end: "arrow", dash: "solid", shape: "straight" } },
+  { key: "async", label: "B\u1EA5t \u0111\u1ED3ng b\u1ED9", style: { end: "arrow-open", dash: "solid", shape: "straight" } },
+  { key: "reply", label: "Ph\u1EA3n h\u1ED3i", style: { end: "arrow-open", dash: "dashed", shape: "straight" } },
+  { key: "line", label: "\u0110\u01B0\u1EDDng th\u1EB3ng", style: { end: "none", dash: "solid", shape: "straight" } }
+];
+function arrowPreview(style2) {
+  const dash = style2.dash === "dashed" ? ` stroke-dasharray="3 3"` : style2.dash === "dotted" ? ` stroke-dasharray="1 3"` : "";
+  const head = style2.end === "none" ? "" : style2.end === "arrow-open" ? `<path d="M20 4 27 9 20 14" fill="none" stroke="currentColor" stroke-width="1.8"/>` : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
+  return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
+}
 var _a2;
 var LarkCanvas = class {
   constructor(root2, categories, onChange) {
@@ -73070,7 +73082,58 @@ var LarkCanvas = class {
       item.onclick = () => this.openFlyout(cat, item);
       rail.appendChild(item);
     }
+    rail.appendChild(el("div", "lk-rail-sep"));
+    const arrow = el("div", "lk-rail-item");
+    arrow.innerHTML = ARROW_ICON;
+    arrow.title = "M\u0169i t\xEAn";
+    arrow.onmouseenter = () => this.openArrowFlyout(arrow);
+    arrow.onmouseleave = () => this.scheduleFlyoutClose();
+    arrow.onclick = () => this.openArrowFlyout(arrow);
+    rail.appendChild(arrow);
     this.root.appendChild(rail);
+  }
+  /** Arrow-type flyout (mirrors openFlyout but drops edges, not nodes). */
+  openArrowFlyout(anchor3) {
+    this.cancelFlyoutClose();
+    this.closeFlyoutNow();
+    const fly = el("div", "lk-flyout");
+    fly.appendChild(el("div", "lk-flyout-title", "M\u0169i t\xEAn"));
+    const grid = el("div", "lk-flyout-grid");
+    for (const a5 of ARROW_TYPES) {
+      const cell = el("div", "lk-flyout-cell", `${arrowPreview(a5.style)}<span class="lbl">${a5.label}</span>`);
+      cell.title = `Th\xEAm m\u0169i t\xEAn "${a5.label}"`;
+      cell.addEventListener("pointerdown", (e4) => {
+        e4.stopPropagation();
+        e4.preventDefault();
+        this.placeArrow(a5.style);
+        this.closeFlyoutNow();
+      });
+      grid.appendChild(cell);
+    }
+    fly.appendChild(grid);
+    fly.onmouseenter = () => this.cancelFlyoutClose();
+    fly.onmouseleave = () => this.scheduleFlyoutClose();
+    this.root.appendChild(fly);
+    this.positionFlyout(fly, anchor3);
+    this.flyout = fly;
+  }
+  /** Drop a standalone straight arrow at the centre of the visible canvas. */
+  placeArrow(style2) {
+    const r4 = this.graphMount.getBoundingClientRect();
+    const t5 = this.graph.translate();
+    const s5 = this.graph.scale().sx || 1;
+    const cx = (r4.width / 2 - t5.tx) / s5, cy = (r4.height / 2 - t5.ty) / s5;
+    const edge = this.graph.addEdge({
+      source: { x: Math.round(cx - 70), y: Math.round(cy) },
+      target: { x: Math.round(cx + 70), y: Math.round(cy) },
+      router: { name: "normal" },
+      connector: { name: "normal" },
+      attrs: EDGE_ATTRS,
+      data: { style: style2 }
+    });
+    this.applyEdgeStyle(edge);
+    this.graph.resetSelection([edge]);
+    this.onChange();
   }
   /**
    * Switch between the select tool and a free-pan ("hand") tool. In pan mode the
@@ -73151,12 +73214,16 @@ var LarkCanvas = class {
     fly.onmouseenter = () => this.cancelFlyoutClose();
     fly.onmouseleave = () => this.scheduleFlyoutClose();
     this.root.appendChild(fly);
+    this.positionFlyout(fly, anchor3);
+    this.flyout = fly;
+  }
+  /** Place a flyout just to the right of its rail anchor, clamped within the root. */
+  positionFlyout(fly, anchor3) {
     const ir2 = anchor3.getBoundingClientRect();
     const rr2 = this.root.getBoundingClientRect();
     fly.style.left = ir2.right - rr2.left + 8 + "px";
     const maxTop = rr2.height - fly.offsetHeight - 12;
     fly.style.top = Math.min(Math.max(8, ir2.top - rr2.top - 6), Math.max(8, maxTop)) + "px";
-    this.flyout = fly;
   }
   closeFlyoutNow() {
     var _a3;

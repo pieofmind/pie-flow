@@ -131,6 +131,6 @@ One X6 `html-node` renders every shape via a `foreignObject` + `nodeHtml(kind, l
 
 ## 📄 License
 
-MIT © [Kalix](https://github.com/nguyenkalix84)
+MIT © [Pie Of Mind](https://github.com/nguyenkalix84)
 
 Built with [AntV X6](https://github.com/antvis/X6), [Mermaid](https://github.com/mermaid-js/mermaid), [dagre](https://github.com/dagrejs/dagre) and [jsPDF](https://github.com/parallax/jsPDF).

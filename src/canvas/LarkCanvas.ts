@@ -1174,14 +1174,16 @@ export class LarkCanvas {
       const onCanvas = this.pointInGraph(ev.clientX, ev.clientY);
       const onFlyout = this.flyout ? this.pointInRect(ev.clientX, ev.clientY, this.flyout) : false;
       this.closeFlyoutNow();
-      if (moved && onCanvas && !onFlyout) {
-        // Real drag-and-drop onto the canvas → place at the release point.
+      // Only MOUSE drag-and-drop places at the release point. On touch a "tap" on
+      // a cell often carries a few px of finger jitter; treating that as a drop
+      // dropped the node at the cell's (top-left) location. So on touch we ALWAYS
+      // arm tap-to-place and let the next canvas tap decide the real position.
+      if (ev.pointerType === "mouse" && moved && onCanvas && !onFlyout) {
         const p = this.graph.clientToLocal(ev.clientX, ev.clientY);
         const node = this.addHtmlNode(item.shape, p.x - item.w / 2, p.y - item.h / 2, item.w, item.h, item.label);
         this.graph.resetSelection([node]);
         this.onChange();
       } else {
-        // Tap (or released over the flyout) → arm tap-to-place.
         if (this.tool === "pan") this.setTool("select");
         this.setPending(item);
       }

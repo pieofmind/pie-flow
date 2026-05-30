@@ -73199,7 +73199,7 @@ var LarkCanvas = class {
       const onCanvas = this.pointInGraph(ev.clientX, ev.clientY);
       const onFlyout = this.flyout ? this.pointInRect(ev.clientX, ev.clientY, this.flyout) : false;
       this.closeFlyoutNow();
-      if (moved && onCanvas && !onFlyout) {
+      if (ev.pointerType === "mouse" && moved && onCanvas && !onFlyout) {
         const p6 = this.graph.clientToLocal(ev.clientX, ev.clientY);
         const node2 = this.addHtmlNode(item.shape, p6.x - item.w / 2, p6.y - item.h / 2, item.w, item.h, item.label);
         this.graph.resetSelection([node2]);

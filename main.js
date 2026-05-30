@@ -72108,6 +72108,7 @@ var LarkCanvas = class {
     this.tool = "select";
     this.railSelect = null;
     this.railHand = null;
+    this.panStart = null;
     this.mmFabs = null;
     this.padLayer = null;
     this.pendingDrop = null;
@@ -72116,6 +72117,32 @@ var LarkCanvas = class {
     // when each node became selected (for click-to-edit)
     this.flyout = null;
     this.flyoutTimer = null;
+    this.onPanDown = (e4) => {
+      if (e4.pointerType === "mouse" && e4.button !== 0) return;
+      const t5 = this.graph.translate();
+      this.panStart = { px: e4.clientX, py: e4.clientY, tx: t5.tx, ty: t5.ty, id: e4.pointerId };
+      try {
+        this.graphMount.setPointerCapture(e4.pointerId);
+      } catch (e5) {
+      }
+      this.graphMount.style.cursor = "grabbing";
+      e4.preventDefault();
+    };
+    this.onPanMove = (e4) => {
+      const s5 = this.panStart;
+      if (!s5 || e4.pointerId !== s5.id) return;
+      this.graph.translate(s5.tx + (e4.clientX - s5.px), s5.ty + (e4.clientY - s5.py));
+      e4.preventDefault();
+    };
+    this.onPanUp = (e4) => {
+      if (!this.panStart || e4.pointerId !== this.panStart.id) return;
+      try {
+        this.graphMount.releasePointerCapture(e4.pointerId);
+      } catch (e5) {
+      }
+      this.panStart = null;
+      if (this.tool === "pan") this.graphMount.style.cursor = "grab";
+    };
     this.styleClipboard = null;
     this.root = root2;
     this.categories = categories;
@@ -72990,14 +73017,28 @@ var LarkCanvas = class {
     var _a2, _b2, _c, _d;
     this.tool = tool;
     const pan = tool === "pan";
-    const opts = this.graph.options;
-    if (opts.panning) opts.panning.modifiers = pan ? [] : ["space"];
-    opts.interacting = pan ? false : { edgeLabelMovable: true };
+    this.graph.options.interacting = pan ? false : { edgeLabelMovable: true };
     const g3 = this.graph;
     if (pan) (_a2 = g3.disableRubberband) == null ? void 0 : _a2.call(g3);
     else (_b2 = g3.enableRubberband) == null ? void 0 : _b2.call(g3);
     if (pan) this.graph.cleanSelection();
-    this.graphMount.style.cursor = pan ? "grab" : "";
+    const m6 = this.graphMount;
+    if (pan) {
+      m6.addEventListener("pointerdown", this.onPanDown);
+      m6.addEventListener("pointermove", this.onPanMove);
+      m6.addEventListener("pointerup", this.onPanUp);
+      m6.addEventListener("pointercancel", this.onPanUp);
+      m6.style.touchAction = "none";
+      m6.style.cursor = "grab";
+    } else {
+      m6.removeEventListener("pointerdown", this.onPanDown);
+      m6.removeEventListener("pointermove", this.onPanMove);
+      m6.removeEventListener("pointerup", this.onPanUp);
+      m6.removeEventListener("pointercancel", this.onPanUp);
+      m6.style.touchAction = "";
+      m6.style.cursor = "";
+      this.panStart = null;
+    }
     (_c = this.railSelect) == null ? void 0 : _c.classList.toggle("is-active", !pan);
     (_d = this.railHand) == null ? void 0 : _d.classList.toggle("is-active", pan);
   }

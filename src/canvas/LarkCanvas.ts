@@ -191,6 +191,7 @@ export class LarkCanvas {
   private tool: "select" | "pan" = "select";
   private railSelect: HTMLElement | null = null;
   private railHand: HTMLElement | null = null;
+  private panStart: { px: number; py: number; tx: number; ty: number; id: number } | null = null;
   private wheelPan?: (e: WheelEvent) => void;
   private mmFabs: HTMLElement | null = null;
   private padLayer: HTMLElement | null = null;
@@ -977,18 +978,55 @@ export class LarkCanvas {
   private setTool(tool: "select" | "pan"): void {
     this.tool = tool;
     const pan = tool === "pan";
-    const opts = this.graph.options as { panning?: { modifiers?: unknown }; interacting?: unknown };
-    if (opts.panning) opts.panning.modifiers = pan ? [] : ["space"];
-    opts.interacting = pan ? false : { edgeLabelMovable: true };
-    // Disable the rubberband (blue selection box) while panning so a blank drag pans
-    // instead of drawing a selection rectangle.
+    // Suspend node interaction so a drag pans rather than moving a node.
+    (this.graph.options as { interacting?: unknown }).interacting = pan ? false : { edgeLabelMovable: true };
+    // Disable the rubberband (blue selection box) while panning.
     const g = this.graph as unknown as { enableRubberband?: () => void; disableRubberband?: () => void };
     if (pan) g.disableRubberband?.(); else g.enableRubberband?.();
     if (pan) this.graph.cleanSelection();
-    this.graphMount.style.cursor = pan ? "grab" : "";
+    // Pan is implemented manually via Pointer Events (X6's built-in panning only
+    // listens for mouse, so it doesn't work on touch). touch-action:none stops
+    // the browser from turning the drag into a page scroll.
+    const m = this.graphMount;
+    if (pan) {
+      m.addEventListener("pointerdown", this.onPanDown);
+      m.addEventListener("pointermove", this.onPanMove);
+      m.addEventListener("pointerup", this.onPanUp);
+      m.addEventListener("pointercancel", this.onPanUp);
+      m.style.touchAction = "none";
+      m.style.cursor = "grab";
+    } else {
+      m.removeEventListener("pointerdown", this.onPanDown);
+      m.removeEventListener("pointermove", this.onPanMove);
+      m.removeEventListener("pointerup", this.onPanUp);
+      m.removeEventListener("pointercancel", this.onPanUp);
+      m.style.touchAction = "";
+      m.style.cursor = "";
+      this.panStart = null;
+    }
     this.railSelect?.classList.toggle("is-active", !pan);
     this.railHand?.classList.toggle("is-active", pan);
   }
+
+  private onPanDown = (e: PointerEvent): void => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const t = this.graph.translate();
+    this.panStart = { px: e.clientX, py: e.clientY, tx: t.tx, ty: t.ty, id: e.pointerId };
+    try { this.graphMount.setPointerCapture(e.pointerId); } catch { /* capture unsupported */ }
+    this.graphMount.style.cursor = "grabbing";
+    e.preventDefault();
+  };
+  private onPanMove = (e: PointerEvent): void => {
+    const s = this.panStart; if (!s || e.pointerId !== s.id) return;
+    this.graph.translate(s.tx + (e.clientX - s.px), s.ty + (e.clientY - s.py));
+    e.preventDefault();
+  };
+  private onPanUp = (e: PointerEvent): void => {
+    if (!this.panStart || e.pointerId !== this.panStart.id) return;
+    try { this.graphMount.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+    this.panStart = null;
+    if (this.tool === "pan") this.graphMount.style.cursor = "grab";
+  };
 
   private openFlyout(cat: ShapeCategory, anchor: HTMLElement) {
     this.cancelFlyoutClose();

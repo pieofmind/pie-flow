@@ -25,7 +25,14 @@ export function registerHtmlNode(): void {
   }, true);
 }
 
-const esc = (s: string) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!));
+// Attribute-safe escape: also escapes quotes so values are safe inside HTML
+// attributes (not just text nodes). Nodes are rendered via innerHTML, so any
+// model-derived string that reaches an attribute must be quote-escaped.
+const esc = (s: string) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+// Strip characters that could break out of the style="" attribute (keeps
+// parens so rgb()/hsl() colors still work; the only breakout char is a quote).
+const cssSafe = (v: unknown) => String(v ?? "").replace(/["'<>\\]/g, "");
+const px = (v: unknown) => Number(v) || 0;
 // Convert newlines in an already-escaped string into <br> so multi-line labels render.
 const nl = (s: string) => s.replace(/\n/g, "<br>");
 
@@ -60,17 +67,17 @@ export function defaultUml(kind: string): NodeExtra {
 function styleStr(ov?: NodeStyle): string {
   if (!ov) return "";
   const p: string[] = [];
-  if (ov.fill) p.push(`background:${ov.fill}`);
-  if (ov.stroke) p.push(`border-color:${ov.stroke}`);
-  if (ov.fontSize) p.push(`font-size:${ov.fontSize}px`);
+  if (ov.fill) p.push(`background:${cssSafe(ov.fill)}`);
+  if (ov.stroke) p.push(`border-color:${cssSafe(ov.stroke)}`);
+  if (ov.fontSize) p.push(`font-size:${px(ov.fontSize)}px`);
   if (ov.bold) p.push("font-weight:700");
   if (ov.italic) p.push("font-style:italic");
   const deco = [ov.underline ? "underline" : "", ov.strike ? "line-through" : ""].filter(Boolean).join(" ");
   if (deco) p.push(`text-decoration:${deco}`);
-  if (ov.color) p.push(`color:${ov.color}`);
-  if (ov.align) p.push(`text-align:${ov.align}`);
-  if (ov.borderWidth) p.push(`border-width:${ov.borderWidth}px`);
-  if (ov.borderDash && ov.borderDash !== "solid") p.push(`border-style:${ov.borderDash}`);
+  if (ov.color) p.push(`color:${cssSafe(ov.color)}`);
+  if (ov.align === "left" || ov.align === "center" || ov.align === "right") p.push(`text-align:${ov.align}`);
+  if (ov.borderWidth) p.push(`border-width:${px(ov.borderWidth)}px`);
+  if (ov.borderDash === "dashed" || ov.borderDash === "dotted") p.push(`border-style:${ov.borderDash}`);
   return p.join(";");
 }
 // Inject/merge an inline style onto the template's root element
@@ -104,9 +111,11 @@ export function nodeHtml(kind: string, label: string, ov?: NodeStyle, extra?: No
 
 // ── Data-driven renderers ──
 function erdHtml(label: string, cols: ErdCol[]): string {
-  const rows = cols.map((c, i) =>
-    `<div class="erd-col" data-col-idx="${i}"><span class="kk ${c.k.toLowerCase()}">${esc(c.k)}</span><span class="cname">${esc(c.name)}</span><span class="ctype">${esc(c.type)}</span></div>`
-  ).join("");
+  const rows = cols.map((c, i) => {
+    // Whitelist the key marker so it can never inject into the class attribute.
+    const k = c.k === "PK" || c.k === "FK" ? c.k : "";
+    return `<div class="erd-col" data-col-idx="${i}"><span class="kk ${k.toLowerCase()}">${k}</span><span class="cname">${esc(c.name)}</span><span class="ctype">${esc(c.type)}</span></div>`;
+  }).join("");
   return `<div class="erd-table"><div class="erd-th">${KEY}${esc(label) || "Table"}</div>${rows}</div>`;
 }
 function umlLine(s: string, comp: string, idx: number): string {
@@ -258,7 +267,7 @@ function seqFrag(tag: string, label: string, divider: boolean): string {
 }
 function lblStyle(extra?: NodeExtra): string {
   const o = extra?.labelOffset; if (!o) return "";
-  return ` style="transform:translate(${o.x}px,${o.y}px)"`;
+  return ` style="transform:translate(${px(o.x)}px,${px(o.y)}px)"`;
 }
 function bpEvent(kind: string, label: string, icon?: string, extra?: NodeExtra): string {
   const inner = icon ?? (kind === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`));

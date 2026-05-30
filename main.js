@@ -25941,16 +25941,16 @@ var init_index_es = __esm({
         if (!boundingBox) {
           return;
         }
-        var px = 0;
+        var px2 = 0;
         var py = 0;
         children2.forEach((child) => {
           var efd = child.extraFilterDistance || 0;
-          px = Math.max(px, efd);
+          px2 = Math.max(px2, efd);
           py = Math.max(py, efd);
         });
         var width2 = Math.floor(boundingBox.width);
         var height2 = Math.floor(boundingBox.height);
-        var tmpCanvasWidth = width2 + 2 * px;
+        var tmpCanvasWidth = width2 + 2 * px2;
         var tmpCanvasHeight = height2 + 2 * py;
         if (tmpCanvasWidth < 1 || tmpCanvasHeight < 1) {
           return;
@@ -25961,14 +25961,14 @@ var init_index_es = __esm({
         var tmpCanvas = document2.createCanvas(tmpCanvasWidth, tmpCanvasHeight);
         var tmpCtx = tmpCanvas.getContext("2d");
         document2.screen.setDefaults(tmpCtx);
-        tmpCtx.translate(-x4 + px, -y5 + py);
+        tmpCtx.translate(-x4 + px2, -y5 + py);
         element.render(tmpCtx);
         children2.forEach((child) => {
           if (typeof child.apply === "function") {
             child.apply(tmpCtx, 0, 0, tmpCanvasWidth, tmpCanvasHeight);
           }
         });
-        ctx.drawImage(tmpCanvas, 0, 0, tmpCanvasWidth, tmpCanvasHeight, x4 - px, y5 - py, tmpCanvasWidth, tmpCanvasHeight);
+        ctx.drawImage(tmpCanvas, 0, 0, tmpCanvasWidth, tmpCanvasHeight, x4 - px2, y5 - py, tmpCanvasWidth, tmpCanvasHeight);
         this.restoreStyles(element, ignoredStyles);
       }
       render(_5) {
@@ -39891,9 +39891,9 @@ function deltaTransformPoint(matrix, point) {
   return { x: dx, y: dy };
 }
 function decomposeMatrix(matrix) {
-  const px = deltaTransformPoint(matrix, { x: 0, y: 1 });
+  const px2 = deltaTransformPoint(matrix, { x: 0, y: 1 });
   const py = deltaTransformPoint(matrix, { x: 1, y: 0 });
-  const skewX = 180 / Math.PI * Math.atan2(px.y, px.x) - 90;
+  const skewX = 180 / Math.PI * Math.atan2(px2.y, px2.x) - 90;
   const skewY = 180 / Math.PI * Math.atan2(py.y, py.x);
   return {
     skewX,
@@ -69679,7 +69679,9 @@ function registerHtmlNode() {
     ports: makePorts()
   }, true);
 }
-var esc = (s5) => String(s5 != null ? s5 : "").replace(/[&<>]/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c6]);
+var esc = (s5) => String(s5 != null ? s5 : "").replace(/[&<>"']/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c6]);
+var cssSafe = (v6) => String(v6 != null ? v6 : "").replace(/["'<>\\]/g, "");
+var px = (v6) => Number(v6) || 0;
 var nl = (s5) => s5.replace(/\n/g, "<br>");
 function defaultErdCols() {
   return [
@@ -69695,17 +69697,17 @@ function defaultUml(kind) {
 function styleStr(ov) {
   if (!ov) return "";
   const p6 = [];
-  if (ov.fill) p6.push(`background:${ov.fill}`);
-  if (ov.stroke) p6.push(`border-color:${ov.stroke}`);
-  if (ov.fontSize) p6.push(`font-size:${ov.fontSize}px`);
+  if (ov.fill) p6.push(`background:${cssSafe(ov.fill)}`);
+  if (ov.stroke) p6.push(`border-color:${cssSafe(ov.stroke)}`);
+  if (ov.fontSize) p6.push(`font-size:${px(ov.fontSize)}px`);
   if (ov.bold) p6.push("font-weight:700");
   if (ov.italic) p6.push("font-style:italic");
   const deco = [ov.underline ? "underline" : "", ov.strike ? "line-through" : ""].filter(Boolean).join(" ");
   if (deco) p6.push(`text-decoration:${deco}`);
-  if (ov.color) p6.push(`color:${ov.color}`);
-  if (ov.align) p6.push(`text-align:${ov.align}`);
-  if (ov.borderWidth) p6.push(`border-width:${ov.borderWidth}px`);
-  if (ov.borderDash && ov.borderDash !== "solid") p6.push(`border-style:${ov.borderDash}`);
+  if (ov.color) p6.push(`color:${cssSafe(ov.color)}`);
+  if (ov.align === "left" || ov.align === "center" || ov.align === "right") p6.push(`text-align:${ov.align}`);
+  if (ov.borderWidth) p6.push(`border-width:${px(ov.borderWidth)}px`);
+  if (ov.borderDash === "dashed" || ov.borderDash === "dotted") p6.push(`border-style:${ov.borderDash}`);
   return p6.join(";");
 }
 function withStyle(html3, sty) {
@@ -69733,9 +69735,10 @@ function nodeHtml(kind, label, ov, extra) {
   return withStyle(nodeHtmlBase(kind, label, extra), styleStr(ov));
 }
 function erdHtml(label, cols) {
-  const rows = cols.map(
-    (c6, i6) => `<div class="erd-col" data-col-idx="${i6}"><span class="kk ${c6.k.toLowerCase()}">${esc(c6.k)}</span><span class="cname">${esc(c6.name)}</span><span class="ctype">${esc(c6.type)}</span></div>`
-  ).join("");
+  const rows = cols.map((c6, i6) => {
+    const k5 = c6.k === "PK" || c6.k === "FK" ? c6.k : "";
+    return `<div class="erd-col" data-col-idx="${i6}"><span class="kk ${k5.toLowerCase()}">${k5}</span><span class="cname">${esc(c6.name)}</span><span class="ctype">${esc(c6.type)}</span></div>`;
+  }).join("");
   return `<div class="erd-table"><div class="erd-th">${KEY}${esc(label) || "Table"}</div>${rows}</div>`;
 }
 function umlLine(s5, comp, idx) {
@@ -69929,7 +69932,7 @@ function seqFrag(tag, label, divider) {
 function lblStyle(extra) {
   const o5 = extra == null ? void 0 : extra.labelOffset;
   if (!o5) return "";
-  return ` style="transform:translate(${o5.x}px,${o5.y}px)"`;
+  return ` style="transform:translate(${px(o5.x)}px,${px(o5.y)}px)"`;
 }
 function bpEvent(kind, label, icon, extra) {
   const inner = icon != null ? icon : kind === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`);
@@ -70260,7 +70263,8 @@ function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
       methods: (_e3 = n3.attrs) == null ? void 0 : _e3.methods
     };
     const inner = nodeHtml(n3.shape, n3.label, style2, extra);
-    return `<foreignObject x="${n3.x}" y="${n3.y}" width="${n3.width}" height="${n3.height}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
+    const num = (v6) => Number(v6) || 0;
+    return `<foreignObject x="${num(n3.x)}" y="${num(n3.y)}" width="${num(n3.width)}" height="${num(n3.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
   }).join("");
   return `<svg xmlns="${SVGNS}" class="lk-root" width="${w5}" height="${h5}" viewBox="${x4} ${y5} ${w5} ${h5}"><defs><marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker></defs>` + (css2 ? `<style>${css2}</style>` : "") + (bg && bg !== "transparent" ? `<rect x="${x4}" y="${y5}" width="${w5}" height="${h5}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
 }
@@ -73548,12 +73552,12 @@ var LarkCanvas = class {
         document.addEventListener("pointerup", up);
       });
     };
-    drag(sv, (px, py) => {
-      s5 = px;
+    drag(sv, (px2, py) => {
+      s5 = px2;
       v6 = 1 - py;
     });
-    drag(hue, (px) => {
-      h5 = px * 360;
+    drag(hue, (px2) => {
+      h5 = px2 * 360;
     });
     hex.onpointerdown = (e4) => e4.stopPropagation();
     hex.onkeydown = (e4) => {
@@ -75780,7 +75784,7 @@ function loadMermaidScript() {
       return;
     }
     const script = document.createElement("script");
-    const pluginDir = (_f = (_e3 = (_d = (_c = (_b2 = (_a2 = window.app) == null ? void 0 : _a2.plugins) == null ? void 0 : _b2.getPlugin) == null ? void 0 : _c.call(_b2, "obsidian-omniboard")) == null ? void 0 : _d.manifest) == null ? void 0 : _e3.dir) != null ? _f : ".obsidian/plugins/obsidian-omniboard";
+    const pluginDir = (_f = (_e3 = (_d = (_c = (_b2 = (_a2 = window.app) == null ? void 0 : _a2.plugins) == null ? void 0 : _b2.getPlugin) == null ? void 0 : _c.call(_b2, "omniboard")) == null ? void 0 : _d.manifest) == null ? void 0 : _e3.dir) != null ? _f : ".obsidian/plugins/omniboard";
     const basePath = (_i = (_h = (_g = window.app) == null ? void 0 : _g.vault) == null ? void 0 : _h.adapter) == null ? void 0 : _i.basePath;
     script.src = basePath ? `file://${basePath}/${pluginDir}/mermaid.min.js` : `${pluginDir}/mermaid.min.js`;
     script.onload = () => resolve3();
@@ -75795,7 +75799,9 @@ function initMermaid(isDark) {
   initialized = true;
   (_b2 = (_a2 = window.mermaid) == null ? void 0 : _a2.initialize) == null ? void 0 : _b2.call(_a2, {
     startOnLoad: false,
-    securityLevel: "loose",
+    // "strict" disables raw HTML in labels and click handlers — prevents XSS
+    // from a shared note's mermaid-dx block (matches Obsidian's built-in).
+    securityLevel: "strict",
     theme: isDark ? "dark" : "default",
     themeVariables: {
       fontFamily: '"Be Vietnam Pro", system-ui, sans-serif',

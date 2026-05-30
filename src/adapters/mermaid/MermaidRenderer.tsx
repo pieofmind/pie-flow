@@ -22,10 +22,10 @@ function loadMermaidScript(): Promise<void> {
     const script = document.createElement("script");
     // Obsidian exposes plugin folder via app.vault.adapter.basePath + app path,
     // but the simplest cross-platform way is a relative URL from the vault root.
-    // The plugin lives at .obsidian/plugins/obsidian-omniboard/
+    // The plugin lives at .obsidian/plugins/omniboard/
     const pluginDir = (window as Window & { app?: { vault?: { adapter?: { basePath?: string } }; plugins?: { getPlugin?: (id: string) => { manifest?: { dir?: string } } | null } } }).app
-      ?.plugins?.getPlugin?.("obsidian-omniboard")?.manifest?.dir
-      ?? ".obsidian/plugins/obsidian-omniboard";
+      ?.plugins?.getPlugin?.("omniboard")?.manifest?.dir
+      ?? ".obsidian/plugins/omniboard";
     // Use file:// protocol with basePath for desktop
     const basePath = (window as Window & { app?: { vault?: { adapter?: { basePath?: string } } } }).app?.vault?.adapter?.basePath;
     script.src = basePath
@@ -43,7 +43,9 @@ function initMermaid(isDark: boolean): void {
   initialized = true;
   window.mermaid?.initialize?.({
     startOnLoad: false,
-    securityLevel: "loose",
+    // "strict" disables raw HTML in labels and click handlers — prevents XSS
+    // from a shared note's mermaid-dx block (matches Obsidian's built-in).
+    securityLevel: "strict",
     theme: isDark ? "dark" : "default",
     themeVariables: {
       fontFamily: '"Be Vietnam Pro", system-ui, sans-serif',

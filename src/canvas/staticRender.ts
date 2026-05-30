@@ -101,7 +101,8 @@ export function renderModelToSvg(model: CanvasModel, css: string, pad = 24, bg =
       methods: n.attrs?.methods as string[] | undefined,
     };
     const inner = nodeHtml(n.shape, n.label, style, extra);
-    return `<foreignObject x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
+    const num = (v: unknown) => Number(v) || 0;
+    return `<foreignObject x="${num(n.x)}" y="${num(n.y)}" width="${num(n.width)}" height="${num(n.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
   }).join("");
 
   return `<svg xmlns="${SVGNS}" class="lk-root" width="${w}" height="${h}" viewBox="${x} ${y} ${w} ${h}">`

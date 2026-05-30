@@ -56,7 +56,7 @@ Double-click to edit, **Enter** to commit, **Shift+Enter** for a new line, **Esc
 **Manual:**
 
 1. Download `main.js`, `manifest.json`, `styles.css` and `mermaid.min.js` from a release (or build them — see below).
-2. Copy them into `<your-vault>/.obsidian/plugins/obsidian-omniboard/`.
+2. Copy them into `<your-vault>/.obsidian/plugins/omniboard/`.
 3. Reload Obsidian → **Settings → Community plugins** → enable **OmniBoard**.
 
 **BRAT (beta):** add `nguyenkalix84/obsidian-omniboard` in the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
@@ -98,7 +98,7 @@ npm test           # vitest round-trip suite
 To test in Obsidian, symlink (or copy) this repo into a vault's plugins folder:
 
 ```bash
-ln -s "$(pwd)" "<your-vault>/.obsidian/plugins/obsidian-omniboard"
+ln -s "$(pwd)" "<your-vault>/.obsidian/plugins/omniboard"
 ```
 
 **Visual harness** (iterate UI without launching Obsidian):

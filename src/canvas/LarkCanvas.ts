@@ -209,6 +209,15 @@ export class LarkCanvas {
     this.graphMount = el("div", "lk-graph-mount");
     this.root.appendChild(this.graphMount);
 
+    // Stop touch gestures on the canvas from bubbling to Obsidian's mobile
+    // workspace, whose drawer-swipe handler (open file tree / right sidebar) is a
+    // JS touch listener that `touch-action:none` alone does not suppress. X6 and
+    // our own pan use pointer/mouse events, so blocking *touch* events is safe.
+    const stopTouch = (e: Event) => e.stopPropagation();
+    for (const t of ["touchstart", "touchmove", "touchend"] as const) {
+      this.graphMount.addEventListener(t, stopTouch, { passive: true });
+    }
+
     ensureSeqConnector();
     ensureMindmapConnector();
     this.graph = this.initGraph();

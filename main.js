@@ -72150,6 +72150,10 @@ var LarkCanvas = class {
     this.root.classList.add("lk-root");
     this.graphMount = el("div", "lk-graph-mount");
     this.root.appendChild(this.graphMount);
+    const stopTouch = (e4) => e4.stopPropagation();
+    for (const t5 of ["touchstart", "touchmove", "touchend"]) {
+      this.graphMount.addEventListener(t5, stopTouch, { passive: true });
+    }
     ensureSeqConnector();
     ensureMindmapConnector();
     this.graph = this.initGraph();

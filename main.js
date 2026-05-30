@@ -69817,7 +69817,7 @@ function nodeHtmlBase(kind, label, extra) {
     case "uml-actor":
       return `<div style="width:100%;height:100%;display:grid;place-items:center;color:var(--pg-text);position:relative">
       <div style="width:34px;height:46px;color:var(--pg-accent)">${ACTOR}</div>
-      <div style="position:absolute;top:calc(100% + 2px);left:0;right:0;text-align:center;font-size:11px;font-weight:600;white-space:nowrap">${L4}</div></div>`;
+      <div style="position:absolute;top:calc(100% + 2px);left:50%;transform:translateX(-50%);font-size:11px;font-weight:600;white-space:nowrap">${L4}</div></div>`;
     case "uml-usecase":
       return `<div class="fc round" style="background:#e3f2fd;border-color:#0d47a1">${L4}</div>`;
     case "st-initial":
@@ -73062,6 +73062,13 @@ var LarkCanvas = class {
     hand.onmouseenter = () => this.scheduleFlyoutClose();
     rail.appendChild(hand);
     this.railHand = hand;
+    const arrow = el("div", "lk-rail-item");
+    arrow.innerHTML = ARROW_ICON;
+    arrow.title = "M\u0169i t\xEAn";
+    arrow.onmouseenter = () => this.openArrowFlyout(arrow);
+    arrow.onmouseleave = () => this.scheduleFlyoutClose();
+    arrow.onclick = () => this.openArrowFlyout(arrow);
+    rail.appendChild(arrow);
     rail.appendChild(el("div", "lk-rail-sep"));
     const REP = {
       "C\u01A1 b\u1EA3n": "bs-rect",
@@ -73082,14 +73089,6 @@ var LarkCanvas = class {
       item.onclick = () => this.openFlyout(cat, item);
       rail.appendChild(item);
     }
-    rail.appendChild(el("div", "lk-rail-sep"));
-    const arrow = el("div", "lk-rail-item");
-    arrow.innerHTML = ARROW_ICON;
-    arrow.title = "M\u0169i t\xEAn";
-    arrow.onmouseenter = () => this.openArrowFlyout(arrow);
-    arrow.onmouseleave = () => this.scheduleFlyoutClose();
-    arrow.onclick = () => this.openArrowFlyout(arrow);
-    rail.appendChild(arrow);
     this.root.appendChild(rail);
   }
   /** Arrow-type flyout (mirrors openFlyout but drops edges, not nodes). */

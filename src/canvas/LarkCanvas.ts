@@ -994,6 +994,16 @@ export class LarkCanvas {
     rail.appendChild(hand);
     this.railHand = hand;
 
+    // Arrow / message tool (directly below pan): hover (desktop) or tap (mobile) →
+    // pick an arrow type, which drops a straight arrow on the canvas (sequence messages).
+    const arrow = el("div", "lk-rail-item");
+    arrow.innerHTML = ARROW_ICON;
+    arrow.title = "Mũi tên";
+    arrow.onmouseenter = () => this.openArrowFlyout(arrow);
+    arrow.onmouseleave = () => this.scheduleFlyoutClose();
+    arrow.onclick = () => this.openArrowFlyout(arrow);
+    rail.appendChild(arrow);
+
     rail.appendChild(el("div", "lk-rail-sep"));
 
     const REP: Record<string, string> = {
@@ -1009,17 +1019,6 @@ export class LarkCanvas {
       item.onclick = () => this.openFlyout(cat, item);
       rail.appendChild(item);
     }
-
-    rail.appendChild(el("div", "lk-rail-sep"));
-    // Arrow / message tool: hover (desktop) or tap (mobile) → pick an arrow type,
-    // which drops a straight arrow on the canvas (for drawing sequence messages).
-    const arrow = el("div", "lk-rail-item");
-    arrow.innerHTML = ARROW_ICON;
-    arrow.title = "Mũi tên";
-    arrow.onmouseenter = () => this.openArrowFlyout(arrow);
-    arrow.onmouseleave = () => this.scheduleFlyoutClose();
-    arrow.onclick = () => this.openArrowFlyout(arrow);
-    rail.appendChild(arrow);
 
     this.root.appendChild(rail);
   }

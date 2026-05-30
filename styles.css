@@ -568,7 +568,10 @@
    <foreignObject> makes this label its own WebKit compositing layer that paints at the
    SVG origin (0,0) on iOS, while the node body (kept correct by the .x6-node filter)
    stays put. Same reason opacity/clip-path are avoided on node content. */
-.lk-root .bp-elabel { position: absolute; top: calc(100% + 6px); left: 0; right: 0; text-align: center; font-size: 11px; color: var(--pg-text-muted); white-space: nowrap; font-weight: 600; }
+/* Center with translateX(-50%) — reliable on every engine (mobile renders the label
+   in the real-div overlay, desktop is Blink; both honor the transform). left:0;right:0
+   + text-align relied on WebKit centering the nowrap overflow, which it doesn't. */
+.lk-root .bp-elabel { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--pg-text-muted); white-space: nowrap; font-weight: 600; }
 /* Auto-flip label to the opposite side of the incoming/outgoing edge (bpmn.io behaviour). */
 .lk-root .bp-event.label-top .bp-elabel { top: auto; bottom: calc(100% + 6px); }
 /* Allow user to drag node labels (BPMN event/gateway) when auto-flip isn't enough. */
@@ -679,7 +682,7 @@
 .lk-root .bp-anno { width: 100%; height: 100%; box-sizing: border-box; border-left: 2px solid var(--pg-border-strong); padding: 6px 9px; font-size: 12px; color: var(--pg-text); display: grid; align-items: center; }
 .lk-root .bp-frame.bp-sub { position: relative; width: 100%; height: 100%; box-sizing: border-box; border: 1.6px solid var(--pg-border-strong); border-radius: 9px; background: color-mix(in srgb, var(--pg-accent) 4%, var(--pg-surface)); box-shadow: var(--sh-sm); }
 .lk-root .bp-frame-lbl { position: absolute; top: 8px; left: 0; right: 0; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--pg-text); }
-.lk-root .bp-plus { position: absolute; bottom: 6px; left: 0; right: 0; margin: 0 auto; width: 15px; height: 15px; border: 1.4px solid var(--pg-text-muted); border-radius: 2px; display: grid; place-items: center; font-size: 12px; line-height: 1; color: var(--pg-text-muted); }
+.lk-root .bp-plus { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 15px; height: 15px; border: 1.4px solid var(--pg-text-muted); border-radius: 2px; display: grid; place-items: center; font-size: 12px; line-height: 1; color: var(--pg-text-muted); }
 .lk-root .bp-lane { width: 100%; height: 100%; box-sizing: border-box; border: 1.4px solid var(--pg-border-strong); background: transparent; display: flex; align-items: center; }
 .lk-root .bp-lane span { writing-mode: vertical-rl; transform: rotate(180deg); padding: 0 7px; font-size: 11px; font-weight: 700; color: var(--pg-text-muted); }
 /* BPMN Pool composite: header band + N lane bands stacked vertically */

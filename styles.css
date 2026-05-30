@@ -683,3 +683,36 @@
 .lk-root .mm.l0 { background: var(--pg-accent); color: var(--pg-accent-ink); border-color: transparent; border-radius: 999px; font-size: 15px; font-weight: 700; }
 .lk-root .mm.l1 { font-size: 13.5px; border-left: 4px solid var(--mm-c, var(--pg-accent)); border-radius: 10px; }
 .lk-root .mm.l2 { font-size: 12.5px; font-weight: 500; color: var(--pg-text-muted); }
+
+/* ── Responsive: mobile / narrow panes (≤700px) ──────────────────────────────
+   Makes the canvas chrome usable on touch. Desktop (>700px) is untouched. */
+@media (max-width: 700px) {
+  /* 1. Top bar: scroll horizontally instead of clipping export/save off-screen.
+        The filename is already shown in Obsidian's own header. */
+  .da-topbar { overflow-x: auto; gap: 6px; padding: 8px 10px; -webkit-overflow-scrolling: touch; }
+  .da-topbar::-webkit-scrollbar { display: none; }
+  .da-tb-title, .da-tb-grow { display: none; }
+  .da-topbar > * { flex: 0 0 auto; }
+  .da-tb-ic { width: 40px; height: 40px; }
+
+  /* 2. Context / edge toolbar: clamp inside the viewport and scroll.
+        left/top are set inline by refreshContextBar → override with !important. */
+  .lk-context-bar { left: 8px !important; right: 8px !important; max-width: none;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .lk-context-bar::-webkit-scrollbar { display: none; }
+  .lk-cb-btn { min-width: 40px; height: 40px; }
+
+  /* 3. Hide chrome that doesn't suit touch. */
+  .lk-canvas-help { display: none; }   /* keyboard/trackpad hints — irrelevant on touch */
+  .lk-minimap { display: none !important; }   /* ~50% of a phone's width; JS sets inline display → needs !important */
+
+  /* 4. Safe-area + z-order so bottom controls and the props panel stay reachable. */
+  .lk-zoomctl { bottom: calc(16px + env(safe-area-inset-bottom)); }
+  .lk-zoomctl .lk-ctrl-btn, .lk-ctrl-btn { min-width: 40px; height: 40px; }
+  .lk-props { z-index: 60; bottom: calc(16px + env(safe-area-inset-bottom));
+    width: calc(100vw - 32px); max-width: 340px; }
+  .lk-props-fab { width: 44px; height: 44px; z-index: 60; }
+
+  /* 5. Rail touch targets. */
+  .lk-rail-item { width: 44px; height: 44px; }
+}

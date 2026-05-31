@@ -206,6 +206,7 @@ export class OmniboardCanvas {
   private graphMount: HTMLElement;
   private contextBar: HTMLElement;
   private edgeBar: HTMLElement | null = null;
+  private edgeBarDebounce: number | null = null;   // debounce showEdgeBar() during continuous segment/vertex drags
   private popupLayer: HTMLElement;
   private categories: ShapeCategory[];
   private onChange: () => void;
@@ -1118,8 +1119,18 @@ export class OmniboardCanvas {
     this.graph.on("edge:change:source", onEndpointMoved);
     this.graph.on("edge:change:target", onEndpointMoved);
     // Reshape (segments tool) → reposition the bar so it tracks the new bbox.
+    // A segment/vertex drag fires this continuously; rebuilding the whole edge
+    // bar (innerHTML + ~10 SVG buttons + a getBoundingClientRect reflow) on every
+    // change froze the drag. Debounce: rebuild once, ~110ms after the drag
+    // settles. The bar stays static (slightly stale position) mid-drag — the
+    // user is focused on the handle, not the bar — then snaps correct on release.
     this.graph.on("edge:change:vertices", ({ edge }) => {
-      if (this.graph.getSelectedCells().some((c) => c.id === edge.id)) this.showEdgeBar(edge);
+      if (!this.graph.getSelectedCells().some((c) => c.id === edge.id)) return;
+      if (this.edgeBarDebounce != null) window.clearTimeout(this.edgeBarDebounce);
+      this.edgeBarDebounce = window.setTimeout(() => {
+        this.edgeBarDebounce = null;
+        if (this.graph.getSelectedCells().some((c) => c.id === edge.id)) this.showEdgeBar(edge);
+      }, 110);
     });
     this.graph.on("edge:dblclick", ({ edge, e }) => { e.stopPropagation(); this.editEdgeLabel(edge); });
 
@@ -3462,6 +3473,7 @@ export class OmniboardCanvas {
     // against a disposed graph) every time a board is re-opened.
     for (const { type, fn } of this.docListeners) document.removeEventListener(type, fn, true);
     this.docListeners = [];
+    if (this.edgeBarDebounce != null) { window.clearTimeout(this.edgeBarDebounce); this.edgeBarDebounce = null; }
     this.graph.dispose();
   }
 }

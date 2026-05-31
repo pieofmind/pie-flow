@@ -72351,6 +72351,7 @@ var _a2;
 var _OmniboardCanvas = class _OmniboardCanvas {
   constructor(root2, categories, onChange) {
     this.edgeBar = null;
+    this.edgeBarDebounce = null;
     this.labelInput = null;
     this.propsBody = null;
     this.propsPanel = null;
@@ -73414,7 +73415,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.graph.on("edge:change:source", onEndpointMoved);
     this.graph.on("edge:change:target", onEndpointMoved);
     this.graph.on("edge:change:vertices", ({ edge }) => {
-      if (this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) this.showEdgeBar(edge);
+      if (!this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) return;
+      if (this.edgeBarDebounce != null) window.clearTimeout(this.edgeBarDebounce);
+      this.edgeBarDebounce = window.setTimeout(() => {
+        this.edgeBarDebounce = null;
+        if (this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) this.showEdgeBar(edge);
+      }, 110);
     });
     this.graph.on("edge:dblclick", ({ edge, e: e4 }) => {
       e4.stopPropagation();
@@ -75912,6 +75918,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (this.wheelPan) this.graphMount.removeEventListener("wheel", this.wheelPan);
     for (const { type, fn: fn2 } of this.docListeners) document.removeEventListener(type, fn2, true);
     this.docListeners = [];
+    if (this.edgeBarDebounce != null) {
+      window.clearTimeout(this.edgeBarDebounce);
+      this.edgeBarDebounce = null;
+    }
     this.graph.dispose();
   }
 };
@@ -82251,6 +82261,7 @@ async function patchExisting(raw2, model, m6) {
       di.bounds.y = n3.y;
       di.bounds.width = n3.width;
       di.bounds.height = n3.height;
+      di.label = void 0;
     } else {
       const fe3 = m6.create(shapeToBpmnType(n3.shape), { id: n3.id, name: (_f = n3.label) != null ? _f : "" });
       ((_g = process2.flowElements) != null ? _g : process2.flowElements = []).push(fe3);
@@ -82298,6 +82309,7 @@ async function patchExisting(raw2, model, m6) {
     const wps = buildWaypoints(e4, srcNode, tgtNode, m6);
     if (de3) {
       de3.waypoint = wps;
+      de3.label = void 0;
     } else {
       let sf = flowById.get(e4.id);
       if (!sf) {

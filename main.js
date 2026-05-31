@@ -73052,6 +73052,7 @@ var _LarkCanvas = class _LarkCanvas {
       const dot2 = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
       edge.addTools([
         { name: "segments", args: { threshold: 8 } },
+        { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } },
         { name: "source-arrowhead", args: dot2 },
         { name: "target-arrowhead", args: dot2 }
       ]);

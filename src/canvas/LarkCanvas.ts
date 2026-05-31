@@ -931,13 +931,14 @@ export class LarkCanvas {
     this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
     this.graph.on("edge:selected", ({ edge }) => {
       this.applyEdgeStyle(edge, true); // highlight without losing custom color
-      // Reshape Larksuite-style: drag a whole orthogonal segment via its midpoint
-      // handle (the "segments" tool). No free vertex-adding — grabbing arbitrary
-      // points on the line spawned too many bends and was hard to control. Round
-      // handles at both ends still drag-reconnect the endpoints.
+      // Reshape: segments tool moves a whole orthogonal segment perpendicular
+      // (one axis); vertices tool gives free x+y drag on any vertex and lets the
+      // user click on the line to add a new free-drag vertex. Endpoint round
+      // handles drag-reconnect the endpoints.
       const dot = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
       edge.addTools([
         { name: "segments", args: { threshold: 8 } },
+        { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } },
         { name: "source-arrowhead", args: dot },
         { name: "target-arrowhead", args: dot },
       ]);

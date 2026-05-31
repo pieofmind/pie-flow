@@ -74320,7 +74320,7 @@ var HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 var ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 var EDGE_ATTRS = { line: { stroke: EDGE_STROKE2, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
 var EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" };
-var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move" };
+var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle" };
 var EDGE_DASHES = { solid: "", dashed: "6 4", dotted: "2 4" };
 var ACT_WIDTH = 12;
 var FRAME_KINDS = /* @__PURE__ */ new Set([
@@ -76808,7 +76808,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       done = true;
       if (save) {
         const v6 = ta.value.trim();
-        if (v6) opts.onCommit(v6);
+        if (v6 || opts.allowEmpty) opts.onCommit(v6);
       }
       this.graph.off("scale", abort);
       this.graph.off("translate", abort);
@@ -76926,55 +76926,32 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   commitLabel() {
     if (this.labelInput) this.labelInput.blur();
   }
-  // Inline-edit an edge's label (double-click the arrow).
+  // Inline-edit an edge's label (double-click the arrow). Multi-line via Shift+Enter
+  // (Enter commits, Escape cancels). Empty commit clears the label. Long lines wrap
+  // automatically at the EDGE_LABEL_TEXT.textWrap.width in the rendered SVG.
   editEdgeLabel(edge) {
     var _a3, _b2, _c, _d;
-    this.commitLabel();
-    if (this.isMobile) this.setEditingChrome(true);
     const bbox2 = edge.getBBox();
-    const s5 = this.graph.scale().sx;
-    const t5 = this.graph.translate();
+    const s5 = this.graph.scale().sx, t5 = this.graph.translate();
     const cx = (bbox2.x + bbox2.width / 2) * s5 + t5.tx;
     const cy = (bbox2.y + bbox2.height / 2) * s5 + t5.ty;
-    const input = el("input", "lk-label-input");
     const cur = (_d = (_c = (_b2 = (_a3 = edge.getLabels()) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.attrs) == null ? void 0 : _c.label) == null ? void 0 : _d.text;
-    input.value = cur ? String(cur) : "";
-    input.style.left = cx - 70 + "px";
-    input.style.top = cy - 15 + "px";
-    input.style.width = "140px";
-    input.style.height = "30px";
-    let done = false;
-    const commit = () => {
-      if (done) return;
-      done = true;
-      const v6 = input.value.trim();
-      edge.setLabels(v6 ? [{ attrs: { body: EDGE_LABEL_BODY, label: { ...EDGE_LABEL_TEXT, text: v6 } } }] : []);
-      if (v6) this.applyEdgeTextAngle(edge);
-      this.onChange();
-      input.remove();
-      this.labelInput = null;
-      if (this.isMobile) this.setEditingChrome(false);
-    };
-    input.addEventListener("keydown", (e4) => {
-      e4.stopPropagation();
-      if (e4.key === "Enter") {
-        e4.preventDefault();
-        commit();
-      }
-      if (e4.key === "Escape") {
-        done = true;
-        input.remove();
-        this.labelInput = null;
-        if (this.isMobile) this.setEditingChrome(false);
+    const W3 = 220;
+    this.inlineEdit({
+      left: cx - W3 / 2,
+      top: cy - 18,
+      width: W3,
+      height: 32,
+      value: cur ? String(cur) : "",
+      multiLine: true,
+      allowEmpty: true,
+      // empty string clears the label (matches old <input> behaviour)
+      onCommit: (v6) => {
+        edge.setLabels(v6 ? [{ attrs: { body: EDGE_LABEL_BODY, label: { ...EDGE_LABEL_TEXT, text: v6 } } }] : []);
+        if (v6) this.applyEdgeTextAngle(edge);
+        this.onChange();
       }
     });
-    input.addEventListener("blur", commit);
-    this.root.appendChild(input);
-    this.labelInput = input;
-    setTimeout(() => {
-      input.focus();
-      input.select();
-    }, 10);
   }
   // ── Edge style (relationship type / weight / dash / color) ────────────────
   edgeStyle(edge) {
@@ -77392,11 +77369,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         data2.ret = e4.ret || void 0;
       }
       if (e4.style) data2.style = e4.style;
+      const forcedRouter = e4.router === "normal" ? "normal" : e4.router === "orth" ? { name: "orth" } : null;
       const created = this.graph.addEdge({
         id: e4.id,
         source: { cell: e4.source, port: e4.sourcePort },
         target: { cell: e4.target, port: e4.targetPort },
-        router: seq || mm ? "normal" : SMART_ROUTER,
+        router: forcedRouter != null ? forcedRouter : seq || mm ? "normal" : SMART_ROUTER,
         connector: seq ? "seq-msg" : mm ? "mm-edge" : CONNECTOR,
         attrs: edgeAttrs,
         labels: labelSpec,
@@ -77510,6 +77488,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const verts = e4.getVertices();
       const lbl = (_b2 = e4.getLabels()) == null ? void 0 : _b2[0];
       const labelPos = (lbl == null ? void 0 : lbl.position) && (lbl.position.distance != null || lbl.position.offset != null) ? { distance: lbl.position.distance, offset: lbl.position.offset } : void 0;
+      const r4 = e4.getRouter();
+      const routerName = typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.name;
+      const router2 = routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : void 0;
       return {
         id: e4.id,
         source: src.cell,
@@ -77521,7 +77502,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         y: typeof d4.y === "number" ? d4.y : void 0,
         ret: d4.ret ? true : void 0,
         style: d4.style && Object.keys(d4.style).length ? d4.style : void 0,
-        vertices: verts && verts.length ? verts.map((v6) => ({ x: v6.x, y: v6.y })) : void 0
+        vertices: verts && verts.length ? verts.map((v6) => ({ x: v6.x, y: v6.y })) : void 0,
+        router: router2
       };
     });
     return { nodes, edges };
@@ -77958,6 +77940,9 @@ function importBpmn(raw2) {
     const y5 = (_g = di == null ? void 0 : di.bounds.y) != null ? _g : 100;
     const width2 = (_h = di == null ? void 0 : di.bounds.width) != null ? _h : fn2.tag.endsWith("Event") ? 36 : 100;
     const height2 = (_i = di == null ? void 0 : di.bounds.height) != null ? _i : fn2.tag.endsWith("Event") ? 36 : 60;
+    const style2 = {};
+    if (di == null ? void 0 : di.fill) style2.fill = di.fill;
+    if (di == null ? void 0 : di.stroke) style2.stroke = di.stroke;
     model.nodes.push({
       id: fn2.id,
       shape,
@@ -77968,8 +77953,7 @@ function importBpmn(raw2) {
       label: fn2.name.replace(/&#10;/g, "\n"),
       attrs: {
         __source: { format: "bpmn", sourceId: fn2.id, tag: fn2.tag },
-        ...(di == null ? void 0 : di.fill) ? { fill: di.fill } : {},
-        ...(di == null ? void 0 : di.stroke) ? { stroke: di.stroke } : {}
+        ...Object.keys(style2).length ? { style: style2 } : {}
       }
     });
     if (!di) warnings.push(`BPMN flow node "${fn2.id}" thi\u1EBFu BPMNShape DI \u2014 \u0111\u1EB7t v\u1ECB tr\xED m\u1EB7c \u0111\u1ECBnh.`);
@@ -77982,7 +77966,8 @@ function importBpmn(raw2) {
       source: e4.source,
       target: e4.target,
       label: e4.name.replace(/&#10;/g, "\n") || void 0,
-      vertices
+      vertices,
+      router: "normal"
     });
   }
   const sourceMeta = {

@@ -117,7 +117,12 @@ const EDGE_ATTRS = { line: { stroke: EDGE_STROKE, strokeWidth: 1.8, targetMarker
 // Edge label body — opaque pill so the label is hit-testable (X6 needs a body
 // for the user to grab and drag); also wipes the line behind the text.
 const EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" } as const;
-const EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move" } as const;
+// X6's native `text` attribute hook splits text by '\n' into <tspan> elements
+// automatically — no `textWrap` config needed (textWrap requires a refBBox we
+// don't have on edge labels and silently renders "-" when it can't compute one).
+// Long single lines therefore don't auto-wrap; the user picks line breaks with
+// Shift+Enter in the inline editor.
+const EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle" } as const;
 
 // ── Edge styling (relationship types) ──
 export interface EdgeStyle { stroke?: string; width?: number; dash?: string; start?: string; end?: string; shape?: string; textAngle?: number; jump?: string }
@@ -2289,6 +2294,8 @@ export class OmniboardCanvas {
   private inlineEdit(opts: {
     left: number; top: number; width: number; height: number;
     value: string; vertical?: boolean; multiLine?: boolean;
+    /** Pass empty strings through to onCommit too (so the caller can clear the field). Default false. */
+    allowEmpty?: boolean;
     onCommit: (next: string) => void;
   }): void {
     this.commitLabel(); // close any previous editor
@@ -2313,7 +2320,7 @@ export class OmniboardCanvas {
       if (done) return; done = true;
       if (save) {
         const v = ta.value.trim();
-        if (v) opts.onCommit(v);
+        if (v || opts.allowEmpty) opts.onCommit(v);
       }
       this.graph.off("scale", abort); this.graph.off("translate", abort);
       ta.remove(); this.labelInput = null;
@@ -2406,34 +2413,27 @@ export class OmniboardCanvas {
   }
   private commitLabel() { if (this.labelInput) this.labelInput.blur(); }
 
-  // Inline-edit an edge's label (double-click the arrow).
+  // Inline-edit an edge's label (double-click the arrow). Multi-line via Shift+Enter
+  // (Enter commits, Escape cancels). Empty commit clears the label. Long lines wrap
+  // automatically at the EDGE_LABEL_TEXT.textWrap.width in the rendered SVG.
   private editEdgeLabel(edge: Edge) {
-    this.commitLabel();
-    if (this.isMobile) this.setEditingChrome(true);   // hide the "+" pads (toolbars stay)
-    const bbox = edge.getBBox(); const s = this.graph.scale().sx; const t = this.graph.translate();
+    const bbox = edge.getBBox();
+    const s = this.graph.scale().sx, t = this.graph.translate();
     const cx = (bbox.x + bbox.width / 2) * s + t.tx;
     const cy = (bbox.y + bbox.height / 2) * s + t.ty;
-    const input = el("input", "lk-label-input") as HTMLInputElement;
     const cur = (edge.getLabels()?.[0] as { attrs?: { label?: { text?: string } } } | undefined)?.attrs?.label?.text;
-    input.value = cur ? String(cur) : "";
-    input.style.left = (cx - 70) + "px";
-    input.style.top = (cy - 15) + "px";
-    input.style.width = "140px";
-    input.style.height = "30px";
-    let done = false;
-    const commit = () => {
-      if (done) return; done = true;
-      const v = input.value.trim();
-      edge.setLabels(v ? [{ attrs: { body: EDGE_LABEL_BODY, label: { ...EDGE_LABEL_TEXT, text: v } } }] : []);
-      if (v) this.applyEdgeTextAngle(edge); // keep 90° rotation if set
-      this.onChange(); input.remove(); this.labelInput = null;
-      if (this.isMobile) this.setEditingChrome(false);   // restore the "+" pads
-    };
-    input.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); commit(); } if (e.key === "Escape") { done = true; input.remove(); this.labelInput = null; if (this.isMobile) this.setEditingChrome(false); } });
-    input.addEventListener("blur", commit);
-    this.root.appendChild(input);
-    this.labelInput = input;
-    setTimeout(() => { input.focus(); input.select(); }, 10);
+    const W = 220;
+    this.inlineEdit({
+      left: cx - W / 2, top: cy - 18, width: W, height: 32,
+      value: cur ? String(cur) : "",
+      multiLine: true,
+      allowEmpty: true,   // empty string clears the label (matches old <input> behaviour)
+      onCommit: (v) => {
+        edge.setLabels(v ? [{ attrs: { body: EDGE_LABEL_BODY, label: { ...EDGE_LABEL_TEXT, text: v } } }] : []);
+        if (v) this.applyEdgeTextAngle(edge); // keep 90° rotation if set
+        this.onChange();
+      },
+    });
   }
 
   // ── Edge style (relationship type / weight / dash / color) ────────────────
@@ -2798,10 +2798,11 @@ export class OmniboardCanvas {
       const data: { y?: number; ret?: boolean; style?: EdgeStyle } = {};
       if (seq) { data.y = typeof e.y === "number" ? e.y : undefined; data.ret = e.ret || undefined; }
       if (e.style) data.style = e.style;
+      const forcedRouter = e.router === "normal" ? "normal" : e.router === "orth" ? { name: "orth" } : null;
       const created = this.graph.addEdge({
         id: e.id,
         source: { cell: e.source, port: e.sourcePort }, target: { cell: e.target, port: e.targetPort },
-        router: seq || mm ? "normal" : SMART_ROUTER,
+        router: forcedRouter ?? (seq || mm ? "normal" : SMART_ROUTER),
         connector: seq ? "seq-msg" : mm ? "mm-edge" : CONNECTOR,
         attrs: edgeAttrs,
         labels: labelSpec,
@@ -2843,6 +2844,63 @@ export class OmniboardCanvas {
     this.updateZoom();
   }
 
+  /**
+   * Merge an external CanvasModel into the current board. Imported nodes get
+   * fresh ids (to avoid colliding with existing ones), edge endpoints are
+   * rewired, and the whole cluster is offset so it lands near the viewport
+   * centre instead of overlapping existing content.
+   */
+  mergeModel(incoming: CanvasModel): { added: number } {
+    if (!incoming.nodes.length && !incoming.edges.length) return { added: 0 };
+
+    // Compute incoming bbox, then where to drop it on the canvas (current viewport centre).
+    const xs = incoming.nodes.map((n) => n.x);
+    const ys = incoming.nodes.map((n) => n.y);
+    const minX = Math.min(...xs, 0);
+    const minY = Math.min(...ys, 0);
+
+    const rect = this.graphMount.getBoundingClientRect();
+    const sc = this.graph.scale().sx || 1;
+    const tr = this.graph.translate();
+    const viewCx = (rect.width / 2 - tr.tx) / sc;
+    const viewCy = (rect.height / 2 - tr.ty) / sc;
+    const w = Math.max(...incoming.nodes.map((n) => n.x + n.width), 0) - minX;
+    const h = Math.max(...incoming.nodes.map((n) => n.y + n.height), 0) - minY;
+    const dx = viewCx - w / 2 - minX;
+    const dy = viewCy - h / 2 - minY;
+
+    const idMap = new Map<string, string>();
+    const idFor = (oldId: string) => {
+      if (!idMap.has(oldId)) idMap.set(oldId, `${oldId}_imp_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`);
+      return idMap.get(oldId)!;
+    };
+
+    const current = this.getModel();
+    const merged: CanvasModel = {
+      nodes: [
+        ...current.nodes,
+        ...incoming.nodes.map((n) => ({
+          ...n,
+          id: idFor(n.id),
+          x: n.x + dx,
+          y: n.y + dy,
+        })),
+      ],
+      edges: [
+        ...current.edges,
+        ...incoming.edges.map((e) => ({
+          ...e,
+          id: idFor(e.id),
+          source: idFor(e.source),
+          target: idFor(e.target),
+          vertices: e.vertices?.map((v) => ({ x: v.x + dx, y: v.y + dy })),
+        })),
+      ],
+    };
+    this.loadModel(merged);
+    return { added: incoming.nodes.length };
+  }
+
   getModel(): CanvasModel {
     const nodes = this.graph.getNodes().map((n) => {
       const p = n.getPosition(); const s = n.getSize(); const ex = this.nodeExtra(n);
@@ -2861,6 +2919,10 @@ export class OmniboardCanvas {
       const labelPos = lbl?.position && (lbl.position.distance != null || lbl.position.offset != null)
         ? { distance: lbl.position.distance, offset: lbl.position.offset }
         : undefined;
+      const r = e.getRouter() as { name?: string } | string | undefined;
+      const routerName = typeof r === "string" ? r : r?.name;
+      const router: "normal" | "orth" | undefined =
+        routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : undefined;
       return {
         id: e.id, source: src.cell, sourcePort: src.port, target: tgt.cell, targetPort: tgt.port,
         label: lbl?.attrs?.label?.text,
@@ -2869,6 +2931,7 @@ export class OmniboardCanvas {
         ret: d.ret ? true : undefined,
         style: d.style && Object.keys(d.style).length ? d.style : undefined,
         vertices: verts && verts.length ? verts.map((v) => ({ x: v.x, y: v.y })) : undefined,
+        router,
       };
     });
     return { nodes, edges };

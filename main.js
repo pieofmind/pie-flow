@@ -72218,7 +72218,7 @@ function el(tag, cls, html3) {
   if (html3 !== void 0) node2.innerHTML = html3;
   return node2;
 }
-var SMART_ROUTER = { name: "manhattan", args: { padding: 16 } };
+var SMART_ROUTER = { name: "orth", args: { padding: 16 } };
 var CONNECTOR = { name: "rounded", args: { radius: 6 } };
 var SEQ_CONNECTOR_REGISTERED = false;
 function ensureSeqConnector() {
@@ -72330,8 +72330,8 @@ var EDGE_MARKER_LABEL = {
 };
 var EDGE_WIDTHS = [1.4, 2.4, 3.6];
 var EDGE_SHAPES = {
-  orthogonal: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 6 } } },
-  elbow: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "normal" } },
+  orthogonal: { router: { name: "orth", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 6 } } },
+  elbow: { router: { name: "orth", args: { padding: 16 } }, connector: { name: "normal" } },
   straight: { router: { name: "normal" }, connector: { name: "normal" } },
   curved: { router: { name: "normal" }, connector: { name: "smooth" } }
 };

@@ -65,7 +65,14 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: 
   return node;
 }
 
-const SMART_ROUTER = { name: "manhattan", args: { padding: 16 } };
+// `orth` (not `manhattan`): manhattan is an obstacle-avoiding router that
+// repeatedly fails ("Unable to execute manhattan algorithm, use orth instead")
+// during the live connect-drag preview and on edges whose endpoints are pinned
+// to precise boundary anchors — it then silently falls back to orth anyway, just
+// with console spam. orth is the plain orthogonal router: right-angle segments
+// that dock cleanly to the boundary anchor, no obstacle avoidance (which a
+// user-arranged flowchart doesn't need, and bpmn.io doesn't do either).
+const SMART_ROUTER = { name: "orth", args: { padding: 16 } };
 const CONNECTOR = { name: "rounded", args: { radius: 6 } };
 
 // Sequence message: ignore X6 routing — emit a single horizontal line at the
@@ -167,8 +174,8 @@ const EDGE_MARKER_LABEL: Record<string, string> = {
 const EDGE_WIDTHS = [1.4, 2.4, 3.6];
 // Line shape presets → router + connector.
 const EDGE_SHAPES: Record<string, { router: unknown; connector: unknown }> = {
-  orthogonal: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 6 } } },
-  elbow: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "normal" } },
+  orthogonal: { router: { name: "orth", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 6 } } },
+  elbow: { router: { name: "orth", args: { padding: 16 } }, connector: { name: "normal" } },
   straight: { router: { name: "normal" }, connector: { name: "normal" } },
   curved: { router: { name: "normal" }, connector: { name: "smooth" } },
 };

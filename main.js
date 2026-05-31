@@ -77874,6 +77874,13 @@ function attr2(node2, name) {
   const v6 = node2[`@_${name}`];
   return v6 == null ? void 0 : String(v6);
 }
+function attrAny(node2, names) {
+  for (const n3 of names) {
+    const v6 = node2[`@_${n3}`];
+    if (v6 != null) return String(v6);
+  }
+  return void 0;
+}
 function parseBounds(node2) {
   for (const [k5, v6] of Object.entries(node2)) {
     if (localName(k5) === "Bounds" && v6 && typeof v6 === "object") {
@@ -77903,7 +77910,7 @@ function parseWaypoints(node2) {
 var FLOW_NODE_TAGS = new Set(Object.keys(BPMN_TO_SHAPE));
 var EDGE_TAG = "sequenceFlow";
 function importBpmn(raw2) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
+  var _a3, _b2, _c, _d, _e3, _f, _g;
   const parser = new import_fast_xml_parser.XMLParser({
     ignoreAttributes: false,
     attributeNamePrefix: "@_",
@@ -77931,8 +77938,8 @@ function importBpmn(raw2) {
       const ref2 = attr2(value, "bpmnElement");
       const bounds = parseBounds(value);
       if (ref2 && bounds) {
-        const fill2 = (_c = attr2(value, "background-color")) != null ? _c : attr2(value, "fill");
-        const stroke3 = (_d = attr2(value, "border-color")) != null ? _d : attr2(value, "stroke");
+        const fill2 = attrAny(value, ["color:background-color", "background-color", "bioc:fill", "fill"]);
+        const stroke3 = attrAny(value, ["color:border-color", "border-color", "bioc:stroke", "stroke"]);
         diShapes.set(ref2, { bounds, fill: fill2, stroke: stroke3 });
       }
     } else if (ln3 === "BPMNEdge") {
@@ -77944,12 +77951,12 @@ function importBpmn(raw2) {
   const model = { nodes: [], edges: [] };
   const warnings = [];
   for (const fn2 of flowNodes) {
-    const shape = (_e3 = BPMN_TO_SHAPE[fn2.tag]) != null ? _e3 : "bpmn-task";
+    const shape = (_c = BPMN_TO_SHAPE[fn2.tag]) != null ? _c : "bpmn-task";
     const di = diShapes.get(fn2.id);
-    const x4 = (_f = di == null ? void 0 : di.bounds.x) != null ? _f : 100;
-    const y5 = (_g = di == null ? void 0 : di.bounds.y) != null ? _g : 100;
-    const width2 = (_h = di == null ? void 0 : di.bounds.width) != null ? _h : fn2.tag.endsWith("Event") ? 36 : 100;
-    const height2 = (_i = di == null ? void 0 : di.bounds.height) != null ? _i : fn2.tag.endsWith("Event") ? 36 : 60;
+    const x4 = (_d = di == null ? void 0 : di.bounds.x) != null ? _d : 100;
+    const y5 = (_e3 = di == null ? void 0 : di.bounds.y) != null ? _e3 : 100;
+    const width2 = (_f = di == null ? void 0 : di.bounds.width) != null ? _f : fn2.tag.endsWith("Event") ? 36 : 100;
+    const height2 = (_g = di == null ? void 0 : di.bounds.height) != null ? _g : fn2.tag.endsWith("Event") ? 36 : 60;
     const style2 = {};
     if (di == null ? void 0 : di.fill) style2.fill = di.fill;
     if (di == null ? void 0 : di.stroke) style2.stroke = di.stroke;

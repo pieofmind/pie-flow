@@ -75371,10 +75371,25 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const h5 = Math.max(...incoming.nodes.map((n3) => n3.y + n3.height), 0) - minY;
     const dx = viewCx - w5 / 2 - minX;
     const dy = viewCy - h5 / 2 - minY;
+    const stamp = Date.now().toString(36);
+    let seq = 0;
     const idMap = /* @__PURE__ */ new Map();
     const idFor = (oldId) => {
-      if (!idMap.has(oldId)) idMap.set(oldId, `${oldId}_imp_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`);
-      return idMap.get(oldId);
+      let mapped = idMap.get(oldId);
+      if (!mapped) {
+        mapped = `${oldId}_imp_${stamp}_${(++seq).toString(36)}`;
+        idMap.set(oldId, mapped);
+      }
+      return mapped;
+    };
+    const remapAttrs = (attrs) => {
+      if (!attrs) return attrs;
+      const src = attrs.__source;
+      if (!(src == null ? void 0 : src.sourceId)) return attrs;
+      return {
+        ...attrs,
+        __source: { ...src, sourceId: idFor(src.sourceId) }
+      };
     };
     const current = this.getModel();
     const merged = {
@@ -75384,7 +75399,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
           ...n3,
           id: idFor(n3.id),
           x: n3.x + dx,
-          y: n3.y + dy
+          y: n3.y + dy,
+          attrs: remapAttrs(n3.attrs)
         }))
       ],
       edges: [
@@ -81826,7 +81842,7 @@ var FLOW_NODE_TYPES = /* @__PURE__ */ new Set([
   "bpmn:SubProcess"
 ]);
 function portFor(wp, b3) {
-  const o5 = getOrientation(b3, { x: wp.x, y: wp.y, width: 0, height: 0 }, 0);
+  const o5 = getOrientation({ x: wp.x, y: wp.y, width: 0, height: 0 }, b3, 0);
   let side;
   let pos;
   if (o5.indexOf("top") === 0) {
@@ -81876,8 +81892,12 @@ function moddle() {
   if (!moddleSingleton) moddleSingleton = new SimpleBpmnModdle();
   return moddleSingleton;
 }
+var MAX_BPMN_BYTES = 4 * 1024 * 1024;
 async function importBpmn(raw2) {
   var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o;
+  if (raw2.length > MAX_BPMN_BYTES) {
+    throw new Error(`BPMN file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 4 MB.`);
+  }
   const { rootElement: definitions, warnings: parserWarnings } = await moddle().fromXML(raw2, "bpmn:Definitions");
   const warnings = parserWarnings.map(
     (w5) => {
@@ -82013,7 +82033,7 @@ async function exportBpmn(model, meta) {
   return emitMinimal(model, m6);
 }
 async function patchExisting(raw2, model, m6) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2;
   const { rootElement: defs } = await m6.fromXML(raw2, "bpmn:Definitions");
   const definitions = defs;
   const diShape = /* @__PURE__ */ new Map();
@@ -82062,15 +82082,25 @@ async function patchExisting(raw2, model, m6) {
     const existing = flowById.get(n3.id);
     if (existing && typeof n3.label === "string") existing.name = n3.label;
   }
-  process2.flowElements = ((_i = process2.flowElements) != null ? _i : []).filter((fe3) => {
+  const refIdOf = (r4) => typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.id;
+  const referenced = /* @__PURE__ */ new Set();
+  for (const fe3 of (_i = process2.flowElements) != null ? _i : []) {
+    if (fe3.$type !== "bpmn:SequenceFlow") continue;
+    if (!modelEdgeIds.has(fe3.id) && !flowById.has(fe3.id)) continue;
+    const src = refIdOf(fe3.sourceRef);
+    const tgt = refIdOf(fe3.targetRef);
+    if (src) referenced.add(src);
+    if (tgt) referenced.add(tgt);
+  }
+  process2.flowElements = ((_j = process2.flowElements) != null ? _j : []).filter((fe3) => {
     if (fe3.$type === "bpmn:SequenceFlow") return modelEdgeIds.has(fe3.id);
-    return modelNodeIds.has(fe3.id);
+    return modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
   });
-  mainPlane.planeElement = ((_j = mainPlane.planeElement) != null ? _j : []).filter((pe3) => {
+  mainPlane.planeElement = ((_k = mainPlane.planeElement) != null ? _k : []).filter((pe3) => {
     var _a4;
     const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
     if (!refId) return true;
-    if (pe3.$type === "bpmndi:BPMNShape") return modelNodeIds.has(refId);
+    if (pe3.$type === "bpmndi:BPMNShape") return modelNodeIds.has(refId) || referenced.has(refId);
     if (pe3.$type === "bpmndi:BPMNEdge") return modelEdgeIds.has(refId);
     return true;
   });
@@ -82089,16 +82119,16 @@ async function patchExisting(raw2, model, m6) {
         const targetFe = flowById.get(e4.target);
         sf = m6.create("bpmn:SequenceFlow", {
           id: e4.id,
-          name: (_k = e4.label) != null ? _k : "",
+          name: (_l = e4.label) != null ? _l : "",
           sourceRef: sourceFe,
           targetRef: targetFe
         });
-        ((_l = process2.flowElements) != null ? _l : process2.flowElements = []).push(sf);
+        ((_m = process2.flowElements) != null ? _m : process2.flowElements = []).push(sf);
       } else if (typeof e4.label === "string") {
         sf.name = e4.label;
       }
       de3 = m6.create("bpmndi:BPMNEdge", { bpmnElement: sf, waypoint: wps });
-      ((_m = mainPlane.planeElement) != null ? _m : mainPlane.planeElement = []).push(de3);
+      ((_n2 = mainPlane.planeElement) != null ? _n2 : mainPlane.planeElement = []).push(de3);
       diEdge.set(e4.id, de3);
     }
   }
@@ -82196,7 +82226,11 @@ function stripComments(src) {
   }
   return out;
 }
+var MAX_DBML_BYTES = 2 * 1024 * 1024;
 function importDbml(raw2) {
+  if (raw2.length > MAX_DBML_BYTES) {
+    throw new Error(`DBML file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 2 MB.`);
+  }
   const stripped = stripComments(raw2);
   const tables = [];
   const refs = [];
@@ -82311,7 +82345,7 @@ ${lines.join("\n")}
 }`;
 }
 function exportDbml(model, meta) {
-  var _a3, _b2, _c, _d;
+  var _a3, _b2, _c, _d, _e3, _f;
   const tableNodes = model.nodes.filter((n3) => n3.shape === "erd-entity");
   const knownIds = /* @__PURE__ */ new Set();
   for (const n3 of tableNodes) {
@@ -82331,8 +82365,30 @@ function exportDbml(model, meta) {
   if (meta && meta.format === "dbml") {
     const raw2 = String((_d = (_c = meta.payload) == null ? void 0 : _c.raw) != null ? _d : "");
     const head = raw2.endsWith("\n") ? raw2 : raw2 + "\n";
+    const edited = [];
+    for (const n3 of tableNodes) {
+      const src = (_e3 = n3.attrs) == null ? void 0 : _e3.__source;
+      if (!(src == null ? void 0 : src.sourceId)) continue;
+      const canvasCols = extractErdCols(n3.attrs);
+      const origCols = (_f = src.columns) != null ? _f : [];
+      if (canvasCols.length !== origCols.length) {
+        edited.push(src.sourceId);
+        continue;
+      }
+      for (let i6 = 0; i6 < canvasCols.length; i6++) {
+        if (canvasCols[i6].name !== origCols[i6].name || canvasCols[i6].type !== origCols[i6].type) {
+          edited.push(src.sourceId);
+          break;
+        }
+      }
+    }
+    const warningHeader = edited.length ? `// \u26A0 WARNING: column edits on canvas for table(s) [${edited.join(", ")}] are NOT reflected
+//   in the original DBML below (this exporter preserves source verbatim).
+//   Re-create those tables outside the original block to apply edits.
+
+` : "";
     const tail = (newTables.length ? "\n\n// \u2500\u2500 Added on canvas \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n" + newTables.join("\n\n") : "") + (newRefs.length ? "\n\n" + newRefs.join("\n") : "") + "\n";
-    return head + tail;
+    return warningHeader + head + tail;
   }
   const fresh = tableNodes.map((n3) => {
     var _a4;
@@ -82377,8 +82433,12 @@ function findById(id) {
 function detectByContent(raw2) {
   var _a3, _b2;
   const head = raw2.slice(0, 4096);
-  if (/<\?xml/i.test(head) && /bpmn/i.test(head)) return (_a3 = FORMATS.find((f6) => f6.id === "bpmn")) != null ? _a3 : null;
-  if (/^\s*(?:\/\/|\/\*|Project\s|Table\s|Ref\s*:)/m.test(head)) return (_b2 = FORMATS.find((f6) => f6.id === "dbml")) != null ? _b2 : null;
+  if (/xmlns[^=]*=["']http:\/\/www\.omg\.org\/spec\/BPMN/i.test(head)) {
+    return (_a3 = FORMATS.find((f6) => f6.id === "bpmn")) != null ? _a3 : null;
+  }
+  if (/^\s*(?:Project\s|Table\s+[A-Za-z_]|Ref\s*:)/m.test(head)) {
+    return (_b2 = FORMATS.find((f6) => f6.id === "dbml")) != null ? _b2 : null;
+  }
   return null;
 }
 async function importFromFile(filename, raw2) {
@@ -82665,7 +82725,7 @@ var BoardView = class extends import_obsidian.TextFileView {
     if (!fmt) return;
     try {
       const meta = (_a3 = this.pendingSourceMeta) != null ? _a3 : (await Promise.resolve().then(() => (init_boardSerde(), boardSerde_exports))).deserializeSourceMeta(this.rawData);
-      const text4 = await fmt.exporter(this.canvas.getModel(), meta != null ? meta : null);
+      const text4 = await fmt.exporter(this.canvas.getModel(), meta);
       const ext = fmt.extensions[0];
       const path2 = this.file.path.replace(EXT_RE, "." + ext);
       const existing = this.app.vault.getAbstractFileByPath(path2);
@@ -83701,13 +83761,30 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
    * falls back to the markdown view.
    */
   async maybeSwapToBoardView(file) {
-    var _a3, _b2;
+    var _a3;
     if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
-    const cache = this.app.metadataCache.getFileCache(file);
-    if (((_a3 = cache == null ? void 0 : cache.frontmatter) == null ? void 0 : _a3["omniboard-plugin"]) !== "parsed") return;
+    const ok = await this.hasOmniboardFrontmatter(file);
+    if (!ok) return;
     const leaf = this.findLeafForFile(file);
-    if (!leaf || ((_b2 = leaf.view) == null ? void 0 : _b2.getViewType()) === BOARD_VIEW_TYPE) return;
+    if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE) return;
     await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
+  }
+  /** Resolve the marker frontmatter. metadataCache may not have indexed the
+   *  file yet (freshly created / vault sync), so fall back to a quick raw read. */
+  async hasOmniboardFrontmatter(file) {
+    var _a3;
+    const cache = this.app.metadataCache.getFileCache(file);
+    const cached = (_a3 = cache == null ? void 0 : cache.frontmatter) == null ? void 0 : _a3["omniboard-plugin"];
+    if (cached === "parsed") return true;
+    if (cached !== void 0) return false;
+    try {
+      const raw2 = await this.app.vault.cachedRead(file);
+      const m6 = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw2);
+      if (!m6) return false;
+      return /^omniboard-plugin\s*:\s*parsed\b/m.test(m6[1]);
+    } catch (e4) {
+      return false;
+    }
   }
   findLeafForFile(file) {
     let found = null;

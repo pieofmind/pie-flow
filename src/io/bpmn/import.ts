@@ -52,9 +52,12 @@ interface ModdleDiElement {
 
 /** Snap a waypoint to one of 12 port positions (4 sides × 3 along each side).
  *  Uses diagram-js's `getOrientation` so corner waypoints get the same
- *  side-picking bpmn.io would apply. */
+ *  side-picking bpmn.io would apply. NOTE: getOrientation returns the side
+ *  where the FIRST arg is positioned relative to the SECOND — we pass the
+ *  waypoint first so the return value names the side of the node the
+ *  waypoint touches (rather than its opposite). */
 function portFor(wp: ModdlePoint, b: ModdleBounds): string {
-  const o = getOrientation(b, { x: wp.x, y: wp.y, width: 0, height: 0 }, 0);
+  const o = getOrientation({ x: wp.x, y: wp.y, width: 0, height: 0 }, b, 0);
   let side: "top" | "bottom" | "left" | "right";
   let pos: number;
   if (o.indexOf("top") === 0)         { side = "top";    pos = b.width  > 0 ? (wp.x - b.x) / b.width  : 0.5; }
@@ -94,7 +97,15 @@ function moddle(): BpmnModdle {
   return moddleSingleton;
 }
 
+/** Hard cap on import size — guards the UI thread against parsing huge XML
+ *  trees synchronously. 4 MB covers any realistic hand-authored BPMN diagram
+ *  (enterprise files we've seen top out around 1 MB). */
+const MAX_BPMN_BYTES = 4 * 1024 * 1024;
+
 export async function importBpmn(raw: string): Promise<ImportResult> {
+  if (raw.length > MAX_BPMN_BYTES) {
+    throw new Error(`BPMN file quá lớn (${(raw.length / 1024 / 1024).toFixed(1)} MB). Giới hạn: 4 MB.`);
+  }
   const { rootElement: definitions, warnings: parserWarnings } = await moddle().fromXML(raw, "bpmn:Definitions");
   const warnings: string[] = parserWarnings.map((w: { message?: string } | string) =>
     typeof w === "string" ? w : (w.message ?? String(w)),

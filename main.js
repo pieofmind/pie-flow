@@ -72935,7 +72935,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     else if (m6 === dBottom) dy = b3.height;
     else if (m6 === dLeft) dx = 0;
     else dx = b3.width;
-    return { cell: cellId, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } };
+    return { cell: cellId, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "anchor" } };
   }
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
   handleDragToBlank(edge) {
@@ -75479,14 +75479,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const sourceEnd = { cell: e4.source };
       if (e4.sourceAnchor) {
         sourceEnd.anchor = { name: "topLeft", args: { dx: e4.sourceAnchor.dx, dy: e4.sourceAnchor.dy } };
-        sourceEnd.connectionPoint = { name: "boundary" };
+        sourceEnd.connectionPoint = { name: "anchor" };
       } else if (e4.sourcePort) {
         sourceEnd.port = e4.sourcePort;
       }
       const targetEnd = { cell: e4.target };
       if (e4.targetAnchor) {
         targetEnd.anchor = { name: "topLeft", args: { dx: e4.targetAnchor.dx, dy: e4.targetAnchor.dy } };
-        targetEnd.connectionPoint = { name: "boundary" };
+        targetEnd.connectionPoint = { name: "anchor" };
       } else if (e4.targetPort) {
         targetEnd.port = e4.targetPort;
       }
@@ -82285,6 +82285,14 @@ function findParticipant(defs, id) {
   }
   return void 0;
 }
+function findLane(process2, id) {
+  var _a3, _b2;
+  for (const ls of (_a3 = process2.laneSets) != null ? _a3 : []) {
+    const found = ((_b2 = ls.lanes) != null ? _b2 : []).find((l5) => l5.id === id);
+    if (found) return found;
+  }
+  return void 0;
+}
 function shapeToBpmnType(shape) {
   var _a3;
   const tag = (_a3 = SHAPE_TO_BPMN[shape]) != null ? _a3 : "task";
@@ -82300,7 +82308,7 @@ async function exportBpmn(model, meta) {
   return emitMinimal(model, m6);
 }
 async function patchExisting(raw2, model, m6) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s;
   const { rootElement: defs } = await m6.fromXML(raw2, "bpmn:Definitions");
   const definitions = defs;
   const diShape = /* @__PURE__ */ new Map();
@@ -82332,6 +82340,7 @@ async function patchExisting(raw2, model, m6) {
   for (const n3 of model.nodes) {
     const srcKind = (_g = (_f = n3.attrs) == null ? void 0 : _f.__source) == null ? void 0 : _g.kind;
     if (srcKind === "pool") {
+      const POOL_HEADER = 30;
       let pdi = diShape.get(n3.id);
       if (pdi == null ? void 0 : pdi.bounds) {
         pdi.bounds.x = n3.x;
@@ -82339,16 +82348,40 @@ async function patchExisting(raw2, model, m6) {
         pdi.bounds.width = n3.width;
         pdi.bounds.height = n3.height;
       } else {
+        const existingPart = findParticipant(definitions, n3.id);
         pdi = m6.create("bpmndi:BPMNShape", {
-          bpmnElement: m6.create("bpmn:Participant", { id: n3.id }),
+          bpmnElement: existingPart != null ? existingPart : m6.create("bpmn:Participant", { id: n3.id }),
           bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height })
         });
         pdi.isHorizontal = true;
-        const existingPart = findParticipant(definitions, n3.id);
-        if (existingPart) pdi.bpmnElement = existingPart;
         ((_h = mainPlane.planeElement) != null ? _h : mainPlane.planeElement = []).unshift(pdi);
         diShape.set(n3.id, pdi);
       }
+      const lanes = (_j = (_i = n3.attrs) == null ? void 0 : _i.lanes) != null ? _j : [];
+      const laneX = n3.x + POOL_HEADER;
+      const laneW = n3.width - POOL_HEADER;
+      const laneH = lanes.length ? n3.height / lanes.length : n3.height;
+      lanes.forEach((ln3, i6) => {
+        var _a4;
+        if (!ln3.id) return;
+        const ly = n3.y + i6 * laneH;
+        let ldi = diShape.get(ln3.id);
+        if (ldi == null ? void 0 : ldi.bounds) {
+          ldi.bounds.x = laneX;
+          ldi.bounds.y = ly;
+          ldi.bounds.width = laneW;
+          ldi.bounds.height = laneH;
+        } else {
+          const laneEl = findLane(process2, ln3.id);
+          ldi = m6.create("bpmndi:BPMNShape", {
+            bpmnElement: laneEl != null ? laneEl : m6.create("bpmn:Lane", { id: ln3.id }),
+            bounds: m6.create("dc:Bounds", { x: laneX, y: ly, width: laneW, height: laneH })
+          });
+          ldi.isHorizontal = true;
+          ((_a4 = mainPlane.planeElement) != null ? _a4 : mainPlane.planeElement = []).unshift(ldi);
+          diShape.set(ln3.id, ldi);
+        }
+      });
       continue;
     }
     let di = diShape.get(n3.id);
@@ -82359,13 +82392,13 @@ async function patchExisting(raw2, model, m6) {
       di.bounds.height = n3.height;
       di.label = void 0;
     } else {
-      const fe3 = m6.create(shapeToBpmnType(n3.shape), { id: n3.id, name: (_i = n3.label) != null ? _i : "" });
-      ((_j = process2.flowElements) != null ? _j : process2.flowElements = []).push(fe3);
+      const fe3 = m6.create(shapeToBpmnType(n3.shape), { id: n3.id, name: (_k = n3.label) != null ? _k : "" });
+      ((_l = process2.flowElements) != null ? _l : process2.flowElements = []).push(fe3);
       di = m6.create("bpmndi:BPMNShape", {
         bpmnElement: fe3,
         bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height })
       });
-      ((_k = mainPlane.planeElement) != null ? _k : mainPlane.planeElement = []).push(di);
+      ((_m = mainPlane.planeElement) != null ? _m : mainPlane.planeElement = []).push(di);
       diShape.set(n3.id, di);
     }
     const existing = flowById.get(n3.id);
@@ -82373,7 +82406,7 @@ async function patchExisting(raw2, model, m6) {
   }
   const refIdOf = (r4) => typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.id;
   const referenced = /* @__PURE__ */ new Set();
-  for (const fe3 of (_l = process2.flowElements) != null ? _l : []) {
+  for (const fe3 of (_n2 = process2.flowElements) != null ? _n2 : []) {
     if (fe3.$type !== "bpmn:SequenceFlow") continue;
     if (!modelEdgeIds.has(fe3.id)) continue;
     const src = refIdOf(fe3.sourceRef);
@@ -82381,12 +82414,12 @@ async function patchExisting(raw2, model, m6) {
     if (src) referenced.add(src);
     if (tgt) referenced.add(tgt);
   }
-  process2.flowElements = ((_m = process2.flowElements) != null ? _m : []).filter((fe3) => {
+  process2.flowElements = ((_o = process2.flowElements) != null ? _o : []).filter((fe3) => {
     if (fe3.$type === "bpmn:SequenceFlow") return modelEdgeIds.has(fe3.id);
     return modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
   });
   const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
-  mainPlane.planeElement = ((_n2 = mainPlane.planeElement) != null ? _n2 : []).filter((pe3) => {
+  mainPlane.planeElement = ((_p = mainPlane.planeElement) != null ? _p : []).filter((pe3) => {
     var _a4;
     const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
     if (!refId) return true;
@@ -82413,16 +82446,16 @@ async function patchExisting(raw2, model, m6) {
         const targetFe = flowById.get(e4.target);
         sf = m6.create("bpmn:SequenceFlow", {
           id: e4.id,
-          name: (_o = e4.label) != null ? _o : "",
+          name: (_q = e4.label) != null ? _q : "",
           sourceRef: sourceFe,
           targetRef: targetFe
         });
-        ((_p = process2.flowElements) != null ? _p : process2.flowElements = []).push(sf);
+        ((_r = process2.flowElements) != null ? _r : process2.flowElements = []).push(sf);
       } else if (typeof e4.label === "string") {
         sf.name = e4.label;
       }
       de3 = m6.create("bpmndi:BPMNEdge", { bpmnElement: sf, waypoint: wps });
-      ((_q = mainPlane.planeElement) != null ? _q : mainPlane.planeElement = []).push(de3);
+      ((_s = mainPlane.planeElement) != null ? _s : mainPlane.planeElement = []).push(de3);
       diEdge.set(e4.id, de3);
     }
   }

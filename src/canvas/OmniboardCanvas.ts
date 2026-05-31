@@ -674,7 +674,13 @@ export class OmniboardCanvas {
     else if (m === dBottom) dy = b.height;
     else if (m === dLeft) dx = 0;
     else dx = b.width;
-    return { cell: cellId, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } };
+    // connectionPoint "anchor" (NOT "boundary"): the anchor already sits exactly
+    // on the chosen edge, so use it verbatim. "boundary" re-cropped the endpoint
+    // to wherever the route first hit the bbox — for an edge approaching from
+    // above, that's the TOP edge, which collapsed every left-edge anchor onto the
+    // top-left corner (ignoring dy → arrows stacked above the node). "anchor"
+    // keeps the endpoint at exactly (dx, dy) so dy is respected.
+    return { cell: cellId, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "anchor" } };
   }
 
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
@@ -3031,17 +3037,21 @@ export class OmniboardCanvas {
       // ONCE here at edge-creation time — no runtime setSource/setTarget in
       // event handlers, so the recursive-relayout freeze we hit before stays
       // gone.
+      // connectionPoint "anchor" (not "boundary"): keep the endpoint exactly at
+      // the stored offset. "boundary" re-cropped it to wherever the route hit
+      // the bbox, which ignored the offset for edges approaching from above
+      // (collapsed onto the top edge).
       const sourceEnd: Record<string, unknown> = { cell: e.source };
       if (e.sourceAnchor) {
         sourceEnd.anchor = { name: "topLeft", args: { dx: e.sourceAnchor.dx, dy: e.sourceAnchor.dy } };
-        sourceEnd.connectionPoint = { name: "boundary" };
+        sourceEnd.connectionPoint = { name: "anchor" };
       } else if (e.sourcePort) {
         sourceEnd.port = e.sourcePort;
       }
       const targetEnd: Record<string, unknown> = { cell: e.target };
       if (e.targetAnchor) {
         targetEnd.anchor = { name: "topLeft", args: { dx: e.targetAnchor.dx, dy: e.targetAnchor.dy } };
-        targetEnd.connectionPoint = { name: "boundary" };
+        targetEnd.connectionPoint = { name: "anchor" };
       } else if (e.targetPort) {
         targetEnd.port = e.targetPort;
       }

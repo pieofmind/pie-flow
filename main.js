@@ -74936,6 +74936,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
   handleDragToBlank(edge) {
+    var _a3;
     const srcId = edge.getSourceCellId();
     const src = srcId ? this.graph.getCellById(srcId) : null;
     if (!src || !src.isNode()) {
@@ -74943,12 +74944,21 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       return;
     }
     const pt2 = edge.getTargetPoint();
+    const srcPort = (_a3 = edge.getSource()) == null ? void 0 : _a3.port;
     this.pendingDrop = edge;
     const wrap = el("div", "lk-shape-popup");
     wrap.appendChild(el("div", "lk-flyout-title", "Ch\xE8n h\xECnh"));
     wrap.appendChild(this.buildShapeGrid((item) => {
       this.pendingDrop = null;
-      const created = this.addHtmlNode(item.shape, pt2.x - item.w / 2, pt2.y - item.h / 2, item.w, item.h, "");
+      const sb = src.getBBox();
+      let nx = pt2.x - item.w / 2;
+      let ny = pt2.y - item.h / 2;
+      if (srcPort === "right" || srcPort === "left") {
+        ny = sb.y + sb.height / 2 - item.h / 2;
+      } else if (srcPort === "top" || srcPort === "bottom") {
+        nx = sb.x + sb.width / 2 - item.w / 2;
+      }
+      const created = this.addHtmlNode(item.shape, nx, ny, item.w, item.h, "");
       edge.setTarget({ cell: created.id });
       edge.setData({ ...edge.getData() });
       this.applyMindmapRoutingIfNeeded(edge);

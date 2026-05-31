@@ -601,12 +601,23 @@ export class OmniboardCanvas {
     const src = srcId ? this.graph.getCellById(srcId) : null;
     if (!src || !src.isNode()) { edge.remove(); return; }
     const pt = edge.getTargetPoint(); // graph coords of the drop
+    const srcPort = (edge.getSource() as { port?: string } | undefined)?.port;
     this.pendingDrop = edge;          // removed on dismiss unless a shape is picked
     const wrap = el("div", "lk-shape-popup");
     wrap.appendChild(el("div", "lk-flyout-title", "Chèn hình"));
     wrap.appendChild(this.buildShapeGrid((item) => {
       this.pendingDrop = null;        // resolved — keep the edge
-      const created = this.addHtmlNode(item.shape, pt.x - item.w / 2, pt.y - item.h / 2, item.w, item.h, "");
+      // Snap new node's axis to the source port so the manhattan router emits
+      // a perfectly straight arrow (no awkward Y/X jog right before the arrowhead).
+      const sb = (src as Node).getBBox();
+      let nx = pt.x - item.w / 2;
+      let ny = pt.y - item.h / 2;
+      if (srcPort === "right" || srcPort === "left") {
+        ny = sb.y + sb.height / 2 - item.h / 2;   // horizontal flow → align Y
+      } else if (srcPort === "top" || srcPort === "bottom") {
+        nx = sb.x + sb.width / 2 - item.w / 2;    // vertical flow → align X
+      }
+      const created = this.addHtmlNode(item.shape, nx, ny, item.w, item.h, "");
       edge.setTarget({ cell: created.id });
       edge.setData({ ...(edge.getData() as object) });
       this.applyMindmapRoutingIfNeeded(edge); this.applySeqRoutingIfNeeded(edge);

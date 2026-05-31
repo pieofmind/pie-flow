@@ -72556,8 +72556,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
-        snap: { radius: 30 },
-        // Omniboard-style magnet pull radius
+        // Small radius so only drops that LAND on (or right next to) a port
+        // circle snap to that port. Everything else falls through to body-drop
+        // → pinDropAnchor / handleDragToBlank pins the endpoint at the exact
+        // cursor pixel (bpmn.io-style unlimited positioning). With the old 30px
+        // radius almost every drop on a 120×80 node was within range of *some*
+        // port and the user couldn't drop anywhere they actually wanted.
+        snap: { radius: 8 },
         allowBlank: true,
         // drop on empty canvas → "pick shape" picker
         allowLoop: false,

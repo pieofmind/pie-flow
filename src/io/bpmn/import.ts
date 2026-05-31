@@ -183,10 +183,21 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
     const wps = di?.waypoint ?? [];
     // Internal vertices only — X6 already has source/target endpoints.
     const vertices = wps.length > 2 ? wps.slice(1, -1).map((p) => ({ x: p.x, y: p.y })) : undefined;
+    // bpmn.io-style precise anchoring: pin each endpoint to the exact
+    // (dx, dy) offset of the BPMN waypoint from the node's top-left corner —
+    // unlimited positions per side, not snapped to a 12-port grid. Falls
+    // back to the legacy port string (for tests / sparse files) only when
+    // no waypoint geometry is available.
     const srcBox = nodeBox.get(sourceId);
     const tgtBox = nodeBox.get(targetId);
-    const sourcePort = wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : undefined;
-    const targetPort = wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : undefined;
+    const sourceAnchor = wps.length >= 2 && srcBox
+      ? { dx: wps[0].x - srcBox.x, dy: wps[0].y - srcBox.y }
+      : undefined;
+    const targetAnchor = wps.length >= 2 && tgtBox
+      ? { dx: wps[wps.length - 1].x - tgtBox.x, dy: wps[wps.length - 1].y - tgtBox.y }
+      : undefined;
+    const sourcePort = sourceAnchor ? undefined : (wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : undefined);
+    const targetPort = targetAnchor ? undefined : (wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : undefined);
     // BPMN DI may pin the edge label at a specific position via BPMNLabel.bounds.
     // Convert it to X6's label distance/offset: distance = 0.5 (centre along edge)
     // + offset = label bbox centre minus the edge's geometric midpoint. Lossy but
@@ -220,8 +231,10 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
       id,
       source: sourceId,
       sourcePort,
+      sourceAnchor,
       target: targetId,
       targetPort,
+      targetAnchor,
       label: (sf.name ?? "").replace(/&#10;/g, "\n") || undefined,
       labelPos,
       vertices,

@@ -70150,14 +70150,14 @@ function lblStyle(extra) {
 }
 function bpEvent(kind, label, icon, extra) {
   const inner = icon != null ? icon : kind === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`);
-  return `<div class="bp-event ${kind}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${esc(label)}</div></div>`;
+  return `<div class="bp-event ${kind}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
 }
 function bpTask(label, iconKey) {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
-  return `<div class="bp-task">${icon}${esc(label)}</div>`;
+  return `<div class="bp-task">${icon}${nl(label)}</div>`;
 }
 function bpGateway(mark, label, extra) {
-  return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${esc(label)}</div>` : ""}</div>`;
+  return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : ""}</div>`;
 }
 function bpPool(label, extra) {
   var _a3;
@@ -75310,10 +75310,24 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
       if (e4.style) data2.style = e4.style;
       const forcedRouter = e4.router === "normal" ? "normal" : e4.router === "orth" ? { name: "orth" } : null;
+      const sourceEnd = { cell: e4.source };
+      if (e4.sourceAnchor) {
+        sourceEnd.anchor = { name: "topLeft", args: { dx: e4.sourceAnchor.dx, dy: e4.sourceAnchor.dy } };
+        sourceEnd.connectionPoint = { name: "boundary" };
+      } else if (e4.sourcePort) {
+        sourceEnd.port = e4.sourcePort;
+      }
+      const targetEnd = { cell: e4.target };
+      if (e4.targetAnchor) {
+        targetEnd.anchor = { name: "topLeft", args: { dx: e4.targetAnchor.dx, dy: e4.targetAnchor.dy } };
+        targetEnd.connectionPoint = { name: "boundary" };
+      } else if (e4.targetPort) {
+        targetEnd.port = e4.targetPort;
+      }
       const created = this.graph.addEdge({
         id: e4.id,
-        source: { cell: e4.source, port: e4.sourcePort },
-        target: { cell: e4.target, port: e4.targetPort },
+        source: sourceEnd,
+        target: targetEnd,
         router: forcedRouter != null ? forcedRouter : seq || mm ? "normal" : SMART_ROUTER,
         connector: seq ? "seq-msg" : mm ? "mm-edge" : CONNECTOR,
         attrs: edgeAttrs,
@@ -75437,9 +75451,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       };
     });
     const edges = this.graph.getEdges().map((e4) => {
-      var _a3, _b2, _c, _d;
+      var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j;
       const src = e4.getSource();
       const tgt = e4.getTarget();
+      const srcFull = e4.getSource();
+      const tgtFull = e4.getTarget();
       const d4 = (_a3 = e4.getData()) != null ? _a3 : {};
       const verts = e4.getVertices();
       const lbl = (_b2 = e4.getLabels()) == null ? void 0 : _b2[0];
@@ -75447,13 +75463,17 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const r4 = e4.getRouter();
       const routerName = typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.name;
       const router2 = routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : void 0;
+      const srcAnchor = ((_c = srcFull.anchor) == null ? void 0 : _c.name) === "topLeft" && typeof ((_d = srcFull.anchor.args) == null ? void 0 : _d.dx) === "number" && typeof ((_e3 = srcFull.anchor.args) == null ? void 0 : _e3.dy) === "number" ? { dx: srcFull.anchor.args.dx, dy: srcFull.anchor.args.dy } : void 0;
+      const tgtAnchor = ((_f = tgtFull.anchor) == null ? void 0 : _f.name) === "topLeft" && typeof ((_g = tgtFull.anchor.args) == null ? void 0 : _g.dx) === "number" && typeof ((_h = tgtFull.anchor.args) == null ? void 0 : _h.dy) === "number" ? { dx: tgtFull.anchor.args.dx, dy: tgtFull.anchor.args.dy } : void 0;
       return {
         id: e4.id,
         source: src.cell,
         sourcePort: src.port,
         target: tgt.cell,
         targetPort: tgt.port,
-        label: (_d = (_c = lbl == null ? void 0 : lbl.attrs) == null ? void 0 : _c.label) == null ? void 0 : _d.text,
+        sourceAnchor: srcAnchor,
+        targetAnchor: tgtAnchor,
+        label: (_j = (_i = lbl == null ? void 0 : lbl.attrs) == null ? void 0 : _i.label) == null ? void 0 : _j.text,
         labelPos,
         y: typeof d4.y === "number" ? d4.y : void 0,
         ret: d4.ret ? true : void 0,
@@ -81969,8 +81989,10 @@ async function importBpmn(raw2) {
     const vertices = wps.length > 2 ? wps.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y })) : void 0;
     const srcBox = nodeBox2.get(sourceId);
     const tgtBox = nodeBox2.get(targetId);
-    const sourcePort = wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : void 0;
-    const targetPort = wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : void 0;
+    const sourceAnchor = wps.length >= 2 && srcBox ? { dx: wps[0].x - srcBox.x, dy: wps[0].y - srcBox.y } : void 0;
+    const targetAnchor = wps.length >= 2 && tgtBox ? { dx: wps[wps.length - 1].x - tgtBox.x, dy: wps[wps.length - 1].y - tgtBox.y } : void 0;
+    const sourcePort = sourceAnchor ? void 0 : wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : void 0;
+    const targetPort = targetAnchor ? void 0 : wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : void 0;
     let labelPos;
     const lb = (_n2 = di == null ? void 0 : di.label) == null ? void 0 : _n2.bounds;
     if (lb && wps.length >= 2) {
@@ -82000,8 +82022,10 @@ async function importBpmn(raw2) {
       id,
       source: sourceId,
       sourcePort,
+      sourceAnchor,
       target: targetId,
       targetPort,
+      targetAnchor,
       label: ((_o = sf.name) != null ? _o : "").replace(/&#10;/g, "\n") || void 0,
       labelPos,
       vertices,

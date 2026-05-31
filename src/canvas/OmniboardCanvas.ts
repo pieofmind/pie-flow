@@ -2826,9 +2826,30 @@ export class OmniboardCanvas {
       if (seq) { data.y = typeof e.y === "number" ? e.y : undefined; data.ret = e.ret || undefined; }
       if (e.style) data.style = e.style;
       const forcedRouter = e.router === "normal" ? "normal" : e.router === "orth" ? { name: "orth" } : null;
+      // bpmn.io-style unlimited anchoring: when `sourceAnchor`/`targetAnchor`
+      // is set, pin the endpoint to that exact offset from the node's top-left
+      // (boundary crop keeps the visible line on the node edge). Falls back to
+      // the discrete port string if no offset is provided. Mutation happens
+      // ONCE here at edge-creation time — no runtime setSource/setTarget in
+      // event handlers, so the recursive-relayout freeze we hit before stays
+      // gone.
+      const sourceEnd: Record<string, unknown> = { cell: e.source };
+      if (e.sourceAnchor) {
+        sourceEnd.anchor = { name: "topLeft", args: { dx: e.sourceAnchor.dx, dy: e.sourceAnchor.dy } };
+        sourceEnd.connectionPoint = { name: "boundary" };
+      } else if (e.sourcePort) {
+        sourceEnd.port = e.sourcePort;
+      }
+      const targetEnd: Record<string, unknown> = { cell: e.target };
+      if (e.targetAnchor) {
+        targetEnd.anchor = { name: "topLeft", args: { dx: e.targetAnchor.dx, dy: e.targetAnchor.dy } };
+        targetEnd.connectionPoint = { name: "boundary" };
+      } else if (e.targetPort) {
+        targetEnd.port = e.targetPort;
+      }
       const created = this.graph.addEdge({
         id: e.id,
-        source: { cell: e.source, port: e.sourcePort }, target: { cell: e.target, port: e.targetPort },
+        source: sourceEnd as never, target: targetEnd as never,
         router: forcedRouter ?? (seq || mm ? "normal" : SMART_ROUTER),
         connector: seq ? "seq-msg" : mm ? "mm-edge" : CONNECTOR,
         attrs: edgeAttrs,
@@ -2896,10 +2917,31 @@ export class OmniboardCanvas {
     const dx = viewCx - w / 2 - minX;
     const dy = viewCy - h / 2 - minY;
 
+    // Monotonic counter ensures unique ids even in the same millisecond.
+    const stamp = Date.now().toString(36);
+    let seq = 0;
     const idMap = new Map<string, string>();
     const idFor = (oldId: string) => {
-      if (!idMap.has(oldId)) idMap.set(oldId, `${oldId}_imp_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`);
-      return idMap.get(oldId)!;
+      let mapped = idMap.get(oldId);
+      if (!mapped) {
+        mapped = `${oldId}_imp_${stamp}_${(++seq).toString(36)}`;
+        idMap.set(oldId, mapped);
+      }
+      return mapped;
+    };
+
+    // Remap nested source-meta sourceId so exporters that consult __source can
+    // still tell which originals these belonged to and patch them correctly on
+    // round-trip. Without this, every imported node looks "new" to the exporter
+    // and we'd append duplicates.
+    const remapAttrs = (attrs: Record<string, unknown> | undefined): Record<string, unknown> | undefined => {
+      if (!attrs) return attrs;
+      const src = attrs.__source as { sourceId?: string } | undefined;
+      if (!src?.sourceId) return attrs;
+      return {
+        ...attrs,
+        __source: { ...src, sourceId: idFor(src.sourceId) },
+      };
     };
 
     const current = this.getModel();
@@ -2911,6 +2953,7 @@ export class OmniboardCanvas {
           id: idFor(n.id),
           x: n.x + dx,
           y: n.y + dy,
+          attrs: remapAttrs(n.attrs),
         })),
       ],
       edges: [
@@ -2940,6 +2983,8 @@ export class OmniboardCanvas {
     const edges = this.graph.getEdges().map((e) => {
       const src = e.getSource() as { cell: string; port?: string };
       const tgt = e.getTarget() as { cell: string; port?: string };
+      const srcFull = e.getSource() as { cell?: string; port?: string; anchor?: { name?: string; args?: { dx?: number; dy?: number } } };
+      const tgtFull = e.getTarget() as { cell?: string; port?: string; anchor?: { name?: string; args?: { dx?: number; dy?: number } } };
       const d = (e.getData() as { y?: number; ret?: boolean; style?: EdgeStyle } | undefined) ?? {};
       const verts = e.getVertices();
       const lbl = e.getLabels()?.[0] as { attrs?: { label?: { text?: string } }; position?: { distance?: number; offset?: number | { x: number; y: number } } } | undefined;
@@ -2950,8 +2995,14 @@ export class OmniboardCanvas {
       const routerName = typeof r === "string" ? r : r?.name;
       const router: "normal" | "orth" | undefined =
         routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : undefined;
+      // Round-trip bpmn.io-style precise anchor offsets (topLeft + dx/dy).
+      const srcAnchor = srcFull.anchor?.name === "topLeft" && typeof srcFull.anchor.args?.dx === "number" && typeof srcFull.anchor.args?.dy === "number"
+        ? { dx: srcFull.anchor.args.dx, dy: srcFull.anchor.args.dy } : undefined;
+      const tgtAnchor = tgtFull.anchor?.name === "topLeft" && typeof tgtFull.anchor.args?.dx === "number" && typeof tgtFull.anchor.args?.dy === "number"
+        ? { dx: tgtFull.anchor.args.dx, dy: tgtFull.anchor.args.dy } : undefined;
       return {
         id: e.id, source: src.cell, sourcePort: src.port, target: tgt.cell, targetPort: tgt.port,
+        sourceAnchor: srcAnchor, targetAnchor: tgtAnchor,
         label: lbl?.attrs?.label?.text,
         labelPos,
         y: typeof d.y === "number" ? d.y : undefined,

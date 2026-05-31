@@ -69690,10 +69690,7 @@ function registerHtmlNode() {
       }
     ],
     attrs: {
-      // `magnet: true` → X6 treats the whole body as a connection target, so
-      // dragging an endpoint near the node binds it to {cell: id} (logical link)
-      // instead of leaving a floating {x, y} point. Lark-style snap.
-      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", magnet: true },
+      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none" },
       fo: { refWidth: "100%", refHeight: "100%" },
       content: { html: "", class: "hn" }
     },

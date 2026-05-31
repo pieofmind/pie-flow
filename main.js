@@ -73326,7 +73326,17 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     ].forEach((ev) => this.graph.on(ev, changed));
     this.graph.on("node:mouseenter", ({ node: node2 }) => this.togglePorts(node2, true));
     this.graph.on("node:mouseleave", ({ node: node2 }) => this.togglePorts(node2, false));
-    this.graph.on("node:magnet:mousedown", () => this.root.classList.add("lk-dragging-edge"));
+    const startDrag = () => this.root.classList.add("lk-dragging-edge");
+    this.graph.on("node:magnet:mousedown", startDrag);
+    const onDomDown = (e4) => {
+      const t5 = e4.target;
+      if (!t5 || typeof t5.closest !== "function") return;
+      if (t5.closest(".x6-port-body, .x6-edge-tool-source-arrowhead, .x6-edge-tool-target-arrowhead, [magnet]")) {
+        startDrag();
+      }
+    };
+    this.graphMount.addEventListener("mousedown", onDomDown, true);
+    this.graphMount.addEventListener("touchstart", onDomDown, true);
     const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
     document.addEventListener("mouseup", clearDrag, true);
     document.addEventListener("touchend", clearDrag, true);

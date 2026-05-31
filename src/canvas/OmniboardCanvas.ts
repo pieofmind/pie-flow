@@ -1005,7 +1005,22 @@ export class OmniboardCanvas {
     // hide ALL port circles (cardinals too) — X6 would otherwise light them up
     // as drop targets on every node and the field of blue dots overwhelms the
     // view. Toggle via a class on .lk-root that the CSS rule reads.
-    this.graph.on("node:magnet:mousedown", () => this.root.classList.add("lk-dragging-edge"));
+    // Hide ALL ports during any edge interaction. Two trigger paths:
+    //   (1) node:magnet:mousedown — new edge drag from a port circle
+    //   (2) capture-phase DOM mousedown on a magnet OR an edge arrowhead tool —
+    //       catches existing-edge endpoint drag (re-routing arrow), which X6
+    //       doesn't surface via node:magnet:mousedown.
+    const startDrag = () => this.root.classList.add("lk-dragging-edge");
+    this.graph.on("node:magnet:mousedown", startDrag);
+    const onDomDown = (e: Event) => {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== "function") return;
+      if (t.closest('.x6-port-body, .x6-edge-tool-source-arrowhead, .x6-edge-tool-target-arrowhead, [magnet]')) {
+        startDrag();
+      }
+    };
+    this.graphMount.addEventListener("mousedown", onDomDown, true);
+    this.graphMount.addEventListener("touchstart", onDomDown, true);
     const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
     document.addEventListener("mouseup", clearDrag, true);
     document.addEventListener("touchend", clearDrag, true);

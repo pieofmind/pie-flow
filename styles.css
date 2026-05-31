@@ -191,7 +191,7 @@
    shapes + "more" sheet + fit, all in the thumb zone. Scrolls if it overflows. */
 .lk-mbar {
   position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: calc(3px + env(safe-area-inset-bottom)); z-index: 45;
+  bottom: calc((3px + env(safe-area-inset-bottom)) / 2); z-index: 45;
   max-width: calc(100vw - 12px);
   display: flex; align-items: center; gap: 1px; padding: 4px;
   background: var(--pg-surface); border: 1px solid var(--pg-border);

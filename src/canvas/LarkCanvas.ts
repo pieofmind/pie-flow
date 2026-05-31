@@ -67,7 +67,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: 
 }
 
 const SMART_ROUTER = { name: "manhattan", args: { padding: 16 } };
-const CONNECTOR = { name: "rounded", args: { radius: 10 } };
+const CONNECTOR = { name: "rounded", args: { radius: 6 } };
 
 // Sequence message: ignore X6 routing — emit a single horizontal line at the
 // source point's Y. The target Y is forced down to source Y so the arrow stays
@@ -163,7 +163,7 @@ const EDGE_MARKER_LABEL: Record<string, string> = {
 const EDGE_WIDTHS = [1.4, 2.4, 3.6];
 // Line shape presets → router + connector.
 const EDGE_SHAPES: Record<string, { router: unknown; connector: unknown }> = {
-  orthogonal: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 10 } } },
+  orthogonal: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 6 } } },
   elbow: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "normal" } },
   straight: { router: { name: "normal" }, connector: { name: "normal" } },
   curved: { router: { name: "normal" }, connector: { name: "smooth" } },
@@ -213,7 +213,9 @@ export class LarkCanvas {
   private panStart: { px: number; py: number; tx: number; ty: number; id: number } | null = null;
   private pendingShape: PaletteItem | null = null;
   private pendingHint: HTMLElement | null = null;
-  private selDrag: { id: number; node: Node; px: number; py: number; nx: number; ny: number; moved: boolean } | null = null;
+  private selDrag: { id: number; node: Node; px: number; py: number; nx: number; ny: number; moved: boolean; wasSelected: boolean } | null = null;
+  private dragBatch = false;   // an X6 history batch is open around the current touch-drag
+  private mbar: HTMLElement | null = null;   // mobile bottom toolbar
   // Two-finger pinch: zoom around the finger midpoint while also panning with it.
   private pinch: { d0: number; scale0: number; lx: number; ly: number } | null = null;
   private wheelPan?: (e: WheelEvent) => void;
@@ -303,28 +305,34 @@ export class LarkCanvas {
       panning: { enabled: true, modifiers: ["space"] },
       mousewheel: { enabled: true, modifiers: ["ctrl", "meta"], zoomAtMousePosition: true },
       // Allow user to drag edge labels (bpmn.io behaviour — avoid label overlap on busy intersections).
-      interacting: { edgeLabelMovable: true },
+      interacting: this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true },
       grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
-        snap: { radius: 28 },
-        allowBlank: true,    // drop on empty canvas → Larksuite-style "pick shape" picker
-        allowLoop: false,    // no self-loops
-        allowNode: true,     // drop anywhere on a target node (not only its port)
+        snap: { radius: 30 },         // Lark-style magnet pull radius
+        allowBlank: true,             // drop on empty canvas → "pick shape" picker
+        allowLoop: false,             // no self-loops
+        allowNode: true,              // drop anywhere on a target node (not only its port)
         allowEdge: false,
         allowMulti: true,
         highlight: true,
+        // Bind endpoints to the node CENTER (logical anchor) — without this the
+        // endpoint stores a raw {x, y} which breaks routing the moment the node
+        // moves. The visual connection stops at the node BOUNDARY (no piercing).
+        anchor: "center",
+        connectionPoint: "boundary",
         router: SMART_ROUTER, connector: CONNECTOR,
         createEdge() { return this.createEdge({ attrs: EDGE_ATTRS }); },
-        // Accept a drop on any other node — target ports are hidden, so requiring
-        // a magnet made connections fail. Snap/router still pick a clean endpoint.
-        // Also accept a drop on EMPTY canvas (no targetCell) so allowBlank fires
-        // edge:connected → we then show the "Chèn hình" picker (Larksuite-style).
+        // Accept a drop on any other node — body magnet handles snap; this also
+        // accepts EMPTY-canvas drops so allowBlank still fires edge:connected
+        // → "Chèn hình" picker (Larksuite-style).
         validateConnection: ({ sourceCell, targetCell }) =>
           !targetCell || (targetCell.isNode() && sourceCell !== targetCell),
       },
       highlighting: {
-        magnetAdsorbed: { name: "stroke", args: { attrs: { fill: "#fff", stroke: ACCENT } } },
+        // Hovering a valid magnet during endpoint drag → blue outline (Lark UX).
+        magnetAvailable: { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } },
+        magnetAdsorbed:  { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } },
       },
     });
 
@@ -594,9 +602,10 @@ export class LarkCanvas {
     wrap.appendChild(this.buildShapeGrid((item) => {
       this.pendingDrop = null;        // resolved — keep the edge
       const created = this.addHtmlNode(item.shape, pt.x - item.w / 2, pt.y - item.h / 2, item.w, item.h, "");
-      edge.setTarget({ cell: created.id }); // X6 picks the closest port
+      edge.setTarget({ cell: created.id });
       edge.setData({ ...(edge.getData() as object) });
       this.applyMindmapRoutingIfNeeded(edge); this.applySeqRoutingIfNeeded(edge);
+      this.normalizeGenericEdge(edge);   // dynamic centre anchors → clean routing
       this.hidePopup();
       this.graph.resetSelection([created]);
       this.editLabel(created);
@@ -681,6 +690,7 @@ export class LarkCanvas {
       const m = mid(e.touches);
       const lp = this.graph.clientToLocal(m.x, m.y);
       this.pinch = { d0: dist(e.touches) || 1, scale0: this.graph.scale().sx, lx: lp.x, ly: lp.y };
+      if (this.dragBatch) { this.graph.stopBatch("move"); this.dragBatch = false; }   // close any open drag batch
       this.selDrag = null; this.panStart = null;   // cancel any one-finger gesture
       e.preventDefault();
     };
@@ -935,11 +945,36 @@ export class LarkCanvas {
       if (this.padLayer) this.padLayer.style.display = "none";
     });
     this.graph.on("edge:unselected", ({ edge }) => { this.applyEdgeStyle(edge, false); edge.removeTools(); this.hideEdgeBar(); });
+    // Endpoint drag (source-arrowhead / target-arrowhead) → wipe stale vertices
+    // and re-pick ports facing the new direction. Without this the manhattan
+    // router keeps the old port (often "bottom") and detours far below both
+    // nodes, producing the Lark-bug-style U shape.
+    const onEndpointMoved = ({ edge }: { edge: Edge }) => {
+      if (this.isSeqLifeline(edge.getSourceCellId() ?? undefined) ||
+          this.isSeqLifeline(edge.getTargetCellId() ?? undefined)) return;
+      if (this.isMindmapNode(edge.getSourceCellId() ?? undefined) ||
+          this.isMindmapNode(edge.getTargetCellId() ?? undefined)) return;
+      if (edge.getVertices().length) edge.setVertices([]);
+      this.normalizeGenericEdge(edge);
+      if (this.graph.getSelectedCells().some((c) => c.id === edge.id)) this.showEdgeBar(edge);
+    };
+    this.graph.on("edge:change:source", onEndpointMoved);
+    this.graph.on("edge:change:target", onEndpointMoved);
+    // Reshape (segments tool) → reposition the bar so it tracks the new bbox.
+    this.graph.on("edge:change:vertices", ({ edge }) => {
+      if (this.graph.getSelectedCells().some((c) => c.id === edge.id)) this.showEdgeBar(edge);
+    });
     this.graph.on("edge:dblclick", ({ edge, e }) => { e.stopPropagation(); this.editEdgeLabel(edge); });
 
     this.graph.on("node:selected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
     this.graph.on("node:unselected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
-    this.graph.on("node:moved", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
+    this.graph.on("node:moved", ({ node }) => {
+      // Lark-style: re-pick the port facing the target so the edge keeps exiting the
+      // right side as the node moves. normalizeGenericEdge skips reshaped (has-vertices)
+      // and seq/mm edges, so manual reshapes and special routings are preserved.
+      for (const e of this.graph.getConnectedEdges(node)) this.normalizeGenericEdge(e);
+      this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad();
+    });
     this.graph.on("node:resized", () => { this.refreshContextBar(); this.refreshContextPad(); });
     // Sequence activation bar is a thin vertical lifeline overlay: pin its width
     // so resize only changes height (X6 minWidth would otherwise fatten it).
@@ -984,6 +1019,7 @@ export class LarkCanvas {
       if (isNew && !edge.getTargetCellId()) { this.handleDragToBlank(edge); return; }
       this.applySeqRoutingIfNeeded(edge);
       this.applyMindmapRoutingIfNeeded(edge);
+      this.normalizeGenericEdge(edge);   // Lark-style dynamic anchoring (drop the fixed port)
     });
     // Robust fallback: some X6 builds don't emit edge:connected for a blank drop.
     // After any mouseup, scan for a freshly dangling edge (source cell, target point)
@@ -1071,6 +1107,8 @@ export class LarkCanvas {
     "Cơ bản": "bs-rect", "Flowchart": "fc-decision", "ERD": "erd-entity", "UML": "uml-class",
     "State": "st-state", "Sequence": "sq-actor", "Mindmap": "mm-root", "BPMN": "bpmn-gateway-x",
   };
+  // Diagram categories that get a dedicated button on the mobile bottom bar (rest → "Sơ đồ khác" sheet).
+  private static readonly QUICK_CATS = ["Cơ bản", "Flowchart", "ERD", "BPMN"];
 
   /**
    * Mobile toolbar (Excalidraw-style): one bottom bar in the thumb zone.
@@ -1096,7 +1134,7 @@ export class LarkCanvas {
     sep();
 
     const byTitle = (t: string) => this.categories.find((c) => c.title === t);
-    for (const title of ["Flowchart", "BPMN"]) {
+    for (const title of LarkCanvas.QUICK_CATS) {
       const cat = byTitle(title); if (!cat) continue;
       const b = btn(shapeIcon(LarkCanvas.CAT_REP[title] ?? cat.items[0].shape), title, () => {});
       b.onclick = () => this.openFlyout(cat, b);
@@ -1109,13 +1147,14 @@ export class LarkCanvas {
     btn(FIT, "Vừa khung", () => { this.graph.zoomToFit({ padding: 40, maxScale: 1.2 }); this.updateZoom(); });
 
     this.root.appendChild(bar);
+    this.mbar = bar;
   }
 
   /** Bottom-sheet of the remaining diagram categories (mobile "Sơ đồ khác"). */
   private openMoreSheet(anchor: HTMLElement) {
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
-    const rest = this.categories.filter((c) => c.title !== "Flowchart" && c.title !== "BPMN");
+    const rest = this.categories.filter((c) => !LarkCanvas.QUICK_CATS.includes(c.title));
     const fly = el("div", "lk-flyout");
     fly.appendChild(el("div", "lk-flyout-title", "Sơ đồ khác"));
     const grid = el("div", "lk-flyout-grid");
@@ -1180,8 +1219,13 @@ export class LarkCanvas {
   private setTool(tool: "select" | "pan"): void {
     this.tool = tool;
     const pan = tool === "pan";
-    // Suspend node interaction so a drag pans rather than moving a node.
-    (this.graph.options as { interacting?: unknown }).interacting = pan ? false : { edgeLabelMovable: true };
+    // Suspend node interaction so a drag pans rather than moving a node. On mobile,
+    // X6's native node-drag stays OFF even in select mode — we move nodes ourselves
+    // via Pointer Events, and leaving X6's mouse-based drag on let it grab the
+    // selected node off iOS-synthesised mouse events (the "node jumps to an empty
+    // tap" bug). Arrowhead/magnet interaction stays on so edges still connect.
+    (this.graph.options as { interacting?: unknown }).interacting =
+      pan ? false : (this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true });
     // Disable the rubberband (blue selection box) while panning.
     const g = this.graph as unknown as { enableRubberband?: () => void; disableRubberband?: () => void };
     if (pan) g.disableRubberband?.(); else g.enableRubberband?.();
@@ -1273,9 +1317,19 @@ export class LarkCanvas {
 
   // ── Touch interaction (select tool): tap-select, drag-move, tap-to-place ──
   private onSelDown = (e: PointerEvent): void => {
+    // Defensive: a prior gesture may have left a drag open (pointerup/cancel with a
+    // mismatched pointerId, a mid-gesture tool switch…). Start every pointerdown
+    // clean so a recycled iOS pointerId can't resume moving a stale node on what
+    // should be a plain tap (caused "node jumps to the empty tap" intermittently).
+    if (this.selDrag) {
+      if (this.dragBatch) { this.graph.stopBatch("move"); this.dragBatch = false; }
+      this.selDrag = null;
+    }
     const node = this.nodeAtPoint(e.clientX, e.clientY);
-    // Tap-to-place a pending shape (works for mouse and touch).
-    if (this.pendingShape && !node) {
+    // Tap-to-place a pending shape — ONLY when nothing is selected. If a node/edge
+    // is selected, an empty tap means "deselect" (and cancel any armed shape), NOT
+    // "drop a node here" (that bug made the selected node appear to jump to the tap).
+    if (this.pendingShape && !node && this.graph.getSelectedCells().length === 0) {
       const it = this.pendingShape;
       const p = this.graph.clientToLocal(e.clientX, e.clientY);
       const created = this.addHtmlNode(it.shape, p.x - it.w / 2, p.y - it.h / 2, it.w, it.h, it.label);
@@ -1287,39 +1341,78 @@ export class LarkCanvas {
     }
     if (e.pointerType === "mouse") return;   // desktop mouse select/move → X6 handles it
     if (node) {
+      this.setPending(null);   // selecting a node cancels any armed tap-to-place shape
+      const wasSelected = this.graph.isSelected(node);   // tap-on-already-selected → edit (mobile)
       this.graph.resetSelection([node]);
       const pos = node.position();
-      this.selDrag = { id: e.pointerId, node, px: e.clientX, py: e.clientY, nx: pos.x, ny: pos.y, moved: false };
+      this.selDrag = { id: e.pointerId, node, px: e.clientX, py: e.clientY, nx: pos.x, ny: pos.y, moved: false, wasSelected };
+      // Batch the whole drag into ONE undo step (each pointermove fires node.position()
+      // → without this, one drag = dozens of micro history commands).
+      this.graph.startBatch("move"); this.dragBatch = true;
       try { this.graphMount.setPointerCapture(e.pointerId); } catch { /* unsupported */ }
       e.preventDefault();
       return;
     }
     const edge = this.edgeAtPoint(e.clientX, e.clientY);
     if (edge) {
+      this.setPending(null);
       this.graph.resetSelection([edge]);   // fires edge:selected → reshape tools + edge bar
       e.preventDefault();
     } else {
-      // Tap on blank canvas → dismiss any open shape flyout / popup picker and
-      // clear selection (touch has no hover-out or reliable X6 blank:click).
+      // Tap on blank canvas → dismiss any open shape flyout / popup picker, cancel
+      // any armed tap-to-place shape, and clear selection (touch has no hover-out
+      // or reliable X6 blank:click).
+      this.setPending(null);
       this.closeFlyoutNow();
       this.hidePopup();
       this.graph.cleanSelection();
+      e.preventDefault();   // stop iOS from synthesising mouse events that X6 could act on
     }
   };
   private onSelMove = (e: PointerEvent): void => {
     if (this.pinch) return;   // two fingers down → gesture owns the move
     const d = this.selDrag; if (!d || e.pointerId !== d.id) return;
     const s = this.graph.scale().sx || 1;
+    const was = d.moved;
     if (Math.abs(e.clientX - d.px) + Math.abs(e.clientY - d.py) > 3) d.moved = true;
+    // Drag just started → hide the floating affordances so they don't lag behind
+    // the node (the "+" quick-connect pads + the style bar). Re-shown on drop.
+    if (d.moved && !was) { if (this.padLayer) this.padLayer.style.display = "none"; this.contextBar.style.display = "none"; }
     d.node.position(d.nx + (e.clientX - d.px) / s, d.ny + (e.clientY - d.py) / s);
     e.preventDefault();
   };
   private onSelUp = (e: PointerEvent): void => {
     const d = this.selDrag; if (!d || e.pointerId !== d.id) return;
     try { this.graphMount.releasePointerCapture(e.pointerId); } catch { /* released */ }
-    if (d.moved) this.onChange();
+    if (this.dragBatch) { this.graph.stopBatch("move"); this.dragBatch = false; }   // close the 1-drag = 1-undo batch
+    if (d.moved) { this.onChange(); this.refreshContextBar(); this.refreshContextPad(); } // re-show at the new spot
+    else if (d.wasSelected) { this.editAtPoint(d.node, d.px, d.py); }   // tap an already-selected node → edit label
     this.selDrag = null;
   };
+
+  /**
+   * Mobile inline-edit: foreignObject is hidden on mobile so X6's node:dblclick /
+   * DOM hit-test can't tell WHICH sub-label was tapped. Instead hit-test against the
+   * real overlay div's children (visible, correct rects) and route to the matching
+   * editor. Falls back to the node's main label.
+   */
+  private editAtPoint(node: Node, clientX: number, clientY: number): void {
+    const overlay = this.htmlNodes.get(node.id);
+    let target: HTMLElement | null = null;
+    if (overlay) {
+      const SEL = ".bp-pool-head, .bp-pool-lane-head, .erd-th, .erd-col .kk, .erd-col .cname, .erd-col .ctype, .uml-name, .uml-comp .ln, .bp-elabel, .sq-actor-lbl, .sq-pill, .sq-who";
+      let bestArea = Infinity;
+      overlay.querySelectorAll<HTMLElement>(SEL).forEach((elm) => {
+        const r = elm.getBoundingClientRect();
+        if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+          const a = r.width * r.height;
+          if (a < bestArea) { bestArea = a; target = elm; }   // smallest containing = most specific
+        }
+      });
+    }
+    if (target && this.tryEditChildLabel(target, node)) return;
+    this.editLabel(node);
+  }
 
   private onPanDown = (e: PointerEvent): void => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -1792,18 +1885,42 @@ export class LarkCanvas {
         "Chia 3 lane", () => this.dividePool(node, 3)));
     }
 
-    // Position above node
+    this.contextBar.style.display = "flex";
+    // Mobile (Excalidraw-style): dock the element toolbar in a fixed strip just
+    // above the bottom bar — only while a node is selected. Doesn't float over the
+    // node, doesn't ride the keyboard.
+    if (this.isMobile) { this.dockBarAboveMbar(this.contextBar); return; }
+    // Desktop: float above the node.
     const bbox = node.getBBox();
     const s = this.graph.scale().sx; const t = this.graph.translate();
     const left = bbox.x * s + t.tx + (bbox.width * s) / 2;
     const top = bbox.y * s + t.ty;
-    this.contextBar.style.display = "flex";
     const bw = this.contextBar.offsetWidth || 280;
     const bh = this.contextBar.offsetHeight || 40;
     const rw = this.root.clientWidth;
     this.contextBar.style.left = Math.max(8, Math.min(left - bw / 2, rw - bw - 8)) + "px";
     // Sit above the top "+" pad (pad center at top-24, r≈11) so they don't overlap.
     this.contextBar.style.top = Math.max(8, top - 42 - bh) + "px";
+  }
+
+  /**
+   * Mobile: while a label editor is open, hide only the floating "+" quick-connect
+   * pads (the toolbars stay visible — user preference). Restore on close.
+   */
+  private setEditingChrome(editing: boolean): void {
+    // Keep both toolbars (bottom bar + element/edge bar) visible while editing — only
+    // hide the floating "+" quick-connect pads around the node for tidiness.
+    if (editing) { if (this.padLayer) this.padLayer.style.display = "none"; }
+    else { this.refreshContextPad(); }
+  }
+
+  /** Mobile: pin a toolbar as a centered strip directly above the bottom bar. */
+  private dockBarAboveMbar(bar: HTMLElement): void {
+    const gap = (this.mbar?.offsetHeight || 54) + 8;   // `|| 54` also guards a 0 before reflow
+    bar.style.left = "50%";
+    bar.style.transform = "translateX(-50%)";
+    bar.style.top = "auto";
+    bar.style.bottom = `calc(${gap}px + (3px + env(safe-area-inset-bottom)) / 2)`;   // matches .lk-mbar bottom
   }
 
   // ── Popups ───────────────────────────────────────────────────────────────
@@ -2179,6 +2296,7 @@ export class LarkCanvas {
     onCommit: (next: string) => void;
   }): void {
     this.commitLabel(); // close any previous editor
+    if (this.isMobile) this.setEditingChrome(true);   // hide the "+" pads (toolbars stay)
     const ta = el("textarea", "lk-label-input" + (opts.vertical ? " is-vertical" : "")) as HTMLTextAreaElement;
     ta.value = opts.value;
     ta.style.left = opts.left + "px";
@@ -2203,6 +2321,7 @@ export class LarkCanvas {
       }
       this.graph.off("scale", abort); this.graph.off("translate", abort);
       ta.remove(); this.labelInput = null;
+      if (this.isMobile) this.setEditingChrome(false);   // restore the "+" pads
     };
     const abort = () => finish(true); // commit on viewport change so editor never drifts
     ta.addEventListener("input", autoGrow);
@@ -2294,6 +2413,7 @@ export class LarkCanvas {
   // Inline-edit an edge's label (double-click the arrow).
   private editEdgeLabel(edge: Edge) {
     this.commitLabel();
+    if (this.isMobile) this.setEditingChrome(true);   // hide the "+" pads (toolbars stay)
     const bbox = edge.getBBox(); const s = this.graph.scale().sx; const t = this.graph.translate();
     const cx = (bbox.x + bbox.width / 2) * s + t.tx;
     const cy = (bbox.y + bbox.height / 2) * s + t.ty;
@@ -2311,8 +2431,9 @@ export class LarkCanvas {
       edge.setLabels(v ? [{ attrs: { body: EDGE_LABEL_BODY, label: { ...EDGE_LABEL_TEXT, text: v } } }] : []);
       if (v) this.applyEdgeTextAngle(edge); // keep 90° rotation if set
       this.onChange(); input.remove(); this.labelInput = null;
+      if (this.isMobile) this.setEditingChrome(false);   // restore the "+" pads
     };
-    input.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); commit(); } if (e.key === "Escape") { done = true; input.remove(); this.labelInput = null; } });
+    input.addEventListener("keydown", (e) => { e.stopPropagation(); if (e.key === "Enter") { e.preventDefault(); commit(); } if (e.key === "Escape") { done = true; input.remove(); this.labelInput = null; if (this.isMobile) this.setEditingChrome(false); } });
     input.addEventListener("blur", commit);
     this.root.appendChild(input);
     this.labelInput = input;
@@ -2446,17 +2567,34 @@ export class LarkCanvas {
     const TRASH_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6m5 4v6m4-6v6"/></svg>`;
     bar.appendChild(mkBtn(TRASH_ICON, "Xóa", () => { this.graph.removeCells([edge]); this.hideEdgeBar(); }));
 
-    // Position above the edge midpoint; flip below if it would clip the top edge.
-    const bbox = edge.getBBox(); const s = this.graph.scale().sx; const t = this.graph.translate();
-    const cx = (bbox.x + bbox.width / 2) * s + t.tx;
-    const cy = (bbox.y + bbox.height / 2) * s + t.ty;
     bar.style.display = "flex";
+    // Mobile: dock above the bottom bar (same as the node context bar).
+    if (this.isMobile) { this.dockBarAboveMbar(bar); return; }
+    // Position OUTSIDE the edge bbox (above the top, or below the bottom) so the
+    // bar never overlays the line itself. Read the rendered SVG path's screen
+    // rect — edge.getBBox() includes the highlight halo and over-estimates.
+    const s = this.graph.scale().sx; const t = this.graph.translate();
+    const view = this.graph.findViewByCell(edge) as { container?: SVGElement } | null;
+    const pathEl = view?.container?.querySelector?.("path.x6-edge-selection, path[joint-selector='line'], path") as SVGGraphicsElement | null;
+    const rootRect = this.root.getBoundingClientRect();
+    let cx: number, yTop: number, yBot: number;
+    if (pathEl?.getBoundingClientRect) {
+      const r = pathEl.getBoundingClientRect();
+      cx = r.left - rootRect.left + r.width / 2;
+      yTop = r.top - rootRect.top;
+      yBot = r.bottom - rootRect.top;
+    } else {
+      const bbox = edge.getBBox();
+      cx = (bbox.x + bbox.width / 2) * s + t.tx;
+      yTop = bbox.y * s + t.ty;
+      yBot = (bbox.y + bbox.height) * s + t.ty;
+    }
     const bw = bar.offsetWidth || 360;
     const bh = bar.offsetHeight || 46;
     const rw = this.root.clientWidth; const rh = this.root.clientHeight;
-    const gap = 34;
-    let top = cy - bh - gap;                       // above
-    if (top < 8) top = cy + gap;                   // flip below when clipped at top
+    const gap = 18;
+    let top = yTop - bh - gap;                     // prefer above the bbox
+    if (top < 8) top = yBot + gap;                 // not enough room above → below the bbox
     top = Math.min(top, rh - bh - 8);
     bar.style.left = Math.max(8, Math.min(cx - bw / 2, rw - bw - 8)) + "px";
     bar.style.top = Math.max(8, top) + "px";
@@ -2550,6 +2688,40 @@ export class LarkCanvas {
     if (!c || !c.isNode()) return false;
     const k = (c as Node).getData()?.kind as string | undefined;
     return !!k && SEQ_LIFELINE_KINDS.has(k);
+  }
+
+  /**
+   * Re-anchor a GENERIC edge (not sequence, not mindmap) to dynamic centre anchors
+   * so the manhattan router exits/enters from the side facing the other node —
+   * Lark-style clean routing, independent of which port it was drawn from. No-op for
+   * sequence (`seq-msg` connector) and mindmap (`mm-edge`) edges, which keep their
+   * own routing.
+   */
+  private normalizeGenericEdge(edge: Edge): void {
+    const sId = edge.getSourceCellId() ?? undefined;
+    const tId = edge.getTargetCellId() ?? undefined;
+    if (!sId || !tId) return;
+    if (this.isSeqLifeline(sId) && this.isSeqLifeline(tId)) return;
+    if (this.isMindmapNode(sId) && this.isMindmapNode(tId)) return;
+    if (edge.getVertices().length) return;   // user reshaped (has vertices) → respect it, leave ports alone
+    const s = this.graph.getCellById(sId), t = this.graph.getCellById(tId);
+    if (!s?.isNode?.() || !t?.isNode?.()) return;
+    const { sp, tp } = this.bestPorts(s as Node, t as Node);
+    edge.setSource({ cell: sId, port: sp });
+    edge.setTarget({ cell: tId, port: tp });
+  }
+
+  /**
+   * Pick the fixed port on each node that faces the other node, by the dominant
+   * axis between their centres → the manhattan router exits/enters from that side
+   * (clean Lark-style routing) while keeping fixed ports so X6's reshape tools work.
+   */
+  private bestPorts(a: Node, b: Node): { sp: string; tp: string } {
+    const ba = a.getBBox(), bb = b.getBBox();
+    const dx = (bb.x + bb.width / 2) - (ba.x + ba.width / 2);
+    const dy = (bb.y + bb.height / 2) - (ba.y + ba.height / 2);
+    if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? { sp: "right", tp: "left" } : { sp: "left", tp: "right" };
+    return dy >= 0 ? { sp: "bottom", tp: "top" } : { sp: "top", tp: "bottom" };
   }
 
   private applySeqRoutingIfNeeded(edge: Edge): void {
@@ -2665,7 +2837,8 @@ export class LarkCanvas {
       if (seq) { data.y = typeof e.y === "number" ? e.y : undefined; data.ret = e.ret || undefined; }
       if (e.style) data.style = e.style;
       const created = this.graph.addEdge({
-        id: e.id, source: { cell: e.source, port: e.sourcePort }, target: { cell: e.target, port: e.targetPort },
+        id: e.id,
+        source: { cell: e.source, port: e.sourcePort }, target: { cell: e.target, port: e.targetPort },
         router: seq || mm ? "normal" : SMART_ROUTER,
         connector: seq ? "seq-msg" : mm ? "mm-edge" : CONNECTOR,
         attrs: edgeAttrs,
@@ -2676,6 +2849,7 @@ export class LarkCanvas {
       });
       if (e.style) this.applyEdgeStyle(created); // custom relationship style overrides defaults
       if (mm) this.applyMindmapRoutingIfNeeded(created); // re-anchor right/left ports (old boards had none)
+      else this.normalizeGenericEdge(created); // auto-pick ports facing the target (old boards upgrade; reshaped edges kept)
     }
     this.graph.stopBatch("load");
     this.resyncHtmlNodes();   // rebuild the mobile overlay from the freshly loaded nodes
@@ -2847,7 +3021,7 @@ export class LarkCanvas {
       c.resize(maxX - minX + 2 * pad + headerW, maxY - minY + 2 * pad + headerH);
     }
 
-    // 7. Reset edges (vertices + router/connector + ports) — skip mindmap/seq.
+    // 7. Reset edges (vertices + router/connector + ports to the flow direction) — skip mindmap/seq.
     const srcPort = horiz ? "right" : "bottom", tgtPort = horiz ? "left" : "top";
     for (const e of this.graph.getEdges()) {
       const sId = e.getSourceCellId(), tId = e.getTargetCellId();

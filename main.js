@@ -2039,7 +2039,7 @@ function inflateRaw$1(input, options) {
   options.raw = true;
   return inflate$1(input, options);
 }
-var Z_FIXED$1, Z_BINARY, Z_TEXT, Z_UNKNOWN$1, STORED_BLOCK, STATIC_TREES, DYN_TREES, MIN_MATCH$1, MAX_MATCH$1, LENGTH_CODES$1, LITERALS$1, L_CODES$1, D_CODES$1, BL_CODES$1, HEAP_SIZE$1, MAX_BITS$1, Buf_size, MAX_BL_BITS, END_BLOCK, REP_3_6, REPZ_3_10, REPZ_11_138, extra_lbits, extra_dbits, extra_blbits, bl_order, DIST_CODE_LEN, static_ltree, static_dtree, _dist_code, _length_code, base_length, base_dist, static_l_desc, static_d_desc, static_bl_desc, d_code, put_short, send_bits, send_code, bi_reverse, bi_flush, gen_bitlen, gen_codes, tr_static_init, init_block, bi_windup, smaller, pqdownheap, compress_block, build_tree, scan_tree, send_tree, build_bl_tree, send_all_trees, detect_data_type, static_init_done, _tr_init$1, _tr_stored_block$1, _tr_align$1, _tr_flush_block$1, _tr_tally$1, _tr_init_1, _tr_stored_block_1, _tr_flush_block_1, _tr_tally_1, _tr_align_1, trees, adler32, adler32_1, makeTable, crcTable, crc32, crc32_1, messages, constants$2, _tr_init, _tr_stored_block, _tr_flush_block, _tr_tally, _tr_align, Z_NO_FLUSH$2, Z_PARTIAL_FLUSH, Z_FULL_FLUSH$1, Z_FINISH$3, Z_BLOCK$1, Z_OK$3, Z_STREAM_END$3, Z_STREAM_ERROR$2, Z_DATA_ERROR$2, Z_BUF_ERROR$1, Z_DEFAULT_COMPRESSION$1, Z_FILTERED, Z_HUFFMAN_ONLY, Z_RLE, Z_FIXED, Z_DEFAULT_STRATEGY$1, Z_UNKNOWN, Z_DEFLATED$2, MAX_MEM_LEVEL, MAX_WBITS$1, DEF_MEM_LEVEL, LENGTH_CODES, LITERALS, L_CODES, D_CODES, BL_CODES, HEAP_SIZE, MAX_BITS, MIN_MATCH, MAX_MATCH, MIN_LOOKAHEAD, PRESET_DICT, INIT_STATE, GZIP_STATE, EXTRA_STATE, NAME_STATE, COMMENT_STATE, HCRC_STATE, BUSY_STATE, FINISH_STATE, BS_NEED_MORE, BS_BLOCK_DONE, BS_FINISH_STARTED, BS_FINISH_DONE, OS_CODE, err, rank, zero, slide_hash, HASH_ZLIB, HASH, flush_pending, flush_block_only, put_byte, putShortMSB, read_buf, longest_match, fill_window, deflate_stored, deflate_fast, deflate_slow, deflate_rle, deflate_huff, configuration_table, lm_init, deflateStateCheck, deflateResetKeep, deflateReset, deflateSetHeader, deflateInit2, deflateInit, deflate$2, deflateEnd, deflateSetDictionary, deflateInit_1, deflateInit2_1, deflateReset_1, deflateResetKeep_1, deflateSetHeader_1, deflate_2$1, deflateEnd_1, deflateSetDictionary_1, deflateInfo, deflate_1$2, _has, assign, flattenChunks, common, STR_APPLY_UIA_OK, _utf8len, string2buf, buf2binstring, buf2string, utf8border, strings, zstream, toString$1, Z_NO_FLUSH$1, Z_SYNC_FLUSH, Z_FULL_FLUSH, Z_FINISH$2, Z_OK$2, Z_STREAM_END$2, Z_DEFAULT_COMPRESSION, Z_DEFAULT_STRATEGY, Z_DEFLATED$1, Deflate_1$1, deflate_2, deflateRaw_1$1, gzip_1$1, constants$1, deflate_1$1, BAD$1, TYPE$1, inffast, MAXBITS, ENOUGH_LENS$1, ENOUGH_DISTS$1, CODES$1, LENS$1, DISTS$1, lbase, lext, dbase, dext, inflate_table, inftrees, CODES, LENS, DISTS, Z_FINISH$1, Z_BLOCK, Z_TREES, Z_OK$1, Z_STREAM_END$1, Z_NEED_DICT$1, Z_STREAM_ERROR$1, Z_DATA_ERROR$1, Z_MEM_ERROR$1, Z_BUF_ERROR, Z_DEFLATED, HEAD, FLAGS, TIME, OS, EXLEN, EXTRA, NAME, COMMENT, HCRC, DICTID, DICT, TYPE, TYPEDO, STORED, COPY_, COPY, TABLE, LENLENS, CODELENS, LEN_, LEN, LENEXT, DIST, DISTEXT, MATCH, LIT, CHECK, LENGTH, DONE, BAD, MEM, SYNC, ENOUGH_LENS, ENOUGH_DISTS, MAX_WBITS, DEF_WBITS, zswap32, inflateStateCheck, inflateResetKeep, inflateReset, inflateReset2, inflateInit2, inflateInit, virgin, lenfix, distfix, fixedtables, updatewindow, inflate$2, inflateEnd, inflateGetHeader, inflateSetDictionary, inflateReset_1, inflateReset2_1, inflateResetKeep_1, inflateInit_1, inflateInit2_1, inflate_2$1, inflateEnd_1, inflateGetHeader_1, inflateSetDictionary_1, inflateInfo, inflate_1$2, gzheader, toString2, Z_NO_FLUSH, Z_FINISH, Z_OK, Z_STREAM_END, Z_NEED_DICT, Z_STREAM_ERROR, Z_DATA_ERROR, Z_MEM_ERROR, Inflate_1$1, inflate_2, inflateRaw_1$1, ungzip$1, constants, inflate_1$1, Deflate, deflate, deflateRaw, gzip, Inflate, inflate, inflateRaw, ungzip, Inflate_1, inflate_1;
+var Z_FIXED$1, Z_BINARY, Z_TEXT, Z_UNKNOWN$1, STORED_BLOCK, STATIC_TREES, DYN_TREES, MIN_MATCH$1, MAX_MATCH$1, LENGTH_CODES$1, LITERALS$1, L_CODES$1, D_CODES$1, BL_CODES$1, HEAP_SIZE$1, MAX_BITS$1, Buf_size, MAX_BL_BITS, END_BLOCK, REP_3_6, REPZ_3_10, REPZ_11_138, extra_lbits, extra_dbits, extra_blbits, bl_order, DIST_CODE_LEN, static_ltree, static_dtree, _dist_code, _length_code, base_length, base_dist, static_l_desc, static_d_desc, static_bl_desc, d_code, put_short, send_bits, send_code, bi_reverse, bi_flush, gen_bitlen, gen_codes, tr_static_init, init_block, bi_windup, smaller, pqdownheap, compress_block, build_tree, scan_tree, send_tree, build_bl_tree, send_all_trees, detect_data_type, static_init_done, _tr_init$1, _tr_stored_block$1, _tr_align$1, _tr_flush_block$1, _tr_tally$1, _tr_init_1, _tr_stored_block_1, _tr_flush_block_1, _tr_tally_1, _tr_align_1, trees, adler32, adler32_1, makeTable, crcTable, crc32, crc32_1, messages, constants$2, _tr_init, _tr_stored_block, _tr_flush_block, _tr_tally, _tr_align, Z_NO_FLUSH$2, Z_PARTIAL_FLUSH, Z_FULL_FLUSH$1, Z_FINISH$3, Z_BLOCK$1, Z_OK$3, Z_STREAM_END$3, Z_STREAM_ERROR$2, Z_DATA_ERROR$2, Z_BUF_ERROR$1, Z_DEFAULT_COMPRESSION$1, Z_FILTERED, Z_HUFFMAN_ONLY, Z_RLE, Z_FIXED, Z_DEFAULT_STRATEGY$1, Z_UNKNOWN, Z_DEFLATED$2, MAX_MEM_LEVEL, MAX_WBITS$1, DEF_MEM_LEVEL, LENGTH_CODES, LITERALS, L_CODES, D_CODES, BL_CODES, HEAP_SIZE, MAX_BITS, MIN_MATCH, MAX_MATCH, MIN_LOOKAHEAD, PRESET_DICT, INIT_STATE, GZIP_STATE, EXTRA_STATE, NAME_STATE, COMMENT_STATE, HCRC_STATE, BUSY_STATE, FINISH_STATE, BS_NEED_MORE, BS_BLOCK_DONE, BS_FINISH_STARTED, BS_FINISH_DONE, OS_CODE, err, rank, zero, slide_hash, HASH_ZLIB, HASH, flush_pending, flush_block_only, put_byte, putShortMSB, read_buf, longest_match, fill_window, deflate_stored, deflate_fast, deflate_slow, deflate_rle, deflate_huff, configuration_table, lm_init, deflateStateCheck, deflateResetKeep, deflateReset, deflateSetHeader, deflateInit2, deflateInit, deflate$2, deflateEnd, deflateSetDictionary, deflateInit_1, deflateInit2_1, deflateReset_1, deflateResetKeep_1, deflateSetHeader_1, deflate_2$1, deflateEnd_1, deflateSetDictionary_1, deflateInfo, deflate_1$2, _has, assign, flattenChunks, common, STR_APPLY_UIA_OK, _utf8len, string2buf, buf2binstring, buf2string, utf8border, strings, zstream, toString$1, Z_NO_FLUSH$1, Z_SYNC_FLUSH, Z_FULL_FLUSH, Z_FINISH$2, Z_OK$2, Z_STREAM_END$2, Z_DEFAULT_COMPRESSION, Z_DEFAULT_STRATEGY, Z_DEFLATED$1, Deflate_1$1, deflate_2, deflateRaw_1$1, gzip_1$1, constants$1, deflate_1$1, BAD$1, TYPE$1, inffast, MAXBITS, ENOUGH_LENS$1, ENOUGH_DISTS$1, CODES$1, LENS$1, DISTS$1, lbase, lext, dbase, dext, inflate_table, inftrees, CODES, LENS, DISTS, Z_FINISH$1, Z_BLOCK, Z_TREES, Z_OK$1, Z_STREAM_END$1, Z_NEED_DICT$1, Z_STREAM_ERROR$1, Z_DATA_ERROR$1, Z_MEM_ERROR$1, Z_BUF_ERROR, Z_DEFLATED, HEAD, FLAGS, TIME, OS, EXLEN, EXTRA, NAME, COMMENT, HCRC, DICTID, DICT, TYPE, TYPEDO, STORED, COPY_, COPY, TABLE, LENLENS, CODELENS, LEN_, LEN, LENEXT, DIST, DISTEXT, MATCH, LIT, CHECK, LENGTH, DONE, BAD, MEM, SYNC, ENOUGH_LENS, ENOUGH_DISTS, MAX_WBITS, DEF_WBITS, zswap32, inflateStateCheck, inflateResetKeep, inflateReset, inflateReset2, inflateInit2, inflateInit, virgin, lenfix, distfix, fixedtables, updatewindow, inflate$2, inflateEnd, inflateGetHeader, inflateSetDictionary, inflateReset_1, inflateReset2_1, inflateResetKeep_1, inflateInit_1, inflateInit2_1, inflate_2$1, inflateEnd_1, inflateGetHeader_1, inflateSetDictionary_1, inflateInfo, inflate_1$2, gzheader, toString2, Z_NO_FLUSH, Z_FINISH, Z_OK, Z_STREAM_END, Z_NEED_DICT, Z_STREAM_ERROR, Z_DATA_ERROR, Z_MEM_ERROR, Inflate_1$1, inflate_2, inflateRaw_1$1, ungzip$1, constants, inflate_1$1, Deflate, deflate, deflateRaw, gzip, Inflate, inflate, inflateRaw, ungzip, Deflate_1, deflate_1, deflateRaw_1, gzip_1, Inflate_1, inflate_1, inflateRaw_1, ungzip_1, constants_1, pako;
 var init_pako_esm = __esm({
   "node_modules/pako/dist/pako.esm.mjs"() {
     Z_FIXED$1 = 4;
@@ -5894,8 +5894,26 @@ var init_pako_esm = __esm({
     };
     ({ Deflate, deflate, deflateRaw, gzip } = deflate_1$1);
     ({ Inflate, inflate, inflateRaw, ungzip } = inflate_1$1);
+    Deflate_1 = Deflate;
+    deflate_1 = deflate;
+    deflateRaw_1 = deflateRaw;
+    gzip_1 = gzip;
     Inflate_1 = Inflate;
     inflate_1 = inflate;
+    inflateRaw_1 = inflateRaw;
+    ungzip_1 = ungzip;
+    constants_1 = constants$2;
+    pako = {
+      Deflate: Deflate_1,
+      deflate: deflate_1,
+      deflateRaw: deflateRaw_1,
+      gzip: gzip_1,
+      Inflate: Inflate_1,
+      inflate: inflate_1,
+      inflateRaw: inflateRaw_1,
+      ungzip: ungzip_1,
+      constants: constants_1
+    };
   }
 });
 
@@ -69672,7 +69690,10 @@ function registerHtmlNode() {
       }
     ],
     attrs: {
-      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none" },
+      // `magnet: true` → X6 treats the whole body as a connection target, so
+      // dragging an endpoint near the node binds it to {cell: id} (logical link)
+      // instead of leaving a floating {x, y} point. Lark-style snap.
+      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", magnet: true },
       fo: { refWidth: "100%", refHeight: "100%" },
       content: { html: "", class: "hn" }
     },
@@ -71977,7 +71998,7 @@ function el(tag, cls, html3) {
   return node2;
 }
 var SMART_ROUTER = { name: "manhattan", args: { padding: 16 } };
-var CONNECTOR = { name: "rounded", args: { radius: 10 } };
+var CONNECTOR = { name: "rounded", args: { radius: 6 } };
 var SEQ_CONNECTOR_REGISTERED = false;
 function ensureSeqConnector() {
   if (SEQ_CONNECTOR_REGISTERED) return;
@@ -72088,7 +72109,7 @@ var EDGE_MARKER_LABEL = {
 };
 var EDGE_WIDTHS = [1.4, 2.4, 3.6];
 var EDGE_SHAPES = {
-  orthogonal: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 10 } } },
+  orthogonal: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 6 } } },
   elbow: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "normal" } },
   straight: { router: { name: "normal" }, connector: { name: "normal" } },
   curved: { router: { name: "normal" }, connector: { name: "smooth" } }
@@ -72126,6 +72147,10 @@ var _LarkCanvas = class _LarkCanvas {
     this.pendingShape = null;
     this.pendingHint = null;
     this.selDrag = null;
+    this.dragBatch = false;
+    // an X6 history batch is open around the current touch-drag
+    this.mbar = null;
+    // mobile bottom toolbar
     // Two-finger pinch: zoom around the finger midpoint while also panning with it.
     this.pinch = null;
     this.mmFabs = null;
@@ -72145,8 +72170,15 @@ var _LarkCanvas = class _LarkCanvas {
     this.flyoutTimer = null;
     // ── Touch interaction (select tool): tap-select, drag-move, tap-to-place ──
     this.onSelDown = (e4) => {
+      if (this.selDrag) {
+        if (this.dragBatch) {
+          this.graph.stopBatch("move");
+          this.dragBatch = false;
+        }
+        this.selDrag = null;
+      }
       const node2 = this.nodeAtPoint(e4.clientX, e4.clientY);
-      if (this.pendingShape && !node2) {
+      if (this.pendingShape && !node2 && this.graph.getSelectedCells().length === 0) {
         const it3 = this.pendingShape;
         const p6 = this.graph.clientToLocal(e4.clientX, e4.clientY);
         const created = this.addHtmlNode(it3.shape, p6.x - it3.w / 2, p6.y - it3.h / 2, it3.w, it3.h, it3.label);
@@ -72158,9 +72190,13 @@ var _LarkCanvas = class _LarkCanvas {
       }
       if (e4.pointerType === "mouse") return;
       if (node2) {
+        this.setPending(null);
+        const wasSelected = this.graph.isSelected(node2);
         this.graph.resetSelection([node2]);
         const pos = node2.position();
-        this.selDrag = { id: e4.pointerId, node: node2, px: e4.clientX, py: e4.clientY, nx: pos.x, ny: pos.y, moved: false };
+        this.selDrag = { id: e4.pointerId, node: node2, px: e4.clientX, py: e4.clientY, nx: pos.x, ny: pos.y, moved: false, wasSelected };
+        this.graph.startBatch("move");
+        this.dragBatch = true;
         try {
           this.graphMount.setPointerCapture(e4.pointerId);
         } catch (e5) {
@@ -72170,12 +72206,15 @@ var _LarkCanvas = class _LarkCanvas {
       }
       const edge = this.edgeAtPoint(e4.clientX, e4.clientY);
       if (edge) {
+        this.setPending(null);
         this.graph.resetSelection([edge]);
         e4.preventDefault();
       } else {
+        this.setPending(null);
         this.closeFlyoutNow();
         this.hidePopup();
         this.graph.cleanSelection();
+        e4.preventDefault();
       }
     };
     this.onSelMove = (e4) => {
@@ -72183,7 +72222,12 @@ var _LarkCanvas = class _LarkCanvas {
       const d4 = this.selDrag;
       if (!d4 || e4.pointerId !== d4.id) return;
       const s5 = this.graph.scale().sx || 1;
+      const was = d4.moved;
       if (Math.abs(e4.clientX - d4.px) + Math.abs(e4.clientY - d4.py) > 3) d4.moved = true;
+      if (d4.moved && !was) {
+        if (this.padLayer) this.padLayer.style.display = "none";
+        this.contextBar.style.display = "none";
+      }
       d4.node.position(d4.nx + (e4.clientX - d4.px) / s5, d4.ny + (e4.clientY - d4.py) / s5);
       e4.preventDefault();
     };
@@ -72194,7 +72238,17 @@ var _LarkCanvas = class _LarkCanvas {
         this.graphMount.releasePointerCapture(e4.pointerId);
       } catch (e5) {
       }
-      if (d4.moved) this.onChange();
+      if (this.dragBatch) {
+        this.graph.stopBatch("move");
+        this.dragBatch = false;
+      }
+      if (d4.moved) {
+        this.onChange();
+        this.refreshContextBar();
+        this.refreshContextPad();
+      } else if (d4.wasSelected) {
+        this.editAtPoint(d4.node, d4.px, d4.py);
+      }
       this.selDrag = null;
     };
     this.onPanDown = (e4) => {
@@ -72281,13 +72335,14 @@ var _LarkCanvas = class _LarkCanvas {
       panning: { enabled: true, modifiers: ["space"] },
       mousewheel: { enabled: true, modifiers: ["ctrl", "meta"], zoomAtMousePosition: true },
       // Allow user to drag edge labels (bpmn.io behaviour — avoid label overlap on busy intersections).
-      interacting: { edgeLabelMovable: true },
+      interacting: this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true },
       grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
-        snap: { radius: 28 },
+        snap: { radius: 30 },
+        // Lark-style magnet pull radius
         allowBlank: true,
-        // drop on empty canvas → Larksuite-style "pick shape" picker
+        // drop on empty canvas → "pick shape" picker
         allowLoop: false,
         // no self-loops
         allowNode: true,
@@ -72295,19 +72350,25 @@ var _LarkCanvas = class _LarkCanvas {
         allowEdge: false,
         allowMulti: true,
         highlight: true,
+        // Bind endpoints to the node CENTER (logical anchor) — without this the
+        // endpoint stores a raw {x, y} which breaks routing the moment the node
+        // moves. The visual connection stops at the node BOUNDARY (no piercing).
+        anchor: "center",
+        connectionPoint: "boundary",
         router: SMART_ROUTER,
         connector: CONNECTOR,
         createEdge() {
           return this.createEdge({ attrs: EDGE_ATTRS });
         },
-        // Accept a drop on any other node — target ports are hidden, so requiring
-        // a magnet made connections fail. Snap/router still pick a clean endpoint.
-        // Also accept a drop on EMPTY canvas (no targetCell) so allowBlank fires
-        // edge:connected → we then show the "Chèn hình" picker (Larksuite-style).
+        // Accept a drop on any other node — body magnet handles snap; this also
+        // accepts EMPTY-canvas drops so allowBlank still fires edge:connected
+        // → "Chèn hình" picker (Larksuite-style).
         validateConnection: ({ sourceCell, targetCell }) => !targetCell || targetCell.isNode() && sourceCell !== targetCell
       },
       highlighting: {
-        magnetAdsorbed: { name: "stroke", args: { attrs: { fill: "#fff", stroke: ACCENT } } }
+        // Hovering a valid magnet during endpoint drag → blue outline (Lark UX).
+        magnetAvailable: { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } },
+        magnetAdsorbed: { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } }
       }
     });
     graph.use(new Selection({ rubberband: true, showNodeSelectionBox: true, pointerEvents: "none" }));
@@ -72603,6 +72664,7 @@ var _LarkCanvas = class _LarkCanvas {
       edge.setData({ ...edge.getData() });
       this.applyMindmapRoutingIfNeeded(edge);
       this.applySeqRoutingIfNeeded(edge);
+      this.normalizeGenericEdge(edge);
       this.hidePopup();
       this.graph.resetSelection([created]);
       this.editLabel(created);
@@ -72700,6 +72762,10 @@ var _LarkCanvas = class _LarkCanvas {
       const m6 = mid(e4.touches);
       const lp = this.graph.clientToLocal(m6.x, m6.y);
       this.pinch = { d0: dist(e4.touches) || 1, scale0: this.graph.scale().sx, lx: lp.x, ly: lp.y };
+      if (this.dragBatch) {
+        this.graph.stopBatch("move");
+        this.dragBatch = false;
+      }
       this.selDrag = null;
       this.panStart = null;
       e4.preventDefault();
@@ -73000,6 +73066,19 @@ var _LarkCanvas = class _LarkCanvas {
       edge.removeTools();
       this.hideEdgeBar();
     });
+    const onEndpointMoved = ({ edge }) => {
+      var _a3, _b2, _c, _d;
+      if (this.isSeqLifeline((_a3 = edge.getSourceCellId()) != null ? _a3 : void 0) || this.isSeqLifeline((_b2 = edge.getTargetCellId()) != null ? _b2 : void 0)) return;
+      if (this.isMindmapNode((_c = edge.getSourceCellId()) != null ? _c : void 0) || this.isMindmapNode((_d = edge.getTargetCellId()) != null ? _d : void 0)) return;
+      if (edge.getVertices().length) edge.setVertices([]);
+      this.normalizeGenericEdge(edge);
+      if (this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) this.showEdgeBar(edge);
+    };
+    this.graph.on("edge:change:source", onEndpointMoved);
+    this.graph.on("edge:change:target", onEndpointMoved);
+    this.graph.on("edge:change:vertices", ({ edge }) => {
+      if (this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) this.showEdgeBar(edge);
+    });
     this.graph.on("edge:dblclick", ({ edge, e: e4 }) => {
       e4.stopPropagation();
       this.editEdgeLabel(edge);
@@ -73016,7 +73095,8 @@ var _LarkCanvas = class _LarkCanvas {
       this.refreshMindmapFabs();
       this.refreshContextPad();
     });
-    this.graph.on("node:moved", () => {
+    this.graph.on("node:moved", ({ node: node2 }) => {
+      for (const e4 of this.graph.getConnectedEdges(node2)) this.normalizeGenericEdge(e4);
       this.refreshContextBar();
       this.refreshProps();
       this.refreshMindmapFabs();
@@ -73073,6 +73153,7 @@ var _LarkCanvas = class _LarkCanvas {
       }
       this.applySeqRoutingIfNeeded(edge);
       this.applyMindmapRoutingIfNeeded(edge);
+      this.normalizeGenericEdge(edge);
     });
     this.graphMount.addEventListener("mouseup", () => {
       window.setTimeout(() => {
@@ -73173,7 +73254,7 @@ var _LarkCanvas = class _LarkCanvas {
     arrow.onclick = () => this.openArrowFlyout(arrow);
     sep();
     const byTitle = (t5) => this.categories.find((c6) => c6.title === t5);
-    for (const title2 of ["Flowchart", "BPMN"]) {
+    for (const title2 of _LarkCanvas.QUICK_CATS) {
       const cat = byTitle(title2);
       if (!cat) continue;
       const b3 = btn(shapeIcon((_a3 = _LarkCanvas.CAT_REP[title2]) != null ? _a3 : cat.items[0].shape), title2, () => {
@@ -73189,13 +73270,14 @@ var _LarkCanvas = class _LarkCanvas {
       this.updateZoom();
     });
     this.root.appendChild(bar);
+    this.mbar = bar;
   }
   /** Bottom-sheet of the remaining diagram categories (mobile "Sơ đồ khác"). */
   openMoreSheet(anchor3) {
     var _a3;
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
-    const rest = this.categories.filter((c6) => c6.title !== "Flowchart" && c6.title !== "BPMN");
+    const rest = this.categories.filter((c6) => !_LarkCanvas.QUICK_CATS.includes(c6.title));
     const fly = el("div", "lk-flyout");
     fly.appendChild(el("div", "lk-flyout-title", "S\u01A1 \u0111\u1ED3 kh\xE1c"));
     const grid = el("div", "lk-flyout-grid");
@@ -73266,7 +73348,7 @@ var _LarkCanvas = class _LarkCanvas {
     var _a3, _b2, _c, _d;
     this.tool = tool;
     const pan = tool === "pan";
-    this.graph.options.interacting = pan ? false : { edgeLabelMovable: true };
+    this.graph.options.interacting = pan ? false : this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true };
     const g3 = this.graph;
     if (pan) (_a3 = g3.disableRubberband) == null ? void 0 : _a3.call(g3);
     else (_b2 = g3.enableRubberband) == null ? void 0 : _b2.call(g3);
@@ -73354,6 +73436,32 @@ var _LarkCanvas = class _LarkCanvas {
       this.pendingHint.remove();
       this.pendingHint = null;
     }
+  }
+  /**
+   * Mobile inline-edit: foreignObject is hidden on mobile so X6's node:dblclick /
+   * DOM hit-test can't tell WHICH sub-label was tapped. Instead hit-test against the
+   * real overlay div's children (visible, correct rects) and route to the matching
+   * editor. Falls back to the node's main label.
+   */
+  editAtPoint(node2, clientX, clientY) {
+    const overlay = this.htmlNodes.get(node2.id);
+    let target = null;
+    if (overlay) {
+      const SEL = ".bp-pool-head, .bp-pool-lane-head, .erd-th, .erd-col .kk, .erd-col .cname, .erd-col .ctype, .uml-name, .uml-comp .ln, .bp-elabel, .sq-actor-lbl, .sq-pill, .sq-who";
+      let bestArea = Infinity;
+      overlay.querySelectorAll(SEL).forEach((elm) => {
+        const r4 = elm.getBoundingClientRect();
+        if (clientX >= r4.left && clientX <= r4.right && clientY >= r4.top && clientY <= r4.bottom) {
+          const a5 = r4.width * r4.height;
+          if (a5 < bestArea) {
+            bestArea = a5;
+            target = elm;
+          }
+        }
+      });
+    }
+    if (target && this.tryEditChildLabel(target, node2)) return;
+    this.editLabel(node2);
   }
   openFlyout(cat, anchor3) {
     this.cancelFlyoutClose();
@@ -73898,17 +74006,41 @@ var _LarkCanvas = class _LarkCanvas {
         () => this.dividePool(node2, 3)
       ));
     }
+    this.contextBar.style.display = "flex";
+    if (this.isMobile) {
+      this.dockBarAboveMbar(this.contextBar);
+      return;
+    }
     const bbox2 = node2.getBBox();
     const s5 = this.graph.scale().sx;
     const t5 = this.graph.translate();
     const left4 = bbox2.x * s5 + t5.tx + bbox2.width * s5 / 2;
     const top4 = bbox2.y * s5 + t5.ty;
-    this.contextBar.style.display = "flex";
     const bw = this.contextBar.offsetWidth || 280;
     const bh = this.contextBar.offsetHeight || 40;
     const rw = this.root.clientWidth;
     this.contextBar.style.left = Math.max(8, Math.min(left4 - bw / 2, rw - bw - 8)) + "px";
     this.contextBar.style.top = Math.max(8, top4 - 42 - bh) + "px";
+  }
+  /**
+   * Mobile: while a label editor is open, hide only the floating "+" quick-connect
+   * pads (the toolbars stay visible — user preference). Restore on close.
+   */
+  setEditingChrome(editing) {
+    if (editing) {
+      if (this.padLayer) this.padLayer.style.display = "none";
+    } else {
+      this.refreshContextPad();
+    }
+  }
+  /** Mobile: pin a toolbar as a centered strip directly above the bottom bar. */
+  dockBarAboveMbar(bar) {
+    var _a3;
+    const gap = (((_a3 = this.mbar) == null ? void 0 : _a3.offsetHeight) || 54) + 8;
+    bar.style.left = "50%";
+    bar.style.transform = "translateX(-50%)";
+    bar.style.top = "auto";
+    bar.style.bottom = `calc(${gap}px + (3px + env(safe-area-inset-bottom)) / 2)`;
   }
   // ── Popups ───────────────────────────────────────────────────────────────
   openShapePopup(node2, anchor3) {
@@ -74372,6 +74504,7 @@ var _LarkCanvas = class _LarkCanvas {
    */
   inlineEdit(opts) {
     this.commitLabel();
+    if (this.isMobile) this.setEditingChrome(true);
     const ta = el("textarea", "lk-label-input" + (opts.vertical ? " is-vertical" : ""));
     ta.value = opts.value;
     ta.style.left = opts.left + "px";
@@ -74402,6 +74535,7 @@ var _LarkCanvas = class _LarkCanvas {
       this.graph.off("translate", abort);
       ta.remove();
       this.labelInput = null;
+      if (this.isMobile) this.setEditingChrome(false);
     };
     const abort = () => finish(true);
     ta.addEventListener("input", autoGrow);
@@ -74517,6 +74651,7 @@ var _LarkCanvas = class _LarkCanvas {
   editEdgeLabel(edge) {
     var _a3, _b2, _c, _d;
     this.commitLabel();
+    if (this.isMobile) this.setEditingChrome(true);
     const bbox2 = edge.getBBox();
     const s5 = this.graph.scale().sx;
     const t5 = this.graph.translate();
@@ -74539,6 +74674,7 @@ var _LarkCanvas = class _LarkCanvas {
       this.onChange();
       input.remove();
       this.labelInput = null;
+      if (this.isMobile) this.setEditingChrome(false);
     };
     input.addEventListener("keydown", (e4) => {
       e4.stopPropagation();
@@ -74550,6 +74686,7 @@ var _LarkCanvas = class _LarkCanvas {
         done = true;
         input.remove();
         this.labelInput = null;
+        if (this.isMobile) this.setEditingChrome(false);
       }
     });
     input.addEventListener("blur", commit);
@@ -74650,7 +74787,7 @@ var _LarkCanvas = class _LarkCanvas {
     return `<svg viewBox="0 0 26 16" width="26" height="16">${body}</svg>`;
   }
   showEdgeBar(edge) {
-    var _a3, _b2;
+    var _a3, _b2, _c, _d;
     const bar = this.edgeBar;
     if (!bar) return;
     bar.innerHTML = "";
@@ -74711,19 +74848,35 @@ var _LarkCanvas = class _LarkCanvas {
       this.graph.removeCells([edge]);
       this.hideEdgeBar();
     }));
-    const bbox2 = edge.getBBox();
+    bar.style.display = "flex";
+    if (this.isMobile) {
+      this.dockBarAboveMbar(bar);
+      return;
+    }
     const s5 = this.graph.scale().sx;
     const t5 = this.graph.translate();
-    const cx = (bbox2.x + bbox2.width / 2) * s5 + t5.tx;
-    const cy = (bbox2.y + bbox2.height / 2) * s5 + t5.ty;
-    bar.style.display = "flex";
+    const view = this.graph.findViewByCell(edge);
+    const pathEl = (_d = (_c = view == null ? void 0 : view.container) == null ? void 0 : _c.querySelector) == null ? void 0 : _d.call(_c, "path.x6-edge-selection, path[joint-selector='line'], path");
+    const rootRect = this.root.getBoundingClientRect();
+    let cx, yTop, yBot;
+    if (pathEl == null ? void 0 : pathEl.getBoundingClientRect) {
+      const r4 = pathEl.getBoundingClientRect();
+      cx = r4.left - rootRect.left + r4.width / 2;
+      yTop = r4.top - rootRect.top;
+      yBot = r4.bottom - rootRect.top;
+    } else {
+      const bbox2 = edge.getBBox();
+      cx = (bbox2.x + bbox2.width / 2) * s5 + t5.tx;
+      yTop = bbox2.y * s5 + t5.ty;
+      yBot = (bbox2.y + bbox2.height) * s5 + t5.ty;
+    }
     const bw = bar.offsetWidth || 360;
     const bh = bar.offsetHeight || 46;
     const rw = this.root.clientWidth;
     const rh = this.root.clientHeight;
-    const gap = 34;
-    let top4 = cy - bh - gap;
-    if (top4 < 8) top4 = cy + gap;
+    const gap = 18;
+    let top4 = yTop - bh - gap;
+    if (top4 < 8) top4 = yBot + gap;
     top4 = Math.min(top4, rh - bh - 8);
     bar.style.left = Math.max(8, Math.min(cx - bw / 2, rw - bw - 8)) + "px";
     bar.style.top = Math.max(8, top4) + "px";
@@ -74860,6 +75013,39 @@ var _LarkCanvas = class _LarkCanvas {
     const k5 = (_a3 = c6.getData()) == null ? void 0 : _a3.kind;
     return !!k5 && SEQ_LIFELINE_KINDS.has(k5);
   }
+  /**
+   * Re-anchor a GENERIC edge (not sequence, not mindmap) to dynamic centre anchors
+   * so the manhattan router exits/enters from the side facing the other node —
+   * Lark-style clean routing, independent of which port it was drawn from. No-op for
+   * sequence (`seq-msg` connector) and mindmap (`mm-edge`) edges, which keep their
+   * own routing.
+   */
+  normalizeGenericEdge(edge) {
+    var _a3, _b2, _c, _d;
+    const sId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
+    const tId = (_b2 = edge.getTargetCellId()) != null ? _b2 : void 0;
+    if (!sId || !tId) return;
+    if (this.isSeqLifeline(sId) && this.isSeqLifeline(tId)) return;
+    if (this.isMindmapNode(sId) && this.isMindmapNode(tId)) return;
+    if (edge.getVertices().length) return;
+    const s5 = this.graph.getCellById(sId), t5 = this.graph.getCellById(tId);
+    if (!((_c = s5 == null ? void 0 : s5.isNode) == null ? void 0 : _c.call(s5)) || !((_d = t5 == null ? void 0 : t5.isNode) == null ? void 0 : _d.call(t5))) return;
+    const { sp, tp } = this.bestPorts(s5, t5);
+    edge.setSource({ cell: sId, port: sp });
+    edge.setTarget({ cell: tId, port: tp });
+  }
+  /**
+   * Pick the fixed port on each node that faces the other node, by the dominant
+   * axis between their centres → the manhattan router exits/enters from that side
+   * (clean Lark-style routing) while keeping fixed ports so X6's reshape tools work.
+   */
+  bestPorts(a5, b3) {
+    const ba = a5.getBBox(), bb = b3.getBBox();
+    const dx = bb.x + bb.width / 2 - (ba.x + ba.width / 2);
+    const dy = bb.y + bb.height / 2 - (ba.y + ba.height / 2);
+    if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? { sp: "right", tp: "left" } : { sp: "left", tp: "right" };
+    return dy >= 0 ? { sp: "bottom", tp: "top" } : { sp: "top", tp: "bottom" };
+  }
   applySeqRoutingIfNeeded(edge) {
     var _a3, _b2, _c, _d, _e3, _f;
     const srcId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
@@ -74974,6 +75160,7 @@ var _LarkCanvas = class _LarkCanvas {
       });
       if (e4.style) this.applyEdgeStyle(created);
       if (mm) this.applyMindmapRoutingIfNeeded(created);
+      else this.normalizeGenericEdge(created);
     }
     this.graph.stopBatch("load");
     this.resyncHtmlNodes();
@@ -75324,12 +75511,148 @@ _LarkCanvas.CAT_REP = {
   "Mindmap": "mm-root",
   "BPMN": "bpmn-gateway-x"
 };
+// Diagram categories that get a dedicated button on the mobile bottom bar (rest → "Sơ đồ khác" sheet).
+_LarkCanvas.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
 var LarkCanvas = _LarkCanvas;
+
+// src/view/boardSerde.ts
+init_pako_esm();
+var OMNIBOARD_EXT = "omniboard.md";
+var OMNIBOARD_SUFFIX = `.${OMNIBOARD_EXT}`;
+var DATA_LANG = "omniboard-data";
+var REQUIRED_FM_KEY = "omniboard-plugin";
+var REQUIRED_FM_VAL = "parsed";
+var DRAWING_RE = new RegExp(
+  "```" + DATA_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
+  "m"
+);
+var FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+function parseFrontmatter(raw2) {
+  const m6 = FRONTMATTER_RE.exec(raw2);
+  if (!m6) return { raw: {}, order: [] };
+  const body = m6[1];
+  const out = {};
+  const order = [];
+  let pendingKey = null;
+  for (const line2 of body.split(/\r?\n/)) {
+    if (/^\s*-\s/.test(line2) && pendingKey) {
+      out[pendingKey] += "\n" + line2;
+      continue;
+    }
+    const mm = /^([A-Za-z0-9_\-]+)\s*:(.*)$/.exec(line2);
+    if (!mm) {
+      pendingKey = null;
+      continue;
+    }
+    const k5 = mm[1];
+    const v6 = mm[2].trim();
+    if (!(k5 in out)) order.push(k5);
+    out[k5] = v6.length ? v6 : "";
+    pendingKey = v6.length ? null : k5;
+  }
+  return { raw: out, order };
+}
+function emitFrontmatter(fm) {
+  const keys2 = new Set(fm.order);
+  const lines = ["---"];
+  lines.push(`${REQUIRED_FM_KEY}: ${REQUIRED_FM_VAL}`);
+  keys2.delete(REQUIRED_FM_KEY);
+  if (!fm.raw.tags || !/\bomniboard\b/.test(fm.raw.tags)) {
+    lines.push(`tags: [omniboard]`);
+  } else {
+    lines.push(`tags: ${fm.raw.tags}`);
+  }
+  keys2.delete("tags");
+  for (const k5 of fm.order) {
+    if (!keys2.has(k5)) continue;
+    const v6 = fm.raw[k5];
+    if (v6.includes("\n")) {
+      lines.push(`${k5}:`);
+      for (const sub of v6.split("\n")) if (sub.trim()) lines.push(sub);
+    } else {
+      lines.push(`${k5}: ${v6}`);
+    }
+  }
+  lines.push("---");
+  return lines.join("\n");
+}
+function compress(json) {
+  const deflated = pako.deflate(new TextEncoder().encode(json));
+  let bin = "";
+  const CHUNK = 32768;
+  for (let i6 = 0; i6 < deflated.length; i6 += CHUNK) {
+    bin += String.fromCharCode(...deflated.subarray(i6, i6 + CHUNK));
+  }
+  return btoa(bin);
+}
+function decompress(b64) {
+  try {
+    const bin = atob(b64.replace(/\s+/g, ""));
+    const bytes = new Uint8Array(bin.length);
+    for (let i6 = 0; i6 < bin.length; i6++) bytes[i6] = bin.charCodeAt(i6);
+    return new TextDecoder().decode(pako.inflate(bytes));
+  } catch (e4) {
+    return null;
+  }
+}
+function escapeMd(s5) {
+  return s5.replace(/\s*\r?\n\s*/g, " ").trim();
+}
+function serializeBoard(model, previousRaw = "") {
+  const fm = parseFrontmatter(previousRaw);
+  const parts = [];
+  parts.push(emitFrontmatter(fm));
+  parts.push("");
+  parts.push("==\u26A0 Switch to OMNIBOARD VIEW in the MORE OPTIONS menu of this document. \u26A0==");
+  parts.push("");
+  parts.push("# Omniboard");
+  parts.push("");
+  parts.push("## Text Elements");
+  const seenIds = /* @__PURE__ */ new Set();
+  for (const n3 of model.nodes) {
+    const label = n3.label ? escapeMd(n3.label) : "";
+    if (!label) continue;
+    if (seenIds.has(n3.id)) continue;
+    seenIds.add(n3.id);
+    parts.push(`${label} ^${n3.id}`);
+  }
+  parts.push("");
+  const labeledEdges = model.edges.filter((e4) => e4.label && e4.label.trim());
+  if (labeledEdges.length) {
+    parts.push("## Edges");
+    for (const e4 of labeledEdges) {
+      parts.push(`- ${e4.source} \u2192 ${e4.target} : ${escapeMd(e4.label)}`);
+    }
+    parts.push("");
+  }
+  const json = JSON.stringify(model);
+  parts.push("%%");
+  parts.push("## Drawing");
+  parts.push("```" + DATA_LANG);
+  parts.push(compress(json));
+  parts.push("```");
+  parts.push("%%");
+  parts.push("");
+  return parts.join("\n");
+}
+function deserializeBoard(raw2) {
+  if (!raw2.trim()) return { nodes: [], edges: [] };
+  const m6 = DRAWING_RE.exec(raw2);
+  if (!m6) return null;
+  const json = decompress(m6[1]);
+  if (json === null) return null;
+  try {
+    const model = JSON.parse(json);
+    if (Array.isArray(model.nodes) && Array.isArray(model.edges)) return model;
+  } catch (e4) {
+  }
+  return null;
+}
 
 // src/view/BoardView.ts
 registerAllShapes();
 var BOARD_VIEW_TYPE = "omniboard-board";
-var BOARD_EXTENSION = "board";
+var EXT_RE = /\.omniboard\.md$/;
 var EMPTY_MODEL = { nodes: [], edges: [] };
 var BoardView = class extends import_obsidian.TextFileView {
   constructor(leaf) {
@@ -75411,6 +75734,7 @@ var BoardView = class extends import_obsidian.TextFileView {
       m6.showAtPosition({ x: r4.left, y: r4.bottom + 4 });
     });
     bar.createDiv({ cls: "da-tb-divider" });
+    iconBtn("file-text", "M\u1EDF d\u01B0\u1EDBi d\u1EA1ng Markdown", () => this.openAsMarkdown());
     const exp = bar.createEl("button", { cls: "da-tb-ic" });
     (0, import_obsidian.setIcon)(exp, "download");
     exp.setAttribute("aria-label", "Export");
@@ -75440,7 +75764,7 @@ var BoardView = class extends import_obsidian.TextFileView {
     if (!this.canvas || !this.file) return;
     try {
       const bytes = await this.canvas.exportPDF();
-      const path2 = this.file.path.replace(/\.board$/, ".pdf");
+      const path2 = this.file.path.replace(EXT_RE, ".pdf");
       const existing = this.app.vault.getAbstractFileByPath(path2);
       if (existing) await this.app.vault.modifyBinary(existing, bytes.buffer);
       else await this.app.vault.createBinary(path2, bytes.buffer);
@@ -75462,7 +75786,7 @@ var BoardView = class extends import_obsidian.TextFileView {
     if (!this.canvas || !this.file) return;
     try {
       const svg3 = this.canvas.exportSVG();
-      const path2 = this.file.path.replace(/\.board$/, ".svg");
+      const path2 = this.file.path.replace(EXT_RE, ".svg");
       const existing = this.app.vault.getAbstractFileByPath(path2);
       if (existing) await this.app.vault.modify(existing, svg3);
       else await this.app.vault.create(path2, svg3);
@@ -75477,7 +75801,7 @@ var BoardView = class extends import_obsidian.TextFileView {
       const blob = await this.canvas.exportPNG(scale2);
       const buf = await blob.arrayBuffer();
       const suffix = scale2 === 1 ? ".png" : `@${scale2}x.png`;
-      const path2 = this.file.path.replace(/\.board$/, suffix);
+      const path2 = this.file.path.replace(EXT_RE, suffix);
       const existing = this.app.vault.getAbstractFileByPath(path2);
       if (existing) await this.app.vault.modifyBinary(existing, buf);
       else await this.app.vault.createBinary(path2, buf);
@@ -75491,12 +75815,12 @@ var BoardView = class extends import_obsidian.TextFileView {
     var _a3, _b2;
     this.rawData = data2;
     if (this.boardTitleEl) this.boardTitleEl.setText((_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Board");
-    const parsed = this.parse(data2);
+    const parsed = deserializeBoard(data2);
     if (parsed === null) {
       this.invalidFormat = true;
       void this.backupInvalid(data2);
       new import_obsidian.Notice(
-        "\u26A0\uFE0F File .board kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng {nodes, edges} \u2014 kh\xF4ng hi\u1EC3n th\u1ECB \u0111\u01B0\u1EE3c. C\xF3 th\u1EC3 \u0111\xE3 b\u1ECB ghi b\u1EB1ng schema kh\xE1c (vd Excalidraw). File \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn, \u0111\xE3 t\u1EA1o b\u1EA3n sao l\u01B0u .bak c\u1EA1nh file.",
+        "\u26A0\uFE0F File .omniboard.md kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 drawing block thi\u1EBFu/h\u1ECFng. File \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn, \u0111\xE3 t\u1EA1o b\u1EA3n sao l\u01B0u .bak c\u1EA1nh file.",
         1e4
       );
       return;
@@ -75504,7 +75828,8 @@ var BoardView = class extends import_obsidian.TextFileView {
     this.invalidFormat = false;
     this.model = parsed;
     if (this.canvas) {
-      if (data2 === JSON.stringify(this.canvas.getModel(), null, 2)) return;
+      const current = JSON.stringify(this.canvas.getModel());
+      if (JSON.stringify(parsed) === current) return;
       this.canvas.loadModel(this.model);
     }
   }
@@ -75512,21 +75837,10 @@ var BoardView = class extends import_obsidian.TextFileView {
   getViewData() {
     if (this.invalidFormat) return this.rawData;
     if (this.canvas) this.model = this.canvas.getModel();
-    return JSON.stringify(this.model, null, 2);
+    return serializeBoard(this.model, this.rawData);
   }
   clear() {
     this.model = EMPTY_MODEL;
-  }
-  /** Returns the parsed model, or null if the JSON isn't a valid board schema. */
-  parse(data2) {
-    const t5 = data2.trim();
-    if (!t5) return { nodes: [], edges: [] };
-    try {
-      const m6 = JSON.parse(t5);
-      if (Array.isArray(m6.nodes) && Array.isArray(m6.edges)) return m6;
-    } catch (e4) {
-    }
-    return null;
   }
   /** Save a one-time copy of unparseable data next to the file (data safety, spec §8). */
   async backupInvalid(data2) {
@@ -75542,6 +75856,12 @@ var BoardView = class extends import_obsidian.TextFileView {
       }
     } catch (e4) {
     }
+  }
+  /** Save current state then switch the leaf to the default markdown view. */
+  async openAsMarkdown() {
+    if (!this.file) return;
+    await this.save();
+    await this.leaf.setViewState({ type: "markdown", state: { file: this.file.path } });
   }
   async onClose() {
     var _a3;
@@ -76459,7 +76779,28 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
   async onload() {
     await this.loadSettings();
     this.registerView(BOARD_VIEW_TYPE, (leaf) => new BoardView(leaf));
-    this.registerExtensions([BOARD_EXTENSION], BOARD_VIEW_TYPE);
+    this.registerEvent(
+      this.app.workspace.on("file-open", (file) => void this.maybeSwapToBoardView(file))
+    );
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu, file, source) => {
+        var _a3;
+        if (!(file instanceof import_obsidian4.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        const leaf = this.findLeafForFile(file);
+        const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE;
+        menu.addItem((item) => {
+          var _a4, _b2;
+          (_b2 = (_a4 = item.setTitle(inBoardView ? "Open as Markdown" : "Open as Omniboard").setIcon(inBoardView ? "file-text" : "shapes")).setSection) == null ? void 0 : _b2.call(_a4, "pane").onClick(async () => {
+            const target = leaf != null ? leaf : this.app.workspace.getLeaf("tab");
+            if (!leaf) await target.openFile(file);
+            await target.setViewState({
+              type: inBoardView ? "markdown" : BOARD_VIEW_TYPE,
+              state: { file: file.path }
+            });
+          });
+        });
+      })
+    );
     this.addRibbonIcon("shapes", "New board", () => this.createAndOpenBoard());
     this.addCommand({
       id: "new-board",
@@ -76471,8 +76812,34 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
       name: "Insert new board (embed in note)",
       editorCallback: (editor) => this.insertNewBoardEmbed(editor)
     });
+    this.addCommand({
+      id: "open-as-markdown",
+      name: "Open current board as Markdown",
+      checkCallback: (checking) => {
+        var _a3;
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== BOARD_VIEW_TYPE) return false;
+        if (checking) return true;
+        void leaf.view.openAsMarkdown();
+        return true;
+      }
+    });
+    this.addCommand({
+      id: "open-as-board",
+      name: "Open current markdown as board",
+      checkCallback: (checking) => {
+        var _a3;
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== "markdown") return false;
+        const file = leaf.view.file;
+        if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return false;
+        if (checking) return true;
+        void leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
+        return true;
+      }
+    });
     this.registerMarkdownPostProcessor((el2, ctx) => {
-      el2.querySelectorAll('.internal-embed[src$=".board"]').forEach(
+      el2.querySelectorAll('.internal-embed[src$=".omniboard.md"]').forEach(
         (node2) => void this.renderBoardEmbed(node2, ctx.sourcePath)
       );
     });
@@ -76489,21 +76856,44 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
     }
     this.addSettingTab(new DiagramsSettingTab(this.app, this));
   }
-  /** Create a fresh, empty .board file and return it (or null on failure). */
+  /** Create a fresh, empty .omniboard.md file and return it (or null on failure). */
   async createBoardFile() {
     const d4 = /* @__PURE__ */ new Date();
     const pad = (n3) => String(n3).padStart(2, "0");
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
-    const path2 = (0, import_obsidian4.normalizePath)(`Board ${stamp}.${BOARD_EXTENSION}`);
-    const content5 = JSON.stringify({ nodes: [], edges: [] }, null, 2);
+    const path2 = (0, import_obsidian4.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
+    const content5 = serializeBoard({ nodes: [], edges: [] });
     try {
       return await this.app.vault.create(path2, content5);
     } catch (e4) {
       const existing = this.app.vault.getAbstractFileByPath(path2);
       if (existing instanceof import_obsidian4.TFile) return existing;
-      new import_obsidian4.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file board.");
+      new import_obsidian4.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
       return null;
     }
+  }
+  /**
+   * When Obsidian opens a `.omniboard.md` file in the default markdown view,
+   * swap the leaf over to the dedicated board view. Lookup goes through
+   * metadataCache so a manual edit removing the marker frontmatter cleanly
+   * falls back to the markdown view.
+   */
+  async maybeSwapToBoardView(file) {
+    var _a3, _b2;
+    if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+    const cache = this.app.metadataCache.getFileCache(file);
+    if (((_a3 = cache == null ? void 0 : cache.frontmatter) == null ? void 0 : _a3["omniboard-plugin"]) !== "parsed") return;
+    const leaf = this.findLeafForFile(file);
+    if (!leaf || ((_b2 = leaf.view) == null ? void 0 : _b2.getViewType()) === BOARD_VIEW_TYPE) return;
+    await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
+  }
+  findLeafForFile(file) {
+    let found = null;
+    this.app.workspace.iterateAllLeaves((l5) => {
+      var _a3, _b2;
+      if (((_b2 = (_a3 = l5.view) == null ? void 0 : _a3.file) == null ? void 0 : _b2.path) === file.path) found = l5;
+    });
+    return found;
   }
   /** Create a new .board file (Excalidraw-style) and open it in the board view. */
   async createAndOpenBoard() {
@@ -76544,7 +76934,8 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
     const body = card.createDiv({ cls: "da-embed-body" });
     try {
       const raw2 = await this.app.vault.cachedRead(file);
-      const model = JSON.parse(raw2);
+      const model = deserializeBoard(raw2);
+      if (!model) throw new Error("invalid omniboard");
       const nodes = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
       meta.setText(`${nodes} ph\u1EA7n t\u1EED \xB7 ${(_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0} n\u1ED1i`);
       if (!nodes) {

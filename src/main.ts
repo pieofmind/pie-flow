@@ -1,7 +1,7 @@
-import { Plugin, MarkdownView, Editor, MarkdownPostProcessorContext, Menu, Notice, TFile, normalizePath, setIcon } from "obsidian";
-import { BoardView, BOARD_VIEW_TYPE, BOARD_EXTENSION } from "./view/BoardView";
+import { Plugin, MarkdownView, Editor, MarkdownPostProcessorContext, Menu, Notice, TFile, WorkspaceLeaf, normalizePath, setIcon } from "obsidian";
+import { BoardView, BOARD_VIEW_TYPE } from "./view/BoardView";
+import { serializeBoard, deserializeBoard, OMNIBOARD_SUFFIX } from "./view/boardSerde";
 import { renderModelToSvg } from "./canvas/staticRender";
-import type { CanvasModel } from "./canvas/types";
 import { render, h } from "preact";
 import { AdapterRegistry } from "./core/registry";
 import { EditModal } from "./core/modal";
@@ -37,9 +37,36 @@ export default class DiagramsPlugin extends Plugin {
   async onload(): Promise<void> {
     await this.loadSettings();
 
-    // ── Excalidraw-style board: full-screen view + dedicated file extension ──
+    // ── Excalidraw-style board: shares the .md extension with Obsidian, but
+    // auto-swaps to the board view when the file's frontmatter marks it as one.
     this.registerView(BOARD_VIEW_TYPE, (leaf) => new BoardView(leaf));
-    this.registerExtensions([BOARD_EXTENSION], BOARD_VIEW_TYPE);
+    this.registerEvent(
+      this.app.workspace.on("file-open", (file) => void this.maybeSwapToBoardView(file))
+    );
+
+    // Add "Open as Omniboard" entry to the file's More-options menu (and
+    // File Explorer context menu) for any *.omniboard.md file.
+    this.registerEvent(
+      this.app.workspace.on("file-menu", (menu, file, source) => {
+        if (!(file instanceof TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        const leaf = this.findLeafForFile(file);
+        const inBoardView = leaf?.view?.getViewType() === BOARD_VIEW_TYPE;
+        menu.addItem((item) => {
+          item
+            .setTitle(inBoardView ? "Open as Markdown" : "Open as Omniboard")
+            .setIcon(inBoardView ? "file-text" : "shapes")
+            .setSection?.("pane")
+            .onClick(async () => {
+              const target = leaf ?? this.app.workspace.getLeaf("tab");
+              if (!leaf) await target.openFile(file);
+              await target.setViewState({
+                type: inBoardView ? "markdown" : BOARD_VIEW_TYPE,
+                state: { file: file.path },
+              });
+            });
+        });
+      })
+    );
 
     // Ribbon → create a new board file and open it immediately.
     this.addRibbonIcon("shapes", "New board", () => this.createAndOpenBoard());
@@ -56,9 +83,35 @@ export default class DiagramsPlugin extends Plugin {
       editorCallback: (editor: Editor) => this.insertNewBoardEmbed(editor),
     });
 
-    // Read-mode: render ![[x.board]] embeds as a live preview card.
+    this.addCommand({
+      id: "open-as-markdown",
+      name: "Open current board as Markdown",
+      checkCallback: (checking) => {
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf || leaf.view?.getViewType() !== BOARD_VIEW_TYPE) return false;
+        if (checking) return true;
+        void (leaf.view as BoardView).openAsMarkdown();
+        return true;
+      },
+    });
+
+    this.addCommand({
+      id: "open-as-board",
+      name: "Open current markdown as board",
+      checkCallback: (checking) => {
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf || leaf.view?.getViewType() !== "markdown") return false;
+        const file = (leaf.view as MarkdownView).file;
+        if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return false;
+        if (checking) return true;
+        void leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
+        return true;
+      },
+    });
+
+    // Read-mode: render ![[x.omniboard.md]] embeds as a live preview card.
     this.registerMarkdownPostProcessor((el, ctx) => {
-      el.querySelectorAll<HTMLElement>('.internal-embed[src$=".board"]').forEach(
+      el.querySelectorAll<HTMLElement>('.internal-embed[src$=".omniboard.md"]').forEach(
         (node) => void this.renderBoardEmbed(node, ctx.sourcePath)
       );
     });
@@ -79,21 +132,45 @@ export default class DiagramsPlugin extends Plugin {
     this.addSettingTab(new DiagramsSettingTab(this.app, this));
   }
 
-  /** Create a fresh, empty .board file and return it (or null on failure). */
+  /** Create a fresh, empty .omniboard.md file and return it (or null on failure). */
   private async createBoardFile(): Promise<TFile | null> {
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
     const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-    const path = normalizePath(`Board ${stamp}.${BOARD_EXTENSION}`);
-    const content = JSON.stringify({ nodes: [], edges: [] }, null, 2);
+    const path = normalizePath(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
+    const content = serializeBoard({ nodes: [], edges: [] });
     try {
       return await this.app.vault.create(path, content);
     } catch {
       const existing = this.app.vault.getAbstractFileByPath(path);
       if (existing instanceof TFile) return existing;
-      new Notice("Không tạo được file board.");
+      new Notice("Không tạo được file omniboard.");
       return null;
     }
+  }
+
+  /**
+   * When Obsidian opens a `.omniboard.md` file in the default markdown view,
+   * swap the leaf over to the dedicated board view. Lookup goes through
+   * metadataCache so a manual edit removing the marker frontmatter cleanly
+   * falls back to the markdown view.
+   */
+  private async maybeSwapToBoardView(file: TFile | null): Promise<void> {
+    if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+    const cache = this.app.metadataCache.getFileCache(file);
+    if (cache?.frontmatter?.["omniboard-plugin"] !== "parsed") return;
+    const leaf = this.findLeafForFile(file);
+    if (!leaf || leaf.view?.getViewType() === BOARD_VIEW_TYPE) return;
+    await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
+  }
+
+  private findLeafForFile(file: TFile): WorkspaceLeaf | null {
+    let found: WorkspaceLeaf | null = null;
+    this.app.workspace.iterateAllLeaves((l) => {
+      // @ts-expect-error - view.file is available on FileView/MarkdownView at runtime
+      if (l.view?.file?.path === file.path) found = l;
+    });
+    return found;
   }
 
   /** Create a new .board file (Excalidraw-style) and open it in the board view. */
@@ -134,7 +211,8 @@ export default class DiagramsPlugin extends Plugin {
     const body = card.createDiv({ cls: "da-embed-body" });
     try {
       const raw = await this.app.vault.cachedRead(file);
-      const model = JSON.parse(raw) as CanvasModel;
+      const model = deserializeBoard(raw);
+      if (!model) throw new Error("invalid omniboard");
       const nodes = model.nodes?.length ?? 0;
       meta.setText(`${nodes} phần tử · ${model.edges?.length ?? 0} nối`);
       if (!nodes) { body.createDiv({ cls: "da-embed-empty", text: "Board trống — bấm Mở để vẽ." }); return; }

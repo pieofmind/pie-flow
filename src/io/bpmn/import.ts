@@ -38,6 +38,13 @@ interface ModdleElement {
   flowElements?: ModdleElement[];
   rootElements?: ModdleElement[];
   diagrams?: ModdleDiagram[];
+  // Collaboration → participants (pools). Participant.processRef → Process.
+  participants?: ModdleElement[];
+  processRef?: ModdleElement;
+  // Process → laneSets → lanes; Lane.flowNodeRef → member flow nodes.
+  laneSets?: ModdleElement[];
+  lanes?: ModdleElement[];
+  flowNodeRef?: ModdleElement[];
   $attrs?: Record<string, string>;
 }
 interface ModdleDiagram { plane: { planeElement?: ModdleDiElement[] } }
@@ -241,6 +248,65 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
       router: "normal",
     });
   }
+
+  // ── Pools (participants) + lanes ──────────────────────────────────────────
+  // Each collaboration participant becomes a `bpmn-pool` node rendered BEHIND
+  // the flow nodes (unshifted to the front of the list → lowest z-order). The
+  // pool's bounds come from its BPMNShape DI when present; otherwise we wrap
+  // the bounding box of its member flow nodes (+ header padding) so the
+  // container hugs its contents. Lanes are mirrored into `attrs.lanes`.
+  const defs = definitions as ModdleElement;
+  const processById = new Map<string, ModdleElement>();
+  for (const root of defs.rootElements ?? []) {
+    if (root.$type === "bpmn:Process" && root.id) processById.set(root.id, root);
+  }
+  const pools: CanvasModel["nodes"] = [];
+  const HEADER = 30;   // vertical pool title strip
+  const LANE_HEAD = 24; // lane title strip
+  const PAD = 30;
+  for (const root of defs.rootElements ?? []) {
+    if (root.$type !== "bpmn:Collaboration") continue;
+    for (const part of root.participants ?? []) {
+      const proc = part.processRef?.id ? processById.get(part.processRef.id) : undefined;
+      const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
+      const laneAttrs = lanes.map((ln) => ({ id: ln.id ?? "", label: ln.name ?? "" }));
+
+      // Determine bounds: prefer the participant's own DI shape.
+      let px: number, py: number, pw: number, ph: number;
+      const partDi = part.id ? diShapes.get(part.id) : undefined;
+      if (partDi?.bounds) {
+        ({ x: px, y: py, width: pw, height: ph } = partDi.bounds);
+      } else {
+        // Wrap the bbox of every flow node belonging to this process.
+        const members = model.nodes.filter((n) => {
+          const sid = (n.attrs?.__source as { sourceId?: string } | undefined)?.sourceId;
+          return sid && proc?.flowElements?.some((fe) => fe.id === sid);
+        });
+        const box = members.length ? members : model.nodes;
+        if (!box.length) continue;
+        const minX = Math.min(...box.map((n) => n.x));
+        const minY = Math.min(...box.map((n) => n.y));
+        const maxX = Math.max(...box.map((n) => n.x + n.width));
+        const maxY = Math.max(...box.map((n) => n.y + n.height));
+        px = minX - HEADER - LANE_HEAD - PAD;
+        py = minY - PAD;
+        pw = (maxX - minX) + HEADER + LANE_HEAD + PAD * 2;
+        ph = (maxY - minY) + PAD * 2;
+      }
+      pools.push({
+        id: part.id ?? `pool_${pools.length}`,
+        shape: "bpmn-pool",
+        x: px, y: py, width: pw, height: ph,
+        label: part.name ?? "",
+        attrs: {
+          lanes: laneAttrs.length ? laneAttrs : undefined,
+          __source: { format: "bpmn", sourceId: part.id, kind: "pool" },
+        },
+      });
+    }
+  }
+  // Pools first → rendered at the back, flow nodes float on top.
+  if (pools.length) model.nodes.unshift(...pools);
 
   const sourceMeta: SourceMeta = { format: "bpmn", payload: { raw } };
   return { model, warnings, sourceMeta };

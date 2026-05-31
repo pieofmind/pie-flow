@@ -33,7 +33,12 @@ function stripComments(src: string): string {
   return out;
 }
 
+const MAX_DBML_BYTES = 2 * 1024 * 1024;
+
 export function importDbml(raw: string): ImportResult {
+  if (raw.length > MAX_DBML_BYTES) {
+    throw new Error(`DBML file quá lớn (${(raw.length / 1024 / 1024).toFixed(1)} MB). Giới hạn: 2 MB.`);
+  }
   const stripped = stripComments(raw);
   const tables: ParsedTable[] = [];
   const refs: ParsedRef[] = [];

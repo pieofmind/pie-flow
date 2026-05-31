@@ -73396,9 +73396,23 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
     this.graph.on("edge:selected", ({ edge }) => {
       this.applyEdgeStyle(edge, true);
+      const originalVerts = edge.getVertices().map((p6) => ({ x: p6.x, y: p6.y }));
+      edge.__selVertsSnapshot = originalVerts;
+      edge.__selVertsUserChanged = false;
+      if (this.isOrthogonalEdge(edge) && originalVerts.length === 0) {
+        const view = this.graph.findViewByCell(edge);
+        const route = view == null ? void 0 : view.routePoints;
+        if (Array.isArray(route) && route.length > 2) {
+          const bends = route.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y }));
+          if (bends.length > 0) {
+            edge.setVertices(bends, { ui: false, toolId: "auto-segments" });
+          }
+        }
+      }
       const dot2 = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
       edge.addTools([
         { name: "segments", args: { threshold: 8 } },
+        { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } },
         { name: "source-arrowhead", args: dot2 },
         { name: "target-arrowhead", args: dot2 }
       ]);
@@ -73409,6 +73423,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.applyEdgeStyle(edge, false);
       edge.removeTools();
       this.hideEdgeBar();
+      const snap2 = edge.__selVertsSnapshot;
+      const changed2 = edge.__selVertsUserChanged;
+      if (snap2 !== void 0 && !changed2) {
+        edge.setVertices(snap2, { ui: false, toolId: "auto-segments-revert" });
+      }
+      delete edge.__selVertsSnapshot;
+      delete edge.__selVertsUserChanged;
     });
     const onEndpointMoved = ({ edge }) => {
       var _a3, _b2, _c, _d;
@@ -73419,7 +73440,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     };
     this.graph.on("edge:change:source", onEndpointMoved);
     this.graph.on("edge:change:target", onEndpointMoved);
-    this.graph.on("edge:change:vertices", ({ edge }) => this.scheduleEdgeBar(edge));
+    this.graph.on("edge:change:vertices", ({ edge, options }) => {
+      const tid = options == null ? void 0 : options.toolId;
+      if (tid !== "auto-segments" && tid !== "auto-segments-revert") {
+        edge.__selVertsUserChanged = true;
+      }
+      this.scheduleEdgeBar(edge);
+    });
     this.graph.on("edge:dblclick", ({ edge, e: e4 }) => {
       e4.stopPropagation();
       this.editEdgeLabel(edge);
@@ -74683,7 +74710,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.graph.getSelectedCells().filter((c6) => c6.isNode()).forEach((n3) => this.setStyle(n3, this.styleClipboard));
   }
   // ── HTML node helpers ────────────────────────────────────────────────────
-  addHtmlNode(kind, x4, y5, w5, h5, label, style2, id, extra) {
+  addHtmlNode(kind, x4, y5, w5, h5, label, style2, id, extra, source) {
     const ex = this.mergeExtra(kind, extra);
     const node2 = this.graph.addNode({
       id,
@@ -74692,7 +74719,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       y: y5,
       width: w5,
       height: h5,
-      data: { kind, label, style: style2 != null ? style2 : {}, ...ex },
+      // `__source` carries import provenance (BPMN pool kind, original ids) and
+      // MUST survive the load→getModel round-trip — otherwise re-saving the
+      // board (e.g. when opened on another device) drops it and the pool/lane
+      // identity + export fidelity are lost.
+      data: { kind, label, style: style2 != null ? style2 : {}, ...ex, ...source !== void 0 ? { __source: source } : {} },
       attrs: { content: { html: nodeHtml(kind, label, style2, ex), class: "hn" } }
     });
     if (kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf") {
@@ -75414,6 +75445,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const k5 = (_a3 = c6.getData()) == null ? void 0 : _a3.kind;
     return !!k5 && SEQ_LIFELINE_KINDS.has(k5);
   }
+  // Edges with an orthogonal router emit polyline routePoints we can materialize
+  // as vertices so the X6 `segments` tool renders one handle per visible segment.
+  // Curved/straight routers (`normal`) don't produce meaningful bends here.
+  isOrthogonalEdge(edge) {
+    const r4 = edge.getRouter();
+    const name2 = typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.name;
+    return name2 === "orth" || name2 === "manhattan" || name2 === "metro" || name2 === "er";
+  }
   applySeqRoutingIfNeeded(edge) {
     var _a3, _b2, _c, _d, _e3, _f;
     const srcId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
@@ -75500,7 +75539,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const a5 = (_a3 = n3.attrs) != null ? _a3 : {};
       const style2 = (_b2 = a5.style) != null ? _b2 : {};
       const extra = { cols: a5.cols, fields: a5.fields, methods: a5.methods, who: a5.who, labelOffset: a5.labelOffset, lanes: a5.lanes };
-      this.addHtmlNode(n3.shape, n3.x, n3.y, n3.width, n3.height, n3.label, style2, n3.id, extra);
+      this.addHtmlNode(n3.shape, n3.x, n3.y, n3.width, n3.height, n3.label, style2, n3.id, extra, a5.__source);
     }
     for (const e4 of model.edges) {
       const seq = this.isSeqLifeline(e4.source) && this.isSeqLifeline(e4.target);
@@ -75645,6 +75684,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   getModel() {
     const nodes = this.graph.getNodes().map((n3) => {
+      var _a3;
       const p6 = n3.getPosition();
       const s5 = n3.getSize();
       const ex = this.nodeExtra(n3);
@@ -75656,7 +75696,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         width: s5.width,
         height: s5.height,
         label: this.nodeLabel(n3),
-        attrs: { style: this.nodeStyle(n3), cols: ex.cols, fields: ex.fields, methods: ex.methods, who: ex.who, labelOffset: ex.labelOffset, lanes: ex.lanes }
+        attrs: { style: this.nodeStyle(n3), cols: ex.cols, fields: ex.fields, methods: ex.methods, who: ex.who, labelOffset: ex.labelOffset, lanes: ex.lanes, __source: (_a3 = n3.getData()) == null ? void 0 : _a3.__source }
       };
     });
     const edges = this.graph.getEdges().map((e4) => {

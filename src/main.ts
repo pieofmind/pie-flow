@@ -157,11 +157,30 @@ export default class DiagramsPlugin extends Plugin {
    */
   private async maybeSwapToBoardView(file: TFile | null): Promise<void> {
     if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
-    const cache = this.app.metadataCache.getFileCache(file);
-    if (cache?.frontmatter?.["omniboard-plugin"] !== "parsed") return;
+    const ok = await this.hasOmniboardFrontmatter(file);
+    if (!ok) return;
     const leaf = this.findLeafForFile(file);
     if (!leaf || leaf.view?.getViewType() === BOARD_VIEW_TYPE) return;
     await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
+  }
+
+  /** Resolve the marker frontmatter. metadataCache may not have indexed the
+   *  file yet (freshly created / vault sync), so fall back to a quick raw read. */
+  private async hasOmniboardFrontmatter(file: TFile): Promise<boolean> {
+    const cache = this.app.metadataCache.getFileCache(file);
+    const cached = cache?.frontmatter?.["omniboard-plugin"];
+    if (cached === "parsed") return true;
+    if (cached !== undefined) return false; // metadataCache present but doesn't have the marker
+    try {
+      const raw = await this.app.vault.cachedRead(file);
+      const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw);
+      if (!m) return false;
+      // Accept bare or quoted YAML value: `omniboard-plugin: parsed` /
+      // `omniboard-plugin: "parsed"` / `omniboard-plugin: 'parsed'`.
+      return /^omniboard-plugin\s*:\s*["']?parsed["']?\s*$/m.test(m[1]);
+    } catch {
+      return false;
+    }
   }
 
   private findLeafForFile(file: TFile): WorkspaceLeaf | null {

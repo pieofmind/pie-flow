@@ -5,6 +5,7 @@ import { registerAllShapes, SHAPE_CATEGORIES } from "../canvas/shapes/index";
 import { serializeBoard, deserializeBoard } from "./boardSerde";
 import { importFromFile } from "../io/dispatcher";
 import { findById, FORMATS } from "../io/registry";
+import type { SourceMeta } from "../io/types";
 
 registerAllShapes();
 
@@ -31,9 +32,57 @@ function notify(kind: NoticeKind, text: string, timeout?: number): Notice {
   return new Notice(noticeFrag(kind, text), timeout);
 }
 
+/**
+ * Save a Blob/string to a user-chosen LOCAL folder via the browser's File
+ * System Access API (Obsidian's Electron runtime supports it). Falls back to
+ * an `<a download>` trigger when the API is unavailable (Firefox / older
+ * Electron) — that path drops the file into the user's default Downloads
+ * folder instead of letting them pick one.
+ *
+ * Returns the resolved filename on success, or null when the user cancels.
+ */
+interface PickerType { description: string; accept: Record<string, string[]>; }
+interface FsPickerWindow {
+  showSaveFilePicker?: (opts: { suggestedName?: string; types?: PickerType[] }) => Promise<{
+    createWritable: () => Promise<{ write: (data: BlobPart) => Promise<void>; close: () => Promise<void>; }>;
+    name: string;
+  }>;
+}
+async function saveToLocal(
+  data: Blob | string | ArrayBuffer,
+  suggestedName: string,
+  mimeType: string,
+): Promise<string | null> {
+  const blob = data instanceof Blob ? data : new Blob([data], { type: mimeType });
+  const w = window as unknown as FsPickerWindow;
+  if (typeof w.showSaveFilePicker === "function") {
+    try {
+      const ext = suggestedName.match(/\.([^.]+)$/)?.[1] ?? "";
+      const handle = await w.showSaveFilePicker({
+        suggestedName,
+        types: ext ? [{ description: ext.toUpperCase(), accept: { [mimeType]: ["." + ext] } }] : [],
+      });
+      const writer = await handle.createWritable();
+      await writer.write(blob);
+      await writer.close();
+      return handle.name;
+    } catch (err) {
+      // AbortError = user cancelled → return null silently.
+      if ((err as DOMException)?.name === "AbortError") return null;
+      throw err;
+    }
+  }
+  // Fallback: download to default Downloads folder.
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = suggestedName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  return suggestedName;
+}
+
 export const BOARD_VIEW_TYPE = "omniboard-board";
 export const BOARD_EXTENSION = "omniboard.md";
-const EXT_RE = /\.omniboard\.md$/;
 
 const EMPTY_MODEL: CanvasModel = { nodes: [], edges: [] };
 
@@ -138,15 +187,16 @@ export class BoardView extends TextFileView {
     menu.showAtMouseEvent(e);
   }
 
+  private suggestedName(suffix: string): string {
+    return (this.file?.basename ?? "Omniboard") + suffix;
+  }
+
   private async handleExportPdf(): Promise<void> {
     if (!this.canvas || !this.file) return;
     try {
       const bytes = await this.canvas.exportPDF();
-      const path = this.file.path.replace(EXT_RE, ".pdf");
-      const existing = this.app.vault.getAbstractFileByPath(path);
-      if (existing) await this.app.vault.modifyBinary(existing as never, bytes.buffer as ArrayBuffer);
-      else await this.app.vault.createBinary(path, bytes.buffer as ArrayBuffer);
-      notify("success", `Đã export: ${path}`);
+      const saved = await saveToLocal(bytes.buffer as ArrayBuffer, this.suggestedName(".pdf"), "application/pdf");
+      if (saved) notify("success", `Đã export: ${saved}`);
     } catch {
       notify("error", "Export PDF lỗi");
     }
@@ -166,11 +216,8 @@ export class BoardView extends TextFileView {
     if (!this.canvas || !this.file) return;
     try {
       const svg = this.canvas.exportSVG();
-      const path = this.file.path.replace(EXT_RE, ".svg");
-      const existing = this.app.vault.getAbstractFileByPath(path);
-      if (existing) await this.app.vault.modify(existing as never, svg);
-      else await this.app.vault.create(path, svg);
-      notify("success", `Đã export: ${path}`);
+      const saved = await saveToLocal(svg, this.suggestedName(".svg"), "image/svg+xml");
+      if (saved) notify("success", `Đã export: ${saved}`);
     } catch {
       notify("error", "Export SVG lỗi");
     }
@@ -180,13 +227,9 @@ export class BoardView extends TextFileView {
     if (!this.canvas || !this.file) return;
     try {
       const blob = await this.canvas.exportPNG(scale);
-      const buf = await blob.arrayBuffer();
       const suffix = scale === 1 ? ".png" : `@${scale}x.png`;
-      const path = this.file.path.replace(EXT_RE, suffix);
-      const existing = this.app.vault.getAbstractFileByPath(path);
-      if (existing) await this.app.vault.modifyBinary(existing as never, buf);
-      else await this.app.vault.createBinary(path, buf);
-      notify("success", `Đã export: ${path}`);
+      const saved = await saveToLocal(blob, this.suggestedName(suffix), "image/png");
+      if (saved) notify("success", `Đã export: ${saved}`);
     } catch {
       notify("error", "Export PNG lỗi");
     }
@@ -260,7 +303,7 @@ export class BoardView extends TextFileView {
         const { added } = this.canvas!.mergeModel(result.model);
         // Stash the source meta on the view; on next save it gets serialised
         // into the .omniboard.md so export can round-trip later.
-        this.pendingSourceMeta = result.sourceMeta;
+        this.pendingSourceMeta = result.sourceMeta as SourceMeta;
         this.requestSave();
         notify(
           "success",
@@ -278,22 +321,24 @@ export class BoardView extends TextFileView {
     input.click();
   }
 
-  private pendingSourceMeta: unknown = null;
+  private pendingSourceMeta: SourceMeta | null = null;
 
   private async handleExportFormat(formatId: string): Promise<void> {
     if (!this.canvas || !this.file) return;
     const fmt = findById(formatId as never);
     if (!fmt) return;
     try {
-      const meta = this.pendingSourceMeta ??
-        (await import("./boardSerde")).deserializeSourceMeta(this.rawData);
-      const text = await fmt.exporter(this.canvas.getModel(), (meta as never) ?? null);
+      const meta: SourceMeta | null =
+        this.pendingSourceMeta ??
+        ((await import("./boardSerde")).deserializeSourceMeta(this.rawData) as SourceMeta | null);
+      const text = await fmt.exporter(this.canvas.getModel(), meta);
       const ext = fmt.extensions[0];
-      const path = this.file.path.replace(EXT_RE, "." + ext);
-      const existing = this.app.vault.getAbstractFileByPath(path);
-      if (existing) await this.app.vault.modify(existing as never, text);
-      else await this.app.vault.create(path, text);
-      notify("success", `Đã export ${fmt.displayName}: ${path}`);
+      const mime =
+        ext === "bpmn" || ext === "bpmn2" ? "application/xml" :
+        ext === "dbml" ? "text/plain" :
+        "text/plain";
+      const saved = await saveToLocal(text, this.suggestedName("." + ext), mime);
+      if (saved) notify("success", `Đã export ${fmt.displayName}: ${saved}`);
     } catch (err) {
       notify("error", `Export ${fmt.displayName} lỗi: ${(err as Error).message}`, 8000);
     }

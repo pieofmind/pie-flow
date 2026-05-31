@@ -43,11 +43,37 @@ export function exportDbml(model: CanvasModel, meta?: SourceMeta | null): string
   if (meta && meta.format === "dbml") {
     const raw = String((meta.payload as { raw?: string })?.raw ?? "");
     const head = raw.endsWith("\n") ? raw : raw + "\n";
+    // Detect columns the user edited on the canvas (compared to the captured
+    // __source.columns) so we can surface a loud warning instead of silently
+    // dropping the edits.
+    const edited: string[] = [];
+    for (const n of tableNodes) {
+      const src = (n.attrs as { __source?: { sourceId?: string; columns?: SourceCol[] } } | undefined)?.__source;
+      if (!src?.sourceId) continue;
+      const canvasCols = extractErdCols(n.attrs as Record<string, unknown>);
+      const origCols = src.columns ?? [];
+      if (canvasCols.length !== origCols.length) { edited.push(src.sourceId); continue; }
+      for (let i = 0; i < canvasCols.length; i++) {
+        if (
+          canvasCols[i].name !== origCols[i].name ||
+          canvasCols[i].type !== origCols[i].type ||
+          canvasCols[i].flags !== origCols[i].flags
+        ) {
+          edited.push(src.sourceId);
+          break;
+        }
+      }
+    }
+    const warningHeader = edited.length
+      ? `// ⚠ WARNING: column edits on canvas for table(s) [${edited.join(", ")}] are NOT reflected\n` +
+        `//   in the original DBML below (this exporter preserves source verbatim).\n` +
+        `//   Re-create those tables outside the original block to apply edits.\n\n`
+      : "";
     const tail =
       (newTables.length ? "\n\n// ── Added on canvas ─────────────────────────────\n" + newTables.join("\n\n") : "") +
       (newRefs.length ? "\n\n" + newRefs.join("\n") : "") +
       "\n";
-    return head + tail;
+    return warningHeader + head + tail;
   }
 
   // No source meta — emit fresh DBML.

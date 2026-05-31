@@ -1106,25 +1106,57 @@ export class OmniboardCanvas {
     this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
     this.graph.on("edge:selected", ({ edge }) => {
       this.applyEdgeStyle(edge, true); // highlight without losing custom color
-      // Reshape: the `segments` tool moves a whole orthogonal segment
-      // perpendicular (drag the black pill) — it creates the needed vertices
-      // internally. Endpoint round handles drag-reconnect the endpoints.
-      // NOTE: the `vertices` tool was intentionally removed — running it
-      // alongside `segments` made X6 re-render two sets of handles (plus an
-      // "add" handle at every segment midpoint, `addable:true`) on every
-      // change:vertices, i.e. every frame of a reshape drag. That per-frame
-      // handle churn was the segment-drag freeze in Electron (it didn't show in
-      // headless where paint is near-free). Segment-drag still reshapes fully.
+      // Snapshot vertices so we can revert auto-materialized bends if the user
+      // just clicks the edge and clicks away without actually reshaping.
+      const originalVerts = edge.getVertices().map((p) => ({ x: p.x, y: p.y }));
+      (edge as any).__selVertsSnapshot = originalVerts;
+      (edge as any).__selVertsUserChanged = false;
+      // Lark-style per-segment handles: if the edge uses an orthogonal router
+      // and has no explicit vertices, materialize the router-generated bends
+      // as vertices so the `segments` tool renders one handle per visible
+      // segment instead of nothing. Reverted on unselect if user didn't drag.
+      if (this.isOrthogonalEdge(edge) && originalVerts.length === 0) {
+        const view = this.graph.findViewByCell(edge) as any;
+        const route = view?.routePoints;
+        if (Array.isArray(route) && route.length > 2) {
+          const bends = route.slice(1, -1).map((p: any) => ({ x: p.x, y: p.y }));
+          if (bends.length > 0) {
+            edge.setVertices(bends, { ui: false, toolId: "auto-segments" } as any);
+          }
+        }
+      }
+      // Reshape tools:
+      //  - `vertices` (addable): click the line to add a bend, drag any vertex
+      //    freely. Still useful for edges where router auto-materialize didn't
+      //    apply (e.g. `normal` router) and for adding extra bends.
+      //  - `segments`: drag a whole orthogonal segment. With router bends now
+      //    materialized on select, every visible segment has a handle.
+      //  - endpoint round handles: drag-reconnect the endpoints.
+      // (The segment-drag jank was the showEdgeBar-rebuild-per-frame + leaked
+      // document listeners, both fixed earlier — debounced scheduleEdgeBar +
+      // destroy() cleanup; a temporary perf probe confirms it stays smooth.)
       const dot = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
       edge.addTools([
         { name: "segments", args: { threshold: 8 } },
+        { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } },
         { name: "source-arrowhead", args: dot },
         { name: "target-arrowhead", args: dot },
       ]);
       this.showEdgeBar(edge);
       if (this.padLayer) this.padLayer.style.display = "none";
     });
-    this.graph.on("edge:unselected", ({ edge }) => { this.applyEdgeStyle(edge, false); edge.removeTools(); this.hideEdgeBar(); });
+    this.graph.on("edge:unselected", ({ edge }) => {
+      this.applyEdgeStyle(edge, false);
+      edge.removeTools();
+      this.hideEdgeBar();
+      const snap = (edge as any).__selVertsSnapshot;
+      const changed = (edge as any).__selVertsUserChanged;
+      if (snap !== undefined && !changed) {
+        edge.setVertices(snap, { ui: false, toolId: "auto-segments-revert" } as any);
+      }
+      delete (edge as any).__selVertsSnapshot;
+      delete (edge as any).__selVertsUserChanged;
+    });
     // Endpoint drag (source-arrowhead / target-arrowhead) → wipe stale vertices
     // so the route re-computes cleanly to whichever side the user dropped on.
     // Endpoint spec (port vs body-floating) is left as the user dropped it.
@@ -1144,7 +1176,13 @@ export class OmniboardCanvas {
     // change froze the drag. Debounce: rebuild once, ~110ms after the drag
     // settles. The bar stays static (slightly stale position) mid-drag — the
     // user is focused on the handle, not the bar — then snaps correct on release.
-    this.graph.on("edge:change:vertices", ({ edge }) => this.scheduleEdgeBar(edge));
+    this.graph.on("edge:change:vertices", ({ edge, options }) => {
+      const tid = (options as any)?.toolId;
+      if (tid !== "auto-segments" && tid !== "auto-segments-revert") {
+        (edge as any).__selVertsUserChanged = true;
+      }
+      this.scheduleEdgeBar(edge);
+    });
     this.graph.on("edge:dblclick", ({ edge, e }) => { e.stopPropagation(); this.editEdgeLabel(edge); });
 
     this.graph.on("node:selected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
@@ -2348,11 +2386,15 @@ export class OmniboardCanvas {
   }
 
   // ── HTML node helpers ────────────────────────────────────────────────────
-  private addHtmlNode(kind: string, x: number, y: number, w: number, h: number, label: string, style?: NodeStyle, id?: string, extra?: NodeExtra): Node {
+  private addHtmlNode(kind: string, x: number, y: number, w: number, h: number, label: string, style?: NodeStyle, id?: string, extra?: NodeExtra, source?: unknown): Node {
     const ex = this.mergeExtra(kind, extra);
     const node = this.graph.addNode({
       id, shape: "html-node", x, y, width: w, height: h,
-      data: { kind, label, style: style ?? {}, ...ex },
+      // `__source` carries import provenance (BPMN pool kind, original ids) and
+      // MUST survive the load→getModel round-trip — otherwise re-saving the
+      // board (e.g. when opened on another device) drops it and the pool/lane
+      // identity + export fidelity are lost.
+      data: { kind, label, style: style ?? {}, ...ex, ...(source !== undefined ? { __source: source } : {}) },
       attrs: { content: { html: nodeHtml(kind, label, style, ex), class: "hn" } },
     });
     if (kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf") {
@@ -2958,6 +3000,15 @@ export class OmniboardCanvas {
     return !!k && SEQ_LIFELINE_KINDS.has(k);
   }
 
+  // Edges with an orthogonal router emit polyline routePoints we can materialize
+  // as vertices so the X6 `segments` tool renders one handle per visible segment.
+  // Curved/straight routers (`normal`) don't produce meaningful bends here.
+  private isOrthogonalEdge(edge: Edge): boolean {
+    const r = edge.getRouter() as any;
+    const name = typeof r === "string" ? r : r?.name;
+    return name === "orth" || name === "manhattan" || name === "metro" || name === "er";
+  }
+
   private applySeqRoutingIfNeeded(edge: Edge): void {
     const srcId = edge.getSourceCellId() ?? undefined;
     const tgtId = edge.getTargetCellId() ?? undefined;
@@ -3047,7 +3098,7 @@ export class OmniboardCanvas {
       const a = n.attrs ?? {};
       const style = (a.style as NodeStyle) ?? {};
       const extra: NodeExtra = { cols: a.cols as ErdCol[] | undefined, fields: a.fields as string[] | undefined, methods: a.methods as string[] | undefined, who: a.who as string | undefined, labelOffset: a.labelOffset as { x: number; y: number } | undefined, lanes: a.lanes as Array<{ id: string; label: string }> | undefined };
-      this.addHtmlNode(n.shape, n.x, n.y, n.width, n.height, n.label, style, n.id, extra);
+      this.addHtmlNode(n.shape, n.x, n.y, n.width, n.height, n.label, style, n.id, extra, a.__source);
     }
     for (const e of model.edges) {
       const seq = this.isSeqLifeline(e.source) && this.isSeqLifeline(e.target);
@@ -3233,7 +3284,7 @@ export class OmniboardCanvas {
       return {
         id: n.id, shape: this.nodeKind(n), x: p.x, y: p.y, width: s.width, height: s.height,
         label: this.nodeLabel(n),
-        attrs: { style: this.nodeStyle(n), cols: ex.cols, fields: ex.fields, methods: ex.methods, who: ex.who, labelOffset: ex.labelOffset, lanes: ex.lanes },
+        attrs: { style: this.nodeStyle(n), cols: ex.cols, fields: ex.fields, methods: ex.methods, who: ex.who, labelOffset: ex.labelOffset, lanes: ex.lanes, __source: n.getData()?.__source },
       };
     });
     const edges = this.graph.getEdges().map((e) => {

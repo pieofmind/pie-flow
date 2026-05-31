@@ -1,107 +1,241 @@
+import { BpmnModdle } from "bpmn-moddle";
 import type { CanvasModel } from "../../canvas/types";
 import type { SourceMeta } from "../types";
 import { SHAPE_TO_BPMN } from "./shapes";
 
-function escapeXml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/\n/g, "&#10;");
-}
-
-function nodeBpmnTag(shape: string): string {
-  return SHAPE_TO_BPMN[shape] ?? "task";
-}
-
 /**
- * Best-effort BPMN export. If a source-meta with the original XML is present,
- * we patch positions and add new elements; otherwise we emit a minimal but
- * valid BPMN 2.0 document.
+ * BPMN 2.0 exporter — uses `bpmn-moddle` so all namespace handling, attribute
+ * escaping and unknown-element preservation comes for free.
+ *
+ * Round-trip path (when a sourceMeta with the original XML is present):
+ *   1. Parse raw XML back into the moddle tree (preserves everything: lanes,
+ *      pools, data objects, message flows, custom namespaces, unknown attrs).
+ *   2. Patch every flow node's BPMNShape bounds to the model's current
+ *      x/y/width/height. Add new flow nodes the user created (with shape +
+ *      waypoints). Drop nodes the user deleted from the model.
+ *   3. Patch / add BPMNEdge waypoints from edge vertices.
+ *   4. Serialize back to XML.
+ *
+ * Cold path (no sourceMeta): build a minimal `bpmn:Definitions` tree from the
+ * model directly. Result is a clean valid BPMN 2.0 file with a single process.
  */
-export function exportBpmn(model: CanvasModel, meta?: SourceMeta | null): string {
-  // No source meta → emit minimal BPMN from scratch.
-  if (!meta || meta.format !== "bpmn") return emitMinimal(model);
-  const raw = String((meta.payload as { raw?: string })?.raw ?? "");
-  if (!raw) return emitMinimal(model);
 
-  // Patch DI positions for known nodes; append new BPMN elements + DI shapes
-  // for nodes the source didn't contain. We do this via string surgery so we
-  // don't have to round-trip the whole tree.
-  let out = raw;
+interface ModdleElement {
+  $type: string;
+  id?: string;
+  name?: string;
+  sourceRef?: ModdleElement | string;
+  targetRef?: ModdleElement | string;
+  flowElements?: ModdleElement[];
+  rootElements?: ModdleElement[];
+  diagrams?: Array<{ $type: string; plane: { planeElement?: ModdleElement[]; bpmnElement?: ModdleElement | string }; }>;
+  bpmnElement?: ModdleElement | string;
+  bounds?: { x: number; y: number; width: number; height: number };
+  waypoint?: Array<{ x: number; y: number }>;
+  $attrs?: Record<string, string>;
+  $parent?: ModdleElement;
+}
 
-  for (const n of model.nodes) {
-    const srcId = (n.attrs as { __source?: { sourceId?: string } } | undefined)?.__source?.sourceId;
-    if (srcId) {
-      // Replace existing dc:Bounds inside the shape entry for this element.
-      const shapeRe = new RegExp(
-        `(<[^>]*BPMNShape[^>]*bpmnElement="${escapeRegex(srcId)}"[^>]*>[\\s\\S]*?<[^>]*Bounds[^/>]*?)x="[^"]*"([^/>]*?)y="[^"]*"([^/>]*?)width="[^"]*"([^/>]*?)height="[^"]*"`,
-        "m"
-      );
-      out = out.replace(
-        shapeRe,
-        (_m, p1, p2, p3, p4) => `${p1}x="${n.x}"${p2}y="${n.y}"${p3}width="${n.width}"${p4}height="${n.height}"`
-      );
-      continue;
+let moddleSingleton: BpmnModdle | null = null;
+function moddle(): BpmnModdle {
+  if (!moddleSingleton) moddleSingleton = new BpmnModdle();
+  return moddleSingleton;
+}
+
+function shapeToBpmnType(shape: string): string {
+  const tag = SHAPE_TO_BPMN[shape] ?? "task";
+  // SHAPE_TO_BPMN returns local names like "startEvent" → moddle wants "bpmn:StartEvent".
+  return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
+}
+
+export async function exportBpmn(model: CanvasModel, meta?: SourceMeta | null): Promise<string> {
+  const m = moddle();
+  if (meta?.format === "bpmn") {
+    const raw = String((meta.payload as { raw?: string })?.raw ?? "");
+    if (raw) return patchExisting(raw, model, m);
+  }
+  return emitMinimal(model, m);
+}
+
+/** Round-trip the original XML, patching bounds + waypoints, adding new flow
+ *  nodes and edges, dropping deleted ones. */
+async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle): Promise<string> {
+  const { rootElement: defs } = await m.fromXML(raw, "bpmn:Definitions");
+  const definitions = defs as ModdleElement;
+
+  // Index DI shapes/edges by referenced bpmnElement id.
+  const diShape = new Map<string, ModdleElement>();
+  const diEdge = new Map<string, ModdleElement>();
+  let mainPlane: { planeElement?: ModdleElement[]; bpmnElement?: ModdleElement | string } | null = null;
+  for (const dia of definitions.diagrams ?? []) {
+    if (!mainPlane) mainPlane = dia.plane;
+    for (const pe of dia.plane.planeElement ?? []) {
+      const refId = typeof pe.bpmnElement === "string" ? pe.bpmnElement : pe.bpmnElement?.id;
+      if (!refId) continue;
+      if (pe.$type === "bpmndi:BPMNShape") diShape.set(refId, pe);
+      else if (pe.$type === "bpmndi:BPMNEdge") diEdge.set(refId, pe);
     }
-    // New node — inject element + DI shape just before </process> / </bpmndi:BPMNPlane>.
-    const tag = nodeBpmnTag(n.shape);
-    const elem = `    <${tag} id="${escapeXml(n.id)}" name="${escapeXml(n.label || "")}" />\n`;
-    out = out.replace(/(<\/[a-zA-Z]*:?process>)/, `${elem}$1`);
-    const di =
-      `      <bpmndi:BPMNShape id="${escapeXml(n.id)}_di" bpmnElement="${escapeXml(n.id)}">\n` +
-      `        <dc:Bounds x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" />\n` +
-      `      </bpmndi:BPMNShape>\n`;
-    out = out.replace(/(<\/[a-zA-Z]*:?BPMNPlane>)/, `${di}$1`);
+  }
+  if (!mainPlane) throw new Error("BPMN export: source document has no BPMNPlane.");
+
+  // Find the first root process (most BPMN docs have exactly one).
+  const process = (definitions.rootElements ?? []).find((r) => r.$type === "bpmn:Process") ?? null;
+  if (!process) throw new Error("BPMN export: source document has no bpmn:Process.");
+
+  // Index existing flow elements by id so we can patch/drop/keep.
+  const flowById = new Map<string, ModdleElement>();
+  const collect = (parent: ModdleElement): void => {
+    for (const fe of parent.flowElements ?? []) {
+      if (fe.id) flowById.set(fe.id, fe);
+      if (fe.flowElements) collect(fe);
+    }
+  };
+  collect(process);
+
+  const modelNodeIds = new Set(model.nodes.map((n) => n.id));
+  const modelEdgeIds = new Set(model.edges.map((e) => e.id));
+
+  // (1) Patch existing nodes' bounds; add new ones; drop deleted.
+  for (const n of model.nodes) {
+    let di = diShape.get(n.id);
+    if (di?.bounds) {
+      di.bounds.x = n.x; di.bounds.y = n.y; di.bounds.width = n.width; di.bounds.height = n.height;
+    } else {
+      // New node — add bpmn:* element + BPMNShape DI
+      const fe = m.create(shapeToBpmnType(n.shape), { id: n.id, name: n.label ?? "" }) as ModdleElement;
+      (process.flowElements ??= []).push(fe);
+      di = m.create("bpmndi:BPMNShape", {
+        bpmnElement: fe,
+        bounds: m.create("dc:Bounds", { x: n.x, y: n.y, width: n.width, height: n.height }),
+      }) as ModdleElement;
+      (mainPlane.planeElement ??= []).push(di);
+      diShape.set(n.id, di);
+    }
+    // Patch name if changed.
+    const existing = flowById.get(n.id);
+    if (existing && typeof n.label === "string") existing.name = n.label;
+  }
+  // Drop deleted flow nodes from process + DI.
+  process.flowElements = (process.flowElements ?? []).filter((fe) => {
+    if (fe.$type === "bpmn:SequenceFlow") return modelEdgeIds.has(fe.id!);
+    return modelNodeIds.has(fe.id!);
+  });
+  mainPlane.planeElement = (mainPlane.planeElement ?? []).filter((pe: ModdleElement) => {
+    const refId = typeof pe.bpmnElement === "string" ? pe.bpmnElement : pe.bpmnElement?.id;
+    if (!refId) return true;
+    if (pe.$type === "bpmndi:BPMNShape") return modelNodeIds.has(refId);
+    if (pe.$type === "bpmndi:BPMNEdge") return modelEdgeIds.has(refId);
+    return true;
+  });
+
+  // (2) Patch edges — waypoints from model.vertices (+ endpoint anchors derived
+  //     from node bounds). Add new ones; drop deleted (already handled above).
+  for (const e of model.edges) {
+    const srcNode = model.nodes.find((n) => n.id === e.source);
+    const tgtNode = model.nodes.find((n) => n.id === e.target);
+    if (!srcNode || !tgtNode) continue;
+    let de = diEdge.get(e.id);
+    const wps = buildWaypoints(e, srcNode, tgtNode, m);
+    if (de) {
+      de.waypoint = wps;
+    } else {
+      // Resolve / create the bpmn:SequenceFlow element.
+      let sf = flowById.get(e.id);
+      if (!sf) {
+        const sourceFe = flowById.get(e.source);
+        const targetFe = flowById.get(e.target);
+        sf = m.create("bpmn:SequenceFlow", {
+          id: e.id,
+          name: e.label ?? "",
+          sourceRef: sourceFe,
+          targetRef: targetFe,
+        }) as ModdleElement;
+        (process.flowElements ??= []).push(sf);
+      } else if (typeof e.label === "string") {
+        sf.name = e.label;
+      }
+      de = m.create("bpmndi:BPMNEdge", { bpmnElement: sf, waypoint: wps }) as ModdleElement;
+      (mainPlane.planeElement ??= []).push(de);
+      diEdge.set(e.id, de);
+    }
   }
 
-  return out;
+  const { xml } = await m.toXML(definitions as never, { format: true });
+  return xml;
 }
 
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function buildWaypoints(
+  e: CanvasModel["edges"][number],
+  src: CanvasModel["nodes"][number],
+  tgt: CanvasModel["nodes"][number],
+  m: BpmnModdle,
+): Array<{ x: number; y: number }> {
+  const point = (x: number, y: number) => m.create("dc:Point", { x, y }) as unknown as { x: number; y: number };
+  const start = point(src.x + src.width / 2, src.y + src.height / 2);
+  const end = point(tgt.x + tgt.width / 2, tgt.y + tgt.height / 2);
+  const mid = (e.vertices ?? []).map((v) => point(v.x, v.y));
+  return [start, ...mid, end];
 }
 
-function emitMinimal(model: CanvasModel): string {
-  const elems = model.nodes.map((n) => {
-    const tag = nodeBpmnTag(n.shape);
-    return `    <${tag} id="${escapeXml(n.id)}" name="${escapeXml(n.label || "")}" />`;
-  });
-  const flows = model.edges.map((e) =>
-    `    <sequenceFlow id="${escapeXml(e.id)}" sourceRef="${escapeXml(e.source)}" targetRef="${escapeXml(e.target)}"${e.label ? ` name="${escapeXml(e.label)}"` : ""} />`
-  );
-  const shapes = model.nodes.map(
-    (n) =>
-      `      <bpmndi:BPMNShape id="${escapeXml(n.id)}_di" bpmnElement="${escapeXml(n.id)}">\n` +
-      `        <dc:Bounds x="${n.x}" y="${n.y}" width="${n.width}" height="${n.height}" />\n` +
-      `      </bpmndi:BPMNShape>`
-  );
-  const diEdges = model.edges.map((e) => {
+async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
+  const defs = m.create("bpmn:Definitions", {
+    id: "Definitions_Export",
+    targetNamespace: "http://omniboard.local/bpmn",
+  }) as ModdleElement;
+  const process = m.create("bpmn:Process", {
+    id: "Process_Export",
+    isExecutable: false,
+  }) as ModdleElement;
+  (defs.rootElements ??= []).push(process);
+
+  // Flow nodes
+  const feById = new Map<string, ModdleElement>();
+  process.flowElements = [];
+  for (const n of model.nodes) {
+    const fe = m.create(shapeToBpmnType(n.shape), { id: n.id, name: n.label ?? "" }) as ModdleElement;
+    process.flowElements.push(fe);
+    feById.set(n.id, fe);
+  }
+  // Sequence flows — keep them indexed so the matching BPMNEdge can reference
+  // the actual sf element (not the source node) via `bpmnElement`.
+  const sfById = new Map<string, ModdleElement>();
+  for (const e of model.edges) {
+    const sf = m.create("bpmn:SequenceFlow", {
+      id: e.id,
+      name: e.label ?? "",
+      sourceRef: feById.get(e.source),
+      targetRef: feById.get(e.target),
+    }) as ModdleElement;
+    process.flowElements.push(sf);
+    sfById.set(e.id, sf);
+  }
+  // Diagram
+  const plane = m.create("bpmndi:BPMNPlane", {
+    id: "Plane_Export",
+    bpmnElement: process,
+    planeElement: [],
+  }) as { planeElement?: ModdleElement[]; bpmnElement?: ModdleElement | string };
+  for (const n of model.nodes) {
+    plane.planeElement!.push(m.create("bpmndi:BPMNShape", {
+      id: n.id + "_di",
+      bpmnElement: feById.get(n.id),
+      bounds: m.create("dc:Bounds", { x: n.x, y: n.y, width: n.width, height: n.height }),
+    }));
+  }
+  for (const e of model.edges) {
     const src = model.nodes.find((n) => n.id === e.source);
     const tgt = model.nodes.find((n) => n.id === e.target);
-    if (!src || !tgt) return "";
-    const sx = src.x + src.width / 2, sy = src.y + src.height / 2;
-    const tx = tgt.x + tgt.width / 2, ty = tgt.y + tgt.height / 2;
-    return (
-      `      <bpmndi:BPMNEdge id="${escapeXml(e.id)}_di" bpmnElement="${escapeXml(e.id)}">\n` +
-      `        <di:waypoint x="${sx}" y="${sy}" />\n` +
-      `        <di:waypoint x="${tx}" y="${ty}" />\n` +
-      `      </bpmndi:BPMNEdge>`
-    );
-  });
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Export" targetNamespace="http://omniboard.local/bpmn">
-  <process id="Process_Export" isExecutable="false">
-${elems.join("\n")}
-${flows.join("\n")}
-  </process>
-  <bpmndi:BPMNDiagram id="Diagram_Export">
-    <bpmndi:BPMNPlane id="Plane_Export" bpmnElement="Process_Export">
-${shapes.join("\n")}
-${diEdges.join("\n")}
-    </bpmndi:BPMNPlane>
-  </bpmndi:BPMNDiagram>
-</definitions>
-`;
+    const sf = sfById.get(e.id);
+    if (!src || !tgt || !sf) continue;
+    plane.planeElement!.push(m.create("bpmndi:BPMNEdge", {
+      id: e.id + "_di",
+      bpmnElement: sf,
+      waypoint: buildWaypoints(e, src, tgt, m),
+    }));
+  }
+  const dia = m.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane }) as ModdleElement;
+  (defs.diagrams ??= []).push(dia as never);
+
+  const { xml } = await m.toXML(defs as never, { format: true });
+  return xml;
 }

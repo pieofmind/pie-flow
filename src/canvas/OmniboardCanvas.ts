@@ -1114,7 +1114,7 @@ export class OmniboardCanvas {
       if (this.isMindmapNode(edge.getSourceCellId() ?? undefined) ||
           this.isMindmapNode(edge.getTargetCellId() ?? undefined)) return;
       if (edge.getVertices().length) edge.setVertices([]);
-      if (this.graph.getSelectedCells().some((c) => c.id === edge.id)) this.showEdgeBar(edge);
+      this.scheduleEdgeBar(edge);   // debounced — change:source/target fires continuously during an arrowhead drag
     };
     this.graph.on("edge:change:source", onEndpointMoved);
     this.graph.on("edge:change:target", onEndpointMoved);
@@ -1124,14 +1124,7 @@ export class OmniboardCanvas {
     // change froze the drag. Debounce: rebuild once, ~110ms after the drag
     // settles. The bar stays static (slightly stale position) mid-drag — the
     // user is focused on the handle, not the bar — then snaps correct on release.
-    this.graph.on("edge:change:vertices", ({ edge }) => {
-      if (!this.graph.getSelectedCells().some((c) => c.id === edge.id)) return;
-      if (this.edgeBarDebounce != null) window.clearTimeout(this.edgeBarDebounce);
-      this.edgeBarDebounce = window.setTimeout(() => {
-        this.edgeBarDebounce = null;
-        if (this.graph.getSelectedCells().some((c) => c.id === edge.id)) this.showEdgeBar(edge);
-      }, 110);
-    });
+    this.graph.on("edge:change:vertices", ({ edge }) => this.scheduleEdgeBar(edge));
     this.graph.on("edge:dblclick", ({ edge, e }) => { e.stopPropagation(); this.editEdgeLabel(edge); });
 
     this.graph.on("node:selected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
@@ -2730,6 +2723,20 @@ export class OmniboardCanvas {
     const inner = `<line x1="1" y1="8" x2="${lineEnd}" y2="8" stroke="currentColor" stroke-width="1.6"/>${head[kind] ?? ""}`;
     const body = side === "start" ? `<g transform="translate(26,0) scale(-1,1)">${inner}</g>` : inner;
     return `<svg viewBox="0 0 26 16" width="26" height="16">${body}</svg>`;
+  }
+
+  /** Debounced showEdgeBar — coalesces the continuous change:vertices /
+   *  change:source / change:target events of a drag into ONE rebuild after the
+   *  drag settles. Rebuilding the bar (innerHTML + ~10 SVG buttons +
+   *  getBoundingClientRect reflow) on every event froze segment AND endpoint
+   *  drags. */
+  private scheduleEdgeBar(edge: Edge) {
+    if (!this.graph.getSelectedCells().some((c) => c.id === edge.id)) return;
+    if (this.edgeBarDebounce != null) window.clearTimeout(this.edgeBarDebounce);
+    this.edgeBarDebounce = window.setTimeout(() => {
+      this.edgeBarDebounce = null;
+      if (this.graph.getSelectedCells().some((c) => c.id === edge.id)) this.showEdgeBar(edge);
+    }, 110);
   }
 
   private showEdgeBar(edge: Edge) {

@@ -73410,18 +73410,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (this.isSeqLifeline((_a3 = edge.getSourceCellId()) != null ? _a3 : void 0) || this.isSeqLifeline((_b2 = edge.getTargetCellId()) != null ? _b2 : void 0)) return;
       if (this.isMindmapNode((_c = edge.getSourceCellId()) != null ? _c : void 0) || this.isMindmapNode((_d = edge.getTargetCellId()) != null ? _d : void 0)) return;
       if (edge.getVertices().length) edge.setVertices([]);
-      if (this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) this.showEdgeBar(edge);
+      this.scheduleEdgeBar(edge);
     };
     this.graph.on("edge:change:source", onEndpointMoved);
     this.graph.on("edge:change:target", onEndpointMoved);
-    this.graph.on("edge:change:vertices", ({ edge }) => {
-      if (!this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) return;
-      if (this.edgeBarDebounce != null) window.clearTimeout(this.edgeBarDebounce);
-      this.edgeBarDebounce = window.setTimeout(() => {
-        this.edgeBarDebounce = null;
-        if (this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) this.showEdgeBar(edge);
-      }, 110);
-    });
+    this.graph.on("edge:change:vertices", ({ edge }) => this.scheduleEdgeBar(edge));
     this.graph.on("edge:dblclick", ({ edge, e: e4 }) => {
       e4.stopPropagation();
       this.editEdgeLabel(edge);
@@ -75139,6 +75132,19 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const inner = `<line x1="1" y1="8" x2="${lineEnd}" y2="8" stroke="currentColor" stroke-width="1.6"/>${(_a3 = head[kind]) != null ? _a3 : ""}`;
     const body = side === "start" ? `<g transform="translate(26,0) scale(-1,1)">${inner}</g>` : inner;
     return `<svg viewBox="0 0 26 16" width="26" height="16">${body}</svg>`;
+  }
+  /** Debounced showEdgeBar — coalesces the continuous change:vertices /
+   *  change:source / change:target events of a drag into ONE rebuild after the
+   *  drag settles. Rebuilding the bar (innerHTML + ~10 SVG buttons +
+   *  getBoundingClientRect reflow) on every event froze segment AND endpoint
+   *  drags. */
+  scheduleEdgeBar(edge) {
+    if (!this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) return;
+    if (this.edgeBarDebounce != null) window.clearTimeout(this.edgeBarDebounce);
+    this.edgeBarDebounce = window.setTimeout(() => {
+      this.edgeBarDebounce = null;
+      if (this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) this.showEdgeBar(edge);
+    }, 110);
   }
   showEdgeBar(edge) {
     var _a3, _b2, _c, _d;
@@ -82082,7 +82088,7 @@ function moddle() {
 }
 var MAX_BPMN_BYTES = 4 * 1024 * 1024;
 async function importBpmn(raw2) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v;
   if (raw2.length > MAX_BPMN_BYTES) {
     throw new Error(`BPMN file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 4 MB.`);
   }
@@ -82200,6 +82206,64 @@ async function importBpmn(raw2) {
       router: "normal"
     });
   }
+  const defs = definitions;
+  const processById = /* @__PURE__ */ new Map();
+  for (const root2 of (_p = defs.rootElements) != null ? _p : []) {
+    if (root2.$type === "bpmn:Process" && root2.id) processById.set(root2.id, root2);
+  }
+  const pools = [];
+  const HEADER = 30;
+  const LANE_HEAD = 24;
+  const PAD = 30;
+  for (const root2 of (_q = defs.rootElements) != null ? _q : []) {
+    if (root2.$type !== "bpmn:Collaboration") continue;
+    for (const part of (_r = root2.participants) != null ? _r : []) {
+      const proc = ((_s = part.processRef) == null ? void 0 : _s.id) ? processById.get(part.processRef.id) : void 0;
+      const lanes = ((_t3 = proc == null ? void 0 : proc.laneSets) != null ? _t3 : []).flatMap((ls) => {
+        var _a4;
+        return (_a4 = ls.lanes) != null ? _a4 : [];
+      });
+      const laneAttrs = lanes.map((ln3) => {
+        var _a4, _b3;
+        return { id: (_a4 = ln3.id) != null ? _a4 : "", label: (_b3 = ln3.name) != null ? _b3 : "" };
+      });
+      let px2, py, pw, ph;
+      const partDi = part.id ? diShapes.get(part.id) : void 0;
+      if (partDi == null ? void 0 : partDi.bounds) {
+        ({ x: px2, y: py, width: pw, height: ph } = partDi.bounds);
+      } else {
+        const members = model.nodes.filter((n3) => {
+          var _a4, _b3, _c2;
+          const sid = (_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.sourceId;
+          return sid && ((_c2 = proc == null ? void 0 : proc.flowElements) == null ? void 0 : _c2.some((fe3) => fe3.id === sid));
+        });
+        const box = members.length ? members : model.nodes;
+        if (!box.length) continue;
+        const minX = Math.min(...box.map((n3) => n3.x));
+        const minY = Math.min(...box.map((n3) => n3.y));
+        const maxX = Math.max(...box.map((n3) => n3.x + n3.width));
+        const maxY = Math.max(...box.map((n3) => n3.y + n3.height));
+        px2 = minX - HEADER - LANE_HEAD - PAD;
+        py = minY - PAD;
+        pw = maxX - minX + HEADER + LANE_HEAD + PAD * 2;
+        ph = maxY - minY + PAD * 2;
+      }
+      pools.push({
+        id: (_u = part.id) != null ? _u : `pool_${pools.length}`,
+        shape: "bpmn-pool",
+        x: px2,
+        y: py,
+        width: pw,
+        height: ph,
+        label: (_v = part.name) != null ? _v : "",
+        attrs: {
+          lanes: laneAttrs.length ? laneAttrs : void 0,
+          __source: { format: "bpmn", sourceId: part.id, kind: "pool" }
+        }
+      });
+    }
+  }
+  if (pools.length) model.nodes.unshift(...pools);
   const sourceMeta = { format: "bpmn", payload: { raw: raw2 } };
   return { model, warnings, sourceMeta };
 }
@@ -82209,6 +82273,15 @@ var moddleSingleton2 = null;
 function moddle2() {
   if (!moddleSingleton2) moddleSingleton2 = new SimpleBpmnModdle();
   return moddleSingleton2;
+}
+function findParticipant(defs, id) {
+  var _a3, _b2;
+  for (const root2 of (_a3 = defs.rootElements) != null ? _a3 : []) {
+    if (root2.$type !== "bpmn:Collaboration") continue;
+    const found = ((_b2 = root2.participants) != null ? _b2 : []).find((p6) => p6.id === id);
+    if (found) return found;
+  }
+  return void 0;
 }
 function shapeToBpmnType(shape) {
   var _a3;
@@ -82225,7 +82298,7 @@ async function exportBpmn(model, meta) {
   return emitMinimal(model, m6);
 }
 async function patchExisting(raw2, model, m6) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q;
   const { rootElement: defs } = await m6.fromXML(raw2, "bpmn:Definitions");
   const definitions = defs;
   const diShape = /* @__PURE__ */ new Map();
@@ -82255,6 +82328,27 @@ async function patchExisting(raw2, model, m6) {
   const modelNodeIds = new Set(model.nodes.map((n3) => n3.id));
   const modelEdgeIds = new Set(model.edges.map((e4) => e4.id));
   for (const n3 of model.nodes) {
+    const srcKind = (_g = (_f = n3.attrs) == null ? void 0 : _f.__source) == null ? void 0 : _g.kind;
+    if (srcKind === "pool") {
+      let pdi = diShape.get(n3.id);
+      if (pdi == null ? void 0 : pdi.bounds) {
+        pdi.bounds.x = n3.x;
+        pdi.bounds.y = n3.y;
+        pdi.bounds.width = n3.width;
+        pdi.bounds.height = n3.height;
+      } else {
+        pdi = m6.create("bpmndi:BPMNShape", {
+          bpmnElement: m6.create("bpmn:Participant", { id: n3.id }),
+          bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height })
+        });
+        pdi.isHorizontal = true;
+        const existingPart = findParticipant(definitions, n3.id);
+        if (existingPart) pdi.bpmnElement = existingPart;
+        ((_h = mainPlane.planeElement) != null ? _h : mainPlane.planeElement = []).unshift(pdi);
+        diShape.set(n3.id, pdi);
+      }
+      continue;
+    }
     let di = diShape.get(n3.id);
     if (di == null ? void 0 : di.bounds) {
       di.bounds.x = n3.x;
@@ -82263,13 +82357,13 @@ async function patchExisting(raw2, model, m6) {
       di.bounds.height = n3.height;
       di.label = void 0;
     } else {
-      const fe3 = m6.create(shapeToBpmnType(n3.shape), { id: n3.id, name: (_f = n3.label) != null ? _f : "" });
-      ((_g = process2.flowElements) != null ? _g : process2.flowElements = []).push(fe3);
+      const fe3 = m6.create(shapeToBpmnType(n3.shape), { id: n3.id, name: (_i = n3.label) != null ? _i : "" });
+      ((_j = process2.flowElements) != null ? _j : process2.flowElements = []).push(fe3);
       di = m6.create("bpmndi:BPMNShape", {
         bpmnElement: fe3,
         bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height })
       });
-      ((_h = mainPlane.planeElement) != null ? _h : mainPlane.planeElement = []).push(di);
+      ((_k = mainPlane.planeElement) != null ? _k : mainPlane.planeElement = []).push(di);
       diShape.set(n3.id, di);
     }
     const existing = flowById.get(n3.id);
@@ -82277,7 +82371,7 @@ async function patchExisting(raw2, model, m6) {
   }
   const refIdOf = (r4) => typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.id;
   const referenced = /* @__PURE__ */ new Set();
-  for (const fe3 of (_i = process2.flowElements) != null ? _i : []) {
+  for (const fe3 of (_l = process2.flowElements) != null ? _l : []) {
     if (fe3.$type !== "bpmn:SequenceFlow") continue;
     if (!modelEdgeIds.has(fe3.id)) continue;
     const src = refIdOf(fe3.sourceRef);
@@ -82285,12 +82379,12 @@ async function patchExisting(raw2, model, m6) {
     if (src) referenced.add(src);
     if (tgt) referenced.add(tgt);
   }
-  process2.flowElements = ((_j = process2.flowElements) != null ? _j : []).filter((fe3) => {
+  process2.flowElements = ((_m = process2.flowElements) != null ? _m : []).filter((fe3) => {
     if (fe3.$type === "bpmn:SequenceFlow") return modelEdgeIds.has(fe3.id);
     return modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
   });
   const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
-  mainPlane.planeElement = ((_k = mainPlane.planeElement) != null ? _k : []).filter((pe3) => {
+  mainPlane.planeElement = ((_n2 = mainPlane.planeElement) != null ? _n2 : []).filter((pe3) => {
     var _a4;
     const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
     if (!refId) return true;
@@ -82317,16 +82411,16 @@ async function patchExisting(raw2, model, m6) {
         const targetFe = flowById.get(e4.target);
         sf = m6.create("bpmn:SequenceFlow", {
           id: e4.id,
-          name: (_l = e4.label) != null ? _l : "",
+          name: (_o = e4.label) != null ? _o : "",
           sourceRef: sourceFe,
           targetRef: targetFe
         });
-        ((_m = process2.flowElements) != null ? _m : process2.flowElements = []).push(sf);
+        ((_p = process2.flowElements) != null ? _p : process2.flowElements = []).push(sf);
       } else if (typeof e4.label === "string") {
         sf.name = e4.label;
       }
       de3 = m6.create("bpmndi:BPMNEdge", { bpmnElement: sf, waypoint: wps });
-      ((_n2 = mainPlane.planeElement) != null ? _n2 : mainPlane.planeElement = []).push(de3);
+      ((_q = mainPlane.planeElement) != null ? _q : mainPlane.planeElement = []).push(de3);
       diEdge.set(e4.id, de3);
     }
   }

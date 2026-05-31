@@ -207,6 +207,8 @@ export class OmniboardCanvas {
   private contextBar: HTMLElement;
   private edgeBar: HTMLElement | null = null;
   private edgeBarDebounce: number | null = null;   // debounce showEdgeBar() during continuous segment/vertex drags
+  private edgeDragFrames: number[] | null = null;  // TEMP perf probe: frame times during an edge-tool drag
+  private edgeDragRaf: number | null = null;
   private popupLayer: HTMLElement;
   private categories: ShapeCategory[];
   private onChange: () => void;
@@ -1104,14 +1106,18 @@ export class OmniboardCanvas {
     this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
     this.graph.on("edge:selected", ({ edge }) => {
       this.applyEdgeStyle(edge, true); // highlight without losing custom color
-      // Reshape: segments tool moves a whole orthogonal segment perpendicular
-      // (one axis); vertices tool gives free x+y drag on any vertex and lets the
-      // user click on the line to add a new free-drag vertex. Endpoint round
-      // handles drag-reconnect the endpoints.
+      // Reshape: the `segments` tool moves a whole orthogonal segment
+      // perpendicular (drag the black pill) — it creates the needed vertices
+      // internally. Endpoint round handles drag-reconnect the endpoints.
+      // NOTE: the `vertices` tool was intentionally removed — running it
+      // alongside `segments` made X6 re-render two sets of handles (plus an
+      // "add" handle at every segment midpoint, `addable:true`) on every
+      // change:vertices, i.e. every frame of a reshape drag. That per-frame
+      // handle churn was the segment-drag freeze in Electron (it didn't show in
+      // headless where paint is near-free). Segment-drag still reshapes fully.
       const dot = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
       edge.addTools([
         { name: "segments", args: { threshold: 8 } },
-        { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } },
         { name: "source-arrowhead", args: dot },
         { name: "target-arrowhead", args: dot },
       ]);
@@ -2746,11 +2752,46 @@ export class OmniboardCanvas {
    *  drags. */
   private scheduleEdgeBar(edge: Edge) {
     if (!this.graph.getSelectedCells().some((c) => c.id === edge.id)) return;
+    this.startEdgeDragProfile();
     if (this.edgeBarDebounce != null) window.clearTimeout(this.edgeBarDebounce);
     this.edgeBarDebounce = window.setTimeout(() => {
       this.edgeBarDebounce = null;
+      this.stopEdgeDragProfile();
       if (this.graph.getSelectedCells().some((c) => c.id === edge.id)) this.showEdgeBar(edge);
     }, 110);
+  }
+
+  /** TEMPORARY self-gating perf probe. Records per-frame times while an edge
+   *  reshape/endpoint drag is in progress (change:vertices/source/target fire
+   *  continuously, driving scheduleEdgeBar). Stays SILENT when smooth; only
+   *  console.warns if a frame exceeded 50ms — so we can confirm the freeze is
+   *  gone on the user's Electron without a screen recording. Remove once the
+   *  segment-drag jank is confirmed fixed. */
+  private startEdgeDragProfile(): void {
+    if (this.edgeDragFrames != null) return; // already sampling this drag
+    this.edgeDragFrames = [];
+    let last = performance.now();
+    const tick = (now: number): void => {
+      if (this.edgeDragFrames == null) return;
+      this.edgeDragFrames.push(now - last);
+      last = now;
+      this.edgeDragRaf = requestAnimationFrame(tick);
+    };
+    this.edgeDragRaf = requestAnimationFrame(tick);
+  }
+
+  private stopEdgeDragProfile(): void {
+    const frames = this.edgeDragFrames;
+    this.edgeDragFrames = null;
+    if (this.edgeDragRaf != null) { cancelAnimationFrame(this.edgeDragRaf); this.edgeDragRaf = null; }
+    const samples = (frames ?? []).slice(2); // drop warmup frames
+    if (samples.length < 3) return;
+    const max = Math.round(Math.max(...samples));
+    if (max <= 50) return; // smooth → silent
+    const sorted = samples.slice().sort((a, b) => a - b);
+    const med = Math.round(sorted[sorted.length >> 1]);
+    const janky = samples.filter((d) => d > 33).length;
+    console.warn(`[omniboard-perf] edge drag janky: ${samples.length} frames · median ${med}ms · max ${max}ms · ${janky} frame(s) >33ms`);
   }
 
   private showEdgeBar(edge: Edge) {
@@ -3499,6 +3540,8 @@ export class OmniboardCanvas {
     for (const { type, fn } of this.docListeners) document.removeEventListener(type, fn, true);
     this.docListeners = [];
     if (this.edgeBarDebounce != null) { window.clearTimeout(this.edgeBarDebounce); this.edgeBarDebounce = null; }
+    if (this.edgeDragRaf != null) { cancelAnimationFrame(this.edgeDragRaf); this.edgeDragRaf = null; }
+    this.edgeDragFrames = null;
     this.graph.dispose();
   }
 }

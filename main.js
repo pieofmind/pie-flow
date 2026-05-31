@@ -72352,6 +72352,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   constructor(root2, categories, onChange) {
     this.edgeBar = null;
     this.edgeBarDebounce = null;
+    // debounce showEdgeBar() during continuous segment/vertex drags
+    this.edgeDragFrames = null;
+    // TEMP perf probe: frame times during an edge-tool drag
+    this.edgeDragRaf = null;
     this.labelInput = null;
     this.propsBody = null;
     this.propsPanel = null;
@@ -73395,7 +73399,6 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const dot2 = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
       edge.addTools([
         { name: "segments", args: { threshold: 8 } },
-        { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } },
         { name: "source-arrowhead", args: dot2 },
         { name: "target-arrowhead", args: dot2 }
       ]);
@@ -75142,11 +75145,47 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    *  drags. */
   scheduleEdgeBar(edge) {
     if (!this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) return;
+    this.startEdgeDragProfile();
     if (this.edgeBarDebounce != null) window.clearTimeout(this.edgeBarDebounce);
     this.edgeBarDebounce = window.setTimeout(() => {
       this.edgeBarDebounce = null;
+      this.stopEdgeDragProfile();
       if (this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) this.showEdgeBar(edge);
     }, 110);
+  }
+  /** TEMPORARY self-gating perf probe. Records per-frame times while an edge
+   *  reshape/endpoint drag is in progress (change:vertices/source/target fire
+   *  continuously, driving scheduleEdgeBar). Stays SILENT when smooth; only
+   *  console.warns if a frame exceeded 50ms — so we can confirm the freeze is
+   *  gone on the user's Electron without a screen recording. Remove once the
+   *  segment-drag jank is confirmed fixed. */
+  startEdgeDragProfile() {
+    if (this.edgeDragFrames != null) return;
+    this.edgeDragFrames = [];
+    let last = performance.now();
+    const tick = (now2) => {
+      if (this.edgeDragFrames == null) return;
+      this.edgeDragFrames.push(now2 - last);
+      last = now2;
+      this.edgeDragRaf = requestAnimationFrame(tick);
+    };
+    this.edgeDragRaf = requestAnimationFrame(tick);
+  }
+  stopEdgeDragProfile() {
+    const frames = this.edgeDragFrames;
+    this.edgeDragFrames = null;
+    if (this.edgeDragRaf != null) {
+      cancelAnimationFrame(this.edgeDragRaf);
+      this.edgeDragRaf = null;
+    }
+    const samples = (frames != null ? frames : []).slice(2);
+    if (samples.length < 3) return;
+    const max2 = Math.round(Math.max(...samples));
+    if (max2 <= 50) return;
+    const sorted = samples.slice().sort((a5, b3) => a5 - b3);
+    const med = Math.round(sorted[sorted.length >> 1]);
+    const janky = samples.filter((d4) => d4 > 33).length;
+    console.warn(`[omniboard-perf] edge drag janky: ${samples.length} frames \xB7 median ${med}ms \xB7 max ${max2}ms \xB7 ${janky} frame(s) >33ms`);
   }
   showEdgeBar(edge) {
     var _a3, _b2, _c, _d;
@@ -75930,6 +75969,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       window.clearTimeout(this.edgeBarDebounce);
       this.edgeBarDebounce = null;
     }
+    if (this.edgeDragRaf != null) {
+      cancelAnimationFrame(this.edgeDragRaf);
+      this.edgeDragRaf = null;
+    }
+    this.edgeDragFrames = null;
     this.graph.dispose();
   }
 };
@@ -82276,6 +82320,11 @@ function moddle2() {
   if (!moddleSingleton2) moddleSingleton2 = new SimpleBpmnModdle();
   return moddleSingleton2;
 }
+function shapeToBpmnType(shape) {
+  var _a3;
+  const tag = (_a3 = SHAPE_TO_BPMN[shape]) != null ? _a3 : "task";
+  return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
+}
 function findParticipant(defs, id) {
   var _a3, _b2;
   for (const root2 of (_a3 = defs.rootElements) != null ? _a3 : []) {
@@ -82293,11 +82342,9 @@ function findLane(process2, id) {
   }
   return void 0;
 }
-function shapeToBpmnType(shape) {
-  var _a3;
-  const tag = (_a3 = SHAPE_TO_BPMN[shape]) != null ? _a3 : "task";
-  return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
-}
+var POOL_HEADER = 30;
+var LANE_HEADER = 30;
+var POOL_MARGIN = 40;
 async function exportBpmn(model, meta) {
   var _a3, _b2;
   const m6 = moddle2();
@@ -82308,7 +82355,7 @@ async function exportBpmn(model, meta) {
   return emitMinimal(model, m6);
 }
 async function patchExisting(raw2, model, m6) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p;
   const { rootElement: defs } = await m6.fromXML(raw2, "bpmn:Definitions");
   const definitions = defs;
   const diShape = /* @__PURE__ */ new Map();
@@ -82339,51 +82386,7 @@ async function patchExisting(raw2, model, m6) {
   const modelEdgeIds = new Set(model.edges.map((e4) => e4.id));
   for (const n3 of model.nodes) {
     const srcKind = (_g = (_f = n3.attrs) == null ? void 0 : _f.__source) == null ? void 0 : _g.kind;
-    if (srcKind === "pool") {
-      const POOL_HEADER = 30;
-      let pdi = diShape.get(n3.id);
-      if (pdi == null ? void 0 : pdi.bounds) {
-        pdi.bounds.x = n3.x;
-        pdi.bounds.y = n3.y;
-        pdi.bounds.width = n3.width;
-        pdi.bounds.height = n3.height;
-      } else {
-        const existingPart = findParticipant(definitions, n3.id);
-        pdi = m6.create("bpmndi:BPMNShape", {
-          bpmnElement: existingPart != null ? existingPart : m6.create("bpmn:Participant", { id: n3.id }),
-          bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height })
-        });
-        pdi.isHorizontal = true;
-        ((_h = mainPlane.planeElement) != null ? _h : mainPlane.planeElement = []).unshift(pdi);
-        diShape.set(n3.id, pdi);
-      }
-      const lanes = (_j = (_i = n3.attrs) == null ? void 0 : _i.lanes) != null ? _j : [];
-      const laneX = n3.x + POOL_HEADER;
-      const laneW = n3.width - POOL_HEADER;
-      const laneH = lanes.length ? n3.height / lanes.length : n3.height;
-      lanes.forEach((ln3, i6) => {
-        var _a4;
-        if (!ln3.id) return;
-        const ly = n3.y + i6 * laneH;
-        let ldi = diShape.get(ln3.id);
-        if (ldi == null ? void 0 : ldi.bounds) {
-          ldi.bounds.x = laneX;
-          ldi.bounds.y = ly;
-          ldi.bounds.width = laneW;
-          ldi.bounds.height = laneH;
-        } else {
-          const laneEl = findLane(process2, ln3.id);
-          ldi = m6.create("bpmndi:BPMNShape", {
-            bpmnElement: laneEl != null ? laneEl : m6.create("bpmn:Lane", { id: ln3.id }),
-            bounds: m6.create("dc:Bounds", { x: laneX, y: ly, width: laneW, height: laneH })
-          });
-          ldi.isHorizontal = true;
-          ((_a4 = mainPlane.planeElement) != null ? _a4 : mainPlane.planeElement = []).unshift(ldi);
-          diShape.set(ln3.id, ldi);
-        }
-      });
-      continue;
-    }
+    if (srcKind === "pool") continue;
     let di = diShape.get(n3.id);
     if (di == null ? void 0 : di.bounds) {
       di.bounds.x = n3.x;
@@ -82392,13 +82395,13 @@ async function patchExisting(raw2, model, m6) {
       di.bounds.height = n3.height;
       di.label = void 0;
     } else {
-      const fe3 = m6.create(shapeToBpmnType(n3.shape), { id: n3.id, name: (_k = n3.label) != null ? _k : "" });
-      ((_l = process2.flowElements) != null ? _l : process2.flowElements = []).push(fe3);
+      const fe3 = m6.create(shapeToBpmnType(n3.shape), { id: n3.id, name: (_h = n3.label) != null ? _h : "" });
+      ((_i = process2.flowElements) != null ? _i : process2.flowElements = []).push(fe3);
       di = m6.create("bpmndi:BPMNShape", {
         bpmnElement: fe3,
         bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height })
       });
-      ((_m = mainPlane.planeElement) != null ? _m : mainPlane.planeElement = []).push(di);
+      ((_j = mainPlane.planeElement) != null ? _j : mainPlane.planeElement = []).push(di);
       diShape.set(n3.id, di);
     }
     const existing = flowById.get(n3.id);
@@ -82406,7 +82409,7 @@ async function patchExisting(raw2, model, m6) {
   }
   const refIdOf = (r4) => typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.id;
   const referenced = /* @__PURE__ */ new Set();
-  for (const fe3 of (_n2 = process2.flowElements) != null ? _n2 : []) {
+  for (const fe3 of (_k = process2.flowElements) != null ? _k : []) {
     if (fe3.$type !== "bpmn:SequenceFlow") continue;
     if (!modelEdgeIds.has(fe3.id)) continue;
     const src = refIdOf(fe3.sourceRef);
@@ -82414,12 +82417,12 @@ async function patchExisting(raw2, model, m6) {
     if (src) referenced.add(src);
     if (tgt) referenced.add(tgt);
   }
-  process2.flowElements = ((_o = process2.flowElements) != null ? _o : []).filter((fe3) => {
+  process2.flowElements = ((_l = process2.flowElements) != null ? _l : []).filter((fe3) => {
     if (fe3.$type === "bpmn:SequenceFlow") return modelEdgeIds.has(fe3.id);
     return modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
   });
   const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
-  mainPlane.planeElement = ((_p = mainPlane.planeElement) != null ? _p : []).filter((pe3) => {
+  mainPlane.planeElement = ((_m = mainPlane.planeElement) != null ? _m : []).filter((pe3) => {
     var _a4;
     const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
     if (!refId) return true;
@@ -82430,6 +82433,7 @@ async function patchExisting(raw2, model, m6) {
     }
     return true;
   });
+  emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m6);
   for (const e4 of model.edges) {
     const srcNode = model.nodes.find((n3) => n3.id === e4.source);
     const tgtNode = model.nodes.find((n3) => n3.id === e4.target);
@@ -82446,21 +82450,118 @@ async function patchExisting(raw2, model, m6) {
         const targetFe = flowById.get(e4.target);
         sf = m6.create("bpmn:SequenceFlow", {
           id: e4.id,
-          name: (_q = e4.label) != null ? _q : "",
+          name: (_n2 = e4.label) != null ? _n2 : "",
           sourceRef: sourceFe,
           targetRef: targetFe
         });
-        ((_r = process2.flowElements) != null ? _r : process2.flowElements = []).push(sf);
+        ((_o = process2.flowElements) != null ? _o : process2.flowElements = []).push(sf);
       } else if (typeof e4.label === "string") {
         sf.name = e4.label;
       }
       de3 = m6.create("bpmndi:BPMNEdge", { bpmnElement: sf, waypoint: wps });
-      ((_s = mainPlane.planeElement) != null ? _s : mainPlane.planeElement = []).push(de3);
+      ((_p = mainPlane.planeElement) != null ? _p : mainPlane.planeElement = []).push(de3);
       diEdge.set(e4.id, de3);
     }
   }
   const { xml: xml3 } = await m6.toXML(definitions, { format: true });
   return xml3;
+}
+function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m6) {
+  var _a3, _b2, _c;
+  const pools = model.nodes.filter((n3) => {
+    var _a4, _b3;
+    return ((_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
+  });
+  if (!pools.length) return;
+  const flow = model.nodes.filter((n3) => {
+    var _a4, _b3;
+    return ((_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) !== "pool";
+  });
+  if (!flow.length) return;
+  const minX = Math.min(...flow.map((n3) => n3.x));
+  const minY = Math.min(...flow.map((n3) => n3.y));
+  const maxX = Math.max(...flow.map((n3) => n3.x + n3.width));
+  const maxY = Math.max(...flow.map((n3) => n3.y + n3.height));
+  const poolX = minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN;
+  const poolY = minY - POOL_MARGIN;
+  const poolW = maxX - minX + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2;
+  const poolH = maxY - minY + POOL_MARGIN * 2;
+  for (const pool of pools) {
+    const prefix2 = [];
+    let pdi = diShape.get(pool.id);
+    if (pdi == null ? void 0 : pdi.bounds) {
+      pdi.bounds.x = poolX;
+      pdi.bounds.y = poolY;
+      pdi.bounds.width = poolW;
+      pdi.bounds.height = poolH;
+    } else {
+      const part = findParticipant(definitions, pool.id);
+      pdi = m6.create("bpmndi:BPMNShape", {
+        bpmnElement: part != null ? part : m6.create("bpmn:Participant", { id: pool.id }),
+        bounds: m6.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
+      });
+      pdi.isHorizontal = true;
+      diShape.set(pool.id, pdi);
+      prefix2.push(pdi);
+    }
+    const lanes = (_b2 = (_a3 = pool.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
+    const laneX = poolX + POOL_HEADER;
+    const laneW = poolW - POOL_HEADER;
+    if (lanes.length) {
+      const bands = laneBands(lanes, process2, model, poolY, poolH);
+      lanes.forEach((ln3, i6) => {
+        if (!ln3.id) return;
+        const band = bands[i6];
+        let ldi = diShape.get(ln3.id);
+        if (ldi == null ? void 0 : ldi.bounds) {
+          ldi.bounds.x = laneX;
+          ldi.bounds.y = band.y;
+          ldi.bounds.width = laneW;
+          ldi.bounds.height = band.h;
+        } else {
+          const laneEl = findLane(process2, ln3.id);
+          ldi = m6.create("bpmndi:BPMNShape", {
+            bpmnElement: laneEl != null ? laneEl : m6.create("bpmn:Lane", { id: ln3.id }),
+            bounds: m6.create("dc:Bounds", { x: laneX, y: band.y, width: laneW, height: band.h })
+          });
+          ldi.isHorizontal = true;
+          diShape.set(ln3.id, ldi);
+          prefix2.push(ldi);
+        }
+      });
+    }
+    if (prefix2.length) ((_c = mainPlane.planeElement) != null ? _c : mainPlane.planeElement = []).unshift(...prefix2);
+  }
+}
+function laneBands(lanes, process2, model, poolY, poolH) {
+  if (lanes.length <= 1) return [{ y: poolY, h: poolH }];
+  const nodeY = new Map(model.nodes.map((n3) => [n3.id, { top: n3.y, bot: n3.y + n3.height }]));
+  const mids = lanes.map((ln3) => {
+    var _a3;
+    const lane = findLane(process2, ln3.id);
+    const refs = (_a3 = lane == null ? void 0 : lane.flowNodeRef) != null ? _a3 : [];
+    const ys = refs.map((r4) => {
+      var _a4;
+      return nodeY.get(typeof r4 === "string" ? r4 : (_a4 = r4.id) != null ? _a4 : "");
+    }).filter(Boolean);
+    if (!ys.length) return NaN;
+    return ys.reduce((s5, v6) => s5 + (v6.top + v6.bot) / 2, 0) / ys.length;
+  });
+  if (mids.some((v6) => Number.isNaN(v6))) {
+    const each = poolH / lanes.length;
+    return lanes.map((_5, i6) => ({ y: poolY + i6 * each, h: each }));
+  }
+  const order = lanes.map((_5, i6) => i6).sort((a5, b3) => mids[a5] - mids[b3]);
+  const bounds = [poolY];
+  for (let i6 = 0; i6 < order.length - 1; i6++) {
+    bounds.push((mids[order[i6]] + mids[order[i6 + 1]]) / 2);
+  }
+  bounds.push(poolY + poolH);
+  const bands = new Array(lanes.length);
+  order.forEach((laneIdx, k5) => {
+    bands[laneIdx] = { y: bounds[k5], h: bounds[k5 + 1] - bounds[k5] };
+  });
+  return bands;
 }
 function buildWaypoints(e4, src, tgt, m6) {
   var _a3;

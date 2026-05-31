@@ -1,9 +1,15 @@
 import { OmniboardCanvas } from "../src/canvas/OmniboardCanvas";
 import { renderModelToSvg, collectPluginCss } from "../src/canvas/staticRender";
 import { registerAllShapes, SHAPE_CATEGORIES } from "../src/canvas/shapes/index";
+import { importBpmn } from "../src/io/bpmn/import";
+import { importDbml } from "../src/io/dbml/import";
 registerAllShapes();
 const host = document.getElementById("host")!;
 const canvas = new OmniboardCanvas(host, SHAPE_CATEGORIES, () => {});
+(window as any).__import = {
+  bpmn: (raw: string) => { const r = importBpmn(raw); canvas.loadModel(r.model); return { nodes: r.model.nodes.length, edges: r.model.edges.length, warnings: r.warnings }; },
+  dbml: (raw: string) => { const r = importDbml(raw); canvas.loadModel(r.model); return { nodes: r.model.nodes.length, edges: r.model.edges.length, warnings: r.warnings }; },
+};
 canvas.loadModel({ nodes: [
   { id: "p", shape: "fc-process", x: 50, y: 120, width: 130, height: 56, label: "Xử lý" },
   { id: "user", shape: "erd-entity", x: 250, y: 60, width: 200, height: 159, label: "users",

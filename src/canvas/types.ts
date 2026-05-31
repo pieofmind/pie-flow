@@ -8,5 +8,7 @@ export interface CanvasModel {
     label?: string; labelPos?: { distance?: number; offset?: number | { x: number; y: number } }; y?: number; ret?: boolean;
     style?: { stroke?: string; width?: number; dash?: string; start?: string; end?: string };
     vertices?: Array<{ x: number; y: number }>;
+    /** Optional override of the canvas router. Used by importers to preserve DI waypoints byte-for-byte. */
+    router?: "manhattan" | "normal" | "orth";
   }>;
 }

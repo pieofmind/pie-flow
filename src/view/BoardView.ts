@@ -3,8 +3,33 @@ import { OmniboardCanvas } from "../canvas/OmniboardCanvas";
 import type { CanvasModel } from "../canvas/types";
 import { registerAllShapes, SHAPE_CATEGORIES } from "../canvas/shapes/index";
 import { serializeBoard, deserializeBoard } from "./boardSerde";
+import { importFromFile } from "../io/dispatcher";
+import { findById, FORMATS } from "../io/registry";
 
 registerAllShapes();
+
+type NoticeKind = "success" | "warn" | "error" | "info";
+
+/** Build a notice payload with a lucide icon + text — keeps toasts consistent with the topbar/Obsidian icon set instead of leaning on emoji. */
+function noticeFrag(kind: NoticeKind, text: string): DocumentFragment {
+  const frag = document.createDocumentFragment();
+  const wrap = document.createElement("span");
+  wrap.addClass("da-notice");
+  wrap.addClass(`da-notice-${kind}`);
+  const iconEl = wrap.createSpan({ cls: "da-notice-icon" });
+  const icon =
+    kind === "success" ? "check-circle-2" :
+    kind === "warn" ? "alert-triangle" :
+    kind === "error" ? "x-circle" : "info";
+  setIcon(iconEl, icon);
+  wrap.createSpan({ cls: "da-notice-text", text });
+  frag.appendChild(wrap);
+  return frag;
+}
+
+function notify(kind: NoticeKind, text: string, timeout?: number): Notice {
+  return new Notice(noticeFrag(kind, text), timeout);
+}
 
 export const BOARD_VIEW_TYPE = "omniboard-board";
 export const BOARD_EXTENSION = "omniboard.md";
@@ -80,8 +105,12 @@ export class BoardView extends TextFileView {
     });
     bar.createDiv({ cls: "da-tb-divider" });
     iconBtn("file-text", "Mở dưới dạng Markdown", () => this.openAsMarkdown());
+    const imp = bar.createEl("button", { cls: "da-tb-ic" });
+    setIcon(imp, "upload"); imp.setAttribute("aria-label", "Import");
+    imp.title = "Import (BPMN / DBML)";
+    imp.onclick = () => this.openImportPicker();
     const exp = bar.createEl("button", { cls: "da-tb-ic" });
-    setIcon(exp, "download"); exp.setAttribute("aria-label", "Export"); exp.title = "Export (SVG / PNG)";
+    setIcon(exp, "download"); exp.setAttribute("aria-label", "Export"); exp.title = "Export (SVG / PNG / BPMN / DBML)";
     exp.onclick = (e) => this.showExportMenu(e);
 
     const save = bar.createEl("button", { cls: "da-tb-save" });
@@ -100,6 +129,12 @@ export class BoardView extends TextFileView {
     menu.addItem((i) => i.setTitle("PDF (A4)").setIcon("file-text").onClick(() => this.handleExportPdf()));
     menu.addSeparator();
     menu.addItem((i) => i.setTitle("Copy as Mermaid").setIcon("clipboard-copy").onClick(() => this.handleCopyMermaid()));
+    menu.addSeparator();
+    for (const fmt of FORMATS) {
+      menu.addItem((i) =>
+        i.setTitle(fmt.displayName).setIcon("file-output").onClick(() => this.handleExportFormat(fmt.id))
+      );
+    }
     menu.showAtMouseEvent(e);
   }
 
@@ -111,9 +146,9 @@ export class BoardView extends TextFileView {
       const existing = this.app.vault.getAbstractFileByPath(path);
       if (existing) await this.app.vault.modifyBinary(existing as never, bytes.buffer as ArrayBuffer);
       else await this.app.vault.createBinary(path, bytes.buffer as ArrayBuffer);
-      new Notice(`✅ Đã export: ${path}`);
+      notify("success", `Đã export: ${path}`);
     } catch {
-      new Notice("❌ Export PDF lỗi");
+      notify("error", "Export PDF lỗi");
     }
   }
 
@@ -121,9 +156,9 @@ export class BoardView extends TextFileView {
     if (!this.canvas) return;
     try {
       await navigator.clipboard.writeText(this.canvas.exportMermaid());
-      new Notice("✅ Đã copy Mermaid vào clipboard");
+      notify("success", "Đã copy Mermaid vào clipboard");
     } catch {
-      new Notice("❌ Copy Mermaid lỗi");
+      notify("error", "Copy Mermaid lỗi");
     }
   }
 
@@ -135,9 +170,9 @@ export class BoardView extends TextFileView {
       const existing = this.app.vault.getAbstractFileByPath(path);
       if (existing) await this.app.vault.modify(existing as never, svg);
       else await this.app.vault.create(path, svg);
-      new Notice(`✅ Đã export: ${path}`);
+      notify("success", `Đã export: ${path}`);
     } catch {
-      new Notice("❌ Export SVG lỗi");
+      notify("error", "Export SVG lỗi");
     }
   }
 
@@ -151,9 +186,9 @@ export class BoardView extends TextFileView {
       const existing = this.app.vault.getAbstractFileByPath(path);
       if (existing) await this.app.vault.modifyBinary(existing as never, buf);
       else await this.app.vault.createBinary(path, buf);
-      new Notice(`✅ Đã export: ${path}`);
+      notify("success", `Đã export: ${path}`);
     } catch {
-      new Notice("❌ Export PNG lỗi");
+      notify("error", "Export PNG lỗi");
     }
   }
 
@@ -165,9 +200,9 @@ export class BoardView extends TextFileView {
     if (parsed === null) {
       this.invalidFormat = true;
       void this.backupInvalid(data);
-      new Notice(
-        "⚠️ File .omniboard.md không đúng định dạng — drawing block thiếu/hỏng. " +
-        "File được giữ nguyên, đã tạo bản sao lưu .bak cạnh file.",
+      notify(
+        "warn",
+        "File .omniboard.md không đúng định dạng — drawing block thiếu/hỏng. File được giữ nguyên, đã tạo bản sao lưu .bak cạnh file.",
         10000
       );
       return;
@@ -187,7 +222,7 @@ export class BoardView extends TextFileView {
   getViewData(): string {
     if (this.invalidFormat) return this.rawData; // never clobber an unparseable file
     if (this.canvas) this.model = this.canvas.getModel();
-    return serializeBoard(this.model, this.rawData);
+    return serializeBoard(this.model, this.rawData, this.pendingSourceMeta ?? undefined);
   }
 
   clear(): void { this.model = EMPTY_MODEL; }
@@ -205,6 +240,63 @@ export class BoardView extends TextFileView {
         await this.app.vault.create(path, data);
       }
     } catch { /* backup is best-effort; never block the view */ }
+  }
+
+  /** Open a hidden file input to let the user pick a diagram file to import. */
+  private openImportPicker(): void {
+    if (!this.canvas) return;
+    const input = document.createElement("input");
+    input.type = "file";
+    const exts = FORMATS.flatMap((f) => f.extensions.map((e) => "." + e));
+    input.accept = exts.join(",");
+    input.style.display = "none";
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      input.remove();
+      if (!file) return;
+      try {
+        const raw = await file.text();
+        const result = await importFromFile(file.name, raw);
+        const { added } = this.canvas!.mergeModel(result.model);
+        // Stash the source meta on the view; on next save it gets serialised
+        // into the .omniboard.md so export can round-trip later.
+        this.pendingSourceMeta = result.sourceMeta;
+        this.requestSave();
+        notify(
+          "success",
+          `Đã import ${added} phần tử từ ${file.name}` +
+          (result.warnings.length ? ` (${result.warnings.length} cảnh báo)` : "")
+        );
+        if (result.warnings.length) {
+          for (const w of result.warnings.slice(0, 5)) notify("warn", w, 6000);
+        }
+      } catch (err) {
+        notify("error", `Import lỗi: ${(err as Error).message}`, 8000);
+      }
+    };
+    document.body.appendChild(input);
+    input.click();
+  }
+
+  private pendingSourceMeta: unknown = null;
+
+  private async handleExportFormat(formatId: string): Promise<void> {
+    if (!this.canvas || !this.file) return;
+    const fmt = findById(formatId as never);
+    if (!fmt) return;
+    try {
+      const meta = this.pendingSourceMeta ??
+        (await import("./boardSerde")).deserializeSourceMeta(this.rawData);
+      const text = await fmt.exporter(this.canvas.getModel(), (meta as never) ?? null);
+      const ext = fmt.extensions[0];
+      const path = this.file.path.replace(EXT_RE, "." + ext);
+      const existing = this.app.vault.getAbstractFileByPath(path);
+      if (existing) await this.app.vault.modify(existing as never, text);
+      else await this.app.vault.create(path, text);
+      notify("success", `Đã export ${fmt.displayName}: ${path}`);
+    } catch (err) {
+      notify("error", `Export ${fmt.displayName} lỗi: ${(err as Error).message}`, 8000);
+    }
   }
 
   /** Save current state then switch the leaf to the default markdown view. */

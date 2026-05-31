@@ -793,3 +793,20 @@
   /* 5. Rail touch targets. */
   .lk-rail-item { width: 44px; height: 44px; }
 }
+
+/* ── Toast notices (lucide icon + text, replaces emoji) ───────────── */
+.notice:has(.da-notice) { padding: 0; }
+.da-notice {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px; min-width: 260px;
+}
+.da-notice .da-notice-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; flex: 0 0 18px; margin-top: 1px;
+}
+.da-notice .da-notice-icon svg { width: 18px; height: 18px; }
+.da-notice .da-notice-text { line-height: 1.4; }
+.da-notice-success .da-notice-icon { color: #3ba776; }
+.da-notice-warn    .da-notice-icon { color: #d29a3a; }
+.da-notice-error   .da-notice-icon { color: #c0524a; }
+.da-notice-info    .da-notice-icon { color: var(--pg-accent, #5E8FB9); }

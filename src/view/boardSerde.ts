@@ -4,11 +4,16 @@ import type { CanvasModel } from "../canvas/types";
 export const OMNIBOARD_EXT = "omniboard.md";
 export const OMNIBOARD_SUFFIX = `.${OMNIBOARD_EXT}`;
 const DATA_LANG = "omniboard-data";
+const META_LANG = "omniboard-source-meta";
 const REQUIRED_FM_KEY = "omniboard-plugin";
 const REQUIRED_FM_VAL = "parsed";
 
 const DRAWING_RE = new RegExp(
   "```" + DATA_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
+  "m"
+);
+const META_RE = new RegExp(
+  "```" + META_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
   "m"
 );
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
@@ -103,8 +108,19 @@ function escapeMd(s: string): string {
  * Serialize a canvas model as a `.omniboard.md` document. Existing frontmatter
  * (passed via `previousRaw`) is preserved so user-added fields survive a save.
  */
-export function serializeBoard(model: CanvasModel, previousRaw = ""): string {
+/** Read the source-meta block (from a previous import) or null if absent. */
+export function deserializeSourceMeta(raw: string): unknown {
+  const m = META_RE.exec(raw);
+  if (!m) return null;
+  const json = decompress(m[1]);
+  if (json === null) return null;
+  try { return JSON.parse(json); } catch { return null; }
+}
+
+export function serializeBoard(model: CanvasModel, previousRaw = "", sourceMeta?: unknown): string {
   const fm = parseFrontmatter(previousRaw);
+  // If caller didn't pass meta, preserve the previous meta block.
+  const meta = sourceMeta ?? deserializeSourceMeta(previousRaw);
   const parts: string[] = [];
   parts.push(emitFrontmatter(fm));
   parts.push("");
@@ -139,6 +155,13 @@ export function serializeBoard(model: CanvasModel, previousRaw = ""): string {
   parts.push("```" + DATA_LANG);
   parts.push(compress(json));
   parts.push("```");
+  if (meta) {
+    parts.push("");
+    parts.push("## Source Meta");
+    parts.push("```" + META_LANG);
+    parts.push(compress(JSON.stringify(meta)));
+    parts.push("```");
+  }
   parts.push("%%");
   parts.push("");
   return parts.join("\n");

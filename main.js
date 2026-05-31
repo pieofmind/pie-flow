@@ -72907,12 +72907,31 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (!((_c = node2 == null ? void 0 : node2.isNode) == null ? void 0 : _c.call(node2))) return;
     const p6 = this.lastPointerLocal;
     if (!p6) return;
-    const b3 = node2.getBBox();
-    const dx = Math.max(0, Math.min(b3.width, p6.x - b3.x));
-    const dy = Math.max(0, Math.min(b3.height, p6.y - b3.y));
-    const endSpec = { cell: id, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } };
+    const endSpec = this.dockAnchorSpec(id, node2, p6);
     if (which === "source") edge.setSource(endSpec);
     else edge.setTarget(endSpec);
+  }
+  /**
+   * Build an endpoint spec that docks to the node EDGE nearest the given point.
+   * An arrow endpoint must sit on the boundary anyway; snapping to the nearest
+   * *edge* (not an independent x/y clamp) means a drop in a diagonal/corner
+   * region docks to whichever SIDE is closer instead of the corner — the free
+   * coordinate along that side is preserved so multiple arrows on the same side
+   * still land at distinct points (bpmn.io docking). Removes the "endpoint jumps
+   * to the top-right corner, then I must add a bend to fix the route" problem.
+   * Shared by pinDropAnchor (magnet drop) and handleDragToBlank (geometric drop).
+   */
+  dockAnchorSpec(cellId, node2, pt2) {
+    const b3 = node2.getBBox();
+    let dx = Math.max(0, Math.min(b3.width, pt2.x - b3.x));
+    let dy = Math.max(0, Math.min(b3.height, pt2.y - b3.y));
+    const dLeft = dx, dRight = b3.width - dx, dTop = dy, dBottom = b3.height - dy;
+    const m6 = Math.min(dLeft, dRight, dTop, dBottom);
+    if (m6 === dTop) dy = 0;
+    else if (m6 === dBottom) dy = b3.height;
+    else if (m6 === dLeft) dx = 0;
+    else dx = b3.width;
+    return { cell: cellId, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } };
   }
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
   handleDragToBlank(edge) {
@@ -72929,11 +72948,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (n3.id === src.id) continue;
       const b3 = n3.getBBox();
       if (pt2.x < b3.x || pt2.x > b3.x + b3.width || pt2.y < b3.y || pt2.y > b3.y + b3.height) continue;
-      edge.setTarget({
-        cell: n3.id,
-        anchor: { name: "topLeft", args: { dx: pt2.x - b3.x, dy: pt2.y - b3.y } },
-        connectionPoint: { name: "boundary" }
-      });
+      edge.setTarget(this.dockAnchorSpec(n3.id, n3, pt2));
       this.applyMindmapRoutingIfNeeded(edge);
       this.applySeqRoutingIfNeeded(edge);
       return;
@@ -75514,13 +75529,18 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const h5 = Math.max(...incoming.nodes.map((n3) => n3.y + n3.height), 0) - minY;
     const dx = viewCx - w5 / 2 - minX;
     const dy = viewCy - h5 / 2 - minY;
+    const current = this.getModel();
     const stamp = Date.now().toString(36);
     let seq = 0;
+    const existingIds = /* @__PURE__ */ new Set([
+      ...current.nodes.map((n3) => n3.id),
+      ...current.edges.map((e4) => e4.id)
+    ]);
     const idMap = /* @__PURE__ */ new Map();
     const idFor = (oldId) => {
       let mapped = idMap.get(oldId);
       if (!mapped) {
-        mapped = `${oldId}_imp_${stamp}_${(++seq).toString(36)}`;
+        mapped = existingIds.has(oldId) ? `${oldId}_imp_${stamp}_${(++seq).toString(36)}` : oldId;
         idMap.set(oldId, mapped);
       }
       return mapped;
@@ -75534,7 +75554,6 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         __source: { ...src, sourceId: idFor(src.sourceId) }
       };
     };
-    const current = this.getModel();
     const merged = {
       nodes: [
         ...current.nodes,
@@ -82618,8 +82637,37 @@ function noticeFrag(kind, text4) {
 function notify(kind, text4, timeout) {
   return new import_obsidian.Notice(noticeFrag(kind, text4), timeout);
 }
+async function saveToLocal(data2, suggestedName, mimeType) {
+  var _a3, _b2;
+  const blob = data2 instanceof Blob ? data2 : new Blob([data2], { type: mimeType });
+  const w5 = window;
+  if (typeof w5.showSaveFilePicker === "function") {
+    try {
+      const ext = (_b2 = (_a3 = suggestedName.match(/\.([^.]+)$/)) == null ? void 0 : _a3[1]) != null ? _b2 : "";
+      const handle = await w5.showSaveFilePicker({
+        suggestedName,
+        types: ext ? [{ description: ext.toUpperCase(), accept: { [mimeType]: ["." + ext] } }] : []
+      });
+      const writer = await handle.createWritable();
+      await writer.write(blob);
+      await writer.close();
+      return handle.name;
+    } catch (err2) {
+      if ((err2 == null ? void 0 : err2.name) === "AbortError") return null;
+      throw err2;
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a5 = document.createElement("a");
+  a5.href = url;
+  a5.download = suggestedName;
+  document.body.appendChild(a5);
+  a5.click();
+  a5.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1e3);
+  return suggestedName;
+}
 var BOARD_VIEW_TYPE = "omniboard-board";
-var EXT_RE = /\.omniboard\.md$/;
 var EMPTY_MODEL = { nodes: [], edges: [] };
 var BoardView = class extends import_obsidian.TextFileView {
   constructor(leaf) {
@@ -82739,15 +82787,16 @@ var BoardView = class extends import_obsidian.TextFileView {
     }
     menu.showAtMouseEvent(e4);
   }
+  suggestedName(suffix) {
+    var _a3, _b2;
+    return ((_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Omniboard") + suffix;
+  }
   async handleExportPdf() {
     if (!this.canvas || !this.file) return;
     try {
       const bytes = await this.canvas.exportPDF();
-      const path2 = this.file.path.replace(EXT_RE, ".pdf");
-      const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing) await this.app.vault.modifyBinary(existing, bytes.buffer);
-      else await this.app.vault.createBinary(path2, bytes.buffer);
-      notify("success", `\u0110\xE3 export: ${path2}`);
+      const saved = await saveToLocal(bytes.buffer, this.suggestedName(".pdf"), "application/pdf");
+      if (saved) notify("success", `\u0110\xE3 export: ${saved}`);
     } catch (e4) {
       notify("error", "Export PDF l\u1ED7i");
     }
@@ -82765,11 +82814,8 @@ var BoardView = class extends import_obsidian.TextFileView {
     if (!this.canvas || !this.file) return;
     try {
       const svg3 = this.canvas.exportSVG();
-      const path2 = this.file.path.replace(EXT_RE, ".svg");
-      const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing) await this.app.vault.modify(existing, svg3);
-      else await this.app.vault.create(path2, svg3);
-      notify("success", `\u0110\xE3 export: ${path2}`);
+      const saved = await saveToLocal(svg3, this.suggestedName(".svg"), "image/svg+xml");
+      if (saved) notify("success", `\u0110\xE3 export: ${saved}`);
     } catch (e4) {
       notify("error", "Export SVG l\u1ED7i");
     }
@@ -82778,13 +82824,9 @@ var BoardView = class extends import_obsidian.TextFileView {
     if (!this.canvas || !this.file) return;
     try {
       const blob = await this.canvas.exportPNG(scale2);
-      const buf = await blob.arrayBuffer();
       const suffix = scale2 === 1 ? ".png" : `@${scale2}x.png`;
-      const path2 = this.file.path.replace(EXT_RE, suffix);
-      const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing) await this.app.vault.modifyBinary(existing, buf);
-      else await this.app.vault.createBinary(path2, buf);
-      notify("success", `\u0110\xE3 export: ${path2}`);
+      const saved = await saveToLocal(blob, this.suggestedName(suffix), "image/png");
+      if (saved) notify("success", `\u0110\xE3 export: ${saved}`);
     } catch (e4) {
       notify("error", "Export PNG l\u1ED7i");
     }
@@ -82880,11 +82922,9 @@ var BoardView = class extends import_obsidian.TextFileView {
       const meta = (_a3 = this.pendingSourceMeta) != null ? _a3 : (await Promise.resolve().then(() => (init_boardSerde(), boardSerde_exports))).deserializeSourceMeta(this.rawData);
       const text4 = await fmt.exporter(this.canvas.getModel(), meta);
       const ext = fmt.extensions[0];
-      const path2 = this.file.path.replace(EXT_RE, "." + ext);
-      const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing) await this.app.vault.modify(existing, text4);
-      else await this.app.vault.create(path2, text4);
-      notify("success", `\u0110\xE3 export ${fmt.displayName}: ${path2}`);
+      const mime = ext === "bpmn" || ext === "bpmn2" ? "application/xml" : ext === "dbml" ? "text/plain" : "text/plain";
+      const saved = await saveToLocal(text4, this.suggestedName("." + ext), mime);
+      if (saved) notify("success", `\u0110\xE3 export ${fmt.displayName}: ${saved}`);
     } catch (err2) {
       notify("error", `Export ${fmt.displayName} l\u1ED7i: ${err2.message}`, 8e3);
     }

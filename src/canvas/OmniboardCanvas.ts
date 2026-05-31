@@ -639,12 +639,32 @@ export class OmniboardCanvas {
     // any port X6 snapped to (the 4 cardinal circles are just aim hints now).
     const p = this.lastPointerLocal;
     if (!p) return;
-    const b = (node as Node).getBBox();
-    const dx = Math.max(0, Math.min(b.width, p.x - b.x));
-    const dy = Math.max(0, Math.min(b.height, p.y - b.y));
-    const endSpec = { cell: id, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } } as never;
+    const endSpec = this.dockAnchorSpec(id, node as Node, p) as never;
     if (which === "source") edge.setSource(endSpec);
     else edge.setTarget(endSpec);
+  }
+
+  /**
+   * Build an endpoint spec that docks to the node EDGE nearest the given point.
+   * An arrow endpoint must sit on the boundary anyway; snapping to the nearest
+   * *edge* (not an independent x/y clamp) means a drop in a diagonal/corner
+   * region docks to whichever SIDE is closer instead of the corner — the free
+   * coordinate along that side is preserved so multiple arrows on the same side
+   * still land at distinct points (bpmn.io docking). Removes the "endpoint jumps
+   * to the top-right corner, then I must add a bend to fix the route" problem.
+   * Shared by pinDropAnchor (magnet drop) and handleDragToBlank (geometric drop).
+   */
+  private dockAnchorSpec(cellId: string, node: Node, pt: { x: number; y: number }) {
+    const b = node.getBBox();
+    let dx = Math.max(0, Math.min(b.width, pt.x - b.x));
+    let dy = Math.max(0, Math.min(b.height, pt.y - b.y));
+    const dLeft = dx, dRight = b.width - dx, dTop = dy, dBottom = b.height - dy;
+    const m = Math.min(dLeft, dRight, dTop, dBottom);
+    if (m === dTop) dy = 0;
+    else if (m === dBottom) dy = b.height;
+    else if (m === dLeft) dx = 0;
+    else dx = b.width;
+    return { cell: cellId, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } };
   }
 
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
@@ -664,11 +684,7 @@ export class OmniboardCanvas {
       if (n.id === src.id) continue;
       const b = n.getBBox();
       if (pt.x < b.x || pt.x > b.x + b.width || pt.y < b.y || pt.y > b.y + b.height) continue;
-      edge.setTarget({
-        cell: n.id,
-        anchor: { name: "topLeft", args: { dx: pt.x - b.x, dy: pt.y - b.y } },
-        connectionPoint: { name: "boundary" },
-      } as never);
+      edge.setTarget(this.dockAnchorSpec(n.id, n as Node, pt) as never);
       this.applyMindmapRoutingIfNeeded(edge);
       this.applySeqRoutingIfNeeded(edge);
       return;

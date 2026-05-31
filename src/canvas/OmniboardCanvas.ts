@@ -2167,15 +2167,13 @@ export class OmniboardCanvas {
 
   // ── Popups ───────────────────────────────────────────────────────────────
   private openShapePopup(node: Node, anchor: HTMLElement) {
-    const grid = el("div", "lk-shape-grid");
-    for (const cat of this.categories) {
-      for (const item of cat.items) {
-        const cell = el("div", "lk-shape-cell", shapeIcon(item.shape));
-        cell.title = item.label;
-        cell.onclick = () => { this.morphShape(node, item.shape); this.hidePopup(); this.refreshContextBar(); };
-        grid.appendChild(cell);
-      }
-    }
+    // Show only shapes from the same diagram family as the selected node
+    // (Basic + BPMN/ERD/UML/State/Sequence/Flowchart) — picking a BPMN task
+    // from an ERD entity makes no sense and clutters the picker.
+    const grid = this.buildShapeGrid(
+      (item) => { this.morphShape(node, item.shape); this.hidePopup(); this.refreshContextBar(); },
+      this.categoriesFor(node),
+    );
     this.showPopup(grid, anchor);
   }
 

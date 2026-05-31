@@ -74424,19 +74424,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   // ── Popups ───────────────────────────────────────────────────────────────
   openShapePopup(node2, anchor3) {
-    const grid = el("div", "lk-shape-grid");
-    for (const cat of this.categories) {
-      for (const item of cat.items) {
-        const cell = el("div", "lk-shape-cell", shapeIcon(item.shape));
-        cell.title = item.label;
-        cell.onclick = () => {
-          this.morphShape(node2, item.shape);
-          this.hidePopup();
-          this.refreshContextBar();
-        };
-        grid.appendChild(cell);
-      }
-    }
+    const grid = this.buildShapeGrid(
+      (item) => {
+        this.morphShape(node2, item.shape);
+        this.hidePopup();
+        this.refreshContextBar();
+      },
+      this.categoriesFor(node2)
+    );
     this.showPopup(grid, anchor3);
   }
   openColorPopup(node2, key, anchor3) {

@@ -2,7 +2,7 @@ import { h } from "preact";
 import { useRef, useEffect } from "preact/hooks";
 import { Graph } from "@antv/x6";
 import type { RendererProps } from "../../core/adapter";
-import type { CanvasModel } from "../../canvas/LarkCanvas";
+import type { CanvasModel } from "../../canvas/OmniboardCanvas";
 import { registerAllShapes } from "../../canvas/shapes/index";
 
 registerAllShapes();

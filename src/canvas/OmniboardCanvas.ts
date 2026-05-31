@@ -189,7 +189,7 @@ function arrowPreview(style: EdgeStyle): string {
   return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
 }
 
-export class LarkCanvas {
+export class OmniboardCanvas {
   private graph: Graph;
   private root: HTMLElement;
   private graphMount: HTMLElement;
@@ -309,7 +309,7 @@ export class LarkCanvas {
       grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
-        snap: { radius: 30 },         // Lark-style magnet pull radius
+        snap: { radius: 30 },         // Omniboard-style magnet pull radius
         allowBlank: true,             // drop on empty canvas → "pick shape" picker
         allowLoop: false,             // no self-loops
         allowNode: true,              // drop anywhere on a target node (not only its port)
@@ -325,12 +325,12 @@ export class LarkCanvas {
         createEdge() { return this.createEdge({ attrs: EDGE_ATTRS }); },
         // Accept a drop on any other node — body magnet handles snap; this also
         // accepts EMPTY-canvas drops so allowBlank still fires edge:connected
-        // → "Chèn hình" picker (Larksuite-style).
+        // → "Chèn hình" picker (Omniboard-style).
         validateConnection: ({ sourceCell, targetCell }) =>
           !targetCell || (targetCell.isNode() && sourceCell !== targetCell),
       },
       highlighting: {
-        // Hovering a valid magnet during endpoint drag → blue outline (Lark UX).
+        // Hovering a valid magnet during endpoint drag → blue outline (Omniboard UX).
         magnetAvailable: { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } },
         magnetAdsorbed:  { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } },
       },
@@ -1012,7 +1012,7 @@ export class LarkCanvas {
     // Sequence messages: when both endpoints are sequence lifelines, swap the
     // edge's connector to "seq-msg" so the arrow stays horizontal at source Y.
     this.graph.on("edge:connected", ({ edge, isNew }) => {
-      // Dropped on empty canvas → show shape picker at the drop point (Larksuite).
+      // Dropped on empty canvas → show shape picker at the drop point (Omniboard).
       if (isNew && !edge.getTargetCellId()) { this.handleDragToBlank(edge); return; }
       this.applySeqRoutingIfNeeded(edge);
       this.applyMindmapRoutingIfNeeded(edge);
@@ -1047,7 +1047,7 @@ export class LarkCanvas {
   }
 
   // ── Left tool dock (design "PHẦN TỬ" — labeled vertical list) ─────────────
-  // Compact icon rail (Larksuite-style): one icon per category; hover reveals a
+  // Compact icon rail (Omniboard-style): one icon per category; hover reveals a
   // flyout grid of that category's shapes (draggable onto the canvas).
   private buildLeftToolbar() {
     const rail = el("div", "lk-rail");
@@ -1130,9 +1130,9 @@ export class LarkCanvas {
     sep();
 
     const byTitle = (t: string) => this.categories.find((c) => c.title === t);
-    for (const title of LarkCanvas.QUICK_CATS) {
+    for (const title of OmniboardCanvas.QUICK_CATS) {
       const cat = byTitle(title); if (!cat) continue;
-      const b = btn(shapeIcon(LarkCanvas.CAT_REP[title] ?? cat.items[0].shape), title, () => {});
+      const b = btn(shapeIcon(OmniboardCanvas.CAT_REP[title] ?? cat.items[0].shape), title, () => {});
       b.onclick = () => this.openFlyout(cat, b);
     }
     const more = btn(MORE, "Sơ đồ khác", () => {});
@@ -1150,13 +1150,13 @@ export class LarkCanvas {
   private openMoreSheet(anchor: HTMLElement) {
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
-    const rest = this.categories.filter((c) => !LarkCanvas.QUICK_CATS.includes(c.title));
+    const rest = this.categories.filter((c) => !OmniboardCanvas.QUICK_CATS.includes(c.title));
     const fly = el("div", "lk-flyout");
     fly.appendChild(el("div", "lk-flyout-title", "Sơ đồ khác"));
     const grid = el("div", "lk-flyout-grid");
     for (const cat of rest) {
       const cell = el("div", "lk-flyout-cell",
-        `${shapeIcon(LarkCanvas.CAT_REP[cat.title] ?? cat.items[0].shape)}<span class="lbl">${cat.title}</span>`);
+        `${shapeIcon(OmniboardCanvas.CAT_REP[cat.title] ?? cat.items[0].shape)}<span class="lbl">${cat.title}</span>`);
       cell.style.cursor = "pointer";
       cell.onclick = () => this.openFlyout(cat, anchor);
       grid.appendChild(cell);

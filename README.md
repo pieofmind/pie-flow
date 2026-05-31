@@ -108,7 +108,7 @@ npx esbuild harness/harness.ts --bundle --format=iife --outfile=harness/harness.
 python3 -m http.server 8755     # then open harness/index.html
 ```
 
-The harness renders a `LarkCanvas` with sample diagrams — the screenshots in this README were captured from it via Playwright.
+The harness renders a `OmniboardCanvas` with sample diagrams — the screenshots in this README were captured from it via Playwright.
 
 ---
 

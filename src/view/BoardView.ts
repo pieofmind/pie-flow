@@ -1,5 +1,5 @@
 import { TextFileView, WorkspaceLeaf, setIcon, Notice, Menu } from "obsidian";
-import { LarkCanvas } from "../canvas/LarkCanvas";
+import { OmniboardCanvas } from "../canvas/OmniboardCanvas";
 import type { CanvasModel } from "../canvas/types";
 import { registerAllShapes, SHAPE_CATEGORIES } from "../canvas/shapes/index";
 import { serializeBoard, deserializeBoard } from "./boardSerde";
@@ -17,7 +17,7 @@ const EMPTY_MODEL: CanvasModel = { nodes: [], edges: [] };
  * Opening the file opens the canvas directly — no code block, no modal.
  */
 export class BoardView extends TextFileView {
-  private canvas: LarkCanvas | null = null;
+  private canvas: OmniboardCanvas | null = null;
   private host: HTMLElement | null = null;
   private boardTitleEl: HTMLElement | null = null;
   private model: CanvasModel = EMPTY_MODEL;
@@ -42,7 +42,7 @@ export class BoardView extends TextFileView {
     this.host = this.contentEl.createDiv({ cls: "da-board-host" });
     this.host.style.cssText = "position:relative; flex:1; min-height:0;";
 
-    this.canvas = new LarkCanvas(this.host, SHAPE_CATEGORIES, () => this.requestSave());
+    this.canvas = new OmniboardCanvas(this.host, SHAPE_CATEGORIES, () => this.requestSave());
     this.canvas.loadModel(this.model);
   }
 

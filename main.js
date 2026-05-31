@@ -71927,7 +71927,7 @@ function ce(e4) {
   }), n3;
 }
 
-// src/canvas/LarkCanvas.ts
+// src/canvas/OmniboardCanvas.ts
 var FILL_SWATCHES = [
   "transparent",
   "#FFFFFF",
@@ -72124,7 +72124,7 @@ function arrowPreview(style2) {
   return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
 }
 var _a2;
-var _LarkCanvas = class _LarkCanvas {
+var _OmniboardCanvas = class _OmniboardCanvas {
   constructor(root2, categories, onChange) {
     this.edgeBar = null;
     this.labelInput = null;
@@ -72337,7 +72337,7 @@ var _LarkCanvas = class _LarkCanvas {
       background: { color: "transparent" },
       connecting: {
         snap: { radius: 30 },
-        // Lark-style magnet pull radius
+        // Omniboard-style magnet pull radius
         allowBlank: true,
         // drop on empty canvas → "pick shape" picker
         allowLoop: false,
@@ -72359,11 +72359,11 @@ var _LarkCanvas = class _LarkCanvas {
         },
         // Accept a drop on any other node — body magnet handles snap; this also
         // accepts EMPTY-canvas drops so allowBlank still fires edge:connected
-        // → "Chèn hình" picker (Larksuite-style).
+        // → "Chèn hình" picker (Omniboard-style).
         validateConnection: ({ sourceCell, targetCell }) => !targetCell || targetCell.isNode() && sourceCell !== targetCell
       },
       highlighting: {
-        // Hovering a valid magnet during endpoint drag → blue outline (Lark UX).
+        // Hovering a valid magnet during endpoint drag → blue outline (Omniboard UX).
         magnetAvailable: { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } },
         magnetAdsorbed: { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } }
       }
@@ -73173,7 +73173,7 @@ var _LarkCanvas = class _LarkCanvas {
     });
   }
   // ── Left tool dock (design "PHẦN TỬ" — labeled vertical list) ─────────────
-  // Compact icon rail (Larksuite-style): one icon per category; hover reveals a
+  // Compact icon rail (Omniboard-style): one icon per category; hover reveals a
   // flyout grid of that category's shapes (draggable onto the canvas).
   buildLeftToolbar() {
     var _a3;
@@ -73248,10 +73248,10 @@ var _LarkCanvas = class _LarkCanvas {
     arrow.onclick = () => this.openArrowFlyout(arrow);
     sep();
     const byTitle = (t5) => this.categories.find((c6) => c6.title === t5);
-    for (const title2 of _LarkCanvas.QUICK_CATS) {
+    for (const title2 of _OmniboardCanvas.QUICK_CATS) {
       const cat = byTitle(title2);
       if (!cat) continue;
-      const b3 = btn(shapeIcon((_a3 = _LarkCanvas.CAT_REP[title2]) != null ? _a3 : cat.items[0].shape), title2, () => {
+      const b3 = btn(shapeIcon((_a3 = _OmniboardCanvas.CAT_REP[title2]) != null ? _a3 : cat.items[0].shape), title2, () => {
       });
       b3.onclick = () => this.openFlyout(cat, b3);
     }
@@ -73271,7 +73271,7 @@ var _LarkCanvas = class _LarkCanvas {
     var _a3;
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
-    const rest = this.categories.filter((c6) => !_LarkCanvas.QUICK_CATS.includes(c6.title));
+    const rest = this.categories.filter((c6) => !_OmniboardCanvas.QUICK_CATS.includes(c6.title));
     const fly = el("div", "lk-flyout");
     fly.appendChild(el("div", "lk-flyout-title", "S\u01A1 \u0111\u1ED3 kh\xE1c"));
     const grid = el("div", "lk-flyout-grid");
@@ -73279,7 +73279,7 @@ var _LarkCanvas = class _LarkCanvas {
       const cell = el(
         "div",
         "lk-flyout-cell",
-        `${shapeIcon((_a3 = _LarkCanvas.CAT_REP[cat.title]) != null ? _a3 : cat.items[0].shape)}<span class="lbl">${cat.title}</span>`
+        `${shapeIcon((_a3 = _OmniboardCanvas.CAT_REP[cat.title]) != null ? _a3 : cat.items[0].shape)}<span class="lbl">${cat.title}</span>`
       );
       cell.style.cursor = "pointer";
       cell.onclick = () => this.openFlyout(cat, anchor3);
@@ -75461,7 +75461,7 @@ var _LarkCanvas = class _LarkCanvas {
   }
 };
 // Representative shape icon for each diagram category (rail + mobile bar).
-_LarkCanvas.CAT_REP = {
+_OmniboardCanvas.CAT_REP = {
   "C\u01A1 b\u1EA3n": "bs-rect",
   "Flowchart": "fc-decision",
   "ERD": "erd-entity",
@@ -75472,8 +75472,8 @@ _LarkCanvas.CAT_REP = {
   "BPMN": "bpmn-gateway-x"
 };
 // Diagram categories that get a dedicated button on the mobile bottom bar (rest → "Sơ đồ khác" sheet).
-_LarkCanvas.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
-var LarkCanvas = _LarkCanvas;
+_OmniboardCanvas.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
+var OmniboardCanvas = _OmniboardCanvas;
 
 // src/view/boardSerde.ts
 init_pako_esm();
@@ -75641,7 +75641,7 @@ var BoardView = class extends import_obsidian.TextFileView {
     this.buildTopBar();
     this.host = this.contentEl.createDiv({ cls: "da-board-host" });
     this.host.style.cssText = "position:relative; flex:1; min-height:0;";
-    this.canvas = new LarkCanvas(this.host, SHAPE_CATEGORIES, () => this.requestSave());
+    this.canvas = new OmniboardCanvas(this.host, SHAPE_CATEGORIES, () => this.requestSave());
     this.canvas.loadModel(this.model);
   }
   buildTopBar() {
@@ -76483,7 +76483,7 @@ function FlowchartEditor({ initialModel, onSave, onClose }) {
   const dirtyRef = A5(false);
   y4(() => {
     if (!hostRef.current) return;
-    const canvas = new LarkCanvas(hostRef.current, SHAPE_CATEGORIES, () => {
+    const canvas = new OmniboardCanvas(hostRef.current, SHAPE_CATEGORIES, () => {
       dirtyRef.current = true;
     });
     canvasRef.current = canvas;

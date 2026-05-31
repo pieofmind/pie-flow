@@ -1,4 +1,4 @@
-import type { CanvasModel } from "../../canvas/LarkCanvas";
+import type { CanvasModel } from "../../canvas/OmniboardCanvas";
 
 /**
  * Provisional serialization: JSON CanvasModel inside the ```flowchart block.

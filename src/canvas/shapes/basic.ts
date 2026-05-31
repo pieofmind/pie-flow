@@ -38,7 +38,7 @@ export function registerBasicShapes(): void {
     ports: p,
   }, true);
 
-  // Sticky note (Lark yellow)
+  // Sticky note (Omniboard yellow)
   Graph.registerNode("bs-sticky", {
     inherit: "rect", width: 140, height: 120,
     attrs: {

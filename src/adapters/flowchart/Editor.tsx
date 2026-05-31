@@ -1,20 +1,20 @@
 import { h } from "preact";
 import { useRef, useEffect } from "preact/hooks";
 import type { EditorProps } from "../../core/adapter";
-import type { CanvasModel } from "../../canvas/LarkCanvas";
-import { LarkCanvas } from "../../canvas/LarkCanvas";
+import type { CanvasModel } from "../../canvas/OmniboardCanvas";
+import { OmniboardCanvas } from "../../canvas/OmniboardCanvas";
 import { registerAllShapes, SHAPE_CATEGORIES } from "../../canvas/shapes/index";
 
 registerAllShapes();
 
 export function FlowchartEditor({ initialModel, onSave, onClose }: EditorProps<CanvasModel>) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<LarkCanvas | null>(null);
+  const canvasRef = useRef<OmniboardCanvas | null>(null);
   const dirtyRef = useRef(false);
 
   useEffect(() => {
     if (!hostRef.current) return;
-    const canvas = new LarkCanvas(hostRef.current, SHAPE_CATEGORIES, () => { dirtyRef.current = true; });
+    const canvas = new OmniboardCanvas(hostRef.current, SHAPE_CATEGORIES, () => { dirtyRef.current = true; });
     canvasRef.current = canvas;
     canvas.loadModel(initialModel);
     return () => { canvas.destroy(); canvasRef.current = null; };

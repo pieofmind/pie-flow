@@ -1,5 +1,5 @@
 import type { DiagramAdapter } from "../../core/adapter";
-import type { CanvasModel } from "../../canvas/LarkCanvas";
+import type { CanvasModel } from "../../canvas/OmniboardCanvas";
 import { parseFlowchart, serializeFlowchart, emptyFlowchart } from "./model";
 import { FlowchartEditor } from "./Editor";
 import { FlowchartRenderer } from "./Renderer";

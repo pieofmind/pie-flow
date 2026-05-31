@@ -234,7 +234,8 @@ export class OmniboardCanvas {
   private padLayer: HTMLElement | null = null;
   private pendingDrop: Edge | null = null; // dangling edge awaiting a shape pick (drag-to-blank)
   private lastSelectedAt = new Map<string, number>(); // when each node became selected (for click-to-edit)
-  private lastPointerLocal: { x: number; y: number } | null = null; // last cursor pos in graph coords (for precise drop-anchor)
+  private lastPointerClient: { x: number; y: number } | null = null; // last cursor pos in RAW client coords (converted to graph coords lazily at drop)
+  private docListeners: Array<{ type: string; fn: EventListener }> = []; // document-scoped listeners to remove on destroy()
   // Mobile-only HTML overlay: WebKit/iOS mis-positions <foreignObject> HTML content
   // (position:absolute, clip-path, transform, %-height flex all jump to 0,0). We hide
   // the foreignObject visuals on mobile and render each node into a real <div> overlay
@@ -644,8 +645,9 @@ export class OmniboardCanvas {
     // every drop on the same side collapse to one spot. The real pointer gives
     // bpmn.io-style unlimited positioning — distinct anchor per drop. Overrides
     // any port X6 snapped to (the 4 cardinal circles are just aim hints now).
-    const p = this.lastPointerLocal;
-    if (!p) return;
+    const c = this.lastPointerClient;
+    if (!c) return;
+    const p = this.graph.clientToLocal(c.x, c.y); // convert once, at drop time
     const endSpec = this.dockAnchorSpec(id, node as Node, p) as never;
     if (which === "source") edge.setSource(endSpec);
     else edge.setTarget(endSpec);
@@ -1055,25 +1057,32 @@ export class OmniboardCanvas {
     };
     this.graphMount.addEventListener("mousedown", onDomDown, true);
     this.graphMount.addEventListener("touchstart", onDomDown, true);
-    const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
-    document.addEventListener("mouseup", clearDrag, true);
-    document.addEventListener("touchend", clearDrag, true);
-    document.addEventListener("touchcancel", clearDrag, true);
+    // Register a document-scoped capture listener AND record it so destroy()
+    // can remove it — otherwise every board re-open leaks another listener that
+    // keeps firing (and references a disposed graph), compounding into jank.
+    const addDoc = (type: string, fn: EventListener) => { document.addEventListener(type, fn, true); this.docListeners.push({ type, fn }); };
 
-    // Track the live cursor position in graph coordinates. pinDropAnchor reads
-    // this at edge-connect time so a dropped endpoint lands at the EXACT pixel
-    // the cursor was over — not at the snapped port / center that X6 reports.
-    // This is what makes manual draw match the imported-file behaviour: two
-    // arrows dropped at different spots on the same node get distinct anchors.
-    // Listen on DOCUMENT (capture), not graphMount: during an X6 connect-drag
-    // the pointer can be captured by another element, so graphMount-scoped
-    // mousemove may stop firing mid-drag and lastPointerLocal would go stale →
-    // the drop falls back to whatever port X6 snapped to (the "only 3 fixed
-    // points" bug). Document capture always sees the move.
-    const trackPointer = (cx: number, cy: number) => { this.lastPointerLocal = this.graph.clientToLocal(cx, cy); };
-    document.addEventListener("mousemove", (e) => trackPointer(e.clientX, e.clientY), true);
-    document.addEventListener("mouseup", (e) => trackPointer(e.clientX, e.clientY), true);
-    document.addEventListener("touchmove", (e) => { const t = e.touches[0]; if (t) trackPointer(t.clientX, t.clientY); }, true);
+    const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
+    addDoc("mouseup", clearDrag);
+    addDoc("touchend", clearDrag);
+    addDoc("touchcancel", clearDrag);
+
+    // Track the live cursor position so pinDropAnchor can land a dropped endpoint
+    // at the EXACT pixel the cursor was over (not the snapped port X6 reports) —
+    // this is what makes manual draw match the imported-file behaviour.
+    //
+    // Store RAW client coords only; do NOT call graph.clientToLocal here. That
+    // conversion reads the container's bounding rect → forces a layout reflow,
+    // and running it on every document mousemove made the whole canvas stutter
+    // ("đơ đơ"). We convert once, lazily, in pinDropAnchor at drop time.
+    //
+    // Listen on DOCUMENT (capture): during an X6 connect-drag the pointer can be
+    // captured by another element, so a graphMount-scoped move can stop firing
+    // mid-drag and the stored position would go stale.
+    const trackPointer = (cx: number, cy: number) => { this.lastPointerClient = { x: cx, y: cy }; };
+    addDoc("mousemove", (e) => trackPointer((e as MouseEvent).clientX, (e as MouseEvent).clientY));
+    addDoc("mouseup", (e) => trackPointer((e as MouseEvent).clientX, (e as MouseEvent).clientY));
+    addDoc("touchmove", (e) => { const t = (e as TouchEvent).touches[0]; if (t) trackPointer(t.clientX, t.clientY); });
 
     // Edges behave like nodes: click to select (highlighted), Delete to remove.
     // Double-click edits the label. No floating delete button.
@@ -1156,7 +1165,11 @@ export class OmniboardCanvas {
     this.graph.on("node:selected", ({ node }) => { this.lastSelectedAt.set(node.id, Date.now()); });
     this.graph.on("node:unselected", ({ node }) => { this.lastSelectedAt.delete(node.id); });
 
-    this.graph.on("blank:click", () => { this.hidePopup(); this.commitLabel(); });
+    // Click on empty canvas → deselect. X6's rubberband Selection doesn't
+    // reliably clear on a plain blank click, so do it explicitly (this is the
+    // "can't unselect" the user hit). blank:click only fires on a click without
+    // a drag, so it won't fight rubberband box-select.
+    this.graph.on("blank:click", () => { this.hidePopup(); this.commitLabel(); this.graph.cleanSelection(); });
     this.graph.on("blank:mousedown", () => this.hidePopup());
 
     // Sequence messages: when both endpoints are sequence lifelines, swap the
@@ -3445,6 +3458,10 @@ export class OmniboardCanvas {
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
     if (this.wheelPan) this.graphMount.removeEventListener("wheel", this.wheelPan);
+    // Remove document-scoped listeners so they don't pile up (and keep firing
+    // against a disposed graph) every time a board is re-opened.
+    for (const { type, fn } of this.docListeners) document.removeEventListener(type, fn, true);
+    this.docListeners = [];
     this.graph.dispose();
   }
 }

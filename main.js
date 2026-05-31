@@ -72380,8 +72380,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     // dangling edge awaiting a shape pick (drag-to-blank)
     this.lastSelectedAt = /* @__PURE__ */ new Map();
     // when each node became selected (for click-to-edit)
-    this.lastPointerLocal = null;
-    // last cursor pos in graph coords (for precise drop-anchor)
+    this.lastPointerClient = null;
+    // last cursor pos in RAW client coords (converted to graph coords lazily at drop)
+    this.docListeners = [];
+    // document-scoped listeners to remove on destroy()
     // Mobile-only HTML overlay: WebKit/iOS mis-positions <foreignObject> HTML content
     // (position:absolute, clip-path, transform, %-height flex all jump to 0,0). We hide
     // the foreignObject visuals on mobile and render each node into a real <div> overlay
@@ -72905,8 +72907,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (!id) return;
     const node2 = this.graph.getCellById(id);
     if (!((_c = node2 == null ? void 0 : node2.isNode) == null ? void 0 : _c.call(node2))) return;
-    const p6 = this.lastPointerLocal;
-    if (!p6) return;
+    const c6 = this.lastPointerClient;
+    if (!c6) return;
+    const p6 = this.graph.clientToLocal(c6.x, c6.y);
     const endSpec = this.dockAnchorSpec(id, node2, p6);
     if (which === "source") edge.setSource(endSpec);
     else edge.setTarget(endSpec);
@@ -73366,19 +73369,23 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     };
     this.graphMount.addEventListener("mousedown", onDomDown, true);
     this.graphMount.addEventListener("touchstart", onDomDown, true);
-    const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
-    document.addEventListener("mouseup", clearDrag, true);
-    document.addEventListener("touchend", clearDrag, true);
-    document.addEventListener("touchcancel", clearDrag, true);
-    const trackPointer = (cx, cy) => {
-      this.lastPointerLocal = this.graph.clientToLocal(cx, cy);
+    const addDoc = (type, fn2) => {
+      document.addEventListener(type, fn2, true);
+      this.docListeners.push({ type, fn: fn2 });
     };
-    document.addEventListener("mousemove", (e4) => trackPointer(e4.clientX, e4.clientY), true);
-    document.addEventListener("mouseup", (e4) => trackPointer(e4.clientX, e4.clientY), true);
-    document.addEventListener("touchmove", (e4) => {
+    const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
+    addDoc("mouseup", clearDrag);
+    addDoc("touchend", clearDrag);
+    addDoc("touchcancel", clearDrag);
+    const trackPointer = (cx, cy) => {
+      this.lastPointerClient = { x: cx, y: cy };
+    };
+    addDoc("mousemove", (e4) => trackPointer(e4.clientX, e4.clientY));
+    addDoc("mouseup", (e4) => trackPointer(e4.clientX, e4.clientY));
+    addDoc("touchmove", (e4) => {
       const t5 = e4.touches[0];
       if (t5) trackPointer(t5.clientX, t5.clientY);
-    }, true);
+    });
     this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
     this.graph.on("edge:selected", ({ edge }) => {
       this.applyEdgeStyle(edge, true);
@@ -73473,6 +73480,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.graph.on("blank:click", () => {
       this.hidePopup();
       this.commitLabel();
+      this.graph.cleanSelection();
     });
     this.graph.on("blank:mousedown", () => this.hidePopup());
     this.graph.on("edge:connected", ({ edge, isNew, type }) => {
@@ -75902,6 +75910,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
     if (this.wheelPan) this.graphMount.removeEventListener("wheel", this.wheelPan);
+    for (const { type, fn: fn2 } of this.docListeners) document.removeEventListener(type, fn2, true);
+    this.docListeners = [];
     this.graph.dispose();
   }
 };
@@ -82268,12 +82278,16 @@ async function patchExisting(raw2, model, m6) {
     if (fe3.$type === "bpmn:SequenceFlow") return modelEdgeIds.has(fe3.id);
     return modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
   });
+  const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
   mainPlane.planeElement = ((_k = mainPlane.planeElement) != null ? _k : []).filter((pe3) => {
     var _a4;
     const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
     if (!refId) return true;
-    if (pe3.$type === "bpmndi:BPMNShape") return modelNodeIds.has(refId) || referenced.has(refId);
     if (pe3.$type === "bpmndi:BPMNEdge") return modelEdgeIds.has(refId);
+    if (pe3.$type === "bpmndi:BPMNShape") {
+      if (!flowNodeIdSet.has(refId)) return true;
+      return modelNodeIds.has(refId) || referenced.has(refId);
+    }
     return true;
   });
   for (const e4 of model.edges) {

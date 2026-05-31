@@ -6985,7 +6985,7 @@ var require_html2canvas = __commonJS({
           return Bounds2;
         }()
       );
-      var parseBounds = function(context, node2) {
+      var parseBounds2 = function(context, node2) {
         return Bounds.fromClientRect(context, node2.getBoundingClientRect());
       };
       var parseDocumentSize = function(document2) {
@@ -7605,7 +7605,7 @@ var require_html2canvas = __commonJS({
       var A6 = 65;
       var E3 = 69;
       var F3 = 70;
-      var U2 = 85;
+      var U3 = 85;
       var Z3 = 90;
       var isDigit = function(codePoint) {
         return codePoint >= ZERO && codePoint <= 57;
@@ -7933,7 +7933,7 @@ var require_html2canvas = __commonJS({
               case RIGHT_CURLY_BRACKET:
                 return RIGHT_CURLY_BRACKET_TOKEN;
               case u6:
-              case U2:
+              case U3:
                 var u1 = this.peekCodePoint(0);
                 var u22 = this.peekCodePoint(1);
                 if (u1 === PLUS_SIGN && (isHex(u22) || u22 === QUESTION_MARK)) {
@@ -10587,7 +10587,7 @@ var require_html2canvas = __commonJS({
                 element.style.transform = "none";
               }
             }
-            this.bounds = parseBounds(this.context, element);
+            this.bounds = parseBounds2(this.context, element);
             if (isDebugging(
               element,
               4
@@ -11104,7 +11104,7 @@ var require_html2canvas = __commonJS({
           var parentNode = node2.parentNode;
           if (parentNode) {
             parentNode.replaceChild(wrapper, node2);
-            var bounds = parseBounds(context, wrapper);
+            var bounds = parseBounds2(context, wrapper);
             if (wrapper.firstChild) {
               parentNode.replaceChild(wrapper.firstChild, wrapper);
             }
@@ -11245,7 +11245,7 @@ var require_html2canvas = __commonJS({
           function SVGElementContainer2(context, img) {
             var _this = _super.call(this, context, img) || this;
             var s5 = new XMLSerializer();
-            var bounds = parseBounds(context, img);
+            var bounds = parseBounds2(context, img);
             img.setAttribute("width", bounds.width + "px");
             img.setAttribute("height", bounds.height + "px");
             _this.svg = "data:image/svg+xml," + encodeURIComponent(s5.serializeToString(img));
@@ -12294,9 +12294,9 @@ var require_html2canvas = __commonJS({
                 anonymousReplacedElement.appendChild(img);
               } else if (token.type === 18) {
                 if (token.name === "attr") {
-                  var attr2 = token.values.filter(isIdentToken);
-                  if (attr2.length) {
-                    anonymousReplacedElement.appendChild(document2.createTextNode(node2.getAttribute(attr2[0].value) || ""));
+                  var attr3 = token.values.filter(isIdentToken);
+                  if (attr3.length) {
+                    anonymousReplacedElement.appendChild(document2.createTextNode(node2.getAttribute(attr3[0].value) || ""));
                   }
                 } else if (token.name === "counter") {
                   var _a3 = token.values.filter(nonFunctionArgSeparator), counter = _a3[0], counterStyle = _a3[1];
@@ -14550,7 +14550,7 @@ var require_html2canvas = __commonJS({
                 return [4, documentCloner.toIFrame(ownerDocument, windowBounds)];
               case 1:
                 container = _u.sent();
-                _a3 = isBodyElement(clonedElement) || isHTMLElement2(clonedElement) ? parseDocumentSize(clonedElement.ownerDocument) : parseBounds(context, clonedElement), width2 = _a3.width, height2 = _a3.height, left4 = _a3.left, top4 = _a3.top;
+                _a3 = isBodyElement(clonedElement) || isHTMLElement2(clonedElement) ? parseDocumentSize(clonedElement.ownerDocument) : parseBounds2(context, clonedElement), width2 = _a3.width, height2 = _a3.height, left4 = _a3.left, top4 = _a3.top;
                 backgroundColor2 = parseBackgroundColor(context, clonedElement, opts.backgroundColor);
                 renderOptions = {
                   canvas: opts.canvas,
@@ -15394,8 +15394,8 @@ function createDOMPurify() {
     };
     let l5 = attributes.length;
     while (l5--) {
-      const attr2 = attributes[l5];
-      const name = attr2.name, namespaceURI = attr2.namespaceURI, attrValue = attr2.value;
+      const attr3 = attributes[l5];
+      const name = attr3.name, namespaceURI = attr3.namespaceURI, attrValue = attr3.value;
       const lcName = transformCaseFunc(name);
       const initValue = attrValue;
       let value = name === "value" ? initValue : stringTrim(initValue);
@@ -15497,10 +15497,10 @@ function createDOMPurify() {
   const _sanitizeAttachedShadowRoots2 = function _sanitizeAttachedShadowRoots(root2) {
     const nodeType = getNodeType ? getNodeType(root2) : root2.nodeType;
     if (nodeType === NODE_TYPE.element) {
-      const sr = getShadowRoot ? getShadowRoot(root2) : root2.shadowRoot;
-      if (_isDocumentFragment(sr)) {
-        _sanitizeAttachedShadowRoots2(sr);
-        _sanitizeShadowDOM2(sr);
+      const sr2 = getShadowRoot ? getShadowRoot(root2) : root2.shadowRoot;
+      if (_isDocumentFragment(sr2)) {
+        _sanitizeAttachedShadowRoots2(sr2);
+        _sanitizeShadowDOM2(sr2);
       }
     }
     const childNodes = getChildNodes ? getChildNodes(root2) : root2.childNodes;
@@ -15637,12 +15637,12 @@ function createDOMPurify() {
     CONFIG = null;
     SET_CONFIG = false;
   };
-  DOMPurify.isValidAttribute = function(tag, attr2, value) {
+  DOMPurify.isValidAttribute = function(tag, attr3, value) {
     if (!CONFIG) {
       _parseConfig({});
     }
     const lcTag = transformCaseFunc(tag);
-    const lcName = transformCaseFunc(attr2);
+    const lcName = transformCaseFunc(attr3);
     return _isValidAttribute(lcTag, lcName, value);
   };
   DOMPurify.addHook = function(entryPoint, hookFunction) {
@@ -20582,9 +20582,9 @@ var init_SVGPathData_module = __esm({
             }, S4 = 0, L4 = s(A6, -d4, 0).map(I4); S4 < L4.length; S4++) {
               (w5 = L4[S4]) > R4 && w5 < g3 && O6(y(u7.cX, d4, A6, w5));
             }
-            for (var H4 = 0, U2 = s(C5, -E3, 0).map(I4); H4 < U2.length; H4++) {
+            for (var H4 = 0, U3 = s(C5, -E3, 0).map(I4); H4 < U3.length; H4++) {
               var w5;
-              (w5 = U2[H4]) > R4 && w5 < g3 && l6(y(u7.cY, E3, C5, w5));
+              (w5 = U3[H4]) > R4 && w5 < g3 && l6(y(u7.cY, E3, C5, w5));
             }
           }
           return r5;
@@ -22586,13 +22586,13 @@ var init_index_es = __esm({
       }
       getAttribute(name) {
         var createIfNotExists = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : false;
-        var attr2 = this.attributes[name];
-        if (!attr2 && createIfNotExists) {
+        var attr3 = this.attributes[name];
+        if (!attr3 && createIfNotExists) {
           var _attr = new Property(this.document, name, "");
           this.attributes[name] = _attr;
           return _attr;
         }
-        return attr2 || Property.empty(this.document);
+        return attr3 || Property.empty(this.document);
       }
       getHrefAttribute() {
         for (var key in this.attributes) {
@@ -22609,10 +22609,10 @@ var init_index_es = __esm({
         if (style2) {
           return style2;
         }
-        var attr2 = this.getAttribute(name);
-        if (attr2 !== null && attr2 !== void 0 && attr2.hasValue()) {
-          this.styles[name] = attr2;
-          return attr2;
+        var attr3 = this.getAttribute(name);
+        if (attr3 !== null && attr3 !== void 0 && attr3.hasValue()) {
+          this.styles[name] = attr3;
+          return attr3;
         }
         if (!skipAncestors) {
           var {
@@ -26587,11 +26587,11 @@ function E(e4) {
   }, z5 = y5.__private__.f3 = function(t5) {
     if (isNaN(t5)) throw new Error("Invalid argument passed to jsPDF.f3");
     return D5(t5, 3);
-  }, U2 = y5.scale = y5.__private__.scale = function(t5) {
+  }, U3 = y5.scale = y5.__private__.scale = function(t5) {
     if (isNaN(t5)) throw new Error("Invalid argument passed to jsPDF.scale");
     return _5 === A6 ? t5 * St3 : _5 === S4 ? t5 : void 0;
   }, H4 = function(t5) {
-    return U2(function(t6) {
+    return U3(function(t6) {
       return _5 === A6 ? Pr() - t6 : _5 === S4 ? t6 : void 0;
     }(t5));
   };
@@ -26931,7 +26931,7 @@ function E(e4) {
         lt3("/CA " + T6(t5[e5]));
     }
     lt3(">>"), lt3("endobj");
-  }, fe2 = function(t5) {
+  }, fe3 = function(t5) {
     Zt3(t5.resourcesOid, true), lt3("<<"), lt3("/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]"), function() {
       for (var t6 in lt3("/Font <<"), Ft3) Ft3.hasOwnProperty(t6) && (false === v6 || true === v6 && b3.hasOwnProperty(t6)) && lt3("/" + t6 + " " + Ft3[t6].objectNumber + " 0 R");
       lt3(">>");
@@ -26986,7 +26986,7 @@ function E(e4) {
       case "p":
         i6 > a6 && (s5 = [a6, i6]);
     }
-    me3(s5), Qe2(Ze2), lt3(sr), 0 !== dr && lt3(dr + " J"), 0 !== pr && lt3(pr + " j"), Dt3.publish("addPage", { pageNumber: Et3 });
+    me3(s5), Qe2(Ze2), lt3(sr2), 0 !== dr && lt3(dr + " J"), 0 !== pr && lt3(pr + " j"), Dt3.publish("addPage", { pageNumber: Et3 });
   }, be2 = function(t5) {
     t5 > 0 && t5 <= Et3 && (ot3.splice(t5, 1), Rt3.splice(t5, 1), Et3--, $4 > Et3 && ($4 = Et3), this.setPage($4));
   }, ye3 = function(t5) {
@@ -27063,7 +27063,7 @@ function E(e4) {
     }(), function(t6) {
       var e6;
       for (e6 in jt3) jt3.hasOwnProperty(e6) && (jt3[e6] instanceof M2 ? ce3(jt3[e6]) : jt3[e6] instanceof q2 && le3(jt3[e6], t6));
-    }(t5), Dt3.publish("putResources"), t5.forEach(fe2), fe2({ resourcesOid: te3, objectOid: Number.MAX_SAFE_INTEGER }), Dt3.publish("postPutResources"), null !== m6 && (Oe2.oid = Xt3(), lt3("<<"), lt3("/Filter /Standard"), lt3("/V " + Oe2.v), lt3("/R " + Oe2.r), lt3("/U <" + Oe2.toHexString(Oe2.U) + ">"), lt3("/O <" + Oe2.toHexString(Oe2.O) + ">"), lt3("/P " + Oe2.P), lt3(">>"), lt3("endobj")), Le3(), xe3();
+    }(t5), Dt3.publish("putResources"), t5.forEach(fe3), fe3({ resourcesOid: te3, objectOid: Number.MAX_SAFE_INTEGER }), Dt3.publish("postPutResources"), null !== m6 && (Oe2.oid = Xt3(), lt3("<<"), lt3("/Filter /Standard"), lt3("/V " + Oe2.v), lt3("/R " + Oe2.r), lt3("/U <" + Oe2.toHexString(Oe2.U) + ">"), lt3("/O <" + Oe2.toHexString(Oe2.O) + ">"), lt3("/P " + Oe2.P), lt3(">>"), lt3("endobj")), Le3(), xe3();
     var e5 = it3;
     return _e3(), Ae3(), lt3("startxref"), lt3("" + e5), lt3("%%EOF"), ct3(ot3[$4]), nt3.join("\n");
   }, ke3 = y5.__private__.getBlob = function(t5) {
@@ -27267,7 +27267,7 @@ function E(e4) {
       var M3 = Math.cos(u7), q4 = Math.sin(u7);
       p7 = new Wt3(M3, q4, -q4, M3, 0, 0);
     } else u7 && u7 instanceof Wt3 && (p7 = u7);
-    _5 !== S4 || p7 || (p7 = Gt3), void 0 !== (l5 = i6.charSpace || hr) && (y6 += B5(U2(l5)) + " Tc\n", this.setCharSpace(this.getCharSpace() || 0)), void 0 !== (d4 = i6.horizontalScale) && (y6 += B5(100 * d4) + " Tz\n"), i6.lang;
+    _5 !== S4 || p7 || (p7 = Gt3), void 0 !== (l5 = i6.charSpace || hr) && (y6 += B5(U3(l5)) + " Tc\n", this.setCharSpace(this.getCharSpace() || 0)), void 0 !== (d4 = i6.horizontalScale) && (y6 += B5(100 * d4) + " Tz\n"), i6.lang;
     var E3 = -1, D6 = void 0 !== i6.renderingMode ? i6.renderingMode : i6.stroke, T7 = g4.internal.getCurrentPageInfo().pageContext;
     switch (D6) {
       case 0:
@@ -27317,17 +27317,17 @@ function E(e4) {
       var K5, Z4 = 0;
       if ("right" === c7) {
         r5 -= H5[0], e5 = [], C5 = s6.length;
-        for (var $5 = 0; $5 < C5; $5++) 0 === $5 ? (K5 = nr2(r5), X4 = ir2(n4)) : (K5 = U2(Z4 - H5[$5]), X4 = -W4), e5.push([s6[$5], K5, X4]), Z4 = H5[$5];
+        for (var $5 = 0; $5 < C5; $5++) 0 === $5 ? (K5 = nr2(r5), X4 = ir2(n4)) : (K5 = U3(Z4 - H5[$5]), X4 = -W4), e5.push([s6[$5], K5, X4]), Z4 = H5[$5];
       } else if ("center" === c7) {
         r5 -= H5[0] / 2, e5 = [], C5 = s6.length;
-        for (var Q5 = 0; Q5 < C5; Q5++) 0 === Q5 ? (K5 = nr2(r5), X4 = ir2(n4)) : (K5 = U2((Z4 - H5[Q5]) / 2), X4 = -W4), e5.push([s6[Q5], K5, X4]), Z4 = H5[Q5];
+        for (var Q5 = 0; Q5 < C5; Q5++) 0 === Q5 ? (K5 = nr2(r5), X4 = ir2(n4)) : (K5 = U3((Z4 - H5[Q5]) / 2), X4 = -W4), e5.push([s6[Q5], K5, X4]), Z4 = H5[Q5];
       } else if ("left" === c7) {
         e5 = [], C5 = s6.length;
         for (var tt4 = 0; tt4 < C5; tt4++) e5.push(s6[tt4]);
       } else if ("justify" === c7 && "Identity-H" === G4.encoding) {
         e5 = [], C5 = s6.length, h5 = 0 !== h5 ? h5 : V5;
         for (var et5 = 0, rt4 = 0; rt4 < C5; rt4++) if (X4 = 0 === rt4 ? ir2(n4) : -W4, K5 = 0 === rt4 ? nr2(r5) : et5, rt4 < C5 - 1) {
-          var nt4 = U2((h5 - H5[rt4]) / (s6[rt4].split(" ").length - 1)), it4 = s6[rt4].split(" ");
+          var nt4 = U3((h5 - H5[rt4]) / (s6[rt4].split(" ").length - 1)), it4 = s6[rt4].split(" ");
           e5.push([it4[0] + " ", K5, X4]), et5 = 0;
           for (var at4 = 1; at4 < it4.length; at4++) {
             var ot4 = (J5(it4[at4 - 1] + " " + it4[at4]) - J5(it4[at4])) * N6 + nt4;
@@ -27340,7 +27340,7 @@ function E(e4) {
         for (e5 = [], C5 = s6.length, h5 = 0 !== h5 ? h5 : V5, rt4 = 0; rt4 < C5; rt4++) {
           X4 = 0 === rt4 ? ir2(n4) : -W4, K5 = 0 === rt4 ? nr2(r5) : 0;
           var st4 = s6[rt4].split(" ").length - 1, ut4 = st4 > 0 ? (h5 - H5[rt4]) / st4 : 0;
-          rt4 < C5 - 1 ? Y4.push(B5(U2(ut4))) : Y4.push(0), e5.push([s6[rt4], K5, X4]);
+          rt4 < C5 - 1 ? Y4.push(B5(U3(ut4))) : Y4.push(0), e5.push([s6[rt4], K5, X4]);
         }
       }
     }
@@ -27451,11 +27451,11 @@ function E(e4) {
         return "W* S";
     }
   }, Ge2 = y5.moveTo = function(t5, e5) {
-    return lt3(B5(U2(t5)) + " " + B5(H4(e5)) + " m"), this;
+    return lt3(B5(U3(t5)) + " " + B5(H4(e5)) + " m"), this;
   }, Ye2 = y5.lineTo = function(t5, e5) {
-    return lt3(B5(U2(t5)) + " " + B5(H4(e5)) + " l"), this;
+    return lt3(B5(U3(t5)) + " " + B5(H4(e5)) + " l"), this;
   }, Je2 = y5.curveTo = function(t5, e5, r5, n4, i6, a6) {
-    return lt3([B5(U2(t5)), B5(H4(e5)), B5(U2(r5)), B5(H4(n4)), B5(U2(i6)), B5(H4(a6)), "c"].join(" ")), this;
+    return lt3([B5(U3(t5)), B5(H4(e5)), B5(U3(r5)), B5(H4(n4)), B5(U3(i6)), B5(H4(a6)), "c"].join(" ")), this;
   };
   y5.__private__.line = y5.line = function(t5, e5, r5, n4, i6) {
     if (isNaN(t5) || isNaN(e5) || isNaN(r5) || isNaN(n4) || !Re2(i6)) throw new Error("Invalid arguments passed to jsPDF.line");
@@ -27485,7 +27485,7 @@ function E(e4) {
     return this;
   }, y5.__private__.rect = y5.rect = function(t5, e5, r5, n4, i6) {
     if (isNaN(t5) || isNaN(e5) || isNaN(r5) || isNaN(n4) || !Re2(i6)) throw new Error("Invalid arguments passed to jsPDF.rect");
-    return _5 === A6 && (n4 = -n4), lt3([B5(U2(t5)), B5(H4(e5)), B5(U2(r5)), B5(U2(n4)), "re"].join(" ")), Ue2(i6), this;
+    return _5 === A6 && (n4 = -n4), lt3([B5(U3(t5)), B5(H4(e5)), B5(U3(r5)), B5(U3(n4)), "re"].join(" ")), Ue2(i6), this;
   }, y5.__private__.triangle = y5.triangle = function(t5, e5, r5, n4, i6, a6, o5) {
     if (isNaN(t5) || isNaN(e5) || isNaN(r5) || isNaN(n4) || isNaN(i6) || isNaN(a6) || !Re2(o5)) throw new Error("Invalid arguments passed to jsPDF.triangle");
     return this.lines([[r5 - t5, n4 - e5], [i6 - r5, a6 - n4], [t5 - i6, e5 - a6]], t5, e5, [1, 1], o5, true), this;
@@ -27517,13 +27517,13 @@ function E(e4) {
   var Ke2, Ze2 = e4.lineWidth || 0.200025, $e2 = y5.__private__.getLineWidth = y5.getLineWidth = function() {
     return Ze2;
   }, Qe2 = y5.__private__.setLineWidth = y5.setLineWidth = function(t5) {
-    return Ze2 = t5, lt3(B5(U2(t5)) + " w"), this;
+    return Ze2 = t5, lt3(B5(U3(t5)) + " w"), this;
   };
   y5.__private__.setLineDash = E.API.setLineDash = E.API.setLineDashPattern = function(t5, e5) {
     if (t5 = t5 || [], e5 = e5 || 0, isNaN(e5) || !Array.isArray(t5)) throw new Error("Invalid arguments passed to jsPDF.setLineDash");
     return t5 = t5.map(function(t6) {
-      return B5(U2(t6));
-    }).join(" "), e5 = B5(U2(e5)), lt3("[" + t5 + "] " + e5 + " d"), this;
+      return B5(U3(t6));
+    }).join(" "), e5 = B5(U3(e5)), lt3("[" + t5 + "] " + e5 + " d"), this;
   };
   var tr2 = y5.__private__.getLineHeight = y5.getLineHeight = function() {
     return pt2 * Ke2;
@@ -27538,18 +27538,18 @@ function E(e4) {
   };
   er3(e4.lineHeight);
   var nr2 = y5.__private__.getHorizontalCoordinate = function(t5) {
-    return U2(t5);
+    return U3(t5);
   }, ir2 = y5.__private__.getVerticalCoordinate = function(t5) {
-    return _5 === S4 ? t5 : Rt3[$4].mediaBox.topRightY - Rt3[$4].mediaBox.bottomLeftY - U2(t5);
+    return _5 === S4 ? t5 : Rt3[$4].mediaBox.topRightY - Rt3[$4].mediaBox.bottomLeftY - U3(t5);
   }, ar = y5.__private__.getHorizontalCoordinateString = y5.getHorizontalCoordinateString = function(t5) {
     return B5(nr2(t5));
   }, or2 = y5.__private__.getVerticalCoordinateString = y5.getVerticalCoordinateString = function(t5) {
     return B5(ir2(t5));
-  }, sr = e4.strokeColor || "0 G";
+  }, sr2 = e4.strokeColor || "0 G";
   y5.__private__.getStrokeColor = y5.getDrawColor = function() {
-    return ee3(sr);
+    return ee3(sr2);
   }, y5.__private__.setStrokeColor = y5.setDrawColor = function(t5, e5, r5, n4) {
-    return sr = re3({ ch1: t5, ch2: e5, ch3: r5, ch4: n4, pdfColorType: "draw", precision: 2 }), lt3(sr), this;
+    return sr2 = re3({ ch1: t5, ch2: e5, ch3: r5, ch4: n4, pdfColorType: "draw", precision: 2 }), lt3(sr2), this;
   };
   var ur = e4.fillColor || "0 g";
   y5.__private__.getFillColor = y5.getFillColor = function() {
@@ -27583,7 +27583,7 @@ function E(e4) {
     return pr = e5, lt3(e5 + " j"), this;
   }, y5.__private__.setLineMiterLimit = y5.__private__.setMiterLimit = y5.setLineMiterLimit = y5.setMiterLimit = function(t5) {
     if (t5 = t5 || 0, isNaN(t5)) throw new Error("Invalid argument passed to jsPDF.setLineMiterLimit");
-    return lt3(B5(U2(t5)) + " M"), this;
+    return lt3(B5(U3(t5)) + " M"), this;
   }, y5.GState = O3, y5.setGState = function(t5) {
     (t5 = "string" == typeof t5 ? Bt3[Mt3[t5]] : gr(null, t5)).equals(qt3) || (lt3("/" + t5.id + " gs"), qt3 = t5);
   };
@@ -28022,10 +28022,10 @@ function oe2(t5) {
       }
       for (f7 = 0, l7 = 0; l7 < 8; ++l7) {
         r6 = t7[f7], n5 = t7[f7 + 8], i8 = t7[f7 + 16], a7 = t7[f7 + 24], o7 = t7[f7 + 32], s7 = t7[f7 + 40], u9 = t7[f7 + 48];
-        var O6 = r6 + (c8 = t7[f7 + 56]), B6 = r6 - c8, M4 = n5 + u9, q5 = n5 - u9, E4 = i8 + s7, R4 = i8 - s7, D5 = a7 + o7, T6 = a7 - o7, z5 = O6 + D5, U2 = O6 - D5, H4 = M4 + E4, W3 = M4 - E4;
+        var O6 = r6 + (c8 = t7[f7 + 56]), B6 = r6 - c8, M4 = n5 + u9, q5 = n5 - u9, E4 = i8 + s7, R4 = i8 - s7, D5 = a7 + o7, T6 = a7 - o7, z5 = O6 + D5, U3 = O6 - D5, H4 = M4 + E4, W3 = M4 - E4;
         t7[f7] = z5 + H4, t7[f7 + 32] = z5 - H4;
-        var V4 = 0.707106781 * (W3 + U2);
-        t7[f7 + 16] = U2 + V4, t7[f7 + 48] = U2 - V4;
+        var V4 = 0.707106781 * (W3 + U3);
+        t7[f7 + 16] = U3 + V4, t7[f7 + 48] = U3 - V4;
         var G3 = 0.382683433 * ((z5 = T6 + R4) - (W3 = q5 + B6)), Y3 = 0.5411961 * z5 + G3, J4 = 1.306562965 * W3 + G3, X3 = 0.707106781 * (H4 = R4 + q5), K4 = B6 + X3, Z3 = B6 - X3;
         t7[f7 + 40] = Z3 + Y3, t7[f7 + 24] = Z3 - Y3, t7[f7 + 8] = K4 + J4, t7[f7 + 56] = K4 - J4, f7++;
       }
@@ -28085,9 +28085,9 @@ function oe2(t5) {
     }(), M3(65498), M3(12), B5(3), B5(1), B5(0), B5(2), B5(17), B5(3), B5(17), B5(0), B5(63), B5(0);
     var o6 = 0, h6 = 0, f7 = 0;
     m6 = 0, v6 = 7, this.encode.displayName = "_encode_";
-    for (var d5, p7, N6, x5, j6, R4, D5, T6, z5, U2 = t6.data, H4 = t6.width, W3 = t6.height, V4 = 4 * H4, G3 = 0; G3 < W3; ) {
+    for (var d5, p7, N6, x5, j6, R4, D5, T6, z5, U3 = t6.data, H4 = t6.width, W3 = t6.height, V4 = 4 * H4, G3 = 0; G3 < W3; ) {
       for (d5 = 0; d5 < V4; ) {
-        for (j6 = V4 * G3 + d5, D5 = -1, T6 = 0, z5 = 0; z5 < 64; z5++) R4 = j6 + (T6 = z5 >> 3) * V4 + (D5 = 4 * (7 & z5)), G3 + T6 >= W3 && (R4 -= V4 * (G3 + 1 + T6 - W3)), d5 + D5 >= V4 && (R4 -= d5 + D5 - V4 + 4), p7 = U2[R4++], N6 = U2[R4++], x5 = U2[R4++], b3[z5] = (L4[p7] + L4[N6 + 256 | 0] + L4[x5 + 512 | 0] >> 16) - 128, y5[z5] = (L4[p7 + 768 | 0] + L4[N6 + 1024 | 0] + L4[x5 + 1280 | 0] >> 16) - 128, w5[z5] = (L4[p7 + 1280 | 0] + L4[N6 + 1536 | 0] + L4[x5 + 1792 | 0] >> 16) - 128;
+        for (j6 = V4 * G3 + d5, D5 = -1, T6 = 0, z5 = 0; z5 < 64; z5++) R4 = j6 + (T6 = z5 >> 3) * V4 + (D5 = 4 * (7 & z5)), G3 + T6 >= W3 && (R4 -= V4 * (G3 + 1 + T6 - W3)), d5 + D5 >= V4 && (R4 -= d5 + D5 - V4 + 4), p7 = U3[R4++], N6 = U3[R4++], x5 = U3[R4++], b3[z5] = (L4[p7] + L4[N6 + 256 | 0] + L4[x5 + 512 | 0] >> 16) - 128, y5[z5] = (L4[p7 + 768 | 0] + L4[N6 + 1024 | 0] + L4[x5 + 1280 | 0] >> 16) - 128, w5[z5] = (L4[p7 + 1280 | 0] + L4[N6 + 1536 | 0] + L4[x5 + 1792 | 0] >> 16) - 128;
         o6 = q4(b3, c6, o6, e4, n3), h6 = q4(y5, l5, h6, r4, i6), f7 = q4(w5, l5, f7, r4, i6), d5 += 32;
       }
       G3 += 8;
@@ -28301,11 +28301,11 @@ function ue2(t5) {
     function z5(t7, e5) {
       return ((4278124286 & (t7 ^ e5)) >>> 1) + (t7 & e5) >>> 0;
     }
-    function U2(t7) {
+    function U3(t7) {
       return 0 <= t7 && 256 > t7 ? t7 : 0 > t7 ? 0 : 255 < t7 ? 255 : void 0;
     }
     function H4(t7, e5) {
-      return U2(t7 + (t7 - e5 + 0.5 >> 1));
+      return U3(t7 + (t7 - e5 + 0.5 >> 1));
     }
     function W3(t7, e5, r5) {
       return Math.abs(e5 - r5) - Math.abs(t7 - r5);
@@ -28665,8 +28665,8 @@ function ue2(t5) {
                   var B6, M4 = C6, q5 = k6, D6 = 1 << (8 >> q5.b), T7 = a5(D6);
                   if (null == T7) I5 = 0;
                   else {
-                    var z6 = q5.K[0], U3 = q5.w;
-                    for (T7[0] = q5.K[0][0], B6 = 1; B6 < 1 * M4; ++B6) T7[B6] = R4(z6[U3 + B6], T7[B6 - 1]);
+                    var z6 = q5.K[0], U4 = q5.w;
+                    for (T7[0] = q5.K[0][0], B6 = 1; B6 < 1 * M4; ++B6) T7[B6] = R4(z6[U4 + B6], T7[B6 - 1]);
                     for (; B6 < 4 * D6; ++B6) T7[B6] = 0;
                     q5.K[0] = null, q5.K[0] = T7, I5 = 1;
                   }
@@ -28764,8 +28764,8 @@ function ue2(t5) {
               if (mt4.nd = Nt4, mt4.Qb = 0, Nt4 && (mt4.qb = (vt4[3][bt4[3] + 0].value << 24 | vt4[1][bt4[1] + 0].value << 16 | vt4[2][bt4[2] + 0].value) >>> 0, 0 == wt4 && 256 > vt4[0][bt4[0] + 0].value && (mt4.Qb = 1, mt4.qb += vt4[0][bt4[0] + 0].value << 8)), mt4.jc = !mt4.Qb && 6 > Lt4, mt4.jc) {
                 var ue4, ce4 = mt4;
                 for (ue4 = 0; ue4 < Er; ++ue4) {
-                  var le4 = ue4, he4 = ce4.pd[le4], fe3 = ce4.G[0][ce4.H[0] + le4];
-                  256 <= fe3.value ? (he4.g = fe3.g + 256, he4.value = fe3.value) : (he4.g = 0, he4.value = 0, le4 >>= yt3(fe3, 8, he4), le4 >>= yt3(ce4.G[1][ce4.H[1] + le4], 16, he4), le4 >>= yt3(ce4.G[2][ce4.H[2] + le4], 0, he4), yt3(ce4.G[3][ce4.H[3] + le4], 24, he4));
+                  var le4 = ue4, he4 = ce4.pd[le4], fe4 = ce4.G[0][ce4.H[0] + le4];
+                  256 <= fe4.value ? (he4.g = fe4.g + 256, he4.value = fe4.value) : (he4.g = 0, he4.value = 0, le4 >>= yt3(fe4, 8, he4), le4 >>= yt3(ce4.G[1][ce4.H[1] + le4], 16, he4), le4 >>= yt3(ce4.G[2][ce4.H[2] + le4], 0, he4), yt3(ce4.G[3][ce4.H[3] + le4], 24, he4));
                 }
               }
             }
@@ -29013,7 +29013,7 @@ function ue2(t5) {
     function he3(t7, e5) {
       ce3(t7, e5, 8);
     }
-    function fe2(t7, e5) {
+    function fe3(t7, e5) {
       ce3(t7, e5, 16);
     }
     function de3(t7, e5) {
@@ -29211,16 +29211,16 @@ function ue2(t5) {
     function or2() {
       this.Lc = this.Z = this.$a = this.i = this.c = 0, this.l = new Gt3(), this.ic = 0, this.ca = [], this.tb = 0, this.qd = null, this.rd = 0;
     }
-    function sr(t7, e5, r5, n4, i7, a6, o6) {
+    function sr2(t7, e5, r5, n4, i7, a6, o6) {
       for (t7 = null == t7 ? 0 : t7[e5 + 0], e5 = 0; e5 < o6; ++e5) i7[a6 + e5] = t7 + r5[n4 + e5] & 255, t7 = i7[a6 + e5];
     }
     function ur(t7, e5, r5, n4, i7, a6, o6) {
       var s6;
-      if (null == t7) sr(null, null, r5, n4, i7, a6, o6);
+      if (null == t7) sr2(null, null, r5, n4, i7, a6, o6);
       else for (s6 = 0; s6 < o6; ++s6) i7[a6 + s6] = t7[e5 + s6] + r5[n4 + s6] & 255;
     }
     function cr(t7, e5, r5, n4, i7, a6, o6) {
-      if (null == t7) sr(null, null, r5, n4, i7, a6, o6);
+      if (null == t7) sr2(null, null, r5, n4, i7, a6, o6);
       else {
         var s6, u9 = t7[e5 + 0], c8 = u9, l7 = u9;
         for (s6 = 0; s6 < o6; ++s6) c8 = l7 + (u9 = t7[e5 + s6]) - c8, l7 = r5[n4 + s6] + (-256 & c8 ? 0 > c8 ? 0 : 255 : c8) & 255, c8 = u9, i7[a6 + s6] = l7;
@@ -29235,7 +29235,7 @@ function ue2(t5) {
           if (t7.ga = new or2(), (c8 = null == t7.ga) || (c8 = r5.width * r5.o, e4(0 == t7.Gb.length), t7.Gb = a5(c8), t7.Uc = 0, null == t7.Gb ? c8 = 0 : (t7.mb = t7.Gb, t7.nb = t7.Uc, t7.rc = null, c8 = 1), c8 = !c8), !c8) {
             c8 = t7.ga;
             var l7 = t7.Fa, h7 = t7.P, f8 = t7.qc, d6 = t7.mb, p8 = t7.nb, g5 = h7 + 1, m8 = f8 - 1, b5 = c8.l;
-            if (e4(null != l7 && null != d6 && null != r5), gi[0] = null, gi[1] = sr, gi[2] = ur, gi[3] = cr, c8.ca = d6, c8.tb = p8, c8.c = r5.width, c8.i = r5.height, e4(0 < c8.c && 0 < c8.i), 1 >= f8) r5 = 0;
+            if (e4(null != l7 && null != d6 && null != r5), gi[0] = null, gi[1] = sr2, gi[2] = ur, gi[3] = cr, c8.ca = d6, c8.tb = p8, c8.c = r5.width, c8.i = r5.height, e4(0 < c8.c && 0 < c8.i), 1 >= f8) r5 = 0;
             else if (c8.$a = 3 & l7[h7 + 0], c8.Z = l7[h7 + 0] >> 2 & 3, c8.Lc = l7[h7 + 0] >> 4 & 3, h7 = l7[h7 + 0] >> 6 & 3, 0 > c8.$a || 1 < c8.$a || 4 <= c8.Z || 1 < c8.Lc || h7) r5 = 0;
             else if (b5.put = dt3, b5.ac = ft3, b5.bc = pt2, b5.ma = c8, b5.width = r5.width, b5.height = r5.height, b5.Da = r5.Da, b5.v = r5.v, b5.va = r5.va, b5.j = r5.j, b5.o = r5.o, c8.$a) t: {
               e4(1 == c8.$a), r5 = kt3();
@@ -29653,7 +29653,7 @@ function ue2(t5) {
       return 0 >= W3(n4 >> 24 & 255, t7 >> 24 & 255, (e5 = e5[r5 - 1]) >> 24 & 255) + W3(n4 >> 16 & 255, t7 >> 16 & 255, e5 >> 16 & 255) + W3(n4 >> 8 & 255, t7 >> 8 & 255, e5 >> 8 & 255) + W3(255 & n4, 255 & t7, 255 & e5) ? n4 : t7;
     }, t6.Predictor12 = function(t7, e5, r5) {
       var n4 = e5[r5 + 0];
-      return (U2((t7 >> 24 & 255) + (n4 >> 24 & 255) - ((e5 = e5[r5 - 1]) >> 24 & 255)) << 24 | U2((t7 >> 16 & 255) + (n4 >> 16 & 255) - (e5 >> 16 & 255)) << 16 | U2((t7 >> 8 & 255) + (n4 >> 8 & 255) - (e5 >> 8 & 255)) << 8 | U2((255 & t7) + (255 & n4) - (255 & e5))) >>> 0;
+      return (U3((t7 >> 24 & 255) + (n4 >> 24 & 255) - ((e5 = e5[r5 - 1]) >> 24 & 255)) << 24 | U3((t7 >> 16 & 255) + (n4 >> 16 & 255) - (e5 >> 16 & 255)) << 16 | U3((t7 >> 8 & 255) + (n4 >> 8 & 255) - (e5 >> 8 & 255)) << 8 | U3((255 & t7) + (255 & n4) - (255 & e5))) >>> 0;
     }, t6.Predictor13 = function(t7, e5, r5) {
       var n4 = e5[r5 - 1];
       return (H4((t7 = z5(t7, e5[r5 + 0])) >> 24 & 255, n4 >> 24 & 255) << 24 | H4(t7 >> 16 & 255, n4 >> 16 & 255) << 16 | H4(t7 >> 8 & 255, n4 >> 8 & 255) << 8 | H4(255 & t7, 255 & n4)) >>> 0;
@@ -29804,7 +29804,7 @@ function ue2(t5) {
                             for (s7 = -255; 510 >= s7; ++s7) Fn2[255 + s7] = 0 > s7 ? 0 : 255 < s7 ? 255 : s7;
                             In2 = 1;
                           }
-                          nn2 = ue3, an2 = ie3, sn2 = ae3, un2 = oe3, cn2 = se3, on2 = ne3, ln3 = Ye2, hn2 = Je2, fn2 = Ze2, dn2 = $e2, pn2 = Xe2, gn2 = Ke2, mn2 = Qe2, vn2 = tr2, bn2 = ze2, yn2 = Ue2, wn2 = He2, Nn2 = We2, hi[0] = xe3, hi[1] = le3, hi[2] = Ne3, hi[3] = Le3, hi[4] = Ae3, hi[5] = _e3, hi[6] = Se3, hi[7] = Pe3, hi[8] = Fe3, hi[9] = ke3, li[0] = me3, li[1] = fe2, li[2] = de3, li[3] = pe3, li[4] = ve3, li[5] = be2, li[6] = ye3, fi[0] = Oe2, fi[1] = he3, fi[2] = Ie3, fi[3] = Ce3, fi[4] = Me2, fi[5] = Be2, fi[6] = qe2, s7 = 1;
+                          nn2 = ue3, an2 = ie3, sn2 = ae3, un2 = oe3, cn2 = se3, on2 = ne3, ln3 = Ye2, hn2 = Je2, fn2 = Ze2, dn2 = $e2, pn2 = Xe2, gn2 = Ke2, mn2 = Qe2, vn2 = tr2, bn2 = ze2, yn2 = Ue2, wn2 = He2, Nn2 = We2, hi[0] = xe3, hi[1] = le3, hi[2] = Ne3, hi[3] = Le3, hi[4] = Ae3, hi[5] = _e3, hi[6] = Se3, hi[7] = Pe3, hi[8] = Fe3, hi[9] = ke3, li[0] = me3, li[1] = fe3, li[2] = de3, li[3] = pe3, li[4] = ve3, li[5] = be2, li[6] = ye3, fi[0] = Oe2, fi[1] = he3, fi[2] = Ie3, fi[3] = Ce3, fi[4] = Me2, fi[5] = Be2, fi[6] = qe2, s7 = 1;
                         } else s7 = 0;
                       }
                       s7 && (s7 = function(t9, r7) {
@@ -29975,7 +29975,7 @@ function ce2() {
 function le2() {
   this.internal.__metadata__.metadataObjectNumber && this.internal.write("/Metadata " + this.internal.__metadata__.metadataObjectNumber + " 0 R");
 }
-var i2, o2, l2, f2, d, L2, _3, F2, R2, D2, T3, z2, U, H2, W2, V2, G, Y2, J2, X2, K2, Z2, $2, Q2, tt2, et3, rt2, nt2, it2, at2, ot2, st2, ut2, ct2, lt2, ht, ft2, dt2, pt, gt2, mt2, vt2, bt2, yt2, wt2, Nt2, Lt2, xt2, At2, St2, _t2, kt2, Ft2, It2, Ct2, jt2, Mt2, qt2, zt2, Ut2, Ht2, Wt2, Vt2, Gt2, he2, fe, de2, pe2, ge2, me2, ve2, be, ye2, we2, Ne2, Le2, xe2, Ae2, Se2, _e2, Pe2, ke2, Fe2, Ie2, Ce2;
+var i2, o2, l2, f2, d, L2, _3, F2, R2, D2, T3, z2, U2, H2, W2, V2, G, Y2, J2, X2, K2, Z2, $2, Q2, tt2, et3, rt2, nt2, it2, at2, ot2, st2, ut2, ct2, lt2, ht, ft2, dt2, pt, gt2, mt2, vt2, bt2, yt2, wt2, Nt2, Lt2, xt2, At2, St2, _t2, kt2, Ft2, It2, Ct2, jt2, Mt2, qt2, zt2, Ut2, Ht2, Wt2, Vt2, Gt2, he2, fe2, de2, pe2, ge2, me2, ve2, be, ye2, we2, Ne2, Le2, xe2, Ae2, Se2, _e2, Pe2, ke2, Fe2, Ie2, Ce2;
 var init_jspdf_es_min = __esm({
   "node_modules/jspdf/dist/jspdf.es.min.js"() {
     init_typeof();
@@ -30069,7 +30069,7 @@ var init_jspdf_es_min = __esm({
     z2 = function(t5) {
       return t5.replace(/\\\\/g, "\\").replace(/\\\(/g, "(").replace(/\\\)/g, ")");
     };
-    U = function(t5) {
+    U2 = function(t5) {
       return t5.toString().replace(/#/g, "#23").replace(/[\s\n\r()<>[\]{}\/%]/g, function(t6) {
         var e4 = t6.charCodeAt(0).toString(16).toUpperCase();
         return "#" + (1 === e4.length ? "0" + e4 : e4);
@@ -30285,7 +30285,7 @@ var init_jspdf_es_min = __esm({
             a5 += e4[o5].toString();
             break;
           case "string":
-            "/" === e4[o5].substr(0, 1) ? a5 += "/" + U(e4[o5].substr(1)) : (void 0 !== r4 && n3 && (i6 = n3.internal.getEncryptor(r4)), a5 += "(" + T3(i6(e4[o5].toString())) + ")");
+            "/" === e4[o5].substr(0, 1) ? a5 += "/" + U2(e4[o5].substr(1)) : (void 0 !== r4 && n3 && (i6 = n3.internal.getEncryptor(r4)), a5 += "(" + T3(i6(e4[o5].toString())) + ")");
         }
         return a5 + "]";
       }
@@ -30474,7 +30474,7 @@ var init_jspdf_es_min = __esm({
       } }), Object.defineProperty(this, "defaultValue", { enumerable: true, configurable: true, get: function() {
         return this instanceof vt2 == 1 ? z2(f6.substr(1, f6.length - 1)) : f6;
       }, set: function(t5) {
-        t5 = t5.toString(), f6 = this instanceof vt2 == 1 ? "/" + U(t5) : t5;
+        t5 = t5.toString(), f6 = this instanceof vt2 == 1 ? "/" + U2(t5) : t5;
       } });
       var d4 = null;
       Object.defineProperty(this, "_V", { enumerable: false, configurable: false, get: function() {
@@ -30488,7 +30488,7 @@ var init_jspdf_es_min = __esm({
       } }), Object.defineProperty(this, "value", { enumerable: true, configurable: true, get: function() {
         return this instanceof vt2 == 1 ? z2(d4.substr(1, d4.length - 1)) : d4;
       }, set: function(t5) {
-        t5 = t5.toString(), d4 = this instanceof vt2 == 1 ? "/" + U(t5) : t5;
+        t5 = t5.toString(), d4 = this instanceof vt2 == 1 ? "/" + U2(t5) : t5;
       } }), Object.defineProperty(this, "hasAnnotation", { enumerable: true, configurable: true, get: function() {
         return this.Rect;
       } }), Object.defineProperty(this, "Type", { enumerable: true, configurable: false, get: function() {
@@ -30661,11 +30661,11 @@ var init_jspdf_es_min = __esm({
         return e4;
       }, set: function(t5) {
         var r5 = null == t5 ? "" : t5.toString();
-        "/" === r5.substr(0, 1) && (r5 = r5.substr(1)), e4 = "/" + U(r5);
+        "/" === r5.substr(0, 1) && (r5 = r5.substr(1)), e4 = "/" + U2(r5);
       } }), Object.defineProperty(this, "appearanceState", { enumerable: true, configurable: true, get: function() {
         return e4.substr(1, e4.length - 1);
       }, set: function(t5) {
-        e4 = "/" + U(t5);
+        e4 = "/" + U2(t5);
       } });
     };
     V2(vt2, ft2);
@@ -30713,12 +30713,12 @@ var init_jspdf_es_min = __esm({
         return n3;
       }, set: function(t5) {
         var e5 = null == t5 ? "" : t5.toString();
-        "/" === e5.substr(0, 1) && (e5 = e5.substr(1)), n3 = "/" + U(e5);
+        "/" === e5.substr(0, 1) && (e5 = e5.substr(1)), n3 = "/" + U2(e5);
       } }), Object.defineProperty(this, "appearanceState", { enumerable: true, configurable: true, get: function() {
         return n3.substr(1, n3.length - 1);
       }, set: function(t5) {
         var e5 = null == t5 ? "" : t5.toString();
-        "/" === e5.substr(0, 1) && (e5 = e5.substr(1)), n3 = "/" + U(e5);
+        "/" === e5.substr(0, 1) && (e5 = e5.substr(1)), n3 = "/" + U2(e5);
       } }), this.caption = "l", this.appearanceState = "Off", this._AppearanceType = At2.RadioButton.Circle, this.appearanceStreamContent = this._AppearanceType.createAppearanceStream(this.optionName);
     };
     V2(wt2, ft2), yt2.prototype.setAppearance = function(t5) {
@@ -33154,7 +33154,7 @@ var init_jspdf_es_min = __esm({
     }(E), E.API.TTFFont = function() {
       function t5(t6) {
         var e4;
-        if (this.rawData = t6, e4 = this.contents = new fe(t6), this.contents.pos = 4, "ttcf" === e4.readString(4)) throw new Error("TTCF not supported.");
+        if (this.rawData = t6, e4 = this.contents = new fe2(t6), this.contents.pos = 4, "ttcf" === e4.readString(4)) throw new Error("TTCF not supported.");
         e4.pos = 0, this.parse(), this.subset = new Ce2(this), this.registerTTF();
       }
       return t5.open = function(e4) {
@@ -33183,7 +33183,7 @@ var init_jspdf_es_min = __esm({
         return null == e4 && (e4 = false), r4 = e4 ? this.lineGap : 0, (this.ascender + r4 - this.decender) / 1e3 * t6;
       }, t5;
     }();
-    fe = function() {
+    fe2 = function() {
       function t5(t6) {
         this.data = null != t6 ? t6 : [], this.pos = 0, this.length = this.data.length;
       }
@@ -33249,12 +33249,12 @@ var init_jspdf_es_min = __esm({
       }
       return e4.prototype.encode = function(e5) {
         var r4, n3, i6, a5, o5, s5, u6, c6, l5, h5, f6, d4, p6;
-        for (p6 in f6 = Object.keys(e5).length, s5 = Math.log(2), l5 = 16 * Math.floor(Math.log(f6) / s5), a5 = Math.floor(l5 / s5), c6 = 16 * f6 - l5, (n3 = new fe()).writeInt(this.scalarType), n3.writeShort(f6), n3.writeShort(l5), n3.writeShort(a5), n3.writeShort(c6), i6 = 16 * f6, u6 = n3.pos + i6, o5 = null, d4 = [], e5) for (h5 = e5[p6], n3.writeString(p6), n3.writeInt(t5(h5)), n3.writeInt(u6), n3.writeInt(h5.length), d4 = d4.concat(h5), "head" === p6 && (o5 = u6), u6 += h5.length; u6 % 4; ) d4.push(0), u6++;
+        for (p6 in f6 = Object.keys(e5).length, s5 = Math.log(2), l5 = 16 * Math.floor(Math.log(f6) / s5), a5 = Math.floor(l5 / s5), c6 = 16 * f6 - l5, (n3 = new fe2()).writeInt(this.scalarType), n3.writeShort(f6), n3.writeShort(l5), n3.writeShort(a5), n3.writeShort(c6), i6 = 16 * f6, u6 = n3.pos + i6, o5 = null, d4 = [], e5) for (h5 = e5[p6], n3.writeString(p6), n3.writeInt(t5(h5)), n3.writeInt(u6), n3.writeInt(h5.length), d4 = d4.concat(h5), "head" === p6 && (o5 = u6), u6 += h5.length; u6 % 4; ) d4.push(0), u6++;
         return n3.write(d4), r4 = 2981146554 - t5(n3.data), n3.pos = o5 + 8, n3.writeUInt32(r4), n3.data;
       }, t5 = function(t6) {
         var e5, r4, n3, i6;
         for (t6 = _e2.call(t6); t6.length % 4; ) t6.push(0);
-        for (n3 = new fe(t6), r4 = 0, e5 = 0, i6 = t6.length; e5 < i6; e5 = e5 += 4) r4 += n3.readUInt32();
+        for (n3 = new fe2(t6), r4 = 0, e5 = 0, i6 = t6.length; e5 < i6; e5 = e5 += 4) r4 += n3.readUInt32();
         return 4294967295 & r4;
       }, e4;
     }();
@@ -33285,7 +33285,7 @@ var init_jspdf_es_min = __esm({
         return t6.pos = this.offset, this.version = t6.readInt(), this.revision = t6.readInt(), this.checkSumAdjustment = t6.readInt(), this.magicNumber = t6.readInt(), this.flags = t6.readShort(), this.unitsPerEm = t6.readShort(), this.created = t6.readLongLong(), this.modified = t6.readLongLong(), this.xMin = t6.readShort(), this.yMin = t6.readShort(), this.xMax = t6.readShort(), this.yMax = t6.readShort(), this.macStyle = t6.readShort(), this.lowestRecPPEM = t6.readShort(), this.fontDirectionHint = t6.readShort(), this.indexToLocFormat = t6.readShort(), this.glyphDataFormat = t6.readShort();
       }, t5.prototype.encode = function(t6) {
         var e4;
-        return (e4 = new fe()).writeInt(this.version), e4.writeInt(this.revision), e4.writeInt(this.checkSumAdjustment), e4.writeInt(this.magicNumber), e4.writeShort(this.flags), e4.writeShort(this.unitsPerEm), e4.writeLongLong(this.created), e4.writeLongLong(this.modified), e4.writeShort(this.xMin), e4.writeShort(this.yMin), e4.writeShort(this.xMax), e4.writeShort(this.yMax), e4.writeShort(this.macStyle), e4.writeShort(this.lowestRecPPEM), e4.writeShort(this.fontDirectionHint), e4.writeShort(t6), e4.writeShort(this.glyphDataFormat), e4.data;
+        return (e4 = new fe2()).writeInt(this.version), e4.writeInt(this.revision), e4.writeInt(this.checkSumAdjustment), e4.writeInt(this.magicNumber), e4.writeShort(this.flags), e4.writeShort(this.unitsPerEm), e4.writeLongLong(this.created), e4.writeLongLong(this.modified), e4.writeShort(this.xMin), e4.writeShort(this.yMin), e4.writeShort(this.xMax), e4.writeShort(this.yMax), e4.writeShort(this.macStyle), e4.writeShort(this.lowestRecPPEM), e4.writeShort(this.fontDirectionHint), e4.writeShort(t6), e4.writeShort(this.glyphDataFormat), e4.data;
       }, t5;
     }();
     ve2 = function() {
@@ -33321,8 +33321,8 @@ var init_jspdf_es_min = __esm({
         t6.pos = l5;
       }
       return t5.encode = function(t6, e4) {
-        var r4, n3, i6, a5, o5, s5, u6, c6, l5, h5, f6, d4, p6, g3, m6, v6, b3, y5, w5, N5, L4, x4, A6, S4, _5, P4, k5, F3, I4, C5, j5, O5, B5, M3, q4, E3, R4, D5, T6, z5, U2, H4, W3, V4, G3, Y3;
-        switch (F3 = new fe(), a5 = Object.keys(t6).sort(function(t7, e5) {
+        var r4, n3, i6, a5, o5, s5, u6, c6, l5, h5, f6, d4, p6, g3, m6, v6, b3, y5, w5, N5, L4, x4, A6, S4, _5, P4, k5, F3, I4, C5, j5, O5, B5, M3, q4, E3, R4, D5, T6, z5, U3, H4, W3, V4, G3, Y3;
+        switch (F3 = new fe2(), a5 = Object.keys(t6).sort(function(t7, e5) {
           return t7 - e5;
         }), e4) {
           case "macroman":
@@ -33342,7 +33342,7 @@ var init_jspdf_es_min = __esm({
               if (_5 - (k5 = r4[_5].new) >= 32768) for (s5.push(0), N5.push(2 * (f6.length + A6 - d4)), n3 = O5 = _5; _5 <= c6 ? O5 <= c6 : O5 >= c6; n3 = _5 <= c6 ? ++O5 : --O5) f6.push(r4[n3].new);
               else s5.push(k5 - _5), N5.push(0);
             }
-            for (F3.writeUInt16(3), F3.writeUInt16(1), F3.writeUInt32(12), F3.writeUInt16(4), F3.writeUInt16(16 + 8 * A6 + 2 * f6.length), F3.writeUInt16(0), F3.writeUInt16(S4), F3.writeUInt16(x4), F3.writeUInt16(h5), F3.writeUInt16(L4), U2 = 0, E3 = l5.length; U2 < E3; U2++) n3 = l5[U2], F3.writeUInt16(n3);
+            for (F3.writeUInt16(3), F3.writeUInt16(1), F3.writeUInt32(12), F3.writeUInt16(4), F3.writeUInt16(16 + 8 * A6 + 2 * f6.length), F3.writeUInt16(0), F3.writeUInt16(S4), F3.writeUInt16(x4), F3.writeUInt16(h5), F3.writeUInt16(L4), U3 = 0, E3 = l5.length; U3 < E3; U3++) n3 = l5[U3], F3.writeUInt16(n3);
             for (F3.writeUInt16(0), H4 = 0, R4 = P4.length; H4 < R4; H4++) n3 = P4[H4], F3.writeUInt16(n3);
             for (V4 = 0, D5 = s5.length; V4 < D5; V4++) o5 = s5[V4], F3.writeUInt16(o5);
             for (G3 = 0, T6 = N5.length; G3 < T6; G3++) y5 = N5[G3], F3.writeUInt16(y5);
@@ -33361,7 +33361,7 @@ var init_jspdf_es_min = __esm({
         return true;
       }, t5.encode = function(t6, e4) {
         var r4, n3;
-        return null == e4 && (e4 = "macroman"), r4 = ve2.encode(t6, e4), (n3 = new fe()).writeUInt16(0), n3.writeUInt16(1), r4.table = n3.data.concat(r4.subtable), r4;
+        return null == e4 && (e4 = "macroman"), r4 = ve2.encode(t6, e4), (n3 = new fe2()).writeUInt16(0), n3.writeUInt16(1), r4.table = n3.data.concat(r4.subtable), r4;
       }, t5;
     }();
     ye2 = function() {
@@ -33476,7 +33476,7 @@ var init_jspdf_es_min = __esm({
         return this.cache = {};
       }, t5.prototype.glyphFor = function(t6) {
         var e4, r4, n3, i6, a5, o5, s5, u6, c6, l5;
-        return t6 in this.cache ? this.cache[t6] : (i6 = this.file.loca, e4 = this.file.contents, r4 = i6.indexOf(t6), 0 === (n3 = i6.lengthOf(t6)) ? this.cache[t6] = null : (e4.pos = this.offset + r4, a5 = (o5 = new fe(e4.read(n3))).readShort(), u6 = o5.readShort(), l5 = o5.readShort(), s5 = o5.readShort(), c6 = o5.readShort(), this.cache[t6] = -1 === a5 ? new Fe2(o5, u6, l5, s5, c6) : new ke2(o5, a5, u6, l5, s5, c6), this.cache[t6]));
+        return t6 in this.cache ? this.cache[t6] : (i6 = this.file.loca, e4 = this.file.contents, r4 = i6.indexOf(t6), 0 === (n3 = i6.lengthOf(t6)) ? this.cache[t6] = null : (e4.pos = this.offset + r4, a5 = (o5 = new fe2(e4.read(n3))).readShort(), u6 = o5.readShort(), l5 = o5.readShort(), s5 = o5.readShort(), c6 = o5.readShort(), this.cache[t6] = -1 === a5 ? new Fe2(o5, u6, l5, s5, c6) : new ke2(o5, a5, u6, l5, s5, c6), this.cache[t6]));
       }, t5.prototype.encode = function(t6, e4, r4) {
         var n3, i6, a5, o5, s5;
         for (a5 = [], i6 = [], o5 = 0, s5 = e4.length; o5 < s5; o5++) n3 = t6[e4[o5]], i6.push(a5.length), n3 && (a5 = a5.concat(n3.encode(r4)));
@@ -33498,7 +33498,7 @@ var init_jspdf_es_min = __esm({
       }
       return t5.prototype.encode = function() {
         var t6, e4, r4;
-        for (e4 = new fe(_e2.call(this.raw.data)), t6 = 0, r4 = this.glyphIDs.length; t6 < r4; ++t6) e4.pos = this.glyphOffsets[t6];
+        for (e4 = new fe2(_e2.call(this.raw.data)), t6 = 0, r4 = this.glyphIDs.length; t6 < r4; ++t6) e4.pos = this.glyphOffsets[t6];
         return e4.data;
       }, t5;
     }();
@@ -33585,6 +33585,2269 @@ var init_jspdf_es_min = __esm({
         return "" + r4;
       }, e4;
     }();
+  }
+});
+
+// src/view/boardSerde.ts
+var boardSerde_exports = {};
+__export(boardSerde_exports, {
+  OMNIBOARD_EXT: () => OMNIBOARD_EXT,
+  OMNIBOARD_SUFFIX: () => OMNIBOARD_SUFFIX,
+  deserializeBoard: () => deserializeBoard,
+  deserializeSourceMeta: () => deserializeSourceMeta,
+  isOmniboardMarkdown: () => isOmniboardMarkdown,
+  serializeBoard: () => serializeBoard
+});
+function parseFrontmatter(raw2) {
+  const m6 = FRONTMATTER_RE.exec(raw2);
+  if (!m6) return { raw: {}, order: [] };
+  const body = m6[1];
+  const out = {};
+  const order = [];
+  let pendingKey = null;
+  for (const line2 of body.split(/\r?\n/)) {
+    if (/^\s*-\s/.test(line2) && pendingKey) {
+      out[pendingKey] += "\n" + line2;
+      continue;
+    }
+    const mm = /^([A-Za-z0-9_\-]+)\s*:(.*)$/.exec(line2);
+    if (!mm) {
+      pendingKey = null;
+      continue;
+    }
+    const k5 = mm[1];
+    const v6 = mm[2].trim();
+    if (!(k5 in out)) order.push(k5);
+    out[k5] = v6.length ? v6 : "";
+    pendingKey = v6.length ? null : k5;
+  }
+  return { raw: out, order };
+}
+function emitFrontmatter(fm) {
+  const keys2 = new Set(fm.order);
+  const lines = ["---"];
+  lines.push(`${REQUIRED_FM_KEY}: ${REQUIRED_FM_VAL}`);
+  keys2.delete(REQUIRED_FM_KEY);
+  if (!fm.raw.tags || !/\bomniboard\b/.test(fm.raw.tags)) {
+    lines.push(`tags: [omniboard]`);
+  } else {
+    lines.push(`tags: ${fm.raw.tags}`);
+  }
+  keys2.delete("tags");
+  for (const k5 of fm.order) {
+    if (!keys2.has(k5)) continue;
+    const v6 = fm.raw[k5];
+    if (v6.includes("\n")) {
+      lines.push(`${k5}:`);
+      for (const sub of v6.split("\n")) if (sub.trim()) lines.push(sub);
+    } else {
+      lines.push(`${k5}: ${v6}`);
+    }
+  }
+  lines.push("---");
+  return lines.join("\n");
+}
+function compress(json) {
+  const deflated = pako.deflate(new TextEncoder().encode(json));
+  let bin = "";
+  const CHUNK = 32768;
+  for (let i6 = 0; i6 < deflated.length; i6 += CHUNK) {
+    bin += String.fromCharCode(...deflated.subarray(i6, i6 + CHUNK));
+  }
+  return btoa(bin);
+}
+function decompress(b64) {
+  try {
+    const bin = atob(b64.replace(/\s+/g, ""));
+    const bytes = new Uint8Array(bin.length);
+    for (let i6 = 0; i6 < bin.length; i6++) bytes[i6] = bin.charCodeAt(i6);
+    return new TextDecoder().decode(pako.inflate(bytes));
+  } catch (e4) {
+    return null;
+  }
+}
+function escapeMd(s5) {
+  return s5.replace(/\s*\r?\n\s*/g, " ").trim();
+}
+function deserializeSourceMeta(raw2) {
+  const m6 = META_RE.exec(raw2);
+  if (!m6) return null;
+  const json = decompress(m6[1]);
+  if (json === null) return null;
+  try {
+    return JSON.parse(json);
+  } catch (e4) {
+    return null;
+  }
+}
+function serializeBoard(model, previousRaw = "", sourceMeta) {
+  const fm = parseFrontmatter(previousRaw);
+  const meta = sourceMeta != null ? sourceMeta : deserializeSourceMeta(previousRaw);
+  const parts = [];
+  parts.push(emitFrontmatter(fm));
+  parts.push("");
+  parts.push("==\u26A0 Switch to OMNIBOARD VIEW in the MORE OPTIONS menu of this document. \u26A0==");
+  parts.push("");
+  parts.push("# Omniboard");
+  parts.push("");
+  parts.push("## Text Elements");
+  const seenIds = /* @__PURE__ */ new Set();
+  for (const n3 of model.nodes) {
+    const label = n3.label ? escapeMd(n3.label) : "";
+    if (!label) continue;
+    if (seenIds.has(n3.id)) continue;
+    seenIds.add(n3.id);
+    parts.push(`${label} ^${n3.id}`);
+  }
+  parts.push("");
+  const labeledEdges = model.edges.filter((e4) => e4.label && e4.label.trim());
+  if (labeledEdges.length) {
+    parts.push("## Edges");
+    for (const e4 of labeledEdges) {
+      parts.push(`- ${e4.source} \u2192 ${e4.target} : ${escapeMd(e4.label)}`);
+    }
+    parts.push("");
+  }
+  const json = JSON.stringify(model);
+  parts.push("%%");
+  parts.push("## Drawing");
+  parts.push("```" + DATA_LANG);
+  parts.push(compress(json));
+  parts.push("```");
+  if (meta) {
+    parts.push("");
+    parts.push("## Source Meta");
+    parts.push("```" + META_LANG);
+    parts.push(compress(JSON.stringify(meta)));
+    parts.push("```");
+  }
+  parts.push("%%");
+  parts.push("");
+  return parts.join("\n");
+}
+function deserializeBoard(raw2) {
+  if (!raw2.trim()) return { nodes: [], edges: [] };
+  const m6 = DRAWING_RE.exec(raw2);
+  if (!m6) return null;
+  const json = decompress(m6[1]);
+  if (json === null) return null;
+  try {
+    const model = JSON.parse(json);
+    if (Array.isArray(model.nodes) && Array.isArray(model.edges)) return model;
+  } catch (e4) {
+  }
+  return null;
+}
+function isOmniboardMarkdown(raw2) {
+  const m6 = FRONTMATTER_RE.exec(raw2);
+  if (!m6) return false;
+  return new RegExp(`^${REQUIRED_FM_KEY}\\s*:\\s*${REQUIRED_FM_VAL}\\b`, "m").test(m6[1]);
+}
+var OMNIBOARD_EXT, OMNIBOARD_SUFFIX, DATA_LANG, META_LANG, REQUIRED_FM_KEY, REQUIRED_FM_VAL, DRAWING_RE, META_RE, FRONTMATTER_RE;
+var init_boardSerde = __esm({
+  "src/view/boardSerde.ts"() {
+    "use strict";
+    init_pako_esm();
+    OMNIBOARD_EXT = "omniboard.md";
+    OMNIBOARD_SUFFIX = `.${OMNIBOARD_EXT}`;
+    DATA_LANG = "omniboard-data";
+    META_LANG = "omniboard-source-meta";
+    REQUIRED_FM_KEY = "omniboard-plugin";
+    REQUIRED_FM_VAL = "parsed";
+    DRAWING_RE = new RegExp(
+      "```" + DATA_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
+      "m"
+    );
+    META_RE = new RegExp(
+      "```" + META_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
+      "m"
+    );
+    FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+  }
+});
+
+// node_modules/fast-xml-parser/src/util.js
+var require_util = __commonJS({
+  "node_modules/fast-xml-parser/src/util.js"(exports2) {
+    "use strict";
+    var nameStartChar = ":A-Za-z_\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u02FF\\u0370-\\u037D\\u037F-\\u1FFF\\u200C-\\u200D\\u2070-\\u218F\\u2C00-\\u2FEF\\u3001-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFFD";
+    var nameChar = nameStartChar + "\\-.\\d\\u00B7\\u0300-\\u036F\\u203F-\\u2040";
+    var nameRegexp = "[" + nameStartChar + "][" + nameChar + "]*";
+    var regexName = new RegExp("^" + nameRegexp + "$");
+    var getAllMatches = function(string, regex) {
+      const matches = [];
+      let match = regex.exec(string);
+      while (match) {
+        const allmatches = [];
+        allmatches.startIndex = regex.lastIndex - match[0].length;
+        const len = match.length;
+        for (let index3 = 0; index3 < len; index3++) {
+          allmatches.push(match[index3]);
+        }
+        matches.push(allmatches);
+        match = regex.exec(string);
+      }
+      return matches;
+    };
+    var isName = function(string) {
+      const match = regexName.exec(string);
+      return !(match === null || typeof match === "undefined");
+    };
+    exports2.isExist = function(v6) {
+      return typeof v6 !== "undefined";
+    };
+    exports2.isEmptyObject = function(obj) {
+      return Object.keys(obj).length === 0;
+    };
+    exports2.merge = function(target, a5, arrayMode) {
+      if (a5) {
+        const keys2 = Object.keys(a5);
+        const len = keys2.length;
+        for (let i6 = 0; i6 < len; i6++) {
+          if (arrayMode === "strict") {
+            target[keys2[i6]] = [a5[keys2[i6]]];
+          } else {
+            target[keys2[i6]] = a5[keys2[i6]];
+          }
+        }
+      }
+    };
+    exports2.getValue = function(v6) {
+      if (exports2.isExist(v6)) {
+        return v6;
+      } else {
+        return "";
+      }
+    };
+    var DANGEROUS_PROPERTY_NAMES = [
+      // '__proto__',
+      // 'constructor',
+      // 'prototype',
+      "hasOwnProperty",
+      "toString",
+      "valueOf",
+      "__defineGetter__",
+      "__defineSetter__",
+      "__lookupGetter__",
+      "__lookupSetter__"
+    ];
+    var criticalProperties = ["__proto__", "constructor", "prototype"];
+    exports2.isName = isName;
+    exports2.getAllMatches = getAllMatches;
+    exports2.nameRegexp = nameRegexp;
+    exports2.DANGEROUS_PROPERTY_NAMES = DANGEROUS_PROPERTY_NAMES;
+    exports2.criticalProperties = criticalProperties;
+  }
+});
+
+// node_modules/fast-xml-parser/src/validator.js
+var require_validator = __commonJS({
+  "node_modules/fast-xml-parser/src/validator.js"(exports2) {
+    "use strict";
+    var util = require_util();
+    var defaultOptions2 = {
+      allowBooleanAttributes: false,
+      //A tag can have attributes without any value
+      unpairedTags: []
+    };
+    exports2.validate = function(xmlData, options) {
+      options = Object.assign({}, defaultOptions2, options);
+      const tags = [];
+      let tagFound = false;
+      let reachedRoot = false;
+      if (xmlData[0] === "\uFEFF") {
+        xmlData = xmlData.substr(1);
+      }
+      for (let i6 = 0; i6 < xmlData.length; i6++) {
+        if (xmlData[i6] === "<" && xmlData[i6 + 1] === "?") {
+          i6 += 2;
+          i6 = readPI(xmlData, i6);
+          if (i6.err) return i6;
+        } else if (xmlData[i6] === "<") {
+          let tagStartPos = i6;
+          i6++;
+          if (xmlData[i6] === "!") {
+            i6 = readCommentAndCDATA(xmlData, i6);
+            continue;
+          } else {
+            let closingTag = false;
+            if (xmlData[i6] === "/") {
+              closingTag = true;
+              i6++;
+            }
+            let tagName2 = "";
+            for (; i6 < xmlData.length && xmlData[i6] !== ">" && xmlData[i6] !== " " && xmlData[i6] !== "	" && xmlData[i6] !== "\n" && xmlData[i6] !== "\r"; i6++) {
+              tagName2 += xmlData[i6];
+            }
+            tagName2 = tagName2.trim();
+            if (tagName2[tagName2.length - 1] === "/") {
+              tagName2 = tagName2.substring(0, tagName2.length - 1);
+              i6--;
+            }
+            if (!validateTagName(tagName2)) {
+              let msg;
+              if (tagName2.trim().length === 0) {
+                msg = "Invalid space after '<'.";
+              } else {
+                msg = "Tag '" + tagName2 + "' is an invalid name.";
+              }
+              return getErrorObject("InvalidTag", msg, getLineNumberForPosition(xmlData, i6));
+            }
+            const result = readAttributeStr(xmlData, i6);
+            if (result === false) {
+              return getErrorObject("InvalidAttr", "Attributes for '" + tagName2 + "' have open quote.", getLineNumberForPosition(xmlData, i6));
+            }
+            let attrStr = result.value;
+            i6 = result.index;
+            if (attrStr[attrStr.length - 1] === "/") {
+              const attrStrStart = i6 - attrStr.length;
+              attrStr = attrStr.substring(0, attrStr.length - 1);
+              const isValid2 = validateAttributeString(attrStr, options);
+              if (isValid2 === true) {
+                tagFound = true;
+              } else {
+                return getErrorObject(isValid2.err.code, isValid2.err.msg, getLineNumberForPosition(xmlData, attrStrStart + isValid2.err.line));
+              }
+            } else if (closingTag) {
+              if (!result.tagClosed) {
+                return getErrorObject("InvalidTag", "Closing tag '" + tagName2 + "' doesn't have proper closing.", getLineNumberForPosition(xmlData, i6));
+              } else if (attrStr.trim().length > 0) {
+                return getErrorObject("InvalidTag", "Closing tag '" + tagName2 + "' can't have attributes or invalid starting.", getLineNumberForPosition(xmlData, tagStartPos));
+              } else if (tags.length === 0) {
+                return getErrorObject("InvalidTag", "Closing tag '" + tagName2 + "' has not been opened.", getLineNumberForPosition(xmlData, tagStartPos));
+              } else {
+                const otg = tags.pop();
+                if (tagName2 !== otg.tagName) {
+                  let openPos = getLineNumberForPosition(xmlData, otg.tagStartPos);
+                  return getErrorObject(
+                    "InvalidTag",
+                    "Expected closing tag '" + otg.tagName + "' (opened in line " + openPos.line + ", col " + openPos.col + ") instead of closing tag '" + tagName2 + "'.",
+                    getLineNumberForPosition(xmlData, tagStartPos)
+                  );
+                }
+                if (tags.length == 0) {
+                  reachedRoot = true;
+                }
+              }
+            } else {
+              const isValid2 = validateAttributeString(attrStr, options);
+              if (isValid2 !== true) {
+                return getErrorObject(isValid2.err.code, isValid2.err.msg, getLineNumberForPosition(xmlData, i6 - attrStr.length + isValid2.err.line));
+              }
+              if (reachedRoot === true) {
+                return getErrorObject("InvalidXml", "Multiple possible root nodes found.", getLineNumberForPosition(xmlData, i6));
+              } else if (options.unpairedTags.indexOf(tagName2) !== -1) {
+              } else {
+                tags.push({ tagName: tagName2, tagStartPos });
+              }
+              tagFound = true;
+            }
+            for (i6++; i6 < xmlData.length; i6++) {
+              if (xmlData[i6] === "<") {
+                if (xmlData[i6 + 1] === "!") {
+                  i6++;
+                  i6 = readCommentAndCDATA(xmlData, i6);
+                  continue;
+                } else if (xmlData[i6 + 1] === "?") {
+                  i6 = readPI(xmlData, ++i6);
+                  if (i6.err) return i6;
+                } else {
+                  break;
+                }
+              } else if (xmlData[i6] === "&") {
+                const afterAmp = validateAmpersand(xmlData, i6);
+                if (afterAmp == -1)
+                  return getErrorObject("InvalidChar", "char '&' is not expected.", getLineNumberForPosition(xmlData, i6));
+                i6 = afterAmp;
+              } else {
+                if (reachedRoot === true && !isWhiteSpace(xmlData[i6])) {
+                  return getErrorObject("InvalidXml", "Extra text at the end", getLineNumberForPosition(xmlData, i6));
+                }
+              }
+            }
+            if (xmlData[i6] === "<") {
+              i6--;
+            }
+          }
+        } else {
+          if (isWhiteSpace(xmlData[i6])) {
+            continue;
+          }
+          return getErrorObject("InvalidChar", "char '" + xmlData[i6] + "' is not expected.", getLineNumberForPosition(xmlData, i6));
+        }
+      }
+      if (!tagFound) {
+        return getErrorObject("InvalidXml", "Start tag expected.", 1);
+      } else if (tags.length == 1) {
+        return getErrorObject("InvalidTag", "Unclosed tag '" + tags[0].tagName + "'.", getLineNumberForPosition(xmlData, tags[0].tagStartPos));
+      } else if (tags.length > 0) {
+        return getErrorObject("InvalidXml", "Invalid '" + JSON.stringify(tags.map((t5) => t5.tagName), null, 4).replace(/\r?\n/g, "") + "' found.", { line: 1, col: 1 });
+      }
+      return true;
+    };
+    function isWhiteSpace(char) {
+      return char === " " || char === "	" || char === "\n" || char === "\r";
+    }
+    function readPI(xmlData, i6) {
+      const start = i6;
+      for (; i6 < xmlData.length; i6++) {
+        if (xmlData[i6] == "?" || xmlData[i6] == " ") {
+          const tagname = xmlData.substr(start, i6 - start);
+          if (i6 > 5 && tagname === "xml") {
+            return getErrorObject("InvalidXml", "XML declaration allowed only at the start of the document.", getLineNumberForPosition(xmlData, i6));
+          } else if (xmlData[i6] == "?" && xmlData[i6 + 1] == ">") {
+            i6++;
+            break;
+          } else {
+            continue;
+          }
+        }
+      }
+      return i6;
+    }
+    function readCommentAndCDATA(xmlData, i6) {
+      if (xmlData.length > i6 + 5 && xmlData[i6 + 1] === "-" && xmlData[i6 + 2] === "-") {
+        for (i6 += 3; i6 < xmlData.length; i6++) {
+          if (xmlData[i6] === "-" && xmlData[i6 + 1] === "-" && xmlData[i6 + 2] === ">") {
+            i6 += 2;
+            break;
+          }
+        }
+      } else if (xmlData.length > i6 + 8 && xmlData[i6 + 1] === "D" && xmlData[i6 + 2] === "O" && xmlData[i6 + 3] === "C" && xmlData[i6 + 4] === "T" && xmlData[i6 + 5] === "Y" && xmlData[i6 + 6] === "P" && xmlData[i6 + 7] === "E") {
+        let angleBracketsCount = 1;
+        for (i6 += 8; i6 < xmlData.length; i6++) {
+          if (xmlData[i6] === "<") {
+            angleBracketsCount++;
+          } else if (xmlData[i6] === ">") {
+            angleBracketsCount--;
+            if (angleBracketsCount === 0) {
+              break;
+            }
+          }
+        }
+      } else if (xmlData.length > i6 + 9 && xmlData[i6 + 1] === "[" && xmlData[i6 + 2] === "C" && xmlData[i6 + 3] === "D" && xmlData[i6 + 4] === "A" && xmlData[i6 + 5] === "T" && xmlData[i6 + 6] === "A" && xmlData[i6 + 7] === "[") {
+        for (i6 += 8; i6 < xmlData.length; i6++) {
+          if (xmlData[i6] === "]" && xmlData[i6 + 1] === "]" && xmlData[i6 + 2] === ">") {
+            i6 += 2;
+            break;
+          }
+        }
+      }
+      return i6;
+    }
+    var doubleQuote = '"';
+    var singleQuote = "'";
+    function readAttributeStr(xmlData, i6) {
+      let attrStr = "";
+      let startChar = "";
+      let tagClosed = false;
+      for (; i6 < xmlData.length; i6++) {
+        if (xmlData[i6] === doubleQuote || xmlData[i6] === singleQuote) {
+          if (startChar === "") {
+            startChar = xmlData[i6];
+          } else if (startChar !== xmlData[i6]) {
+          } else {
+            startChar = "";
+          }
+        } else if (xmlData[i6] === ">") {
+          if (startChar === "") {
+            tagClosed = true;
+            break;
+          }
+        }
+        attrStr += xmlData[i6];
+      }
+      if (startChar !== "") {
+        return false;
+      }
+      return {
+        value: attrStr,
+        index: i6,
+        tagClosed
+      };
+    }
+    var validAttrStrRegxp = new RegExp(`(\\s*)([^\\s=]+)(\\s*=)?(\\s*(['"])(([\\s\\S])*?)\\5)?`, "g");
+    function validateAttributeString(attrStr, options) {
+      const matches = util.getAllMatches(attrStr, validAttrStrRegxp);
+      const attrNames = {};
+      for (let i6 = 0; i6 < matches.length; i6++) {
+        if (matches[i6][1].length === 0) {
+          return getErrorObject("InvalidAttr", "Attribute '" + matches[i6][2] + "' has no space in starting.", getPositionFromMatch(matches[i6]));
+        } else if (matches[i6][3] !== void 0 && matches[i6][4] === void 0) {
+          return getErrorObject("InvalidAttr", "Attribute '" + matches[i6][2] + "' is without value.", getPositionFromMatch(matches[i6]));
+        } else if (matches[i6][3] === void 0 && !options.allowBooleanAttributes) {
+          return getErrorObject("InvalidAttr", "boolean attribute '" + matches[i6][2] + "' is not allowed.", getPositionFromMatch(matches[i6]));
+        }
+        const attrName = matches[i6][2];
+        if (!validateAttrName(attrName)) {
+          return getErrorObject("InvalidAttr", "Attribute '" + attrName + "' is an invalid name.", getPositionFromMatch(matches[i6]));
+        }
+        if (!attrNames.hasOwnProperty(attrName)) {
+          attrNames[attrName] = 1;
+        } else {
+          return getErrorObject("InvalidAttr", "Attribute '" + attrName + "' is repeated.", getPositionFromMatch(matches[i6]));
+        }
+      }
+      return true;
+    }
+    function validateNumberAmpersand(xmlData, i6) {
+      let re3 = /\d/;
+      if (xmlData[i6] === "x") {
+        i6++;
+        re3 = /[\da-fA-F]/;
+      }
+      for (; i6 < xmlData.length; i6++) {
+        if (xmlData[i6] === ";")
+          return i6;
+        if (!xmlData[i6].match(re3))
+          break;
+      }
+      return -1;
+    }
+    function validateAmpersand(xmlData, i6) {
+      i6++;
+      if (xmlData[i6] === ";")
+        return -1;
+      if (xmlData[i6] === "#") {
+        i6++;
+        return validateNumberAmpersand(xmlData, i6);
+      }
+      let count = 0;
+      for (; i6 < xmlData.length; i6++, count++) {
+        if (xmlData[i6].match(/\w/) && count < 20)
+          continue;
+        if (xmlData[i6] === ";")
+          break;
+        return -1;
+      }
+      return i6;
+    }
+    function getErrorObject(code, message, lineNumber) {
+      return {
+        err: {
+          code,
+          msg: message,
+          line: lineNumber.line || lineNumber,
+          col: lineNumber.col
+        }
+      };
+    }
+    function validateAttrName(attrName) {
+      return util.isName(attrName);
+    }
+    function validateTagName(tagname) {
+      return util.isName(tagname);
+    }
+    function getLineNumberForPosition(xmlData, index3) {
+      const lines = xmlData.substring(0, index3).split(/\r?\n/);
+      return {
+        line: lines.length,
+        // column number is last line's length + 1, because column numbering starts at 1:
+        col: lines[lines.length - 1].length + 1
+      };
+    }
+    function getPositionFromMatch(match) {
+      return match.startIndex + match[1].length;
+    }
+  }
+});
+
+// node_modules/fast-xml-parser/src/xmlparser/OptionsBuilder.js
+var require_OptionsBuilder = __commonJS({
+  "node_modules/fast-xml-parser/src/xmlparser/OptionsBuilder.js"(exports2) {
+    var { DANGEROUS_PROPERTY_NAMES, criticalProperties } = require_util();
+    var defaultOnDangerousProperty = (name) => {
+      if (DANGEROUS_PROPERTY_NAMES.includes(name)) {
+        return "__" + name;
+      }
+      return name;
+    };
+    var defaultOptions2 = {
+      preserveOrder: false,
+      attributeNamePrefix: "@_",
+      attributesGroupName: false,
+      textNodeName: "#text",
+      ignoreAttributes: true,
+      removeNSPrefix: false,
+      // remove NS from tag name or attribute name if true
+      allowBooleanAttributes: false,
+      //a tag can have attributes without any value
+      //ignoreRootElement : false,
+      parseTagValue: true,
+      parseAttributeValue: false,
+      trimValues: true,
+      //Trim string values of tag and attributes
+      cdataPropName: false,
+      numberParseOptions: {
+        hex: true,
+        leadingZeros: true,
+        eNotation: true
+      },
+      tagValueProcessor: function(tagName2, val) {
+        return val;
+      },
+      attributeValueProcessor: function(attrName, val) {
+        return val;
+      },
+      stopNodes: [],
+      //nested tags will not be parsed even for errors
+      alwaysCreateTextNode: false,
+      isArray: () => false,
+      commentPropName: false,
+      unpairedTags: [],
+      processEntities: true,
+      htmlEntities: false,
+      ignoreDeclaration: false,
+      ignorePiTags: false,
+      transformTagName: false,
+      transformAttributeName: false,
+      updateTag: function(tagName2, jPath, attrs) {
+        return tagName2;
+      },
+      // skipEmptyListItem: false
+      captureMetaData: false,
+      maxNestedTags: 100,
+      strictReservedNames: true,
+      onDangerousProperty: defaultOnDangerousProperty
+    };
+    function validatePropertyName(propertyName, optionName) {
+      if (typeof propertyName !== "string") {
+        return;
+      }
+      const normalized = propertyName.toLowerCase();
+      if (DANGEROUS_PROPERTY_NAMES.some((dangerous) => normalized === dangerous.toLowerCase())) {
+        throw new Error(
+          `[SECURITY] Invalid ${optionName}: "${propertyName}" is a reserved JavaScript keyword that could cause prototype pollution`
+        );
+      }
+      if (criticalProperties.some((dangerous) => normalized === dangerous.toLowerCase())) {
+        throw new Error(
+          `[SECURITY] Invalid ${optionName}: "${propertyName}" is a reserved JavaScript keyword that could cause prototype pollution`
+        );
+      }
+    }
+    function normalizeProcessEntities(value) {
+      var _a3, _b2, _c, _d, _e3, _f, _g;
+      if (typeof value === "boolean") {
+        return {
+          enabled: value,
+          // true or false
+          maxEntitySize: 1e4,
+          maxExpansionDepth: 10,
+          maxTotalExpansions: 1e3,
+          maxExpandedLength: 1e5,
+          allowedTags: null,
+          tagFilter: null
+        };
+      }
+      if (typeof value === "object" && value !== null) {
+        return {
+          enabled: value.enabled !== false,
+          maxEntitySize: Math.max(1, (_a3 = value.maxEntitySize) != null ? _a3 : 1e4),
+          maxExpansionDepth: Math.max(1, (_b2 = value.maxExpansionDepth) != null ? _b2 : 1e4),
+          maxTotalExpansions: Math.max(1, (_c = value.maxTotalExpansions) != null ? _c : Infinity),
+          maxExpandedLength: Math.max(1, (_d = value.maxExpandedLength) != null ? _d : 1e5),
+          maxEntityCount: Math.max(1, (_e3 = value.maxEntityCount) != null ? _e3 : 1e3),
+          allowedTags: (_f = value.allowedTags) != null ? _f : null,
+          tagFilter: (_g = value.tagFilter) != null ? _g : null
+        };
+      }
+      return normalizeProcessEntities(true);
+    }
+    var buildOptions = function(options) {
+      const built = Object.assign({}, defaultOptions2, options);
+      const propertyNameOptions = [
+        { value: built.attributeNamePrefix, name: "attributeNamePrefix" },
+        { value: built.attributesGroupName, name: "attributesGroupName" },
+        { value: built.textNodeName, name: "textNodeName" },
+        { value: built.cdataPropName, name: "cdataPropName" },
+        { value: built.commentPropName, name: "commentPropName" }
+      ];
+      for (const { value, name } of propertyNameOptions) {
+        if (value) {
+          validatePropertyName(value, name);
+        }
+      }
+      if (built.onDangerousProperty === null) {
+        built.onDangerousProperty = defaultOnDangerousProperty;
+      }
+      built.processEntities = normalizeProcessEntities(built.processEntities);
+      return built;
+    };
+    exports2.buildOptions = buildOptions;
+    exports2.defaultOptions = defaultOptions2;
+  }
+});
+
+// node_modules/fast-xml-parser/src/xmlparser/xmlNode.js
+var require_xmlNode = __commonJS({
+  "node_modules/fast-xml-parser/src/xmlparser/xmlNode.js"(exports2, module2) {
+    "use strict";
+    var XmlNode = class {
+      constructor(tagname) {
+        this.tagname = tagname;
+        this.child = [];
+        this[":@"] = {};
+      }
+      add(key, val) {
+        if (key === "__proto__") key = "#__proto__";
+        this.child.push({ [key]: val });
+      }
+      addChild(node2) {
+        if (node2.tagname === "__proto__") node2.tagname = "#__proto__";
+        if (node2[":@"] && Object.keys(node2[":@"]).length > 0) {
+          this.child.push({ [node2.tagname]: node2.child, [":@"]: node2[":@"] });
+        } else {
+          this.child.push({ [node2.tagname]: node2.child });
+        }
+      }
+    };
+    module2.exports = XmlNode;
+  }
+});
+
+// node_modules/fast-xml-parser/src/xmlparser/DocTypeReader.js
+var require_DocTypeReader = __commonJS({
+  "node_modules/fast-xml-parser/src/xmlparser/DocTypeReader.js"(exports2, module2) {
+    var util = require_util();
+    var DocTypeReader = class {
+      constructor(options) {
+        this.suppressValidationErr = !options;
+        this.options = options || {};
+      }
+      readDocType(xmlData, i6) {
+        const entities = /* @__PURE__ */ Object.create(null);
+        let entityCount = 0;
+        if (xmlData[i6 + 3] === "O" && xmlData[i6 + 4] === "C" && xmlData[i6 + 5] === "T" && xmlData[i6 + 6] === "Y" && xmlData[i6 + 7] === "P" && xmlData[i6 + 8] === "E") {
+          i6 = i6 + 9;
+          let angleBracketsCount = 1;
+          let hasBody = false, comment = false;
+          let exp = "";
+          for (; i6 < xmlData.length; i6++) {
+            if (xmlData[i6] === "<" && !comment) {
+              if (hasBody && hasSeq(xmlData, "!ENTITY", i6)) {
+                i6 += 7;
+                let entityName, val;
+                [entityName, val, i6] = this.readEntityExp(xmlData, i6 + 1, this.suppressValidationErr);
+                if (val.indexOf("&") === -1) {
+                  if (this.options.enabled !== false && this.options.maxEntityCount != null && entityCount >= this.options.maxEntityCount) {
+                    throw new Error(
+                      `Entity count (${entityCount + 1}) exceeds maximum allowed (${this.options.maxEntityCount})`
+                    );
+                  }
+                  const escaped = entityName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                  entities[entityName] = {
+                    regx: RegExp(`&${escaped};`, "g"),
+                    val
+                  };
+                  entityCount++;
+                }
+              } else if (hasBody && hasSeq(xmlData, "!ELEMENT", i6)) {
+                i6 += 8;
+                const { index: index3 } = this.readElementExp(xmlData, i6 + 1);
+                i6 = index3;
+              } else if (hasBody && hasSeq(xmlData, "!ATTLIST", i6)) {
+                i6 += 8;
+              } else if (hasBody && hasSeq(xmlData, "!NOTATION", i6)) {
+                i6 += 9;
+                const { index: index3 } = this.readNotationExp(xmlData, i6 + 1, this.suppressValidationErr);
+                i6 = index3;
+              } else if (hasSeq(xmlData, "!--", i6)) {
+                comment = true;
+              } else {
+                throw new Error(`Invalid DOCTYPE`);
+              }
+              angleBracketsCount++;
+              exp = "";
+            } else if (xmlData[i6] === ">") {
+              if (comment) {
+                if (xmlData[i6 - 1] === "-" && xmlData[i6 - 2] === "-") {
+                  comment = false;
+                  angleBracketsCount--;
+                }
+              } else {
+                angleBracketsCount--;
+              }
+              if (angleBracketsCount === 0) {
+                break;
+              }
+            } else if (xmlData[i6] === "[") {
+              hasBody = true;
+            } else {
+              exp += xmlData[i6];
+            }
+          }
+          if (angleBracketsCount !== 0) {
+            throw new Error(`Unclosed DOCTYPE`);
+          }
+        } else {
+          throw new Error(`Invalid Tag instead of DOCTYPE`);
+        }
+        return { entities, i: i6 };
+      }
+      readEntityExp(xmlData, i6) {
+        i6 = skipWhitespace(xmlData, i6);
+        let entityName = "";
+        while (i6 < xmlData.length && !/\s/.test(xmlData[i6]) && xmlData[i6] !== '"' && xmlData[i6] !== "'") {
+          entityName += xmlData[i6];
+          i6++;
+        }
+        validateEntityName(entityName);
+        i6 = skipWhitespace(xmlData, i6);
+        if (!this.suppressValidationErr) {
+          if (xmlData.substring(i6, i6 + 6).toUpperCase() === "SYSTEM") {
+            throw new Error("External entities are not supported");
+          } else if (xmlData[i6] === "%") {
+            throw new Error("Parameter entities are not supported");
+          }
+        }
+        let entityValue = "";
+        [i6, entityValue] = this.readIdentifierVal(xmlData, i6, "entity");
+        if (this.options.enabled !== false && this.options.maxEntitySize != null && entityValue.length > this.options.maxEntitySize) {
+          throw new Error(
+            `Entity "${entityName}" size (${entityValue.length}) exceeds maximum allowed size (${this.options.maxEntitySize})`
+          );
+        }
+        i6--;
+        return [entityName, entityValue, i6];
+      }
+      readNotationExp(xmlData, i6) {
+        i6 = skipWhitespace(xmlData, i6);
+        let notationName = "";
+        while (i6 < xmlData.length && !/\s/.test(xmlData[i6])) {
+          notationName += xmlData[i6];
+          i6++;
+        }
+        !this.suppressValidationErr && validateEntityName(notationName);
+        i6 = skipWhitespace(xmlData, i6);
+        const identifierType = xmlData.substring(i6, i6 + 6).toUpperCase();
+        if (!this.suppressValidationErr && identifierType !== "SYSTEM" && identifierType !== "PUBLIC") {
+          throw new Error(`Expected SYSTEM or PUBLIC, found "${identifierType}"`);
+        }
+        i6 += identifierType.length;
+        i6 = skipWhitespace(xmlData, i6);
+        let publicIdentifier = null;
+        let systemIdentifier = null;
+        if (identifierType === "PUBLIC") {
+          [i6, publicIdentifier] = this.readIdentifierVal(xmlData, i6, "publicIdentifier");
+          i6 = skipWhitespace(xmlData, i6);
+          if (xmlData[i6] === '"' || xmlData[i6] === "'") {
+            [i6, systemIdentifier] = this.readIdentifierVal(xmlData, i6, "systemIdentifier");
+          }
+        } else if (identifierType === "SYSTEM") {
+          [i6, systemIdentifier] = this.readIdentifierVal(xmlData, i6, "systemIdentifier");
+          if (!this.suppressValidationErr && !systemIdentifier) {
+            throw new Error("Missing mandatory system identifier for SYSTEM notation");
+          }
+        }
+        return { notationName, publicIdentifier, systemIdentifier, index: --i6 };
+      }
+      readIdentifierVal(xmlData, i6, type) {
+        let identifierVal = "";
+        const startChar = xmlData[i6];
+        if (startChar !== '"' && startChar !== "'") {
+          throw new Error(`Expected quoted string, found "${startChar}"`);
+        }
+        i6++;
+        while (i6 < xmlData.length && xmlData[i6] !== startChar) {
+          identifierVal += xmlData[i6];
+          i6++;
+        }
+        if (xmlData[i6] !== startChar) {
+          throw new Error(`Unterminated ${type} value`);
+        }
+        i6++;
+        return [i6, identifierVal];
+      }
+      readElementExp(xmlData, i6) {
+        i6 = skipWhitespace(xmlData, i6);
+        let elementName = "";
+        while (i6 < xmlData.length && !/\s/.test(xmlData[i6])) {
+          elementName += xmlData[i6];
+          i6++;
+        }
+        if (!this.suppressValidationErr && !util.isName(elementName)) {
+          throw new Error(`Invalid element name: "${elementName}"`);
+        }
+        i6 = skipWhitespace(xmlData, i6);
+        let contentModel = "";
+        if (xmlData[i6] === "E" && hasSeq(xmlData, "MPTY", i6)) {
+          i6 += 4;
+        } else if (xmlData[i6] === "A" && hasSeq(xmlData, "NY", i6)) {
+          i6 += 2;
+        } else if (xmlData[i6] === "(") {
+          i6++;
+          while (i6 < xmlData.length && xmlData[i6] !== ")") {
+            contentModel += xmlData[i6];
+            i6++;
+          }
+          if (xmlData[i6] !== ")") {
+            throw new Error("Unterminated content model");
+          }
+        } else if (!this.suppressValidationErr) {
+          throw new Error(`Invalid Element Expression, found "${xmlData[i6]}"`);
+        }
+        return {
+          elementName,
+          contentModel: contentModel.trim(),
+          index: i6
+        };
+      }
+      readAttlistExp(xmlData, i6) {
+        i6 = skipWhitespace(xmlData, i6);
+        let elementName = "";
+        while (i6 < xmlData.length && !/\s/.test(xmlData[i6])) {
+          elementName += xmlData[i6];
+          i6++;
+        }
+        validateEntityName(elementName);
+        i6 = skipWhitespace(xmlData, i6);
+        let attributeName = "";
+        while (i6 < xmlData.length && !/\s/.test(xmlData[i6])) {
+          attributeName += xmlData[i6];
+          i6++;
+        }
+        if (!validateEntityName(attributeName)) {
+          throw new Error(`Invalid attribute name: "${attributeName}"`);
+        }
+        i6 = skipWhitespace(xmlData, i6);
+        let attributeType = "";
+        if (xmlData.substring(i6, i6 + 8).toUpperCase() === "NOTATION") {
+          attributeType = "NOTATION";
+          i6 += 8;
+          i6 = skipWhitespace(xmlData, i6);
+          if (xmlData[i6] !== "(") {
+            throw new Error(`Expected '(', found "${xmlData[i6]}"`);
+          }
+          i6++;
+          let allowedNotations = [];
+          while (i6 < xmlData.length && xmlData[i6] !== ")") {
+            let notation = "";
+            while (i6 < xmlData.length && xmlData[i6] !== "|" && xmlData[i6] !== ")") {
+              notation += xmlData[i6];
+              i6++;
+            }
+            notation = notation.trim();
+            if (!validateEntityName(notation)) {
+              throw new Error(`Invalid notation name: "${notation}"`);
+            }
+            allowedNotations.push(notation);
+            if (xmlData[i6] === "|") {
+              i6++;
+              i6 = skipWhitespace(xmlData, i6);
+            }
+          }
+          if (xmlData[i6] !== ")") {
+            throw new Error("Unterminated list of notations");
+          }
+          i6++;
+          attributeType += " (" + allowedNotations.join("|") + ")";
+        } else {
+          while (i6 < xmlData.length && !/\s/.test(xmlData[i6])) {
+            attributeType += xmlData[i6];
+            i6++;
+          }
+          const validTypes = ["CDATA", "ID", "IDREF", "IDREFS", "ENTITY", "ENTITIES", "NMTOKEN", "NMTOKENS"];
+          if (!this.suppressValidationErr && !validTypes.includes(attributeType.toUpperCase())) {
+            throw new Error(`Invalid attribute type: "${attributeType}"`);
+          }
+        }
+        i6 = skipWhitespace(xmlData, i6);
+        let defaultValue = "";
+        if (xmlData.substring(i6, i6 + 8).toUpperCase() === "#REQUIRED") {
+          defaultValue = "#REQUIRED";
+          i6 += 8;
+        } else if (xmlData.substring(i6, i6 + 7).toUpperCase() === "#IMPLIED") {
+          defaultValue = "#IMPLIED";
+          i6 += 7;
+        } else {
+          [i6, defaultValue] = this.readIdentifierVal(xmlData, i6, "ATTLIST");
+        }
+        return {
+          elementName,
+          attributeName,
+          attributeType,
+          defaultValue,
+          index: i6
+        };
+      }
+    };
+    var skipWhitespace = (data2, index3) => {
+      while (index3 < data2.length && /\s/.test(data2[index3])) {
+        index3++;
+      }
+      return index3;
+    };
+    function hasSeq(data2, seq, i6) {
+      for (let j5 = 0; j5 < seq.length; j5++) {
+        if (seq[j5] !== data2[i6 + j5 + 1]) return false;
+      }
+      return true;
+    }
+    function validateEntityName(name) {
+      if (util.isName(name))
+        return name;
+      else
+        throw new Error(`Invalid entity name ${name}`);
+    }
+    module2.exports = DocTypeReader;
+  }
+});
+
+// node_modules/strnum/strnum.js
+var require_strnum = __commonJS({
+  "node_modules/strnum/strnum.js"(exports2, module2) {
+    var hexRegex = /^[-+]?0x[a-fA-F0-9]+$/;
+    var numRegex = /^([\-\+])?(0*)([0-9]*(\.[0-9]*)?)$/;
+    var consider = {
+      hex: true,
+      // oct: false,
+      leadingZeros: true,
+      decimalPoint: ".",
+      eNotation: true
+      //skipLike: /regex/
+    };
+    function toNumber2(str, options = {}) {
+      options = Object.assign({}, consider, options);
+      if (!str || typeof str !== "string") return str;
+      let trimmedStr = str.trim();
+      if (options.skipLike !== void 0 && options.skipLike.test(trimmedStr)) return str;
+      else if (str === "0") return 0;
+      else if (options.hex && hexRegex.test(trimmedStr)) {
+        return parse_int(trimmedStr, 16);
+      } else if (trimmedStr.search(/[eE]/) !== -1) {
+        const notation = trimmedStr.match(/^([-\+])?(0*)([0-9]*(\.[0-9]*)?[eE][-\+]?[0-9]+)$/);
+        if (notation) {
+          if (options.leadingZeros) {
+            trimmedStr = (notation[1] || "") + notation[3];
+          } else {
+            if (notation[2] === "0" && notation[3][0] === ".") {
+            } else {
+              return str;
+            }
+          }
+          return options.eNotation ? Number(trimmedStr) : str;
+        } else {
+          return str;
+        }
+      } else {
+        const match = numRegex.exec(trimmedStr);
+        if (match) {
+          const sign = match[1];
+          const leadingZeros = match[2];
+          let numTrimmedByZeros = trimZeros(match[3]);
+          if (!options.leadingZeros && leadingZeros.length > 0 && sign && trimmedStr[2] !== ".") return str;
+          else if (!options.leadingZeros && leadingZeros.length > 0 && !sign && trimmedStr[1] !== ".") return str;
+          else if (options.leadingZeros && leadingZeros === str) return 0;
+          else {
+            const num = Number(trimmedStr);
+            const numStr = "" + num;
+            if (numStr.search(/[eE]/) !== -1) {
+              if (options.eNotation) return num;
+              else return str;
+            } else if (trimmedStr.indexOf(".") !== -1) {
+              if (numStr === "0" && numTrimmedByZeros === "") return num;
+              else if (numStr === numTrimmedByZeros) return num;
+              else if (sign && numStr === "-" + numTrimmedByZeros) return num;
+              else return str;
+            }
+            if (leadingZeros) {
+              return numTrimmedByZeros === numStr || sign + numTrimmedByZeros === numStr ? num : str;
+            } else {
+              return trimmedStr === numStr || trimmedStr === sign + numStr ? num : str;
+            }
+          }
+        } else {
+          return str;
+        }
+      }
+    }
+    function trimZeros(numStr) {
+      if (numStr && numStr.indexOf(".") !== -1) {
+        numStr = numStr.replace(/0+$/, "");
+        if (numStr === ".") numStr = "0";
+        else if (numStr[0] === ".") numStr = "0" + numStr;
+        else if (numStr[numStr.length - 1] === ".") numStr = numStr.substr(0, numStr.length - 1);
+        return numStr;
+      }
+      return numStr;
+    }
+    function parse_int(numStr, base) {
+      if (parseInt) return parseInt(numStr, base);
+      else if (Number.parseInt) return Number.parseInt(numStr, base);
+      else if (window && window.parseInt) return window.parseInt(numStr, base);
+      else throw new Error("parseInt, Number.parseInt, window.parseInt are not supported");
+    }
+    module2.exports = toNumber2;
+  }
+});
+
+// node_modules/fast-xml-parser/src/ignoreAttributes.js
+var require_ignoreAttributes = __commonJS({
+  "node_modules/fast-xml-parser/src/ignoreAttributes.js"(exports2, module2) {
+    function getIgnoreAttributesFn(ignoreAttributes) {
+      if (typeof ignoreAttributes === "function") {
+        return ignoreAttributes;
+      }
+      if (Array.isArray(ignoreAttributes)) {
+        return (attrName) => {
+          for (const pattern of ignoreAttributes) {
+            if (typeof pattern === "string" && attrName === pattern) {
+              return true;
+            }
+            if (pattern instanceof RegExp && pattern.test(attrName)) {
+              return true;
+            }
+          }
+        };
+      }
+      return () => false;
+    }
+    module2.exports = getIgnoreAttributesFn;
+  }
+});
+
+// node_modules/fast-xml-parser/src/xmlparser/OrderedObjParser.js
+var require_OrderedObjParser = __commonJS({
+  "node_modules/fast-xml-parser/src/xmlparser/OrderedObjParser.js"(exports2, module2) {
+    "use strict";
+    var util = require_util();
+    var xmlNode = require_xmlNode();
+    var DocTypeReader = require_DocTypeReader();
+    var toNumber2 = require_strnum();
+    var getIgnoreAttributesFn = require_ignoreAttributes();
+    var OrderedObjParser = class {
+      constructor(options) {
+        this.options = options;
+        this.currentNode = null;
+        this.tagsNodeStack = [];
+        this.docTypeEntities = {};
+        this.lastEntities = {
+          "apos": { regex: /&(apos|#39|#x27);/g, val: "'" },
+          "gt": { regex: /&(gt|#62|#x3E);/g, val: ">" },
+          "lt": { regex: /&(lt|#60|#x3C);/g, val: "<" },
+          "quot": { regex: /&(quot|#34|#x22);/g, val: '"' }
+        };
+        this.ampEntity = { regex: /&(amp|#38|#x26);/g, val: "&" };
+        this.htmlEntities = {
+          "space": { regex: /&(nbsp|#160);/g, val: " " },
+          // "lt" : { regex: /&(lt|#60);/g, val: "<" },
+          // "gt" : { regex: /&(gt|#62);/g, val: ">" },
+          // "amp" : { regex: /&(amp|#38);/g, val: "&" },
+          // "quot" : { regex: /&(quot|#34);/g, val: "\"" },
+          // "apos" : { regex: /&(apos|#39);/g, val: "'" },
+          "cent": { regex: /&(cent|#162);/g, val: "\xA2" },
+          "pound": { regex: /&(pound|#163);/g, val: "\xA3" },
+          "yen": { regex: /&(yen|#165);/g, val: "\xA5" },
+          "euro": { regex: /&(euro|#8364);/g, val: "\u20AC" },
+          "copyright": { regex: /&(copy|#169);/g, val: "\xA9" },
+          "reg": { regex: /&(reg|#174);/g, val: "\xAE" },
+          "inr": { regex: /&(inr|#8377);/g, val: "\u20B9" },
+          "num_dec": { regex: /&#([0-9]{1,7});/g, val: (_5, str) => fromCodePoint(str, 10, "&#") },
+          "num_hex": { regex: /&#x([0-9a-fA-F]{1,6});/g, val: (_5, str) => fromCodePoint(str, 16, "&#x") }
+        };
+        this.addExternalEntities = addExternalEntities;
+        this.parseXml = parseXml;
+        this.parseTextData = parseTextData;
+        this.resolveNameSpace = resolveNameSpace;
+        this.buildAttributesMap = buildAttributesMap;
+        this.isItStopNode = isItStopNode;
+        this.replaceEntitiesValue = replaceEntitiesValue;
+        this.readStopNodeData = readStopNodeData;
+        this.saveTextToParentTag = saveTextToParentTag;
+        this.addChild = addChild;
+        this.ignoreAttributesFn = getIgnoreAttributesFn(this.options.ignoreAttributes);
+        this.entityExpansionCount = 0;
+        this.currentExpandedLength = 0;
+        if (this.options.stopNodes && this.options.stopNodes.length > 0) {
+          this.stopNodesExact = /* @__PURE__ */ new Set();
+          this.stopNodesWildcard = /* @__PURE__ */ new Set();
+          for (let i6 = 0; i6 < this.options.stopNodes.length; i6++) {
+            const stopNodeExp = this.options.stopNodes[i6];
+            if (typeof stopNodeExp !== "string") continue;
+            if (stopNodeExp.startsWith("*.")) {
+              this.stopNodesWildcard.add(stopNodeExp.substring(2));
+            } else {
+              this.stopNodesExact.add(stopNodeExp);
+            }
+          }
+        }
+      }
+    };
+    function addExternalEntities(externalEntities) {
+      const entKeys = Object.keys(externalEntities);
+      for (let i6 = 0; i6 < entKeys.length; i6++) {
+        const ent = entKeys[i6];
+        const escaped = ent.replace(/[.\-+*:]/g, "\\.");
+        this.lastEntities[ent] = {
+          regex: new RegExp("&" + escaped + ";", "g"),
+          val: externalEntities[ent]
+        };
+      }
+    }
+    function parseTextData(val, tagName2, jPath, dontTrim, hasAttributes, isLeafNode, escapeEntities) {
+      if (val !== void 0) {
+        if (this.options.trimValues && !dontTrim) {
+          val = val.trim();
+        }
+        if (val.length > 0) {
+          if (!escapeEntities) val = this.replaceEntitiesValue(val, tagName2, jPath);
+          const newval = this.options.tagValueProcessor(tagName2, val, jPath, hasAttributes, isLeafNode);
+          if (newval === null || newval === void 0) {
+            return val;
+          } else if (typeof newval !== typeof val || newval !== val) {
+            return newval;
+          } else if (this.options.trimValues) {
+            return parseValue(val, this.options.parseTagValue, this.options.numberParseOptions);
+          } else {
+            const trimmedVal = val.trim();
+            if (trimmedVal === val) {
+              return parseValue(val, this.options.parseTagValue, this.options.numberParseOptions);
+            } else {
+              return val;
+            }
+          }
+        }
+      }
+    }
+    function resolveNameSpace(tagname) {
+      if (this.options.removeNSPrefix) {
+        const tags = tagname.split(":");
+        const prefix = tagname.charAt(0) === "/" ? "/" : "";
+        if (tags[0] === "xmlns") {
+          return "";
+        }
+        if (tags.length === 2) {
+          tagname = prefix + tags[1];
+        }
+      }
+      return tagname;
+    }
+    var attrsRegx = new RegExp(`([^\\s=]+)\\s*(=\\s*(['"])([\\s\\S]*?)\\3)?`, "gm");
+    function buildAttributesMap(attrStr, jPath, tagName2) {
+      if (this.options.ignoreAttributes !== true && typeof attrStr === "string") {
+        const matches = util.getAllMatches(attrStr, attrsRegx);
+        const len = matches.length;
+        const attrs = {};
+        for (let i6 = 0; i6 < len; i6++) {
+          const attrName = this.resolveNameSpace(matches[i6][1]);
+          if (this.ignoreAttributesFn(attrName, jPath)) {
+            continue;
+          }
+          let oldVal = matches[i6][4];
+          let aName = this.options.attributeNamePrefix + attrName;
+          if (attrName.length) {
+            if (this.options.transformAttributeName) {
+              aName = this.options.transformAttributeName(aName);
+            }
+            aName = sanitizeName(aName, this.options);
+            if (oldVal !== void 0) {
+              if (this.options.trimValues) {
+                oldVal = oldVal.trim();
+              }
+              oldVal = this.replaceEntitiesValue(oldVal, tagName2, jPath);
+              const newVal = this.options.attributeValueProcessor(attrName, oldVal, jPath);
+              if (newVal === null || newVal === void 0) {
+                attrs[aName] = oldVal;
+              } else if (typeof newVal !== typeof oldVal || newVal !== oldVal) {
+                attrs[aName] = newVal;
+              } else {
+                attrs[aName] = parseValue(
+                  oldVal,
+                  this.options.parseAttributeValue,
+                  this.options.numberParseOptions
+                );
+              }
+            } else if (this.options.allowBooleanAttributes) {
+              attrs[aName] = true;
+            }
+          }
+        }
+        if (!Object.keys(attrs).length) {
+          return;
+        }
+        if (this.options.attributesGroupName) {
+          const attrCollection = {};
+          attrCollection[this.options.attributesGroupName] = attrs;
+          return attrCollection;
+        }
+        return attrs;
+      }
+    }
+    var parseXml = function(xmlData) {
+      xmlData = xmlData.replace(/\r\n?/g, "\n");
+      const xmlObj = new xmlNode("!xml");
+      let currentNode = xmlObj;
+      let textData = "";
+      let jPath = "";
+      this.entityExpansionCount = 0;
+      this.currentExpandedLength = 0;
+      const docTypeReader = new DocTypeReader(this.options.processEntities);
+      for (let i6 = 0; i6 < xmlData.length; i6++) {
+        const ch = xmlData[i6];
+        if (ch === "<") {
+          if (xmlData[i6 + 1] === "/") {
+            const closeIndex = findClosingIndex(xmlData, ">", i6, "Closing Tag is not closed.");
+            let tagName2 = xmlData.substring(i6 + 2, closeIndex).trim();
+            if (this.options.removeNSPrefix) {
+              const colonIndex = tagName2.indexOf(":");
+              if (colonIndex !== -1) {
+                tagName2 = tagName2.substr(colonIndex + 1);
+              }
+            }
+            if (this.options.transformTagName) {
+              tagName2 = this.options.transformTagName(tagName2);
+            }
+            if (currentNode) {
+              textData = this.saveTextToParentTag(textData, currentNode, jPath);
+            }
+            const lastTagName = jPath.substring(jPath.lastIndexOf(".") + 1);
+            if (tagName2 && this.options.unpairedTags.indexOf(tagName2) !== -1) {
+              throw new Error(`Unpaired tag can not be used as closing tag: </${tagName2}>`);
+            }
+            let propIndex = 0;
+            if (lastTagName && this.options.unpairedTags.indexOf(lastTagName) !== -1) {
+              propIndex = jPath.lastIndexOf(".", jPath.lastIndexOf(".") - 1);
+              this.tagsNodeStack.pop();
+            } else {
+              propIndex = jPath.lastIndexOf(".");
+            }
+            jPath = jPath.substring(0, propIndex);
+            currentNode = this.tagsNodeStack.pop();
+            textData = "";
+            i6 = closeIndex;
+          } else if (xmlData[i6 + 1] === "?") {
+            let tagData = readTagExp(xmlData, i6, false, "?>");
+            if (!tagData) throw new Error("Pi Tag is not closed.");
+            textData = this.saveTextToParentTag(textData, currentNode, jPath);
+            if (this.options.ignoreDeclaration && tagData.tagName === "?xml" || this.options.ignorePiTags) {
+            } else {
+              const childNode = new xmlNode(tagData.tagName);
+              childNode.add(this.options.textNodeName, "");
+              if (tagData.tagName !== tagData.tagExp && tagData.attrExpPresent) {
+                childNode[":@"] = this.buildAttributesMap(tagData.tagExp, jPath, tagData.tagName);
+              }
+              this.addChild(currentNode, childNode, jPath, i6);
+            }
+            i6 = tagData.closeIndex + 1;
+          } else if (xmlData.substr(i6 + 1, 3) === "!--") {
+            const endIndex = findClosingIndex(xmlData, "-->", i6 + 4, "Comment is not closed.");
+            if (this.options.commentPropName) {
+              const comment = xmlData.substring(i6 + 4, endIndex - 2);
+              textData = this.saveTextToParentTag(textData, currentNode, jPath);
+              currentNode.add(this.options.commentPropName, [{ [this.options.textNodeName]: comment }]);
+            }
+            i6 = endIndex;
+          } else if (xmlData.substr(i6 + 1, 2) === "!D") {
+            const result = docTypeReader.readDocType(xmlData, i6);
+            this.docTypeEntities = result.entities;
+            i6 = result.i;
+          } else if (xmlData.substr(i6 + 1, 2) === "![") {
+            const closeIndex = findClosingIndex(xmlData, "]]>", i6, "CDATA is not closed.") - 2;
+            const tagExp = xmlData.substring(i6 + 9, closeIndex);
+            textData = this.saveTextToParentTag(textData, currentNode, jPath);
+            let val = this.parseTextData(tagExp, currentNode.tagname, jPath, true, false, true, true);
+            if (val == void 0) val = "";
+            if (this.options.cdataPropName) {
+              currentNode.add(this.options.cdataPropName, [{ [this.options.textNodeName]: tagExp }]);
+            } else {
+              currentNode.add(this.options.textNodeName, val);
+            }
+            i6 = closeIndex + 2;
+          } else {
+            let result = readTagExp(xmlData, i6, this.options.removeNSPrefix);
+            let tagName2 = result.tagName;
+            const rawTagName = result.rawTagName;
+            let tagExp = result.tagExp;
+            let attrExpPresent = result.attrExpPresent;
+            let closeIndex = result.closeIndex;
+            if (this.options.transformTagName) {
+              const newTagName = this.options.transformTagName(tagName2);
+              if (tagExp === tagName2) {
+                tagExp = newTagName;
+              }
+              tagName2 = newTagName;
+            }
+            if (this.options.strictReservedNames && (tagName2 === this.options.commentPropName || tagName2 === this.options.cdataPropName || tagName2 === this.options.textNodeName || tagName2 === this.options.attributesGroupName)) {
+              throw new Error(`Invalid tag name: ${tagName2}`);
+            }
+            if (currentNode && textData) {
+              if (currentNode.tagname !== "!xml") {
+                textData = this.saveTextToParentTag(textData, currentNode, jPath, false);
+              }
+            }
+            const lastTag = currentNode;
+            if (lastTag && this.options.unpairedTags.indexOf(lastTag.tagname) !== -1) {
+              currentNode = this.tagsNodeStack.pop();
+              jPath = jPath.substring(0, jPath.lastIndexOf("."));
+            }
+            if (tagName2 !== xmlObj.tagname) {
+              jPath += jPath ? "." + tagName2 : tagName2;
+            }
+            const startIndex = i6;
+            if (this.isItStopNode(this.stopNodesExact, this.stopNodesWildcard, jPath, tagName2)) {
+              let tagContent = "";
+              if (tagExp.length > 0 && tagExp.lastIndexOf("/") === tagExp.length - 1) {
+                if (tagName2[tagName2.length - 1] === "/") {
+                  tagName2 = tagName2.substr(0, tagName2.length - 1);
+                  jPath = jPath.substr(0, jPath.length - 1);
+                  tagExp = tagName2;
+                } else {
+                  tagExp = tagExp.substr(0, tagExp.length - 1);
+                }
+                i6 = result.closeIndex;
+              } else if (this.options.unpairedTags.indexOf(tagName2) !== -1) {
+                i6 = result.closeIndex;
+              } else {
+                const result2 = this.readStopNodeData(xmlData, rawTagName, closeIndex + 1);
+                if (!result2) throw new Error(`Unexpected end of ${rawTagName}`);
+                i6 = result2.i;
+                tagContent = result2.tagContent;
+              }
+              const childNode = new xmlNode(tagName2);
+              if (tagName2 !== tagExp && attrExpPresent) {
+                childNode[":@"] = this.buildAttributesMap(tagExp, jPath, tagName2);
+              }
+              if (tagContent) {
+                tagContent = this.parseTextData(tagContent, tagName2, jPath, true, attrExpPresent, true, true);
+              }
+              jPath = jPath.substr(0, jPath.lastIndexOf("."));
+              childNode.add(this.options.textNodeName, tagContent);
+              this.addChild(currentNode, childNode, jPath, startIndex);
+            } else {
+              if (tagExp.length > 0 && tagExp.lastIndexOf("/") === tagExp.length - 1) {
+                if (tagName2[tagName2.length - 1] === "/") {
+                  tagName2 = tagName2.substr(0, tagName2.length - 1);
+                  jPath = jPath.substr(0, jPath.length - 1);
+                  tagExp = tagName2;
+                } else {
+                  tagExp = tagExp.substr(0, tagExp.length - 1);
+                }
+                if (this.options.transformTagName) {
+                  const newTagName = this.options.transformTagName(tagName2);
+                  if (tagExp === tagName2) {
+                    tagExp = newTagName;
+                  }
+                  tagName2 = newTagName;
+                }
+                const childNode = new xmlNode(tagName2);
+                if (tagName2 !== tagExp && attrExpPresent) {
+                  childNode[":@"] = this.buildAttributesMap(tagExp, jPath, tagName2);
+                }
+                this.addChild(currentNode, childNode, jPath, startIndex);
+                jPath = jPath.substr(0, jPath.lastIndexOf("."));
+              } else if (this.options.unpairedTags.indexOf(tagName2) !== -1) {
+                const childNode = new xmlNode(tagName2);
+                if (tagName2 !== tagExp && attrExpPresent) {
+                  childNode[":@"] = this.buildAttributesMap(tagExp, jPath);
+                }
+                this.addChild(currentNode, childNode, jPath, startIndex);
+                jPath = jPath.substr(0, jPath.lastIndexOf("."));
+                i6 = result.closeIndex;
+                continue;
+              } else {
+                const childNode = new xmlNode(tagName2);
+                if (this.tagsNodeStack.length > this.options.maxNestedTags) {
+                  throw new Error("Maximum nested tags exceeded");
+                }
+                this.tagsNodeStack.push(currentNode);
+                if (tagName2 !== tagExp && attrExpPresent) {
+                  childNode[":@"] = this.buildAttributesMap(tagExp, jPath, tagName2);
+                }
+                this.addChild(currentNode, childNode, jPath);
+                currentNode = childNode;
+              }
+              textData = "";
+              i6 = closeIndex;
+            }
+          }
+        } else {
+          textData += xmlData[i6];
+        }
+      }
+      return xmlObj.child;
+    };
+    function addChild(currentNode, childNode, jPath, startIndex) {
+      if (!this.options.captureMetaData) startIndex = void 0;
+      const result = this.options.updateTag(childNode.tagname, jPath, childNode[":@"]);
+      if (result === false) {
+      } else if (typeof result === "string") {
+        childNode.tagname = result;
+        currentNode.addChild(childNode, startIndex);
+      } else {
+        currentNode.addChild(childNode, startIndex);
+      }
+    }
+    var replaceEntitiesValue = function(val, tagName2, jPath) {
+      if (val.indexOf("&") === -1) {
+        return val;
+      }
+      const entityConfig = this.options.processEntities;
+      if (!entityConfig.enabled) {
+        return val;
+      }
+      if (entityConfig.allowedTags) {
+        if (!entityConfig.allowedTags.includes(tagName2)) {
+          return val;
+        }
+      }
+      if (entityConfig.tagFilter) {
+        if (!entityConfig.tagFilter(tagName2, jPath)) {
+          return val;
+        }
+      }
+      for (let entityName in this.docTypeEntities) {
+        const entity = this.docTypeEntities[entityName];
+        const matches = val.match(entity.regx);
+        if (matches) {
+          this.entityExpansionCount += matches.length;
+          if (entityConfig.maxTotalExpansions && this.entityExpansionCount > entityConfig.maxTotalExpansions) {
+            throw new Error(
+              `Entity expansion limit exceeded: ${this.entityExpansionCount} > ${entityConfig.maxTotalExpansions}`
+            );
+          }
+          const lengthBefore = val.length;
+          val = val.replace(entity.regx, entity.val);
+          if (entityConfig.maxExpandedLength) {
+            this.currentExpandedLength += val.length - lengthBefore;
+            if (this.currentExpandedLength > entityConfig.maxExpandedLength) {
+              throw new Error(
+                `Total expanded content size exceeded: ${this.currentExpandedLength} > ${entityConfig.maxExpandedLength}`
+              );
+            }
+          }
+        }
+      }
+      if (val.indexOf("&") === -1) return val;
+      for (const entityName of Object.keys(this.lastEntities)) {
+        const entity = this.lastEntities[entityName];
+        const matches = val.match(entity.regex);
+        if (matches) {
+          this.entityExpansionCount += matches.length;
+          if (entityConfig.maxTotalExpansions && this.entityExpansionCount > entityConfig.maxTotalExpansions) {
+            throw new Error(
+              `Entity expansion limit exceeded: ${this.entityExpansionCount} > ${entityConfig.maxTotalExpansions}`
+            );
+          }
+        }
+        val = val.replace(entity.regex, entity.val);
+      }
+      if (val.indexOf("&") === -1) return val;
+      if (this.options.htmlEntities) {
+        for (const entityName of Object.keys(this.htmlEntities)) {
+          const entity = this.htmlEntities[entityName];
+          const matches = val.match(entity.regex);
+          if (matches) {
+            this.entityExpansionCount += matches.length;
+            if (entityConfig.maxTotalExpansions && this.entityExpansionCount > entityConfig.maxTotalExpansions) {
+              throw new Error(
+                `Entity expansion limit exceeded: ${this.entityExpansionCount} > ${entityConfig.maxTotalExpansions}`
+              );
+            }
+          }
+          val = val.replace(entity.regex, entity.val);
+        }
+      }
+      val = val.replace(this.ampEntity.regex, this.ampEntity.val);
+      return val;
+    };
+    function saveTextToParentTag(textData, parentNode, jPath, isLeafNode) {
+      if (textData) {
+        if (isLeafNode === void 0) isLeafNode = parentNode.child.length === 0;
+        textData = this.parseTextData(
+          textData,
+          parentNode.tagname,
+          jPath,
+          false,
+          parentNode[":@"] ? Object.keys(parentNode[":@"]).length !== 0 : false,
+          isLeafNode
+        );
+        if (textData !== void 0 && textData !== "")
+          parentNode.add(this.options.textNodeName, textData);
+        textData = "";
+      }
+      return textData;
+    }
+    function isItStopNode(stopNodesExact, stopNodesWildcard, jPath, currentTagName) {
+      if (stopNodesWildcard && stopNodesWildcard.has(currentTagName)) return true;
+      if (stopNodesExact && stopNodesExact.has(jPath)) return true;
+      return false;
+    }
+    function tagExpWithClosingIndex(xmlData, i6, closingChar = ">") {
+      let attrBoundary;
+      let tagExp = "";
+      for (let index3 = i6; index3 < xmlData.length; index3++) {
+        let ch = xmlData[index3];
+        if (attrBoundary) {
+          if (ch === attrBoundary) attrBoundary = "";
+        } else if (ch === '"' || ch === "'") {
+          attrBoundary = ch;
+        } else if (ch === closingChar[0]) {
+          if (closingChar[1]) {
+            if (xmlData[index3 + 1] === closingChar[1]) {
+              return {
+                data: tagExp,
+                index: index3
+              };
+            }
+          } else {
+            return {
+              data: tagExp,
+              index: index3
+            };
+          }
+        } else if (ch === "	") {
+          ch = " ";
+        }
+        tagExp += ch;
+      }
+    }
+    function findClosingIndex(xmlData, str, i6, errMsg) {
+      const closingIndex = xmlData.indexOf(str, i6);
+      if (closingIndex === -1) {
+        throw new Error(errMsg);
+      } else {
+        return closingIndex + str.length - 1;
+      }
+    }
+    function readTagExp(xmlData, i6, removeNSPrefix, closingChar = ">") {
+      const result = tagExpWithClosingIndex(xmlData, i6 + 1, closingChar);
+      if (!result) return;
+      let tagExp = result.data;
+      const closeIndex = result.index;
+      const separatorIndex = tagExp.search(/\s/);
+      let tagName2 = tagExp;
+      let attrExpPresent = true;
+      if (separatorIndex !== -1) {
+        tagName2 = tagExp.substring(0, separatorIndex);
+        tagExp = tagExp.substring(separatorIndex + 1).trimStart();
+      }
+      const rawTagName = tagName2;
+      if (removeNSPrefix) {
+        const colonIndex = tagName2.indexOf(":");
+        if (colonIndex !== -1) {
+          tagName2 = tagName2.substr(colonIndex + 1);
+          attrExpPresent = tagName2 !== result.data.substr(colonIndex + 1);
+        }
+      }
+      return {
+        tagName: tagName2,
+        tagExp,
+        closeIndex,
+        attrExpPresent,
+        rawTagName
+      };
+    }
+    function readStopNodeData(xmlData, tagName2, i6) {
+      const startIndex = i6;
+      let openTagCount = 1;
+      for (; i6 < xmlData.length; i6++) {
+        if (xmlData[i6] === "<") {
+          if (xmlData[i6 + 1] === "/") {
+            const closeIndex = findClosingIndex(xmlData, ">", i6, `${tagName2} is not closed`);
+            let closeTagName = xmlData.substring(i6 + 2, closeIndex).trim();
+            if (closeTagName === tagName2) {
+              openTagCount--;
+              if (openTagCount === 0) {
+                return {
+                  tagContent: xmlData.substring(startIndex, i6),
+                  i: closeIndex
+                };
+              }
+            }
+            i6 = closeIndex;
+          } else if (xmlData[i6 + 1] === "?") {
+            const closeIndex = findClosingIndex(xmlData, "?>", i6 + 1, "StopNode is not closed.");
+            i6 = closeIndex;
+          } else if (xmlData.substr(i6 + 1, 3) === "!--") {
+            const closeIndex = findClosingIndex(xmlData, "-->", i6 + 3, "StopNode is not closed.");
+            i6 = closeIndex;
+          } else if (xmlData.substr(i6 + 1, 2) === "![") {
+            const closeIndex = findClosingIndex(xmlData, "]]>", i6, "StopNode is not closed.") - 2;
+            i6 = closeIndex;
+          } else {
+            const tagData = readTagExp(xmlData, i6, ">");
+            if (tagData) {
+              const openTagName = tagData && tagData.tagName;
+              if (openTagName === tagName2 && tagData.tagExp[tagData.tagExp.length - 1] !== "/") {
+                openTagCount++;
+              }
+              i6 = tagData.closeIndex;
+            }
+          }
+        }
+      }
+    }
+    function parseValue(val, shouldParse, options) {
+      if (shouldParse && typeof val === "string") {
+        const newval = val.trim();
+        if (newval === "true") return true;
+        else if (newval === "false") return false;
+        else return toNumber2(val, options);
+      } else {
+        if (util.isExist(val)) {
+          return val;
+        } else {
+          return "";
+        }
+      }
+    }
+    function fromCodePoint(str, base, prefix) {
+      const codePoint = Number.parseInt(str, base);
+      if (codePoint >= 0 && codePoint <= 1114111) {
+        return String.fromCodePoint(codePoint);
+      } else {
+        return prefix + str + ";";
+      }
+    }
+    function sanitizeName(name, options) {
+      if (util.criticalProperties.includes(name)) {
+        throw new Error(`[SECURITY] Invalid name: "${name}" is a reserved JavaScript keyword that could cause prototype pollution`);
+      } else if (util.DANGEROUS_PROPERTY_NAMES.includes(name)) {
+        return options.onDangerousProperty(name);
+      }
+      return name;
+    }
+    module2.exports = OrderedObjParser;
+  }
+});
+
+// node_modules/fast-xml-parser/src/xmlparser/node2json.js
+var require_node2json = __commonJS({
+  "node_modules/fast-xml-parser/src/xmlparser/node2json.js"(exports2) {
+    "use strict";
+    function prettify(node2, options) {
+      return compress2(node2, options);
+    }
+    function compress2(arr, options, jPath) {
+      let text4;
+      const compressedObj = {};
+      for (let i6 = 0; i6 < arr.length; i6++) {
+        const tagObj = arr[i6];
+        const property2 = propName(tagObj);
+        let newJpath = "";
+        if (jPath === void 0) newJpath = property2;
+        else newJpath = jPath + "." + property2;
+        if (property2 === options.textNodeName) {
+          if (text4 === void 0) text4 = tagObj[property2];
+          else text4 += "" + tagObj[property2];
+        } else if (property2 === void 0) {
+          continue;
+        } else if (tagObj[property2]) {
+          let val = compress2(tagObj[property2], options, newJpath);
+          const isLeaf = isLeafTag(val, options);
+          if (tagObj[":@"]) {
+            assignAttributes(val, tagObj[":@"], newJpath, options);
+          } else if (Object.keys(val).length === 1 && val[options.textNodeName] !== void 0 && !options.alwaysCreateTextNode) {
+            val = val[options.textNodeName];
+          } else if (Object.keys(val).length === 0) {
+            if (options.alwaysCreateTextNode) val[options.textNodeName] = "";
+            else val = "";
+          }
+          if (compressedObj[property2] !== void 0 && compressedObj.hasOwnProperty(property2)) {
+            if (!Array.isArray(compressedObj[property2])) {
+              compressedObj[property2] = [compressedObj[property2]];
+            }
+            compressedObj[property2].push(val);
+          } else {
+            if (options.isArray(property2, newJpath, isLeaf)) {
+              compressedObj[property2] = [val];
+            } else {
+              compressedObj[property2] = val;
+            }
+          }
+        }
+      }
+      if (typeof text4 === "string") {
+        if (text4.length > 0) compressedObj[options.textNodeName] = text4;
+      } else if (text4 !== void 0) compressedObj[options.textNodeName] = text4;
+      return compressedObj;
+    }
+    function propName(obj) {
+      const keys2 = Object.keys(obj);
+      for (let i6 = 0; i6 < keys2.length; i6++) {
+        const key = keys2[i6];
+        if (key !== ":@") return key;
+      }
+    }
+    function assignAttributes(obj, attrMap, jpath, options) {
+      if (attrMap) {
+        const keys2 = Object.keys(attrMap);
+        const len = keys2.length;
+        for (let i6 = 0; i6 < len; i6++) {
+          const atrrName = keys2[i6];
+          if (options.isArray(atrrName, jpath + "." + atrrName, true, true)) {
+            obj[atrrName] = [attrMap[atrrName]];
+          } else {
+            obj[atrrName] = attrMap[atrrName];
+          }
+        }
+      }
+    }
+    function isLeafTag(obj, options) {
+      const { textNodeName } = options;
+      const propCount = Object.keys(obj).length;
+      if (propCount === 0) {
+        return true;
+      }
+      if (propCount === 1 && (obj[textNodeName] || typeof obj[textNodeName] === "boolean" || obj[textNodeName] === 0)) {
+        return true;
+      }
+      return false;
+    }
+    exports2.prettify = prettify;
+  }
+});
+
+// node_modules/fast-xml-parser/src/xmlparser/XMLParser.js
+var require_XMLParser = __commonJS({
+  "node_modules/fast-xml-parser/src/xmlparser/XMLParser.js"(exports2, module2) {
+    var { buildOptions } = require_OptionsBuilder();
+    var OrderedObjParser = require_OrderedObjParser();
+    var { prettify } = require_node2json();
+    var validator = require_validator();
+    var XMLParser2 = class {
+      constructor(options) {
+        this.externalEntities = {};
+        this.options = buildOptions(options);
+      }
+      /**
+       * Parse XML dats to JS object 
+       * @param {string|Buffer} xmlData 
+       * @param {boolean|Object} validationOption 
+       */
+      parse(xmlData, validationOption) {
+        if (typeof xmlData === "string") {
+        } else if (xmlData.toString) {
+          xmlData = xmlData.toString();
+        } else {
+          throw new Error("XML data is accepted in String or Bytes[] form.");
+        }
+        if (validationOption) {
+          if (validationOption === true) validationOption = {};
+          const result = validator.validate(xmlData, validationOption);
+          if (result !== true) {
+            throw Error(`${result.err.msg}:${result.err.line}:${result.err.col}`);
+          }
+        }
+        const orderedObjParser = new OrderedObjParser(this.options);
+        orderedObjParser.addExternalEntities(this.externalEntities);
+        const orderedResult = orderedObjParser.parseXml(xmlData);
+        if (this.options.preserveOrder || orderedResult === void 0) return orderedResult;
+        else return prettify(orderedResult, this.options);
+      }
+      /**
+       * Add Entity which is not by default supported by this library
+       * @param {string} key 
+       * @param {string} value 
+       */
+      addEntity(key, value) {
+        if (value.indexOf("&") !== -1) {
+          throw new Error("Entity value can't have '&'");
+        } else if (key.indexOf("&") !== -1 || key.indexOf(";") !== -1) {
+          throw new Error("An entity must be set without '&' and ';'. Eg. use '#xD' for '&#xD;'");
+        } else if (value === "&") {
+          throw new Error("An entity with value '&' is not permitted");
+        } else {
+          this.externalEntities[key] = value;
+        }
+      }
+    };
+    module2.exports = XMLParser2;
+  }
+});
+
+// node_modules/fast-xml-parser/src/xmlbuilder/orderedJs2Xml.js
+var require_orderedJs2Xml = __commonJS({
+  "node_modules/fast-xml-parser/src/xmlbuilder/orderedJs2Xml.js"(exports2, module2) {
+    var EOL = "\n";
+    function toXml(jArray, options) {
+      let indentation = "";
+      if (options.format && options.indentBy.length > 0) {
+        indentation = EOL;
+      }
+      return arrToStr(jArray, options, "", indentation);
+    }
+    function arrToStr(arr, options, jPath, indentation) {
+      let xmlStr = "";
+      let isPreviousElementTag = false;
+      if (!Array.isArray(arr)) {
+        if (arr !== void 0 && arr !== null) {
+          let text4 = arr.toString();
+          text4 = replaceEntitiesValue(text4, options);
+          return text4;
+        }
+        return "";
+      }
+      for (let i6 = 0; i6 < arr.length; i6++) {
+        const tagObj = arr[i6];
+        const tagName2 = propName(tagObj);
+        if (tagName2 === void 0) continue;
+        let newJPath = "";
+        if (jPath.length === 0) newJPath = tagName2;
+        else newJPath = `${jPath}.${tagName2}`;
+        if (tagName2 === options.textNodeName) {
+          let tagText = tagObj[tagName2];
+          if (!isStopNode(newJPath, options)) {
+            tagText = options.tagValueProcessor(tagName2, tagText);
+            tagText = replaceEntitiesValue(tagText, options);
+          }
+          if (isPreviousElementTag) {
+            xmlStr += indentation;
+          }
+          xmlStr += tagText;
+          isPreviousElementTag = false;
+          continue;
+        } else if (tagName2 === options.cdataPropName) {
+          if (isPreviousElementTag) {
+            xmlStr += indentation;
+          }
+          xmlStr += `<![CDATA[${tagObj[tagName2][0][options.textNodeName]}]]>`;
+          isPreviousElementTag = false;
+          continue;
+        } else if (tagName2 === options.commentPropName) {
+          xmlStr += indentation + `<!--${tagObj[tagName2][0][options.textNodeName]}-->`;
+          isPreviousElementTag = true;
+          continue;
+        } else if (tagName2[0] === "?") {
+          const attStr2 = attr_to_str(tagObj[":@"], options);
+          const tempInd = tagName2 === "?xml" ? "" : indentation;
+          let piTextNodeName = tagObj[tagName2][0][options.textNodeName];
+          piTextNodeName = piTextNodeName.length !== 0 ? " " + piTextNodeName : "";
+          xmlStr += tempInd + `<${tagName2}${piTextNodeName}${attStr2}?>`;
+          isPreviousElementTag = true;
+          continue;
+        }
+        let newIdentation = indentation;
+        if (newIdentation !== "") {
+          newIdentation += options.indentBy;
+        }
+        const attStr = attr_to_str(tagObj[":@"], options);
+        const tagStart = indentation + `<${tagName2}${attStr}`;
+        const tagValue = arrToStr(tagObj[tagName2], options, newJPath, newIdentation);
+        if (options.unpairedTags.indexOf(tagName2) !== -1) {
+          if (options.suppressUnpairedNode) xmlStr += tagStart + ">";
+          else xmlStr += tagStart + "/>";
+        } else if ((!tagValue || tagValue.length === 0) && options.suppressEmptyNode) {
+          xmlStr += tagStart + "/>";
+        } else if (tagValue && tagValue.endsWith(">")) {
+          xmlStr += tagStart + `>${tagValue}${indentation}</${tagName2}>`;
+        } else {
+          xmlStr += tagStart + ">";
+          if (tagValue && indentation !== "" && (tagValue.includes("/>") || tagValue.includes("</"))) {
+            xmlStr += indentation + options.indentBy + tagValue + indentation;
+          } else {
+            xmlStr += tagValue;
+          }
+          xmlStr += `</${tagName2}>`;
+        }
+        isPreviousElementTag = true;
+      }
+      return xmlStr;
+    }
+    function propName(obj) {
+      const keys2 = Object.keys(obj);
+      for (let i6 = 0; i6 < keys2.length; i6++) {
+        const key = keys2[i6];
+        if (!Object.prototype.hasOwnProperty.call(obj, key)) continue;
+        if (key !== ":@") return key;
+      }
+    }
+    function attr_to_str(attrMap, options) {
+      let attrStr = "";
+      if (attrMap && !options.ignoreAttributes) {
+        for (let attr3 in attrMap) {
+          if (!Object.prototype.hasOwnProperty.call(attrMap, attr3)) continue;
+          let attrVal = options.attributeValueProcessor(attr3, attrMap[attr3]);
+          attrVal = replaceEntitiesValue(attrVal, options);
+          if (attrVal === true && options.suppressBooleanAttributes) {
+            attrStr += ` ${attr3.substr(options.attributeNamePrefix.length)}`;
+          } else {
+            attrStr += ` ${attr3.substr(options.attributeNamePrefix.length)}="${attrVal}"`;
+          }
+        }
+      }
+      return attrStr;
+    }
+    function isStopNode(jPath, options) {
+      jPath = jPath.substr(0, jPath.length - options.textNodeName.length - 1);
+      let tagName2 = jPath.substr(jPath.lastIndexOf(".") + 1);
+      for (let index3 in options.stopNodes) {
+        if (options.stopNodes[index3] === jPath || options.stopNodes[index3] === "*." + tagName2) return true;
+      }
+      return false;
+    }
+    function replaceEntitiesValue(textValue, options) {
+      if (textValue && textValue.length > 0 && options.processEntities) {
+        for (let i6 = 0; i6 < options.entities.length; i6++) {
+          const entity = options.entities[i6];
+          textValue = textValue.replace(entity.regex, entity.val);
+        }
+      }
+      return textValue;
+    }
+    module2.exports = toXml;
+  }
+});
+
+// node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js
+var require_json2xml = __commonJS({
+  "node_modules/fast-xml-parser/src/xmlbuilder/json2xml.js"(exports2, module2) {
+    "use strict";
+    var buildFromOrderedJs = require_orderedJs2Xml();
+    var getIgnoreAttributesFn = require_ignoreAttributes();
+    var defaultOptions2 = {
+      attributeNamePrefix: "@_",
+      attributesGroupName: false,
+      textNodeName: "#text",
+      ignoreAttributes: true,
+      cdataPropName: false,
+      format: false,
+      indentBy: "  ",
+      suppressEmptyNode: false,
+      suppressUnpairedNode: true,
+      suppressBooleanAttributes: true,
+      tagValueProcessor: function(key, a5) {
+        return a5;
+      },
+      attributeValueProcessor: function(attrName, a5) {
+        return a5;
+      },
+      preserveOrder: false,
+      commentPropName: false,
+      unpairedTags: [],
+      entities: [
+        { regex: new RegExp("&", "g"), val: "&amp;" },
+        //it must be on top
+        { regex: new RegExp(">", "g"), val: "&gt;" },
+        { regex: new RegExp("<", "g"), val: "&lt;" },
+        { regex: new RegExp("'", "g"), val: "&apos;" },
+        { regex: new RegExp('"', "g"), val: "&quot;" }
+      ],
+      processEntities: true,
+      stopNodes: [],
+      // transformTagName: false,
+      // transformAttributeName: false,
+      oneListGroup: false
+    };
+    function Builder(options) {
+      this.options = Object.assign({}, defaultOptions2, options);
+      if (this.options.ignoreAttributes === true || this.options.attributesGroupName) {
+        this.isAttribute = function() {
+          return false;
+        };
+      } else {
+        this.ignoreAttributesFn = getIgnoreAttributesFn(this.options.ignoreAttributes);
+        this.attrPrefixLen = this.options.attributeNamePrefix.length;
+        this.isAttribute = isAttribute;
+      }
+      this.processTextOrObjNode = processTextOrObjNode;
+      if (this.options.format) {
+        this.indentate = indentate;
+        this.tagEndChar = ">\n";
+        this.newLine = "\n";
+      } else {
+        this.indentate = function() {
+          return "";
+        };
+        this.tagEndChar = ">";
+        this.newLine = "";
+      }
+    }
+    Builder.prototype.build = function(jObj) {
+      if (this.options.preserveOrder) {
+        return buildFromOrderedJs(jObj, this.options);
+      } else {
+        if (Array.isArray(jObj) && this.options.arrayNodeName && this.options.arrayNodeName.length > 1) {
+          jObj = {
+            [this.options.arrayNodeName]: jObj
+          };
+        }
+        return this.j2x(jObj, 0, []).val;
+      }
+    };
+    Builder.prototype.j2x = function(jObj, level, ajPath) {
+      let attrStr = "";
+      let val = "";
+      const jPath = ajPath.join(".");
+      for (let key in jObj) {
+        if (!Object.prototype.hasOwnProperty.call(jObj, key)) continue;
+        if (typeof jObj[key] === "undefined") {
+          if (this.isAttribute(key)) {
+            val += "";
+          }
+        } else if (jObj[key] === null) {
+          if (this.isAttribute(key)) {
+            val += "";
+          } else if (key === this.options.cdataPropName) {
+            val += "";
+          } else if (key[0] === "?") {
+            val += this.indentate(level) + "<" + key + "?" + this.tagEndChar;
+          } else {
+            val += this.indentate(level) + "<" + key + "/" + this.tagEndChar;
+          }
+        } else if (jObj[key] instanceof Date) {
+          val += this.buildTextValNode(jObj[key], key, "", level);
+        } else if (typeof jObj[key] !== "object") {
+          const attr3 = this.isAttribute(key);
+          if (attr3 && !this.ignoreAttributesFn(attr3, jPath)) {
+            attrStr += this.buildAttrPairStr(attr3, "" + jObj[key]);
+          } else if (!attr3) {
+            if (key === this.options.textNodeName) {
+              let newval = this.options.tagValueProcessor(key, "" + jObj[key]);
+              val += this.replaceEntitiesValue(newval);
+            } else {
+              val += this.buildTextValNode(jObj[key], key, "", level);
+            }
+          }
+        } else if (Array.isArray(jObj[key])) {
+          const arrLen = jObj[key].length;
+          let listTagVal = "";
+          let listTagAttr = "";
+          for (let j5 = 0; j5 < arrLen; j5++) {
+            const item = jObj[key][j5];
+            if (typeof item === "undefined") {
+            } else if (item === null) {
+              if (key[0] === "?") val += this.indentate(level) + "<" + key + "?" + this.tagEndChar;
+              else val += this.indentate(level) + "<" + key + "/" + this.tagEndChar;
+            } else if (typeof item === "object") {
+              if (this.options.oneListGroup) {
+                const result = this.j2x(item, level + 1, ajPath.concat(key));
+                listTagVal += result.val;
+                if (this.options.attributesGroupName && item.hasOwnProperty(this.options.attributesGroupName)) {
+                  listTagAttr += result.attrStr;
+                }
+              } else {
+                listTagVal += this.processTextOrObjNode(item, key, level, ajPath);
+              }
+            } else {
+              if (this.options.oneListGroup) {
+                let textValue = this.options.tagValueProcessor(key, item);
+                textValue = this.replaceEntitiesValue(textValue);
+                listTagVal += textValue;
+              } else {
+                listTagVal += this.buildTextValNode(item, key, "", level);
+              }
+            }
+          }
+          if (this.options.oneListGroup) {
+            listTagVal = this.buildObjectNode(listTagVal, key, listTagAttr, level);
+          }
+          val += listTagVal;
+        } else {
+          if (this.options.attributesGroupName && key === this.options.attributesGroupName) {
+            const Ks = Object.keys(jObj[key]);
+            const L4 = Ks.length;
+            for (let j5 = 0; j5 < L4; j5++) {
+              attrStr += this.buildAttrPairStr(Ks[j5], "" + jObj[key][Ks[j5]]);
+            }
+          } else {
+            val += this.processTextOrObjNode(jObj[key], key, level, ajPath);
+          }
+        }
+      }
+      return { attrStr, val };
+    };
+    Builder.prototype.buildAttrPairStr = function(attrName, val) {
+      val = this.options.attributeValueProcessor(attrName, "" + val);
+      val = this.replaceEntitiesValue(val);
+      if (this.options.suppressBooleanAttributes && val === "true") {
+        return " " + attrName;
+      } else return " " + attrName + '="' + val + '"';
+    };
+    function processTextOrObjNode(object, key, level, ajPath) {
+      const result = this.j2x(object, level + 1, ajPath.concat(key));
+      if (object[this.options.textNodeName] !== void 0 && Object.keys(object).length === 1) {
+        return this.buildTextValNode(object[this.options.textNodeName], key, result.attrStr, level);
+      } else {
+        return this.buildObjectNode(result.val, key, result.attrStr, level);
+      }
+    }
+    Builder.prototype.buildObjectNode = function(val, key, attrStr, level) {
+      if (val === "") {
+        if (key[0] === "?") return this.indentate(level) + "<" + key + attrStr + "?" + this.tagEndChar;
+        else {
+          return this.indentate(level) + "<" + key + attrStr + this.closeTag(key) + this.tagEndChar;
+        }
+      } else {
+        let tagEndExp = "</" + key + this.tagEndChar;
+        let piClosingChar = "";
+        if (key[0] === "?") {
+          piClosingChar = "?";
+          tagEndExp = "";
+        }
+        if ((attrStr || attrStr === "") && val.indexOf("<") === -1) {
+          return this.indentate(level) + "<" + key + attrStr + piClosingChar + ">" + val + tagEndExp;
+        } else if (this.options.commentPropName !== false && key === this.options.commentPropName && piClosingChar.length === 0) {
+          return this.indentate(level) + `<!--${val}-->` + this.newLine;
+        } else {
+          return this.indentate(level) + "<" + key + attrStr + piClosingChar + this.tagEndChar + val + this.indentate(level) + tagEndExp;
+        }
+      }
+    };
+    Builder.prototype.closeTag = function(key) {
+      let closeTag = "";
+      if (this.options.unpairedTags.indexOf(key) !== -1) {
+        if (!this.options.suppressUnpairedNode) closeTag = "/";
+      } else if (this.options.suppressEmptyNode) {
+        closeTag = "/";
+      } else {
+        closeTag = `></${key}`;
+      }
+      return closeTag;
+    };
+    Builder.prototype.buildTextValNode = function(val, key, attrStr, level) {
+      if (this.options.cdataPropName !== false && key === this.options.cdataPropName) {
+        return this.indentate(level) + `<![CDATA[${val}]]>` + this.newLine;
+      } else if (this.options.commentPropName !== false && key === this.options.commentPropName) {
+        return this.indentate(level) + `<!--${val}-->` + this.newLine;
+      } else if (key[0] === "?") {
+        return this.indentate(level) + "<" + key + attrStr + "?" + this.tagEndChar;
+      } else {
+        let textValue = this.options.tagValueProcessor(key, val);
+        textValue = this.replaceEntitiesValue(textValue);
+        if (textValue === "") {
+          return this.indentate(level) + "<" + key + attrStr + this.closeTag(key) + this.tagEndChar;
+        } else {
+          return this.indentate(level) + "<" + key + attrStr + ">" + textValue + "</" + key + this.tagEndChar;
+        }
+      }
+    };
+    Builder.prototype.replaceEntitiesValue = function(textValue) {
+      if (textValue && textValue.length > 0 && this.options.processEntities) {
+        for (let i6 = 0; i6 < this.options.entities.length; i6++) {
+          const entity = this.options.entities[i6];
+          textValue = textValue.replace(entity.regex, entity.val);
+        }
+      }
+      return textValue;
+    };
+    function indentate(level) {
+      return this.options.indentBy.repeat(level);
+    }
+    function isAttribute(name) {
+      if (name.startsWith(this.options.attributeNamePrefix) && name !== this.options.textNodeName) {
+        return name.substr(this.attrPrefixLen);
+      } else {
+        return false;
+      }
+    }
+    module2.exports = Builder;
+  }
+});
+
+// node_modules/fast-xml-parser/src/fxp.js
+var require_fxp = __commonJS({
+  "node_modules/fast-xml-parser/src/fxp.js"(exports2, module2) {
+    "use strict";
+    var validator = require_validator();
+    var XMLParser2 = require_XMLParser();
+    var XMLBuilder = require_json2xml();
+    module2.exports = {
+      XMLParser: XMLParser2,
+      XMLValidator: validator,
+      XMLBuilder
+    };
   }
 });
 
@@ -38131,30 +40394,30 @@ function styleToObject(styleString) {
   return ret;
 }
 function mergeAttrs(target, source) {
-  Object.keys(source).forEach((attr2) => {
-    if (attr2 === "class") {
-      target[attr2] = target[attr2] ? `${target[attr2]} ${source[attr2]}` : source[attr2];
-    } else if (attr2 === "style") {
-      const to = typeof target[attr2] === "object";
-      const so = typeof source[attr2] === "object";
+  Object.keys(source).forEach((attr3) => {
+    if (attr3 === "class") {
+      target[attr3] = target[attr3] ? `${target[attr3]} ${source[attr3]}` : source[attr3];
+    } else if (attr3 === "style") {
+      const to = typeof target[attr3] === "object";
+      const so = typeof source[attr3] === "object";
       let tt3;
       let ss;
       if (to && so) {
-        tt3 = target[attr2];
-        ss = source[attr2];
+        tt3 = target[attr3];
+        ss = source[attr3];
       } else if (to) {
-        tt3 = target[attr2];
-        ss = styleToObject(source[attr2]);
+        tt3 = target[attr3];
+        ss = styleToObject(source[attr3]);
       } else if (so) {
-        tt3 = styleToObject(target[attr2]);
-        ss = source[attr2];
+        tt3 = styleToObject(target[attr3]);
+        ss = source[attr3];
       } else {
-        tt3 = styleToObject(target[attr2]);
-        ss = styleToObject(source[attr2]);
+        tt3 = styleToObject(target[attr3]);
+        ss = styleToObject(source[attr3]);
       }
-      target[attr2] = mergeAttrs(tt3, ss);
+      target[attr3] = mergeAttrs(tt3, ss);
     } else {
-      target[attr2] = source[attr2];
+      target[attr3] = source[attr3];
     }
   });
   return target;
@@ -39466,8 +41729,8 @@ function breakText(text4, size, styles = {}, options = {}) {
 
 // node_modules/@antv/x6-common/es/dom/path.js
 var KAPPA = 0.551784;
-function getNumbericAttribute(elem, attr2, defaultValue = NaN) {
-  const v6 = elem.getAttribute(attr2);
+function getNumbericAttribute(elem, attr3, defaultValue = NaN) {
+  const v6 = elem.getAttribute(attr3);
   if (v6 == null) {
     return defaultValue;
   }
@@ -47981,26 +50244,26 @@ function createMarker(type, marker, view, attrs, manual2 = {}) {
     [type]: `url(#${view.graph.defineMarker(options)})`
   };
 }
-function normalizeAttr(attr2, type) {
+function normalizeAttr(attr3, type) {
   const result = {};
-  const stroke3 = attr2.stroke;
+  const stroke3 = attr3.stroke;
   if (typeof stroke3 === "string") {
     result.stroke = stroke3;
     result.fill = stroke3;
   }
-  let strokeOpacity = attr2.strokeOpacity;
+  let strokeOpacity = attr3.strokeOpacity;
   if (strokeOpacity == null) {
-    strokeOpacity = attr2["stroke-opacity"];
+    strokeOpacity = attr3["stroke-opacity"];
   }
   if (strokeOpacity == null) {
-    strokeOpacity = attr2.opacity;
+    strokeOpacity = attr3.opacity;
   }
   if (strokeOpacity != null) {
     result["stroke-opacity"] = strokeOpacity;
     result["fill-opacity"] = strokeOpacity;
   }
   if (type !== "marker-mid") {
-    const strokeWidth = parseFloat(attr2.strokeWidth || attr2["stroke-width"]);
+    const strokeWidth = parseFloat(attr3.strokeWidth || attr3["stroke-width"]);
     if (Number.isFinite(strokeWidth) && strokeWidth > 1) {
       const offset3 = Math.ceil(strokeWidth / 2);
       result.refX = type === "marker-start" ? offset3 : -offset3;
@@ -48320,18 +50583,18 @@ var Util2;
   }
   Util4.getBoundingOffsetRect = getBoundingOffsetRect;
   function toGeometryShape(elem) {
-    const attr2 = (name) => {
+    const attr3 = (name) => {
       const s5 = elem.getAttribute(name);
       const v6 = s5 ? parseFloat(s5) : 0;
       return Number.isNaN(v6) ? 0 : v6;
     };
     switch (elem instanceof SVGElement && elem.nodeName.toLowerCase()) {
       case "rect":
-        return new Rectangle(attr2("x"), attr2("y"), attr2("width"), attr2("height"));
+        return new Rectangle(attr3("x"), attr3("y"), attr3("width"), attr3("height"));
       case "circle":
-        return new Ellipse(attr2("cx"), attr2("cy"), attr2("r"), attr2("r"));
+        return new Ellipse(attr3("cx"), attr3("cy"), attr3("r"), attr3("r"));
       case "ellipse":
-        return new Ellipse(attr2("cx"), attr2("cy"), attr2("rx"), attr2("ry"));
+        return new Ellipse(attr3("cx"), attr3("cy"), attr3("rx"), attr3("ry"));
       case "polyline": {
         const points = main_exports3.getPointsFromSvgElement(elem);
         return new Polyline(points);
@@ -48351,7 +50614,7 @@ var Util2;
         return Path.parse(d4);
       }
       case "line": {
-        return new Line(attr2("x1"), attr2("y1"), attr2("x2"), attr2("y2"));
+        return new Line(attr3("x1"), attr3("y1"), attr3("x2"), attr3("y2"));
       }
       default:
         break;
@@ -49804,8 +52067,8 @@ var FlagManager = class {
     const flags = {};
     const attrs = {};
     let shift = 0;
-    Object.keys(actions).forEach((attr2) => {
-      let labels2 = actions[attr2];
+    Object.keys(actions).forEach((attr3) => {
+      let labels2 = actions[attr3];
       if (!Array.isArray(labels2)) {
         labels2 = [labels2];
       }
@@ -49815,7 +52078,7 @@ var FlagManager = class {
           shift += 1;
           flag = flags[label] = 1 << shift;
         }
-        attrs[attr2] |= flag;
+        attrs[attr3] |= flag;
       });
     });
     let labels = bootstrap;
@@ -49859,9 +52122,9 @@ var FlagManager = class {
     if (!this.attrs) {
       return flag;
     }
-    Object.keys(this.attrs).forEach((attr2) => {
-      if (this.cell.hasChanged(attr2)) {
-        flag |= this.attrs[attr2];
+    Object.keys(this.attrs).forEach((attr3) => {
+      if (this.cell.hasChanged(attr3)) {
+        flag |= this.attrs[attr3];
       }
     });
     return flag;
@@ -55693,10 +57956,10 @@ var Cell = class _Cell extends Basecoat {
       }
     });
     Object.keys(attrs).forEach((key) => {
-      const attr2 = attrs[key];
+      const attr3 = attrs[key];
       const defaultAttr = defaultAttrs[key];
-      Object.keys(attr2).forEach((name) => {
-        const value = attr2[name];
+      Object.keys(attr3).forEach((name) => {
+        const value = attr3[name];
         const defaultValue = defaultAttr ? defaultAttr[name] : null;
         if (value != null && typeof value === "object" && !Array.isArray(value)) {
           Object.keys(value).forEach((subName) => {
@@ -60595,9 +62858,9 @@ var EdgeView = class _EdgeView extends CellView {
       const attrs = this.cell.getAttrs();
       const keys2 = Object.keys(attrs);
       for (let i6 = 0, l5 = keys2.length; i6 < l5; i6 += 1) {
-        const attr2 = attrs[keys2[i6]];
-        if (attr2[`${type}Marker`] || attr2[`${type}-marker`]) {
-          const strokeWidth = attr2.strokeWidth || attr2["stroke-width"];
+        const attr3 = attrs[keys2[i6]];
+        if (attr3[`${type}Marker`] || attr3[`${type}-marker`]) {
+          const strokeWidth = attr3.strokeWidth || attr3["stroke-width"];
           if (strokeWidth) {
             return parseFloat(strokeWidth);
           }
@@ -62168,8 +64431,8 @@ __decorate8([
         elem.removeAttribute(elem.attributes[0].name);
       }
       for (let i6 = 0, l5 = cloned.attributes.length; i6 < l5; i6 += 1) {
-        const attr2 = cloned.attributes[i6];
-        elem.setAttribute(attr2.name, attr2.value);
+        const attr3 = cloned.attributes[i6];
+        elem.setAttribute(attr3.name, attr3.value);
       }
       cloned.childNodes.forEach((child) => elem.appendChild(child));
     };
@@ -69666,10 +71929,20 @@ function makePorts(stroke3 = "#5E8FB9") {
       right: { position: "right", attrs: { circle: circle2 } }
     },
     items: [
-      { id: "top", group: "top" },
-      { id: "bottom", group: "bottom" },
-      { id: "left", group: "left" },
-      { id: "right", group: "right" }
+      // Mid-side (legacy IDs — old boards still resolve).
+      { id: "top", group: "top", args: { x: "50%" } },
+      { id: "bottom", group: "bottom", args: { x: "50%" } },
+      { id: "left", group: "left", args: { y: "50%" } },
+      { id: "right", group: "right", args: { y: "50%" } },
+      // Quarter / three-quarter — new docking positions for arrow spread.
+      { id: "top-1", group: "top", args: { x: "25%" } },
+      { id: "top-2", group: "top", args: { x: "75%" } },
+      { id: "bottom-1", group: "bottom", args: { x: "25%" } },
+      { id: "bottom-2", group: "bottom", args: { x: "75%" } },
+      { id: "left-1", group: "left", args: { y: "25%" } },
+      { id: "left-2", group: "left", args: { y: "75%" } },
+      { id: "right-1", group: "right", args: { y: "25%" } },
+      { id: "right-2", group: "right", args: { y: "75%" } }
     ]
   };
 }
@@ -70912,6 +73185,7 @@ function Re(e4, n3) {
   return e4.reduce((t5, r4, o5) => (t5[r4] = n3[o5], t5), {});
 }
 var _ = "\0";
+var U = "3.0.0";
 var K = class {
   constructor() {
     pe(this, "_sentinel");
@@ -71926,6 +74200,17 @@ function ce(e4) {
     typeof t5 == "string" && (t5 = t5.toLowerCase()), n3[t5] = r4;
   }), n3;
 }
+function fe(e4) {
+  let n3 = N(e4), t5 = new p({ compound: true, multigraph: true }).setGraph({});
+  return e4.nodes().forEach((r4) => {
+    t5.setNode(r4, { label: r4 }), t5.setParent(r4, "layer" + e4.node(r4).rank);
+  }), e4.edges().forEach((r4) => t5.setEdge(r4.v, r4.w, {}, r4.name)), n3.forEach((r4, o5) => {
+    let i6 = "layer" + o5;
+    t5.setNode(i6, { rank: "same" }), r4.reduce((s5, a5) => (t5.setEdge(s5, a5, { style: "invis" }), a5));
+  }), t5;
+}
+var sr = { graphlib: z, version: U, layout: he, debug: fe, util: { time: P, notime: M } };
+var To = sr;
 
 // src/canvas/OmniboardCanvas.ts
 var FILL_SWATCHES = [
@@ -75147,6 +77432,60 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.graph.zoomToFit({ padding: 40, maxScale: 1.2 });
     this.updateZoom();
   }
+  /**
+   * Merge an external CanvasModel into the current board. Imported nodes get
+   * fresh ids (to avoid colliding with existing ones), edge endpoints are
+   * rewired, and the whole cluster is offset so it lands near the viewport
+   * centre instead of overlapping existing content.
+   */
+  mergeModel(incoming) {
+    if (!incoming.nodes.length && !incoming.edges.length) return { added: 0 };
+    const xs = incoming.nodes.map((n3) => n3.x);
+    const ys = incoming.nodes.map((n3) => n3.y);
+    const minX = Math.min(...xs, 0);
+    const minY = Math.min(...ys, 0);
+    const rect2 = this.graphMount.getBoundingClientRect();
+    const sc = this.graph.scale().sx || 1;
+    const tr2 = this.graph.translate();
+    const viewCx = (rect2.width / 2 - tr2.tx) / sc;
+    const viewCy = (rect2.height / 2 - tr2.ty) / sc;
+    const w5 = Math.max(...incoming.nodes.map((n3) => n3.x + n3.width), 0) - minX;
+    const h5 = Math.max(...incoming.nodes.map((n3) => n3.y + n3.height), 0) - minY;
+    const dx = viewCx - w5 / 2 - minX;
+    const dy = viewCy - h5 / 2 - minY;
+    const idMap = /* @__PURE__ */ new Map();
+    const idFor = (oldId) => {
+      if (!idMap.has(oldId)) idMap.set(oldId, `${oldId}_imp_${Date.now().toString(36)}_${Math.floor(Math.random() * 1e6).toString(36)}`);
+      return idMap.get(oldId);
+    };
+    const current = this.getModel();
+    const merged = {
+      nodes: [
+        ...current.nodes,
+        ...incoming.nodes.map((n3) => ({
+          ...n3,
+          id: idFor(n3.id),
+          x: n3.x + dx,
+          y: n3.y + dy
+        }))
+      ],
+      edges: [
+        ...current.edges,
+        ...incoming.edges.map((e4) => {
+          var _a3;
+          return {
+            ...e4,
+            id: idFor(e4.id),
+            source: idFor(e4.source),
+            target: idFor(e4.target),
+            vertices: (_a3 = e4.vertices) == null ? void 0 : _a3.map((v6) => ({ x: v6.x + dx, y: v6.y + dy }))
+          };
+        })
+      ]
+    };
+    this.loadModel(merged);
+    return { added: incoming.nodes.length };
+  }
   getModel() {
     const nodes = this.graph.getNodes().map((n3) => {
       const p6 = n3.getPosition();
@@ -75475,138 +77814,485 @@ _OmniboardCanvas.CAT_REP = {
 _OmniboardCanvas.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
 var OmniboardCanvas = _OmniboardCanvas;
 
-// src/view/boardSerde.ts
-init_pako_esm();
-var OMNIBOARD_EXT = "omniboard.md";
-var OMNIBOARD_SUFFIX = `.${OMNIBOARD_EXT}`;
-var DATA_LANG = "omniboard-data";
-var REQUIRED_FM_KEY = "omniboard-plugin";
-var REQUIRED_FM_VAL = "parsed";
-var DRAWING_RE = new RegExp(
-  "```" + DATA_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
-  "m"
-);
-var FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
-function parseFrontmatter(raw2) {
-  const m6 = FRONTMATTER_RE.exec(raw2);
-  if (!m6) return { raw: {}, order: [] };
-  const body = m6[1];
-  const out = {};
-  const order = [];
-  let pendingKey = null;
-  for (const line2 of body.split(/\r?\n/)) {
-    if (/^\s*-\s/.test(line2) && pendingKey) {
-      out[pendingKey] += "\n" + line2;
-      continue;
+// src/view/BoardView.ts
+init_boardSerde();
+
+// src/io/bpmn/import.ts
+var import_fast_xml_parser = __toESM(require_fxp());
+
+// src/io/bpmn/shapes.ts
+var BPMN_TO_SHAPE = {
+  startEvent: "bpmn-start",
+  endEvent: "bpmn-end",
+  intermediateThrowEvent: "bpmn-intermediate",
+  intermediateCatchEvent: "bpmn-intermediate",
+  boundaryEvent: "bpmn-intermediate",
+  exclusiveGateway: "bpmn-gateway-x",
+  parallelGateway: "bpmn-gateway-parallel",
+  inclusiveGateway: "bpmn-gateway-x",
+  eventBasedGateway: "bpmn-gateway-x",
+  task: "bpmn-task",
+  userTask: "bpmn-task-user",
+  serviceTask: "bpmn-task-service",
+  scriptTask: "bpmn-task-service",
+  sendTask: "bpmn-task-service",
+  receiveTask: "bpmn-task-service",
+  manualTask: "bpmn-task",
+  businessRuleTask: "bpmn-task-service",
+  callActivity: "bpmn-task",
+  subProcess: "bpmn-task"
+};
+var SHAPE_TO_BPMN = {
+  "bpmn-start": "startEvent",
+  "bpmn-end": "endEvent",
+  "bpmn-intermediate": "intermediateThrowEvent",
+  "bpmn-gateway-x": "exclusiveGateway",
+  "bpmn-gateway-parallel": "parallelGateway",
+  "bpmn-task": "task",
+  "bpmn-task-user": "userTask",
+  "bpmn-task-service": "serviceTask"
+};
+
+// src/io/bpmn/import.ts
+function* walk(obj) {
+  if (!obj || typeof obj !== "object") return;
+  if (Array.isArray(obj)) {
+    for (const item of obj) yield* walk(item);
+    return;
+  }
+  for (const [key, value] of Object.entries(obj)) {
+    if (value && typeof value === "object") {
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (item && typeof item === "object") yield { key, value: item };
+          yield* walk(item);
+        }
+      } else {
+        yield { key, value };
+        yield* walk(value);
+      }
     }
-    const mm = /^([A-Za-z0-9_\-]+)\s*:(.*)$/.exec(line2);
-    if (!mm) {
-      pendingKey = null;
-      continue;
+  }
+}
+function localName(qname) {
+  const i6 = qname.indexOf(":");
+  return i6 >= 0 ? qname.slice(i6 + 1) : qname;
+}
+function attr2(node2, name) {
+  const v6 = node2[`@_${name}`];
+  return v6 == null ? void 0 : String(v6);
+}
+function parseBounds(node2) {
+  for (const [k5, v6] of Object.entries(node2)) {
+    if (localName(k5) === "Bounds" && v6 && typeof v6 === "object") {
+      const b3 = v6;
+      const x4 = Number(attr2(b3, "x")), y5 = Number(attr2(b3, "y"));
+      const w5 = Number(attr2(b3, "width")), h5 = Number(attr2(b3, "height"));
+      if ([x4, y5, w5, h5].every(Number.isFinite)) return { x: x4, y: y5, width: w5, height: h5 };
     }
-    const k5 = mm[1];
-    const v6 = mm[2].trim();
-    if (!(k5 in out)) order.push(k5);
-    out[k5] = v6.length ? v6 : "";
-    pendingKey = v6.length ? null : k5;
-  }
-  return { raw: out, order };
-}
-function emitFrontmatter(fm) {
-  const keys2 = new Set(fm.order);
-  const lines = ["---"];
-  lines.push(`${REQUIRED_FM_KEY}: ${REQUIRED_FM_VAL}`);
-  keys2.delete(REQUIRED_FM_KEY);
-  if (!fm.raw.tags || !/\bomniboard\b/.test(fm.raw.tags)) {
-    lines.push(`tags: [omniboard]`);
-  } else {
-    lines.push(`tags: ${fm.raw.tags}`);
-  }
-  keys2.delete("tags");
-  for (const k5 of fm.order) {
-    if (!keys2.has(k5)) continue;
-    const v6 = fm.raw[k5];
-    if (v6.includes("\n")) {
-      lines.push(`${k5}:`);
-      for (const sub of v6.split("\n")) if (sub.trim()) lines.push(sub);
-    } else {
-      lines.push(`${k5}: ${v6}`);
-    }
-  }
-  lines.push("---");
-  return lines.join("\n");
-}
-function compress(json) {
-  const deflated = pako.deflate(new TextEncoder().encode(json));
-  let bin = "";
-  const CHUNK = 32768;
-  for (let i6 = 0; i6 < deflated.length; i6 += CHUNK) {
-    bin += String.fromCharCode(...deflated.subarray(i6, i6 + CHUNK));
-  }
-  return btoa(bin);
-}
-function decompress(b64) {
-  try {
-    const bin = atob(b64.replace(/\s+/g, ""));
-    const bytes = new Uint8Array(bin.length);
-    for (let i6 = 0; i6 < bin.length; i6++) bytes[i6] = bin.charCodeAt(i6);
-    return new TextDecoder().decode(pako.inflate(bytes));
-  } catch (e4) {
-    return null;
-  }
-}
-function escapeMd(s5) {
-  return s5.replace(/\s*\r?\n\s*/g, " ").trim();
-}
-function serializeBoard(model, previousRaw = "") {
-  const fm = parseFrontmatter(previousRaw);
-  const parts = [];
-  parts.push(emitFrontmatter(fm));
-  parts.push("");
-  parts.push("==\u26A0 Switch to OMNIBOARD VIEW in the MORE OPTIONS menu of this document. \u26A0==");
-  parts.push("");
-  parts.push("# Omniboard");
-  parts.push("");
-  parts.push("## Text Elements");
-  const seenIds = /* @__PURE__ */ new Set();
-  for (const n3 of model.nodes) {
-    const label = n3.label ? escapeMd(n3.label) : "";
-    if (!label) continue;
-    if (seenIds.has(n3.id)) continue;
-    seenIds.add(n3.id);
-    parts.push(`${label} ^${n3.id}`);
-  }
-  parts.push("");
-  const labeledEdges = model.edges.filter((e4) => e4.label && e4.label.trim());
-  if (labeledEdges.length) {
-    parts.push("## Edges");
-    for (const e4 of labeledEdges) {
-      parts.push(`- ${e4.source} \u2192 ${e4.target} : ${escapeMd(e4.label)}`);
-    }
-    parts.push("");
-  }
-  const json = JSON.stringify(model);
-  parts.push("%%");
-  parts.push("## Drawing");
-  parts.push("```" + DATA_LANG);
-  parts.push(compress(json));
-  parts.push("```");
-  parts.push("%%");
-  parts.push("");
-  return parts.join("\n");
-}
-function deserializeBoard(raw2) {
-  if (!raw2.trim()) return { nodes: [], edges: [] };
-  const m6 = DRAWING_RE.exec(raw2);
-  if (!m6) return null;
-  const json = decompress(m6[1]);
-  if (json === null) return null;
-  try {
-    const model = JSON.parse(json);
-    if (Array.isArray(model.nodes) && Array.isArray(model.edges)) return model;
-  } catch (e4) {
   }
   return null;
+}
+function parseWaypoints(node2) {
+  const out = [];
+  for (const [k5, v6] of Object.entries(node2)) {
+    if (localName(k5) !== "waypoint") continue;
+    const items = Array.isArray(v6) ? v6 : [v6];
+    for (const item of items) {
+      if (item && typeof item === "object") {
+        const wp = item;
+        const x4 = Number(attr2(wp, "x")), y5 = Number(attr2(wp, "y"));
+        if (Number.isFinite(x4) && Number.isFinite(y5)) out.push({ x: x4, y: y5 });
+      }
+    }
+  }
+  return out;
+}
+var FLOW_NODE_TAGS = new Set(Object.keys(BPMN_TO_SHAPE));
+var EDGE_TAG = "sequenceFlow";
+function importBpmn(raw2) {
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
+  const parser = new import_fast_xml_parser.XMLParser({
+    ignoreAttributes: false,
+    attributeNamePrefix: "@_",
+    preserveOrder: false,
+    parseTagValue: false,
+    trimValues: true,
+    allowBooleanAttributes: true
+  });
+  const doc = parser.parse(raw2);
+  const flowNodes = [];
+  const edges = [];
+  const diShapes = /* @__PURE__ */ new Map();
+  const diEdges = /* @__PURE__ */ new Map();
+  for (const { key, value } of walk(doc)) {
+    const ln3 = localName(key);
+    if (FLOW_NODE_TAGS.has(ln3)) {
+      const id = attr2(value, "id");
+      if (id) flowNodes.push({ id, tag: ln3, name: (_a3 = attr2(value, "name")) != null ? _a3 : "", node: value });
+    } else if (ln3 === EDGE_TAG) {
+      const id = attr2(value, "id");
+      const source = attr2(value, "sourceRef");
+      const target = attr2(value, "targetRef");
+      if (id && source && target) edges.push({ id, source, target, name: (_b2 = attr2(value, "name")) != null ? _b2 : "", node: value });
+    } else if (ln3 === "BPMNShape") {
+      const ref2 = attr2(value, "bpmnElement");
+      const bounds = parseBounds(value);
+      if (ref2 && bounds) {
+        const fill2 = (_c = attr2(value, "background-color")) != null ? _c : attr2(value, "fill");
+        const stroke3 = (_d = attr2(value, "border-color")) != null ? _d : attr2(value, "stroke");
+        diShapes.set(ref2, { bounds, fill: fill2, stroke: stroke3 });
+      }
+    } else if (ln3 === "BPMNEdge") {
+      const ref2 = attr2(value, "bpmnElement");
+      const wps = parseWaypoints(value);
+      if (ref2 && wps.length) diEdges.set(ref2, wps);
+    }
+  }
+  const model = { nodes: [], edges: [] };
+  const warnings = [];
+  for (const fn2 of flowNodes) {
+    const shape = (_e3 = BPMN_TO_SHAPE[fn2.tag]) != null ? _e3 : "bpmn-task";
+    const di = diShapes.get(fn2.id);
+    const x4 = (_f = di == null ? void 0 : di.bounds.x) != null ? _f : 100;
+    const y5 = (_g = di == null ? void 0 : di.bounds.y) != null ? _g : 100;
+    const width2 = (_h = di == null ? void 0 : di.bounds.width) != null ? _h : fn2.tag.endsWith("Event") ? 36 : 100;
+    const height2 = (_i = di == null ? void 0 : di.bounds.height) != null ? _i : fn2.tag.endsWith("Event") ? 36 : 60;
+    model.nodes.push({
+      id: fn2.id,
+      shape,
+      x: x4,
+      y: y5,
+      width: width2,
+      height: height2,
+      label: fn2.name.replace(/&#10;/g, "\n"),
+      attrs: {
+        __source: { format: "bpmn", sourceId: fn2.id, tag: fn2.tag },
+        ...(di == null ? void 0 : di.fill) ? { fill: di.fill } : {},
+        ...(di == null ? void 0 : di.stroke) ? { stroke: di.stroke } : {}
+      }
+    });
+    if (!di) warnings.push(`BPMN flow node "${fn2.id}" thi\u1EBFu BPMNShape DI \u2014 \u0111\u1EB7t v\u1ECB tr\xED m\u1EB7c \u0111\u1ECBnh.`);
+  }
+  for (const e4 of edges) {
+    const wps = diEdges.get(e4.id);
+    const vertices = wps && wps.length > 2 ? wps.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y })) : void 0;
+    model.edges.push({
+      id: e4.id,
+      source: e4.source,
+      target: e4.target,
+      label: e4.name.replace(/&#10;/g, "\n") || void 0,
+      vertices
+    });
+  }
+  const sourceMeta = {
+    format: "bpmn",
+    payload: {
+      // Keep the original raw XML so export can preserve unknown elements
+      // (lanes, pools, data objects, message flows, custom namespaces).
+      raw: raw2
+    }
+  };
+  return { model, warnings, sourceMeta };
+}
+
+// src/io/bpmn/export.ts
+function escapeXml(s5) {
+  return s5.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/\n/g, "&#10;");
+}
+function nodeBpmnTag(shape) {
+  var _a3;
+  return (_a3 = SHAPE_TO_BPMN[shape]) != null ? _a3 : "task";
+}
+function exportBpmn(model, meta) {
+  var _a3, _b2, _c, _d;
+  if (!meta || meta.format !== "bpmn") return emitMinimal(model);
+  const raw2 = String((_b2 = (_a3 = meta.payload) == null ? void 0 : _a3.raw) != null ? _b2 : "");
+  if (!raw2) return emitMinimal(model);
+  let out = raw2;
+  for (const n3 of model.nodes) {
+    const srcId = (_d = (_c = n3.attrs) == null ? void 0 : _c.__source) == null ? void 0 : _d.sourceId;
+    if (srcId) {
+      const shapeRe = new RegExp(
+        `(<[^>]*BPMNShape[^>]*bpmnElement="${escapeRegex(srcId)}"[^>]*>[\\s\\S]*?<[^>]*Bounds[^/>]*?)x="[^"]*"([^/>]*?)y="[^"]*"([^/>]*?)width="[^"]*"([^/>]*?)height="[^"]*"`,
+        "m"
+      );
+      out = out.replace(
+        shapeRe,
+        (_m, p1, p22, p32, p42) => `${p1}x="${n3.x}"${p22}y="${n3.y}"${p32}width="${n3.width}"${p42}height="${n3.height}"`
+      );
+      continue;
+    }
+    const tag = nodeBpmnTag(n3.shape);
+    const elem = `    <${tag} id="${escapeXml(n3.id)}" name="${escapeXml(n3.label || "")}" />
+`;
+    out = out.replace(/(<\/[a-zA-Z]*:?process>)/, `${elem}$1`);
+    const di = `      <bpmndi:BPMNShape id="${escapeXml(n3.id)}_di" bpmnElement="${escapeXml(n3.id)}">
+        <dc:Bounds x="${n3.x}" y="${n3.y}" width="${n3.width}" height="${n3.height}" />
+      </bpmndi:BPMNShape>
+`;
+    out = out.replace(/(<\/[a-zA-Z]*:?BPMNPlane>)/, `${di}$1`);
+  }
+  return out;
+}
+function escapeRegex(s5) {
+  return s5.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function emitMinimal(model) {
+  const elems = model.nodes.map((n3) => {
+    const tag = nodeBpmnTag(n3.shape);
+    return `    <${tag} id="${escapeXml(n3.id)}" name="${escapeXml(n3.label || "")}" />`;
+  });
+  const flows = model.edges.map(
+    (e4) => `    <sequenceFlow id="${escapeXml(e4.id)}" sourceRef="${escapeXml(e4.source)}" targetRef="${escapeXml(e4.target)}"${e4.label ? ` name="${escapeXml(e4.label)}"` : ""} />`
+  );
+  const shapes = model.nodes.map(
+    (n3) => `      <bpmndi:BPMNShape id="${escapeXml(n3.id)}_di" bpmnElement="${escapeXml(n3.id)}">
+        <dc:Bounds x="${n3.x}" y="${n3.y}" width="${n3.width}" height="${n3.height}" />
+      </bpmndi:BPMNShape>`
+  );
+  const diEdges = model.edges.map((e4) => {
+    const src = model.nodes.find((n3) => n3.id === e4.source);
+    const tgt = model.nodes.find((n3) => n3.id === e4.target);
+    if (!src || !tgt) return "";
+    const sx = src.x + src.width / 2, sy = src.y + src.height / 2;
+    const tx = tgt.x + tgt.width / 2, ty = tgt.y + tgt.height / 2;
+    return `      <bpmndi:BPMNEdge id="${escapeXml(e4.id)}_di" bpmnElement="${escapeXml(e4.id)}">
+        <di:waypoint x="${sx}" y="${sy}" />
+        <di:waypoint x="${tx}" y="${ty}" />
+      </bpmndi:BPMNEdge>`;
+  });
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_Export" targetNamespace="http://omniboard.local/bpmn">
+  <process id="Process_Export" isExecutable="false">
+${elems.join("\n")}
+${flows.join("\n")}
+  </process>
+  <bpmndi:BPMNDiagram id="Diagram_Export">
+    <bpmndi:BPMNPlane id="Plane_Export" bpmnElement="Process_Export">
+${shapes.join("\n")}
+${diEdges.join("\n")}
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>
+`;
+}
+
+// src/io/dbml/import.ts
+var TABLE_RE = /Table\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:as\s+\w+\s*)?\{([\s\S]*?)\n\}/g;
+var COLUMN_RE = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+([^\s\[\n]+)(?:\s*\[([^\]]*)\])?\s*$/;
+var INLINE_REF_RE = /ref:\s*([<>]+|<>)\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)/i;
+var REF_RE = /Ref(?:\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*([<>]+|<>)\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)/g;
+function stripComments(src) {
+  let out = "";
+  let i6 = 0;
+  while (i6 < src.length) {
+    if (src[i6] === "/" && src[i6 + 1] === "*") {
+      const end = src.indexOf("*/", i6 + 2);
+      const span = end < 0 ? src.length : end + 2;
+      out += src.slice(i6, span).replace(/[^\n]/g, " ");
+      i6 = span;
+    } else if (src[i6] === "/" && src[i6 + 1] === "/") {
+      const end = src.indexOf("\n", i6);
+      const span = end < 0 ? src.length : end;
+      out += src.slice(i6, span).replace(/[^\n]/g, " ");
+      i6 = span;
+    } else {
+      out += src[i6++];
+    }
+  }
+  return out;
+}
+function importDbml(raw2) {
+  const stripped = stripComments(raw2);
+  const tables = [];
+  const refs = [];
+  const warnings = [];
+  let refSeq = 0;
+  TABLE_RE.lastIndex = 0;
+  let m6;
+  while ((m6 = TABLE_RE.exec(stripped)) !== null) {
+    const name = m6[1];
+    const body = m6[2];
+    const cols = [];
+    for (const line2 of body.split(/\r?\n/)) {
+      const cm = COLUMN_RE.exec(line2);
+      if (cm) {
+        cols.push({ name: cm[1], type: cm[2], flags: (cm[3] || "").trim() });
+        const ir2 = INLINE_REF_RE.exec(cm[3] || "");
+        if (ir2) {
+          refs.push({
+            id: `__ref_${++refSeq}`,
+            src: `${name}.${cm[1]}`,
+            tgt: `${ir2[2]}.${ir2[3]}`,
+            kind: ir2[1]
+          });
+        }
+      }
+    }
+    tables.push({ name, columns: cols, rawBody: body });
+  }
+  REF_RE.lastIndex = 0;
+  while ((m6 = REF_RE.exec(stripped)) !== null) {
+    refs.push({
+      id: m6[1] || `__ref_${++refSeq}`,
+      src: `${m6[2]}.${m6[3]}`,
+      tgt: `${m6[5]}.${m6[6]}`,
+      kind: m6[4]
+    });
+  }
+  if (tables.length === 0) warnings.push("Kh\xF4ng t\xECm th\u1EA5y table n\xE0o trong DBML.");
+  const model = { nodes: [], edges: [] };
+  const TABLE_W = 220;
+  const ROW_H = 22;
+  const HEAD_H = 36;
+  const idByTable = /* @__PURE__ */ new Map();
+  for (const t5 of tables) {
+    const id = t5.name;
+    idByTable.set(t5.name, id);
+    const erdCols = t5.columns.map((c6) => {
+      const flags = c6.flags.toLowerCase();
+      const isPk = /\bpk\b|\bprimary\s+key\b/.test(flags);
+      const isFk = /\bref\s*:/.test(flags);
+      return { k: isPk ? "PK" : isFk ? "FK" : "", name: c6.name, type: c6.type };
+    });
+    const height2 = HEAD_H + Math.max(1, erdCols.length) * ROW_H + 12;
+    model.nodes.push({
+      id,
+      shape: "erd-entity",
+      x: 0,
+      y: 0,
+      width: TABLE_W,
+      height: height2,
+      label: t5.name,
+      attrs: {
+        cols: erdCols,
+        __source: { format: "dbml", sourceId: t5.name, kind: "table", columns: t5.columns }
+      }
+    });
+  }
+  const seenPairs = /* @__PURE__ */ new Set();
+  for (const r4 of refs) {
+    const [sTab] = r4.src.split(".");
+    const [tTab] = r4.tgt.split(".");
+    if (!idByTable.has(sTab) || !idByTable.has(tTab)) continue;
+    const key = `${sTab}->${tTab}`;
+    if (seenPairs.has(key)) continue;
+    seenPairs.add(key);
+    model.edges.push({
+      id: r4.id,
+      source: sTab,
+      target: tTab,
+      label: r4.kind,
+      style: { stroke: "#7a8aa6", width: 1 }
+    });
+  }
+  if (model.nodes.length) {
+    const g3 = new To.graphlib.Graph();
+    g3.setGraph({ rankdir: "LR", nodesep: 40, ranksep: 80, marginx: 60, marginy: 60 });
+    g3.setDefaultEdgeLabel(() => ({}));
+    for (const n3 of model.nodes) g3.setNode(n3.id, { width: n3.width, height: n3.height });
+    for (const e4 of model.edges) g3.setEdge(e4.source, e4.target);
+    To.layout(g3);
+    for (const n3 of model.nodes) {
+      const dn2 = g3.node(n3.id);
+      if (dn2) {
+        n3.x = dn2.x - n3.width / 2;
+        n3.y = dn2.y - n3.height / 2;
+      }
+    }
+  }
+  const sourceMeta = { format: "dbml", payload: { raw: raw2 } };
+  return { model, warnings, sourceMeta };
+}
+
+// src/io/dbml/export.ts
+function nodeColumns(attrs) {
+  const src = attrs == null ? void 0 : attrs.__source;
+  return Array.isArray(src == null ? void 0 : src.columns) ? src.columns : null;
+}
+function emitTable(name, cols) {
+  const lines = cols.map((c6) => `  ${c6.name} ${c6.type}${c6.flags ? ` [${c6.flags}]` : ""}`);
+  return `Table ${name} {
+${lines.join("\n")}
+}`;
+}
+function exportDbml(model, meta) {
+  var _a3, _b2, _c, _d;
+  const tableNodes = model.nodes.filter((n3) => n3.shape === "erd-entity");
+  const knownIds = /* @__PURE__ */ new Set();
+  for (const n3 of tableNodes) {
+    const id = (_b2 = (_a3 = n3.attrs) == null ? void 0 : _a3.__source) == null ? void 0 : _b2.sourceId;
+    if (id) knownIds.add(id);
+  }
+  const newTables = tableNodes.filter((n3) => {
+    var _a4, _b3;
+    return !((_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.sourceId);
+  }).map((n3) => {
+    var _a4;
+    const cols = (_a4 = nodeColumns(n3.attrs)) != null ? _a4 : extractErdCols(n3.attrs);
+    if (!cols.length) parseLabelCols(n3.label);
+    return emitTable(n3.id, cols);
+  });
+  const newRefs = [];
+  if (meta && meta.format === "dbml") {
+    const raw2 = String((_d = (_c = meta.payload) == null ? void 0 : _c.raw) != null ? _d : "");
+    const head = raw2.endsWith("\n") ? raw2 : raw2 + "\n";
+    const tail = (newTables.length ? "\n\n// \u2500\u2500 Added on canvas \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n" + newTables.join("\n\n") : "") + (newRefs.length ? "\n\n" + newRefs.join("\n") : "") + "\n";
+    return head + tail;
+  }
+  const fresh = tableNodes.map((n3) => {
+    var _a4;
+    const cols = (_a4 = nodeColumns(n3.attrs)) != null ? _a4 : parseLabelCols(n3.label);
+    return emitTable(n3.id, cols);
+  });
+  const refs = model.edges.filter((e4) => knownIdsContains(tableNodes, e4.source) && knownIdsContains(tableNodes, e4.target)).map((e4) => `Ref: ${e4.source}.id > ${e4.target}.id`);
+  return [fresh.join("\n\n"), refs.join("\n")].filter(Boolean).join("\n\n") + "\n";
+}
+function knownIdsContains(nodes, id) {
+  return nodes.some((n3) => n3.id === id);
+}
+function parseLabelCols(_label) {
+  return [];
+}
+function extractErdCols(attrs) {
+  const cols = attrs == null ? void 0 : attrs.cols;
+  if (!Array.isArray(cols)) return [];
+  return cols.map((c6) => ({
+    name: c6.name,
+    type: c6.type,
+    flags: c6.k === "PK" ? "pk" : ""
+  }));
+}
+
+// src/io/registry.ts
+var FORMATS = [
+  { id: "bpmn", displayName: "BPMN 2.0", extensions: ["bpmn", "bpmn2", "xml"], importer: importBpmn, exporter: exportBpmn },
+  { id: "dbml", displayName: "DBML (dbdiagram.io)", extensions: ["dbml"], importer: importDbml, exporter: exportDbml }
+];
+function findByExtension(filename) {
+  var _a3, _b2;
+  const ext = (_a3 = filename.toLowerCase().split(".").pop()) != null ? _a3 : "";
+  return (_b2 = FORMATS.find((f6) => f6.extensions.includes(ext))) != null ? _b2 : null;
+}
+function findById(id) {
+  var _a3;
+  return (_a3 = FORMATS.find((f6) => f6.id === id)) != null ? _a3 : null;
+}
+
+// src/io/dispatcher.ts
+function detectByContent(raw2) {
+  var _a3, _b2;
+  const head = raw2.slice(0, 4096);
+  if (/<\?xml/i.test(head) && /bpmn/i.test(head)) return (_a3 = FORMATS.find((f6) => f6.id === "bpmn")) != null ? _a3 : null;
+  if (/^\s*(?:\/\/|\/\*|Project\s|Table\s|Ref\s*:)/m.test(head)) return (_b2 = FORMATS.find((f6) => f6.id === "dbml")) != null ? _b2 : null;
+  return null;
+}
+async function importFromFile(filename, raw2) {
+  const byExt = findByExtension(filename);
+  const fmt = byExt != null ? byExt : detectByContent(raw2);
+  if (!fmt) throw new Error(`Kh\xF4ng nh\u1EADn di\u1EC7n \u0111\u01B0\u1EE3c \u0111\u1ECBnh d\u1EA1ng c\u1EE7a "${filename}".`);
+  return await fmt.importer(raw2);
 }
 
 // src/view/BoardView.ts
@@ -75623,6 +78309,7 @@ var BoardView = class extends import_obsidian.TextFileView {
     this.model = EMPTY_MODEL;
     this.rawData = "";
     this.invalidFormat = false;
+    this.pendingSourceMeta = null;
   }
   getViewType() {
     return BOARD_VIEW_TYPE;
@@ -75695,10 +78382,15 @@ var BoardView = class extends import_obsidian.TextFileView {
     });
     bar.createDiv({ cls: "da-tb-divider" });
     iconBtn("file-text", "M\u1EDF d\u01B0\u1EDBi d\u1EA1ng Markdown", () => this.openAsMarkdown());
+    const imp = bar.createEl("button", { cls: "da-tb-ic" });
+    (0, import_obsidian.setIcon)(imp, "upload");
+    imp.setAttribute("aria-label", "Import");
+    imp.title = "Import (BPMN / DBML)";
+    imp.onclick = () => this.openImportPicker();
     const exp = bar.createEl("button", { cls: "da-tb-ic" });
     (0, import_obsidian.setIcon)(exp, "download");
     exp.setAttribute("aria-label", "Export");
-    exp.title = "Export (SVG / PNG)";
+    exp.title = "Export (SVG / PNG / BPMN / DBML)";
     exp.onclick = (e4) => this.showExportMenu(e4);
     const save = bar.createEl("button", { cls: "da-tb-save" });
     (0, import_obsidian.setIcon)(save, "check");
@@ -75718,6 +78410,12 @@ var BoardView = class extends import_obsidian.TextFileView {
     menu.addItem((i6) => i6.setTitle("PDF (A4)").setIcon("file-text").onClick(() => this.handleExportPdf()));
     menu.addSeparator();
     menu.addItem((i6) => i6.setTitle("Copy as Mermaid").setIcon("clipboard-copy").onClick(() => this.handleCopyMermaid()));
+    menu.addSeparator();
+    for (const fmt of FORMATS) {
+      menu.addItem(
+        (i6) => i6.setTitle(fmt.displayName).setIcon("file-output").onClick(() => this.handleExportFormat(fmt.id))
+      );
+    }
     menu.showAtMouseEvent(e4);
   }
   async handleExportPdf() {
@@ -75795,9 +78493,10 @@ var BoardView = class extends import_obsidian.TextFileView {
   }
   // view → Obsidian (on save)
   getViewData() {
+    var _a3;
     if (this.invalidFormat) return this.rawData;
     if (this.canvas) this.model = this.canvas.getModel();
-    return serializeBoard(this.model, this.rawData);
+    return serializeBoard(this.model, this.rawData, (_a3 = this.pendingSourceMeta) != null ? _a3 : void 0);
   }
   clear() {
     this.model = EMPTY_MODEL;
@@ -75817,6 +78516,56 @@ var BoardView = class extends import_obsidian.TextFileView {
     } catch (e4) {
     }
   }
+  /** Open a hidden file input to let the user pick a diagram file to import. */
+  openImportPicker() {
+    if (!this.canvas) return;
+    const input = document.createElement("input");
+    input.type = "file";
+    const exts = FORMATS.flatMap((f6) => f6.extensions.map((e4) => "." + e4));
+    input.accept = exts.join(",");
+    input.style.display = "none";
+    input.onchange = async () => {
+      var _a3;
+      const file = (_a3 = input.files) == null ? void 0 : _a3[0];
+      input.remove();
+      if (!file) return;
+      try {
+        const raw2 = await file.text();
+        const result = await importFromFile(file.name, raw2);
+        const { added } = this.canvas.mergeModel(result.model);
+        this.pendingSourceMeta = result.sourceMeta;
+        this.requestSave();
+        new import_obsidian.Notice(
+          `\u2705 \u0110\xE3 import ${added} ph\u1EA7n t\u1EED t\u1EEB ${file.name}` + (result.warnings.length ? ` (\u26A0 ${result.warnings.length} c\u1EA3nh b\xE1o)` : "")
+        );
+        if (result.warnings.length) {
+          for (const w5 of result.warnings.slice(0, 5)) new import_obsidian.Notice(`\u26A0 ${w5}`, 6e3);
+        }
+      } catch (err2) {
+        new import_obsidian.Notice(`\u274C Import l\u1ED7i: ${err2.message}`, 8e3);
+      }
+    };
+    document.body.appendChild(input);
+    input.click();
+  }
+  async handleExportFormat(formatId) {
+    var _a3;
+    if (!this.canvas || !this.file) return;
+    const fmt = findById(formatId);
+    if (!fmt) return;
+    try {
+      const meta = (_a3 = this.pendingSourceMeta) != null ? _a3 : (await Promise.resolve().then(() => (init_boardSerde(), boardSerde_exports))).deserializeSourceMeta(this.rawData);
+      const text4 = await fmt.exporter(this.canvas.getModel(), meta != null ? meta : null);
+      const ext = fmt.extensions[0];
+      const path2 = this.file.path.replace(EXT_RE, "." + ext);
+      const existing = this.app.vault.getAbstractFileByPath(path2);
+      if (existing) await this.app.vault.modify(existing, text4);
+      else await this.app.vault.create(path2, text4);
+      new import_obsidian.Notice(`\u2705 \u0110\xE3 export ${fmt.displayName}: ${path2}`);
+    } catch (err2) {
+      new import_obsidian.Notice(`\u274C Export ${fmt.displayName} l\u1ED7i: ${err2.message}`, 8e3);
+    }
+  }
   /** Save current state then switch the leaf to the default markdown view. */
   async openAsMarkdown() {
     if (!this.file) return;
@@ -75829,6 +78578,9 @@ var BoardView = class extends import_obsidian.TextFileView {
     this.canvas = null;
   }
 };
+
+// src/main.ts
+init_boardSerde();
 
 // node_modules/preact/dist/preact.module.js
 var n2;

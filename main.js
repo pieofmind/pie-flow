@@ -71923,26 +71923,33 @@ function makePorts(stroke3 = "#5E8FB9") {
   const circle2 = { r: 5.5, magnet: true, stroke: stroke3, fill: "#fff", strokeWidth: 1.5 };
   return {
     groups: {
-      top: { position: "top", attrs: { circle: circle2 } },
-      bottom: { position: "bottom", attrs: { circle: circle2 } },
-      left: { position: "left", attrs: { circle: circle2 } },
-      right: { position: "right", attrs: { circle: circle2 } }
+      // Cardinal (visible) — one item per group so X6 doesn't auto-distribute.
+      pTop: { position: "top", attrs: { circle: circle2 } },
+      pBottom: { position: "bottom", attrs: { circle: circle2 } },
+      pLeft: { position: "left", attrs: { circle: circle2 } },
+      pRight: { position: "right", attrs: { circle: circle2 } },
+      // Quarter (invisible, backward-compat) — 2 items per group auto-distribute
+      // at 25% / 75% of the side.
+      pTopQ: { position: "top", attrs: { circle: circle2 } },
+      pBottomQ: { position: "bottom", attrs: { circle: circle2 } },
+      pLeftQ: { position: "left", attrs: { circle: circle2 } },
+      pRightQ: { position: "right", attrs: { circle: circle2 } }
     },
     items: [
-      // Mid-side (legacy IDs — old boards still resolve).
-      { id: "top", group: "top", args: { x: "50%" } },
-      { id: "bottom", group: "bottom", args: { x: "50%" } },
-      { id: "left", group: "left", args: { y: "50%" } },
-      { id: "right", group: "right", args: { y: "50%" } },
-      // Quarter / three-quarter — new docking positions for arrow spread.
-      { id: "top-1", group: "top", args: { x: "25%" } },
-      { id: "top-2", group: "top", args: { x: "75%" } },
-      { id: "bottom-1", group: "bottom", args: { x: "25%" } },
-      { id: "bottom-2", group: "bottom", args: { x: "75%" } },
-      { id: "left-1", group: "left", args: { y: "25%" } },
-      { id: "left-2", group: "left", args: { y: "75%" } },
-      { id: "right-1", group: "right", args: { y: "25%" } },
-      { id: "right-2", group: "right", args: { y: "75%" } }
+      // Cardinal — IDs match what's saved by existing boards.
+      { id: "top", group: "pTop" },
+      { id: "bottom", group: "pBottom" },
+      { id: "left", group: "pLeft" },
+      { id: "right", group: "pRight" },
+      // Quarter (invisible) — resolve any port IDs saved by the 12-port version.
+      { id: "top-1", group: "pTopQ" },
+      { id: "top-2", group: "pTopQ" },
+      { id: "bottom-1", group: "pBottomQ" },
+      { id: "bottom-2", group: "pBottomQ" },
+      { id: "left-1", group: "pLeftQ" },
+      { id: "left-2", group: "pLeftQ" },
+      { id: "right-1", group: "pRightQ" },
+      { id: "right-2", group: "pRightQ" }
     ]
   };
 }

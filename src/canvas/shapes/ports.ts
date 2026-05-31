@@ -1,38 +1,47 @@
-/** Shared 12-way connect ports, hidden until node hover.
+/** Shared connect ports — 4 visible cardinal (mid-side) defaults + 8 invisible
+ * quarter ports kept only for backward compatibility with boards saved by the
+ * brief 12-port version of this file.
  *
- * 3 docking positions per side (25% / 50% / 75%), so multiple arrows
- * converging on the same side can land at distinct points instead of
- * all stacking on the centre — bpmn.io-style spread. Legacy port IDs
- * (`top`, `right`, `bottom`, `left`) stay at the side midpoint for
- * backward compatibility with boards saved before this change.
+ * Each cardinal port lives in its own group (`pTop`/`pBottom`/`pLeft`/`pRight`)
+ * so X6 doesn't auto-distribute it — a single-item group sits exactly at the
+ * side midpoint. The quarter ports each have their own 2-item group so X6
+ * places them at 25% and 75% of the side without disturbing the cardinals.
  */
 export function makePorts(stroke = "#5E8FB9") {
   // Visibility is controlled purely by CSS (.x6-port circle hidden, shown on
-  // node hover) — no inline style, which would override the CSS and keep ports
-  // permanently hidden, making connections impossible.
+  // node hover via togglePorts which only flips the 4 cardinals visible) — no
+  // inline style here, which would override the CSS and keep ports permanently
+  // hidden, making connections impossible.
   const circle = { r: 5.5, magnet: true, stroke, fill: "#fff", strokeWidth: 1.5 };
   return {
     groups: {
-      top:    { position: "top",    attrs: { circle } },
-      bottom: { position: "bottom", attrs: { circle } },
-      left:   { position: "left",   attrs: { circle } },
-      right:  { position: "right",  attrs: { circle } },
+      // Cardinal (visible) — one item per group so X6 doesn't auto-distribute.
+      pTop:    { position: "top",    attrs: { circle } },
+      pBottom: { position: "bottom", attrs: { circle } },
+      pLeft:   { position: "left",   attrs: { circle } },
+      pRight:  { position: "right",  attrs: { circle } },
+      // Quarter (invisible, backward-compat) — 2 items per group auto-distribute
+      // at 25% / 75% of the side.
+      pTopQ:    { position: "top",    attrs: { circle } },
+      pBottomQ: { position: "bottom", attrs: { circle } },
+      pLeftQ:   { position: "left",   attrs: { circle } },
+      pRightQ:  { position: "right",  attrs: { circle } },
     },
     items: [
-      // Mid-side (legacy IDs — old boards still resolve).
-      { id: "top",    group: "top",    args: { x: "50%" } },
-      { id: "bottom", group: "bottom", args: { x: "50%" } },
-      { id: "left",   group: "left",   args: { y: "50%" } },
-      { id: "right",  group: "right",  args: { y: "50%" } },
-      // Quarter / three-quarter — new docking positions for arrow spread.
-      { id: "top-1",    group: "top",    args: { x: "25%" } },
-      { id: "top-2",    group: "top",    args: { x: "75%" } },
-      { id: "bottom-1", group: "bottom", args: { x: "25%" } },
-      { id: "bottom-2", group: "bottom", args: { x: "75%" } },
-      { id: "left-1",   group: "left",   args: { y: "25%" } },
-      { id: "left-2",   group: "left",   args: { y: "75%" } },
-      { id: "right-1",  group: "right",  args: { y: "25%" } },
-      { id: "right-2",  group: "right",  args: { y: "75%" } },
+      // Cardinal — IDs match what's saved by existing boards.
+      { id: "top",    group: "pTop"    },
+      { id: "bottom", group: "pBottom" },
+      { id: "left",   group: "pLeft"   },
+      { id: "right",  group: "pRight"  },
+      // Quarter (invisible) — resolve any port IDs saved by the 12-port version.
+      { id: "top-1",    group: "pTopQ"    },
+      { id: "top-2",    group: "pTopQ"    },
+      { id: "bottom-1", group: "pBottomQ" },
+      { id: "bottom-2", group: "pBottomQ" },
+      { id: "left-1",   group: "pLeftQ"   },
+      { id: "left-2",   group: "pLeftQ"   },
+      { id: "right-1",  group: "pRightQ"  },
+      { id: "right-2",  group: "pRightQ"  },
     ],
   };
 }

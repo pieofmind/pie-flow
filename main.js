@@ -17543,7 +17543,7 @@ var require_microtask = __commonJS({
     var process2 = globalThis2.process;
     var Promise3 = globalThis2.Promise;
     var microtask = safeGetBuiltIn("queueMicrotask");
-    var notify;
+    var notify2;
     var toggle;
     var node2;
     var promise;
@@ -17556,7 +17556,7 @@ var require_microtask = __commonJS({
         while (fn2 = queue.get()) try {
           fn2();
         } catch (error) {
-          if (queue.head) notify();
+          if (queue.head) notify2();
           throw error;
         }
         if (parent) parent.enter();
@@ -17565,28 +17565,28 @@ var require_microtask = __commonJS({
         toggle = true;
         node2 = document2.createTextNode("");
         new MutationObserver(flush).observe(node2, { characterData: true });
-        notify = function() {
+        notify2 = function() {
           node2.data = toggle = !toggle;
         };
       } else if (!IS_IOS_PEBBLE && Promise3 && Promise3.resolve) {
         promise = Promise3.resolve(void 0);
         promise.constructor = Promise3;
         then = bind(promise.then, promise);
-        notify = function() {
+        notify2 = function() {
           then(flush);
         };
       } else if (IS_NODE) {
-        notify = function() {
+        notify2 = function() {
           process2.nextTick(flush);
         };
       } else {
         macrotask = bind(macrotask, globalThis2);
-        notify = function() {
+        notify2 = function() {
           macrotask(flush);
         };
       }
       microtask = function(fn2) {
-        if (!queue.head) notify();
+        if (!queue.head) notify2();
         queue.add(fn2);
       };
     }
@@ -17793,7 +17793,7 @@ var require_es_promise_constructor = __commonJS({
         reject(error);
       }
     };
-    var notify = function(state, isReject) {
+    var notify2 = function(state, isReject) {
       if (state.notified) return;
       state.notified = true;
       microtask(function() {
@@ -17857,7 +17857,7 @@ var require_es_promise_constructor = __commonJS({
       if (unwrap) state = unwrap;
       state.value = value;
       state.state = REJECTED;
-      notify(state, true);
+      notify2(state, true);
     };
     var internalResolve = function(state, value, unwrap) {
       if (state.done) return;
@@ -17883,7 +17883,7 @@ var require_es_promise_constructor = __commonJS({
         } else {
           state.value = value;
           state.state = FULFILLED;
-          notify(state, false);
+          notify2(state, false);
         }
       } catch (error) {
         internalReject({ done: false }, error, state);
@@ -75347,6 +75347,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     ].forEach((ev) => this.graph.on(ev, changed));
     this.graph.on("node:mouseenter", ({ node: node2 }) => this.togglePorts(node2, true));
     this.graph.on("node:mouseleave", ({ node: node2 }) => this.togglePorts(node2, false));
+    this.graph.on("node:magnet:mousedown", () => this.root.classList.add("lk-dragging-edge"));
+    const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
+    document.addEventListener("mouseup", clearDrag, true);
+    document.addEventListener("touchend", clearDrag, true);
+    document.addEventListener("touchcancel", clearDrag, true);
     this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
     this.graph.on("edge:selected", ({ edge }) => {
       this.applyEdgeStyle(edge, true);
@@ -78309,6 +78314,21 @@ async function importFromFile(filename, raw2) {
 
 // src/view/BoardView.ts
 registerAllShapes();
+function noticeFrag(kind, text4) {
+  const frag = document.createDocumentFragment();
+  const wrap = document.createElement("span");
+  wrap.addClass("da-notice");
+  wrap.addClass(`da-notice-${kind}`);
+  const iconEl = wrap.createSpan({ cls: "da-notice-icon" });
+  const icon = kind === "success" ? "check-circle-2" : kind === "warn" ? "alert-triangle" : kind === "error" ? "x-circle" : "info";
+  (0, import_obsidian.setIcon)(iconEl, icon);
+  wrap.createSpan({ cls: "da-notice-text", text: text4 });
+  frag.appendChild(wrap);
+  return frag;
+}
+function notify(kind, text4, timeout) {
+  return new import_obsidian.Notice(noticeFrag(kind, text4), timeout);
+}
 var BOARD_VIEW_TYPE = "omniboard-board";
 var EXT_RE = /\.omniboard\.md$/;
 var EMPTY_MODEL = { nodes: [], edges: [] };
@@ -78438,18 +78458,18 @@ var BoardView = class extends import_obsidian.TextFileView {
       const existing = this.app.vault.getAbstractFileByPath(path2);
       if (existing) await this.app.vault.modifyBinary(existing, bytes.buffer);
       else await this.app.vault.createBinary(path2, bytes.buffer);
-      new import_obsidian.Notice(`\u2705 \u0110\xE3 export: ${path2}`);
+      notify("success", `\u0110\xE3 export: ${path2}`);
     } catch (e4) {
-      new import_obsidian.Notice("\u274C Export PDF l\u1ED7i");
+      notify("error", "Export PDF l\u1ED7i");
     }
   }
   async handleCopyMermaid() {
     if (!this.canvas) return;
     try {
       await navigator.clipboard.writeText(this.canvas.exportMermaid());
-      new import_obsidian.Notice("\u2705 \u0110\xE3 copy Mermaid v\xE0o clipboard");
+      notify("success", "\u0110\xE3 copy Mermaid v\xE0o clipboard");
     } catch (e4) {
-      new import_obsidian.Notice("\u274C Copy Mermaid l\u1ED7i");
+      notify("error", "Copy Mermaid l\u1ED7i");
     }
   }
   async handleExportSvg() {
@@ -78460,9 +78480,9 @@ var BoardView = class extends import_obsidian.TextFileView {
       const existing = this.app.vault.getAbstractFileByPath(path2);
       if (existing) await this.app.vault.modify(existing, svg3);
       else await this.app.vault.create(path2, svg3);
-      new import_obsidian.Notice(`\u2705 \u0110\xE3 export: ${path2}`);
+      notify("success", `\u0110\xE3 export: ${path2}`);
     } catch (e4) {
-      new import_obsidian.Notice("\u274C Export SVG l\u1ED7i");
+      notify("error", "Export SVG l\u1ED7i");
     }
   }
   async handleExportPng(scale2) {
@@ -78475,9 +78495,9 @@ var BoardView = class extends import_obsidian.TextFileView {
       const existing = this.app.vault.getAbstractFileByPath(path2);
       if (existing) await this.app.vault.modifyBinary(existing, buf);
       else await this.app.vault.createBinary(path2, buf);
-      new import_obsidian.Notice(`\u2705 \u0110\xE3 export: ${path2}`);
+      notify("success", `\u0110\xE3 export: ${path2}`);
     } catch (e4) {
-      new import_obsidian.Notice("\u274C Export PNG l\u1ED7i");
+      notify("error", "Export PNG l\u1ED7i");
     }
   }
   // Obsidian → view
@@ -78489,8 +78509,9 @@ var BoardView = class extends import_obsidian.TextFileView {
     if (parsed === null) {
       this.invalidFormat = true;
       void this.backupInvalid(data2);
-      new import_obsidian.Notice(
-        "\u26A0\uFE0F File .omniboard.md kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 drawing block thi\u1EBFu/h\u1ECFng. File \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn, \u0111\xE3 t\u1EA1o b\u1EA3n sao l\u01B0u .bak c\u1EA1nh file.",
+      notify(
+        "warn",
+        "File .omniboard.md kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 drawing block thi\u1EBFu/h\u1ECFng. File \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn, \u0111\xE3 t\u1EA1o b\u1EA3n sao l\u01B0u .bak c\u1EA1nh file.",
         1e4
       );
       return;
@@ -78547,14 +78568,15 @@ var BoardView = class extends import_obsidian.TextFileView {
         const { added } = this.canvas.mergeModel(result.model);
         this.pendingSourceMeta = result.sourceMeta;
         this.requestSave();
-        new import_obsidian.Notice(
-          `\u2705 \u0110\xE3 import ${added} ph\u1EA7n t\u1EED t\u1EEB ${file.name}` + (result.warnings.length ? ` (\u26A0 ${result.warnings.length} c\u1EA3nh b\xE1o)` : "")
+        notify(
+          "success",
+          `\u0110\xE3 import ${added} ph\u1EA7n t\u1EED t\u1EEB ${file.name}` + (result.warnings.length ? ` (${result.warnings.length} c\u1EA3nh b\xE1o)` : "")
         );
         if (result.warnings.length) {
-          for (const w5 of result.warnings.slice(0, 5)) new import_obsidian.Notice(`\u26A0 ${w5}`, 6e3);
+          for (const w5 of result.warnings.slice(0, 5)) notify("warn", w5, 6e3);
         }
       } catch (err2) {
-        new import_obsidian.Notice(`\u274C Import l\u1ED7i: ${err2.message}`, 8e3);
+        notify("error", `Import l\u1ED7i: ${err2.message}`, 8e3);
       }
     };
     document.body.appendChild(input);
@@ -78573,9 +78595,9 @@ var BoardView = class extends import_obsidian.TextFileView {
       const existing = this.app.vault.getAbstractFileByPath(path2);
       if (existing) await this.app.vault.modify(existing, text4);
       else await this.app.vault.create(path2, text4);
-      new import_obsidian.Notice(`\u2705 \u0110\xE3 export ${fmt.displayName}: ${path2}`);
+      notify("success", `\u0110\xE3 export ${fmt.displayName}: ${path2}`);
     } catch (err2) {
-      new import_obsidian.Notice(`\u274C Export ${fmt.displayName} l\u1ED7i: ${err2.message}`, 8e3);
+      notify("error", `Export ${fmt.displayName} l\u1ED7i: ${err2.message}`, 8e3);
     }
   }
   /** Save current state then switch the leaf to the default markdown view. */

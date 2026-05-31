@@ -173,6 +173,11 @@
 .lk-root .x6-port circle[port]:not([port="top"]):not([port="right"]):not([port="bottom"]):not([port="left"]) {
   visibility: hidden !important;
 }
+/* While the user is actively dragging an arrow from a port magnet, hide ALL
+   port circles. X6 would otherwise light up every node's magnets as drop
+   targets, flooding the view with blue dots. The class is toggled on/off by
+   the node:magnet:mousedown listener in OmniboardCanvas. */
+.lk-root.lk-dragging-edge .x6-port circle { visibility: hidden !important; }
 .lk-root .x6-widget-selection-box {
   border: 1.5px solid var(--pg-accent) !important; border-radius: 6px;
   box-shadow: 0 0 0 3px var(--pg-accent-soft); background: transparent !important;

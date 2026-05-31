@@ -940,6 +940,15 @@ export class OmniboardCanvas {
 
     this.graph.on("node:mouseenter", ({ node }) => this.togglePorts(node, true));
     this.graph.on("node:mouseleave", ({ node }) => this.togglePorts(node, false));
+    // While the user is actively drawing/dragging an arrow from a port magnet,
+    // hide ALL port circles (cardinals too) — X6 would otherwise light them up
+    // as drop targets on every node and the field of blue dots overwhelms the
+    // view. Toggle via a class on .lk-root that the CSS rule reads.
+    this.graph.on("node:magnet:mousedown", () => this.root.classList.add("lk-dragging-edge"));
+    const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
+    document.addEventListener("mouseup", clearDrag, true);
+    document.addEventListener("touchend", clearDrag, true);
+    document.addEventListener("touchcancel", clearDrag, true);
 
     // Edges behave like nodes: click to select (highlighted), Delete to remove.
     // Double-click edits the label. No floating delete button.

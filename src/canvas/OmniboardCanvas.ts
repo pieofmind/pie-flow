@@ -595,6 +595,41 @@ export class OmniboardCanvas {
     ), anchor);
   }
 
+  /** bpmn.io-style drop-anywhere — after the user finishes a connect drag, pin the
+   *  endpoint(s) that landed on a node BODY (no explicit port) to the exact pixel
+   *  position they dropped on. Each endpoint stored as `{ anchor: { topLeft +
+   *  dx/dy }, connectionPoint: boundary }` — unlimited positioning, no 12-port
+   *  grid snap. setSource/setTarget runs ONCE per connect; we never mutate the
+   *  spec again afterwards (the recursive-relayout freeze came from doing this
+   *  inside change:* / node:moved handlers, not from the mutation itself). */
+  private pinDropAnchor(edge: Edge): void {
+    const sId = edge.getSourceCellId() ?? undefined;
+    const tId = edge.getTargetCellId() ?? undefined;
+    if (this.isSeqLifeline(sId) || this.isSeqLifeline(tId)) return;
+    if (this.isMindmapNode(sId) || this.isMindmapNode(tId)) return;
+    const pinEnd = (which: "source" | "target"): void => {
+      const id = which === "source" ? sId : tId;
+      if (!id) return;
+      const spec = (which === "source" ? edge.getSource() : edge.getTarget()) as {
+        cell?: string; port?: string; anchor?: { name?: string };
+      };
+      if (spec.port || spec.anchor) return;            // user picked a port — respect it.
+      const node = this.graph.getCellById(id);
+      if (!node?.isNode?.()) return;
+      const pt = which === "source" ? edge.getSourcePoint() : edge.getTargetPoint();
+      if (!pt) return;
+      const b = (node as Node).getBBox();
+      // Clamp into the node bbox so the anchor is always on/inside the body.
+      const dx = Math.max(0, Math.min(b.width, pt.x - b.x));
+      const dy = Math.max(0, Math.min(b.height, pt.y - b.y));
+      const endSpec = { cell: id, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } } as never;
+      if (which === "source") edge.setSource(endSpec);
+      else edge.setTarget(endSpec);
+    };
+    pinEnd("source");
+    pinEnd("target");
+  }
+
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
   private handleDragToBlank(edge: Edge): void {
     const srcId = edge.getSourceCellId();
@@ -602,6 +637,26 @@ export class OmniboardCanvas {
     if (!src || !src.isNode()) { edge.remove(); return; }
     const pt = edge.getTargetPoint(); // graph coords of the drop
     const srcPort = (edge.getSource() as { port?: string } | undefined)?.port;
+
+    // bpmn.io-style drop-anywhere: if the drop point lands inside ANOTHER node's
+    // bbox, X6 didn't recognise it as a magnet (we don't make the body a magnet
+    // because that hijacks click→selection — see add07d8). Convert the dangling
+    // edge into a pinned anchor connection on that node so the user gets exact
+    // drop positioning instead of a shape picker.
+    for (const n of this.graph.getNodes()) {
+      if (n.id === src.id) continue;
+      const b = n.getBBox();
+      if (pt.x < b.x || pt.x > b.x + b.width || pt.y < b.y || pt.y > b.y + b.height) continue;
+      edge.setTarget({
+        cell: n.id,
+        anchor: { name: "topLeft", args: { dx: pt.x - b.x, dy: pt.y - b.y } },
+        connectionPoint: { name: "boundary" },
+      } as never);
+      this.applyMindmapRoutingIfNeeded(edge);
+      this.applySeqRoutingIfNeeded(edge);
+      return;
+    }
+
     this.pendingDrop = edge;          // removed on dismiss unless a shape is picked
     const wrap = el("div", "lk-shape-popup");
     wrap.appendChild(el("div", "lk-flyout-title", "Chèn hình"));
@@ -1041,6 +1096,12 @@ export class OmniboardCanvas {
       if (isNew && !edge.getTargetCellId()) { this.handleDragToBlank(edge); return; }
       this.applySeqRoutingIfNeeded(edge);
       this.applyMindmapRoutingIfNeeded(edge);
+      // bpmn.io-style drop-anywhere: pin the just-dropped endpoint to its exact
+      // pixel position on the target node (unlimited positioning). Only when the
+      // user dropped on the BODY (no explicit port choice) — port drops keep the
+      // pinned port. Mutation runs ONCE here per connect, never in node:moved or
+      // change:* handlers, so the recursive-relayout freeze stays gone.
+      if (isNew) this.pinDropAnchor(edge);
     });
     // Robust fallback: some X6 builds don't emit edge:connected for a blank drop.
     // After any mouseup, scan for a freshly dangling edge (source cell, target point)

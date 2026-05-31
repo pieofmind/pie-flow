@@ -17,7 +17,20 @@ export function registerHtmlNode(): void {
       },
     ],
     attrs: {
-      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none" },
+      // `magnet: 'passive'` lets X6 treat the body as a valid DROP target during
+       // an arrow-drag (so the user can drop anywhere on the node and pinDropAnchor
+       // pins to that exact pixel) WITHOUT making body clicks initiate a connect
+       // drag — that would break selection (we tried `magnet: true` earlier, it
+       // hijacked the click; commit add07d8 reverted it).
+      // `pointerEvents: 'all'` so transparent fill still catches mouse events
+      // across the full bbox (SVG default `visiblePainted` ignores transparent
+      // areas — corner drops would fall through the hit rect onto the SVG
+      // background and the connecting tool would see no magnet under the cursor).
+      // Transparent hit rect — no magnet (broke selection in commit add07d8).
+      // Body-drop connections are handled by handleDragToBlank instead: when a
+      // drop produces a "blank" target with raw {x,y}, we check the point
+      // against every node bbox and convert it to a pinned anchor connection.
+      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", pointerEvents: "all" },
       fo: { refWidth: "100%", refHeight: "100%" },
       content: { html: "", class: "hn" },
     },
@@ -275,16 +288,22 @@ function lblStyle(extra?: NodeExtra): string {
   // compositing layer that paints at the SVG origin on iOS.
   return ` style="margin:${px(o.y)}px 0 0 ${px(o.x)}px"`;
 }
+// NOTE: bpEvent/bpTask/bpGateway receive `label` ALREADY escaped by
+// nodeHtmlBase (it computes `L = esc(label)` and passes that as `label`).
+// Don't re-escape here or characters like `<`/`>` get double-encoded
+// (e.g. imported BPMN with `(<50%)` would render as literal `&lt;50%`).
+// We do still convert `\n` → `<br>` so multi-line labels render on the task
+// surface (CSS `place-items: center` collapses raw newlines).
 function bpEvent(kind: string, label: string, icon?: string, extra?: NodeExtra): string {
   const inner = icon ?? (kind === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`));
-  return `<div class="bp-event ${kind}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${esc(label)}</div></div>`;
+  return `<div class="bp-event ${kind}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
 }
 function bpTask(label: string, iconKey?: string): string {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
-  return `<div class="bp-task">${icon}${esc(label)}</div>`;
+  return `<div class="bp-task">${icon}${nl(label)}</div>`;
 }
 function bpGateway(mark: string, label: string, extra?: NodeExtra): string {
-  return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${esc(label)}</div>` : ""}</div>`;
+  return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : ""}</div>`;
 }
 /** BPMN Pool with N lanes (composite). Default: 1 lane "Lane 1" when extra.lanes empty. */
 function bpPool(label: string, extra?: NodeExtra): string {

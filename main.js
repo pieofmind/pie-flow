@@ -69885,7 +69885,20 @@ function registerHtmlNode() {
       }
     ],
     attrs: {
-      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none" },
+      // `magnet: 'passive'` lets X6 treat the body as a valid DROP target during
+      // an arrow-drag (so the user can drop anywhere on the node and pinDropAnchor
+      // pins to that exact pixel) WITHOUT making body clicks initiate a connect
+      // drag — that would break selection (we tried `magnet: true` earlier, it
+      // hijacked the click; commit add07d8 reverted it).
+      // `pointerEvents: 'all'` so transparent fill still catches mouse events
+      // across the full bbox (SVG default `visiblePainted` ignores transparent
+      // areas — corner drops would fall through the hit rect onto the SVG
+      // background and the connecting tool would see no magnet under the cursor).
+      // Transparent hit rect — no magnet (broke selection in commit add07d8).
+      // Body-drop connections are handled by handleDragToBlank instead: when a
+      // drop produces a "blank" target with raw {x,y}, we check the point
+      // against every node bbox and convert it to a pinned anchor connection.
+      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", pointerEvents: "all" },
       fo: { refWidth: "100%", refHeight: "100%" },
       content: { html: "", class: "hn" }
     },
@@ -72849,6 +72862,39 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.categoriesFor(source)
     ), anchor3);
   }
+  /** bpmn.io-style drop-anywhere — after the user finishes a connect drag, pin the
+   *  endpoint(s) that landed on a node BODY (no explicit port) to the exact pixel
+   *  position they dropped on. Each endpoint stored as `{ anchor: { topLeft +
+   *  dx/dy }, connectionPoint: boundary }` — unlimited positioning, no 12-port
+   *  grid snap. setSource/setTarget runs ONCE per connect; we never mutate the
+   *  spec again afterwards (the recursive-relayout freeze came from doing this
+   *  inside change:* / node:moved handlers, not from the mutation itself). */
+  pinDropAnchor(edge) {
+    var _a3, _b2;
+    const sId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
+    const tId = (_b2 = edge.getTargetCellId()) != null ? _b2 : void 0;
+    if (this.isSeqLifeline(sId) || this.isSeqLifeline(tId)) return;
+    if (this.isMindmapNode(sId) || this.isMindmapNode(tId)) return;
+    const pinEnd = (which) => {
+      var _a4;
+      const id = which === "source" ? sId : tId;
+      if (!id) return;
+      const spec = which === "source" ? edge.getSource() : edge.getTarget();
+      if (spec.port || spec.anchor) return;
+      const node2 = this.graph.getCellById(id);
+      if (!((_a4 = node2 == null ? void 0 : node2.isNode) == null ? void 0 : _a4.call(node2))) return;
+      const pt2 = which === "source" ? edge.getSourcePoint() : edge.getTargetPoint();
+      if (!pt2) return;
+      const b3 = node2.getBBox();
+      const dx = Math.max(0, Math.min(b3.width, pt2.x - b3.x));
+      const dy = Math.max(0, Math.min(b3.height, pt2.y - b3.y));
+      const endSpec = { cell: id, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } };
+      if (which === "source") edge.setSource(endSpec);
+      else edge.setTarget(endSpec);
+    };
+    pinEnd("source");
+    pinEnd("target");
+  }
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
   handleDragToBlank(edge) {
     var _a3;
@@ -72860,6 +72906,19 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     }
     const pt2 = edge.getTargetPoint();
     const srcPort = (_a3 = edge.getSource()) == null ? void 0 : _a3.port;
+    for (const n3 of this.graph.getNodes()) {
+      if (n3.id === src.id) continue;
+      const b3 = n3.getBBox();
+      if (pt2.x < b3.x || pt2.x > b3.x + b3.width || pt2.y < b3.y || pt2.y > b3.y + b3.height) continue;
+      edge.setTarget({
+        cell: n3.id,
+        anchor: { name: "topLeft", args: { dx: pt2.x - b3.x, dy: pt2.y - b3.y } },
+        connectionPoint: { name: "boundary" }
+      });
+      this.applyMindmapRoutingIfNeeded(edge);
+      this.applySeqRoutingIfNeeded(edge);
+      return;
+    }
     this.pendingDrop = edge;
     const wrap = el("div", "lk-shape-popup");
     wrap.appendChild(el("div", "lk-flyout-title", "Ch\xE8n h\xECnh"));
@@ -73370,6 +73429,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
       this.applySeqRoutingIfNeeded(edge);
       this.applyMindmapRoutingIfNeeded(edge);
+      if (isNew) this.pinDropAnchor(edge);
     });
     this.graphMount.addEventListener("mouseup", () => {
       window.setTimeout(() => {
@@ -82110,7 +82170,7 @@ async function patchExisting(raw2, model, m6) {
   const referenced = /* @__PURE__ */ new Set();
   for (const fe3 of (_i = process2.flowElements) != null ? _i : []) {
     if (fe3.$type !== "bpmn:SequenceFlow") continue;
-    if (!modelEdgeIds.has(fe3.id) && !flowById.has(fe3.id)) continue;
+    if (!modelEdgeIds.has(fe3.id)) continue;
     const src = refIdOf(fe3.sourceRef);
     const tgt = refIdOf(fe3.targetRef);
     if (src) referenced.add(src);
@@ -82400,7 +82460,7 @@ function exportDbml(model, meta) {
         continue;
       }
       for (let i6 = 0; i6 < canvasCols.length; i6++) {
-        if (canvasCols[i6].name !== origCols[i6].name || canvasCols[i6].type !== origCols[i6].type) {
+        if (canvasCols[i6].name !== origCols[i6].name || canvasCols[i6].type !== origCols[i6].type || canvasCols[i6].flags !== origCols[i6].flags) {
           edited.push(src.sourceId);
           break;
         }
@@ -83805,7 +83865,7 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
       const raw2 = await this.app.vault.cachedRead(file);
       const m6 = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw2);
       if (!m6) return false;
-      return /^omniboard-plugin\s*:\s*parsed\b/m.test(m6[1]);
+      return /^omniboard-plugin\s*:\s*["']?parsed["']?\s*$/m.test(m6[1]);
     } catch (e4) {
       return false;
     }

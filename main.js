@@ -73381,8 +73381,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const trackPointer = (cx, cy) => {
       this.lastPointerClient = { x: cx, y: cy };
     };
+    addDoc("pointermove", (e4) => trackPointer(e4.clientX, e4.clientY));
+    addDoc("pointerdown", (e4) => trackPointer(e4.clientX, e4.clientY));
+    addDoc("pointerup", (e4) => trackPointer(e4.clientX, e4.clientY));
     addDoc("mousemove", (e4) => trackPointer(e4.clientX, e4.clientY));
-    addDoc("mouseup", (e4) => trackPointer(e4.clientX, e4.clientY));
     addDoc("touchmove", (e4) => {
       const t5 = e4.touches[0];
       if (t5) trackPointer(t5.clientX, t5.clientY);
@@ -82430,8 +82432,8 @@ async function patchExisting(raw2, model, m6) {
 function buildWaypoints(e4, src, tgt, m6) {
   var _a3;
   const point = (x4, y5) => m6.create("dc:Point", { x: x4, y: y5 });
-  const start = point(src.x + src.width / 2, src.y + src.height / 2);
-  const end = point(tgt.x + tgt.width / 2, tgt.y + tgt.height / 2);
+  const start = e4.sourceAnchor ? point(src.x + e4.sourceAnchor.dx, src.y + e4.sourceAnchor.dy) : point(src.x + src.width / 2, src.y + src.height / 2);
+  const end = e4.targetAnchor ? point(tgt.x + e4.targetAnchor.dx, tgt.y + e4.targetAnchor.dy) : point(tgt.x + tgt.width / 2, tgt.y + tgt.height / 2);
   const mid = ((_a3 = e4.vertices) != null ? _a3 : []).map((v6) => point(v6.x, v6.y));
   return [start, ...mid, end];
 }

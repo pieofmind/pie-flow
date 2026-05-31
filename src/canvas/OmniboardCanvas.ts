@@ -1080,9 +1080,17 @@ export class OmniboardCanvas {
     // Listen on DOCUMENT (capture): during an X6 connect-drag the pointer can be
     // captured by another element, so a graphMount-scoped move can stop firing
     // mid-drag and the stored position would go stale.
+    // Track via POINTER events first: X6's connect-drag uses pointer events and
+    // captures the pointer, which suppresses the compatibility `mousemove` —
+    // so a mouse-only tracker goes stale mid-drag and pinDropAnchor falls back
+    // to whatever quarter-port X6 snapped to (the "only 3 points per side" bug).
+    // pointermove fires for mouse/touch/pen and isn't suppressed by capture, so
+    // lastPointerClient is current at drop. mouse/touch kept as belt-and-braces.
     const trackPointer = (cx: number, cy: number) => { this.lastPointerClient = { x: cx, y: cy }; };
+    addDoc("pointermove", (e) => trackPointer((e as PointerEvent).clientX, (e as PointerEvent).clientY));
+    addDoc("pointerdown", (e) => trackPointer((e as PointerEvent).clientX, (e as PointerEvent).clientY));
+    addDoc("pointerup", (e) => trackPointer((e as PointerEvent).clientX, (e as PointerEvent).clientY));
     addDoc("mousemove", (e) => trackPointer((e as MouseEvent).clientX, (e as MouseEvent).clientY));
-    addDoc("mouseup", (e) => trackPointer((e as MouseEvent).clientX, (e as MouseEvent).clientY));
     addDoc("touchmove", (e) => { const t = (e as TouchEvent).touches[0]; if (t) trackPointer(t.clientX, t.clientY); });
 
     // Edges behave like nodes: click to select (highlighted), Delete to remove.

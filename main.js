@@ -72173,7 +72173,6 @@ var FILL_SWATCHES = [
   "#8E51FF",
   "#86909C"
 ];
-var FONT_SIZES = [12, 14, 16, 18, 24, 32];
 var clamp01 = (n3) => Math.max(0, Math.min(1, n3));
 function hexToRgb(hex) {
   const m6 = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec(hex.trim());
@@ -72381,6 +72380,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     // dangling edge awaiting a shape pick (drag-to-blank)
     this.lastSelectedAt = /* @__PURE__ */ new Map();
     // when each node became selected (for click-to-edit)
+    this.lastPointerLocal = null;
+    // last cursor pos in graph coords (for precise drop-anchor)
     // Mobile-only HTML overlay: WebKit/iOS mis-positions <foreignObject> HTML content
     // (position:absolute, clip-path, transform, %-height flex all jump to 0,0). We hide
     // the foreignObject visuals on mobile and render each node into a real <div> overlay
@@ -72894,31 +72895,24 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    *  grid snap. setSource/setTarget runs ONCE per connect; we never mutate the
    *  spec again afterwards (the recursive-relayout freeze came from doing this
    *  inside change:* / node:moved handlers, not from the mutation itself). */
-  pinDropAnchor(edge) {
-    var _a3, _b2;
+  pinDropAnchor(edge, which) {
+    var _a3, _b2, _c;
     const sId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
     const tId = (_b2 = edge.getTargetCellId()) != null ? _b2 : void 0;
     if (this.isSeqLifeline(sId) || this.isSeqLifeline(tId)) return;
     if (this.isMindmapNode(sId) || this.isMindmapNode(tId)) return;
-    const pinEnd = (which) => {
-      var _a4;
-      const id = which === "source" ? sId : tId;
-      if (!id) return;
-      const spec = which === "source" ? edge.getSource() : edge.getTarget();
-      if (spec.port || spec.anchor) return;
-      const node2 = this.graph.getCellById(id);
-      if (!((_a4 = node2 == null ? void 0 : node2.isNode) == null ? void 0 : _a4.call(node2))) return;
-      const pt2 = which === "source" ? edge.getSourcePoint() : edge.getTargetPoint();
-      if (!pt2) return;
-      const b3 = node2.getBBox();
-      const dx = Math.max(0, Math.min(b3.width, pt2.x - b3.x));
-      const dy = Math.max(0, Math.min(b3.height, pt2.y - b3.y));
-      const endSpec = { cell: id, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } };
-      if (which === "source") edge.setSource(endSpec);
-      else edge.setTarget(endSpec);
-    };
-    pinEnd("source");
-    pinEnd("target");
+    const id = which === "source" ? sId : tId;
+    if (!id) return;
+    const node2 = this.graph.getCellById(id);
+    if (!((_c = node2 == null ? void 0 : node2.isNode) == null ? void 0 : _c.call(node2))) return;
+    const p6 = this.lastPointerLocal;
+    if (!p6) return;
+    const b3 = node2.getBBox();
+    const dx = Math.max(0, Math.min(b3.width, p6.x - b3.x));
+    const dy = Math.max(0, Math.min(b3.height, p6.y - b3.y));
+    const endSpec = { cell: id, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } };
+    if (which === "source") edge.setSource(endSpec);
+    else edge.setTarget(endSpec);
   }
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
   handleDragToBlank(edge) {
@@ -73361,6 +73355,15 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     document.addEventListener("mouseup", clearDrag, true);
     document.addEventListener("touchend", clearDrag, true);
     document.addEventListener("touchcancel", clearDrag, true);
+    const trackPointer = (cx, cy) => {
+      this.lastPointerLocal = this.graph.clientToLocal(cx, cy);
+    };
+    this.graphMount.addEventListener("mousemove", (e4) => trackPointer(e4.clientX, e4.clientY), true);
+    this.graphMount.addEventListener("mouseup", (e4) => trackPointer(e4.clientX, e4.clientY), true);
+    this.graphMount.addEventListener("touchmove", (e4) => {
+      const t5 = e4.touches[0];
+      if (t5) trackPointer(t5.clientX, t5.clientY);
+    }, true);
     this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
     this.graph.on("edge:selected", ({ edge }) => {
       this.applyEdgeStyle(edge, true);
@@ -73457,14 +73460,15 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.commitLabel();
     });
     this.graph.on("blank:mousedown", () => this.hidePopup());
-    this.graph.on("edge:connected", ({ edge, isNew }) => {
+    this.graph.on("edge:connected", ({ edge, isNew, type }) => {
       if (isNew && !edge.getTargetCellId()) {
         this.handleDragToBlank(edge);
         return;
       }
       this.applySeqRoutingIfNeeded(edge);
       this.applyMindmapRoutingIfNeeded(edge);
-      if (isNew) this.pinDropAnchor(edge);
+      const dropped = type === "source" ? "source" : "target";
+      this.pinDropAnchor(edge, dropped);
     });
     this.graphMount.addEventListener("mouseup", () => {
       window.setTimeout(() => {
@@ -74124,15 +74128,23 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     };
     field(s22, "M\xE0u n\u1EC1n", swatchRow("fill"));
     field(s22, "M\xE0u vi\u1EC1n", swatchRow("stroke"));
-    const fontSel = el("select", "lk-pinput");
-    FONT_SIZES.forEach((sz) => {
-      const o5 = el("option", void 0, String(sz));
-      o5.value = String(sz);
-      fontSel.appendChild(o5);
-    });
-    fontSel.value = String(st3.fontSize || 13);
-    fontSel.onchange = () => this.setStyle(node2, { fontSize: Number(fontSel.value) });
-    field(s22, "C\u1EE1 ch\u1EEF", fontSel);
+    const fontIn = el("input", "lk-pinput");
+    fontIn.type = "number";
+    fontIn.min = "6";
+    fontIn.max = "96";
+    fontIn.step = "1";
+    fontIn.value = String(st3.fontSize || 13);
+    const applyFont = () => {
+      const v6 = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || 13));
+      fontIn.value = String(v6);
+      this.setStyle(node2, { fontSize: v6 });
+    };
+    fontIn.oninput = () => {
+      const n3 = Number(fontIn.value);
+      if (Number.isFinite(n3) && n3 >= 6 && n3 <= 96) this.setStyle(node2, { fontSize: Math.round(n3) });
+    };
+    fontIn.onblur = applyFont;
+    field(s22, "C\u1EE1 ch\u1EEF", fontIn);
     const s32 = sec("V\u1ECB tr\xED & k\xEDch th\u01B0\u1EDBc");
     const pos = node2.getPosition();
     const size = node2.getSize();
@@ -74504,19 +74516,40 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   /** Typography popover: font size · B/I/U/S · align · text color. */
   openTextPopup(node2, anchor3) {
+    var _a3;
     const st3 = this.nodeStyle(node2);
     const wrap = el("div", "lk-line-popup");
-    const szRow = el("div", "lk-line-row");
-    FONT_SIZES.forEach((sz) => {
-      var _a3;
-      const b3 = el("div", "lk-line-cell" + (((_a3 = st3.fontSize) != null ? _a3 : 13) === sz ? " on" : ""), String(sz));
-      b3.onclick = () => {
-        this.setStyle(node2, { fontSize: sz });
-        this.refreshContextBar();
-        this.openTextPopup(node2, anchor3);
-      };
-      szRow.appendChild(b3);
-    });
+    const szRow = el("div", "lk-line-row lk-fs-row");
+    const dec = el("div", "lk-line-cell lk-fs-btn", "\u2212");
+    const szIn = el("input", "lk-fs-input");
+    szIn.type = "number";
+    szIn.min = "6";
+    szIn.max = "96";
+    szIn.step = "1";
+    szIn.value = String((_a3 = st3.fontSize) != null ? _a3 : 13);
+    const inc = el("div", "lk-line-cell lk-fs-btn", "+");
+    const apply4 = (v6) => {
+      const clamped = Math.max(6, Math.min(96, Math.round(v6) || 13));
+      szIn.value = String(clamped);
+      this.setStyle(node2, { fontSize: clamped });
+      this.refreshContextBar();
+    };
+    szIn.oninput = () => {
+      const n3 = Number(szIn.value);
+      if (Number.isFinite(n3) && n3 >= 6 && n3 <= 96) apply4(n3);
+    };
+    szIn.onblur = () => apply4(Number(szIn.value));
+    szIn.onkeydown = (e4) => {
+      if (e4.key === "Enter") {
+        apply4(Number(szIn.value));
+        e4.preventDefault();
+      }
+    };
+    dec.onclick = () => apply4((Number(szIn.value) || 13) - 1);
+    inc.onclick = () => apply4((Number(szIn.value) || 13) + 1);
+    szRow.appendChild(dec);
+    szRow.appendChild(szIn);
+    szRow.appendChild(inc);
     wrap.appendChild(szRow);
     const tgRow = el("div", "lk-line-row");
     const toggle = (label, key, css2) => {
@@ -74534,13 +74567,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     toggle("S", "strike", "text-decoration:line-through");
     wrap.appendChild(tgRow);
     const alRow = el("div", "lk-line-row");
-    [["left", "\u2261", "Tr\xE1i"], ["center", "\u2261", "Gi\u1EEFa"], ["right", "\u2261", "Ph\u1EA3i"]].forEach(([al, , title2]) => {
-      var _a3;
-      const b3 = el(
-        "div",
-        "lk-line-cell" + (((_a3 = st3.align) != null ? _a3 : "center") === al ? " on" : ""),
-        `<span style="display:block;width:18px;text-align:${al};font-size:13px">\u2261</span>`
-      );
+    const ALIGN_SVG = {
+      left: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>`,
+      center: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
+      right: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>`
+    };
+    [["left", "Tr\xE1i"], ["center", "Gi\u1EEFa"], ["right", "Ph\u1EA3i"]].forEach(([al, title2]) => {
+      var _a4;
+      const b3 = el("div", "lk-line-cell" + (((_a4 = st3.align) != null ? _a4 : "center") === al ? " on" : ""), ALIGN_SVG[al]);
       b3.title = title2;
       b3.onclick = () => {
         this.setStyle(node2, { align: al });

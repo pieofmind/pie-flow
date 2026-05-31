@@ -19,7 +19,6 @@ const FILL_SWATCHES = [
   "transparent", "#FFFFFF", "#FFF4DE", "#9ED6F5", "#D6EFE0", "#FFF3BF", "#F6DADA", "#ECE0F5",
   "#3B1F1A", "#5E8FB9", "#9ED6F5", "#34A853", "#FFD966", "#FF8800", "#7A2E2E", "#E5484D", "#8E51FF", "#86909C",
 ];
-const FONT_SIZES = [12, 14, 16, 18, 24, 32];
 
 // ── Color helpers for the HSV picker ──
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
@@ -228,6 +227,7 @@ export class OmniboardCanvas {
   private padLayer: HTMLElement | null = null;
   private pendingDrop: Edge | null = null; // dangling edge awaiting a shape pick (drag-to-blank)
   private lastSelectedAt = new Map<string, number>(); // when each node became selected (for click-to-edit)
+  private lastPointerLocal: { x: number; y: number } | null = null; // last cursor pos in graph coords (for precise drop-anchor)
   // Mobile-only HTML overlay: WebKit/iOS mis-positions <foreignObject> HTML content
   // (position:absolute, clip-path, transform, %-height flex all jump to 0,0). We hide
   // the foreignObject visuals on mobile and render each node into a real <div> overlay
@@ -623,32 +623,28 @@ export class OmniboardCanvas {
    *  grid snap. setSource/setTarget runs ONCE per connect; we never mutate the
    *  spec again afterwards (the recursive-relayout freeze came from doing this
    *  inside change:* / node:moved handlers, not from the mutation itself). */
-  private pinDropAnchor(edge: Edge): void {
+  private pinDropAnchor(edge: Edge, which: "source" | "target"): void {
     const sId = edge.getSourceCellId() ?? undefined;
     const tId = edge.getTargetCellId() ?? undefined;
     if (this.isSeqLifeline(sId) || this.isSeqLifeline(tId)) return;
     if (this.isMindmapNode(sId) || this.isMindmapNode(tId)) return;
-    const pinEnd = (which: "source" | "target"): void => {
-      const id = which === "source" ? sId : tId;
-      if (!id) return;
-      const spec = (which === "source" ? edge.getSource() : edge.getTarget()) as {
-        cell?: string; port?: string; anchor?: { name?: string };
-      };
-      if (spec.port || spec.anchor) return;            // user picked a port — respect it.
-      const node = this.graph.getCellById(id);
-      if (!node?.isNode?.()) return;
-      const pt = which === "source" ? edge.getSourcePoint() : edge.getTargetPoint();
-      if (!pt) return;
-      const b = (node as Node).getBBox();
-      // Clamp into the node bbox so the anchor is always on/inside the body.
-      const dx = Math.max(0, Math.min(b.width, pt.x - b.x));
-      const dy = Math.max(0, Math.min(b.height, pt.y - b.y));
-      const endSpec = { cell: id, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } } as never;
-      if (which === "source") edge.setSource(endSpec);
-      else edge.setTarget(endSpec);
-    };
-    pinEnd("source");
-    pinEnd("target");
+    const id = which === "source" ? sId : tId;
+    if (!id) return;
+    const node = this.graph.getCellById(id);
+    if (!node?.isNode?.()) return;
+    // Use the LIVE cursor position (graph coords), NOT edge.getTargetPoint():
+    // X6 reports the snapped port / centre-anchored boundary point, which makes
+    // every drop on the same side collapse to one spot. The real pointer gives
+    // bpmn.io-style unlimited positioning — distinct anchor per drop. Overrides
+    // any port X6 snapped to (the 4 cardinal circles are just aim hints now).
+    const p = this.lastPointerLocal;
+    if (!p) return;
+    const b = (node as Node).getBBox();
+    const dx = Math.max(0, Math.min(b.width, p.x - b.x));
+    const dy = Math.max(0, Math.min(b.height, p.y - b.y));
+    const endSpec = { cell: id, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "boundary" } } as never;
+    if (which === "source") edge.setSource(endSpec);
+    else edge.setTarget(endSpec);
   }
 
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
@@ -1041,6 +1037,16 @@ export class OmniboardCanvas {
     document.addEventListener("touchend", clearDrag, true);
     document.addEventListener("touchcancel", clearDrag, true);
 
+    // Track the live cursor position in graph coordinates. pinDropAnchor reads
+    // this at edge-connect time so a dropped endpoint lands at the EXACT pixel
+    // the cursor was over — not at the snapped port / center that X6 reports.
+    // This is what makes manual draw match the imported-file behaviour: two
+    // arrows dropped at different spots on the same node get distinct anchors.
+    const trackPointer = (cx: number, cy: number) => { this.lastPointerLocal = this.graph.clientToLocal(cx, cy); };
+    this.graphMount.addEventListener("mousemove", (e) => trackPointer(e.clientX, e.clientY), true);
+    this.graphMount.addEventListener("mouseup", (e) => trackPointer(e.clientX, e.clientY), true);
+    this.graphMount.addEventListener("touchmove", (e) => { const t = e.touches[0]; if (t) trackPointer(t.clientX, t.clientY); }, true);
+
     // Edges behave like nodes: click to select (highlighted), Delete to remove.
     // Double-click edits the label. No floating delete button.
     this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
@@ -1127,17 +1133,19 @@ export class OmniboardCanvas {
 
     // Sequence messages: when both endpoints are sequence lifelines, swap the
     // edge's connector to "seq-msg" so the arrow stays horizontal at source Y.
-    this.graph.on("edge:connected", ({ edge, isNew }) => {
+    this.graph.on("edge:connected", ({ edge, isNew, type }) => {
       // Dropped on empty canvas → show shape picker at the drop point (Omniboard).
       if (isNew && !edge.getTargetCellId()) { this.handleDragToBlank(edge); return; }
       this.applySeqRoutingIfNeeded(edge);
       this.applyMindmapRoutingIfNeeded(edge);
-      // bpmn.io-style drop-anywhere: pin the just-dropped endpoint to its exact
-      // pixel position on the target node (unlimited positioning). Only when the
-      // user dropped on the BODY (no explicit port choice) — port drops keep the
-      // pinned port. Mutation runs ONCE here per connect, never in node:moved or
-      // change:* handlers, so the recursive-relayout freeze stays gone.
-      if (isNew) this.pinDropAnchor(edge);
+      // bpmn.io-style drop-anywhere: pin the END THAT WAS JUST DROPPED to the
+      // exact cursor pixel (unlimited positioning, distinct per drop). `type` is
+      // 'source'|'target' — the terminal X6 just connected. New edges always
+      // drop the target. Mutation runs ONCE here per connect, never in
+      // node:moved / change:* handlers, so the recursive-relayout freeze stays
+      // gone.
+      const dropped: "source" | "target" = type === "source" ? "source" : "target";
+      this.pinDropAnchor(edge, dropped);
     });
     // Robust fallback: some X6 builds don't emit edge:connected for a blank drop.
     // After any mouseup, scan for a freshly dangling edge (source cell, target point)
@@ -1876,11 +1884,17 @@ export class OmniboardCanvas {
     };
     field(s2, "Màu nền", swatchRow("fill"));
     field(s2, "Màu viền", swatchRow("stroke"));
-    const fontSel = el("select", "lk-pinput") as HTMLSelectElement;
-    FONT_SIZES.forEach((sz) => { const o = el("option", undefined, String(sz)); o.value = String(sz); fontSel.appendChild(o); });
-    fontSel.value = String(st.fontSize || 13);
-    fontSel.onchange = () => this.setStyle(node, { fontSize: Number(fontSel.value) });
-    field(s2, "Cỡ chữ", fontSel);
+    const fontIn = el("input", "lk-pinput") as HTMLInputElement;
+    fontIn.type = "number"; fontIn.min = "6"; fontIn.max = "96"; fontIn.step = "1";
+    fontIn.value = String(st.fontSize || 13);
+    const applyFont = () => {
+      const v = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || 13));
+      fontIn.value = String(v);
+      this.setStyle(node, { fontSize: v });
+    };
+    fontIn.oninput = () => { const n = Number(fontIn.value); if (Number.isFinite(n) && n >= 6 && n <= 96) this.setStyle(node, { fontSize: Math.round(n) }); };
+    fontIn.onblur = applyFont;
+    field(s2, "Cỡ chữ", fontIn);
 
     // Position
     const s3 = sec("Vị trí & kích thước");
@@ -2152,13 +2166,26 @@ export class OmniboardCanvas {
   private openTextPopup(node: Node, anchor: HTMLElement) {
     const st = this.nodeStyle(node);
     const wrap = el("div", "lk-line-popup");
-    // Font size row
-    const szRow = el("div", "lk-line-row");
-    FONT_SIZES.forEach((sz) => {
-      const b = el("div", "lk-line-cell" + ((st.fontSize ?? 13) === sz ? " on" : ""), String(sz));
-      b.onclick = () => { this.setStyle(node, { fontSize: sz }); this.refreshContextBar(); this.openTextPopup(node, anchor); };
-      szRow.appendChild(b);
-    });
+    // Free-form font size — number input with ± nudge buttons. Bounded
+    // [6, 96] to keep the UI sane while still allowing fine-grained control.
+    const szRow = el("div", "lk-line-row lk-fs-row");
+    const dec = el("div", "lk-line-cell lk-fs-btn", "−");
+    const szIn = el("input", "lk-fs-input") as HTMLInputElement;
+    szIn.type = "number"; szIn.min = "6"; szIn.max = "96"; szIn.step = "1";
+    szIn.value = String(st.fontSize ?? 13);
+    const inc = el("div", "lk-line-cell lk-fs-btn", "+");
+    const apply = (v: number) => {
+      const clamped = Math.max(6, Math.min(96, Math.round(v) || 13));
+      szIn.value = String(clamped);
+      this.setStyle(node, { fontSize: clamped });
+      this.refreshContextBar();
+    };
+    szIn.oninput = () => { const n = Number(szIn.value); if (Number.isFinite(n) && n >= 6 && n <= 96) apply(n); };
+    szIn.onblur = () => apply(Number(szIn.value));
+    szIn.onkeydown = (e) => { if (e.key === "Enter") { apply(Number(szIn.value)); e.preventDefault(); } };
+    dec.onclick = () => apply((Number(szIn.value) || 13) - 1);
+    inc.onclick = () => apply((Number(szIn.value) || 13) + 1);
+    szRow.appendChild(dec); szRow.appendChild(szIn); szRow.appendChild(inc);
     wrap.appendChild(szRow);
     // B / I / U / S toggles
     const tgRow = el("div", "lk-line-row");
@@ -2172,11 +2199,18 @@ export class OmniboardCanvas {
     toggle("U", "underline", "text-decoration:underline");
     toggle("S", "strike", "text-decoration:line-through");
     wrap.appendChild(tgRow);
-    // Alignment
+    // Alignment — lucide `align-left/center/right`. Three glyphs with
+    // visibly different line widths so the user can tell them apart at a
+    // glance (the previous `≡ × 3 + text-align` trick rendered identical
+    // icons in a fixed-width cell).
     const alRow = el("div", "lk-line-row");
-    ([["left", "≡", "Trái"], ["center", "≡", "Giữa"], ["right", "≡", "Phải"]] as Array<["left" | "center" | "right", string, string]>).forEach(([al, , title]) => {
-      const b = el("div", "lk-line-cell" + ((st.align ?? "center") === al ? " on" : ""),
-        `<span style="display:block;width:18px;text-align:${al};font-size:13px">≡</span>`);
+    const ALIGN_SVG = {
+      left:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>`,
+      center: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
+      right:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>`,
+    };
+    ([["left", "Trái"], ["center", "Giữa"], ["right", "Phải"]] as Array<["left" | "center" | "right", string]>).forEach(([al, title]) => {
+      const b = el("div", "lk-line-cell" + ((st.align ?? "center") === al ? " on" : ""), ALIGN_SVG[al]);
       b.title = title;
       b.onclick = () => { this.setStyle(node, { align: al }); this.refreshContextBar(); this.openTextPopup(node, anchor); };
       alRow.appendChild(b);
@@ -3014,14 +3048,23 @@ export class OmniboardCanvas {
     const dx = viewCx - w / 2 - minX;
     const dy = viewCy - h / 2 - minY;
 
-    // Monotonic counter ensures unique ids even in the same millisecond.
+    const current = this.getModel();
+
+    // Only rename when an id actually collides with something already on the
+    // board. Preserving original ids is critical for round-trip with
+    // structured formats (BPMN lanes reference flow nodes by id; renaming
+    // every node breaks those refs even when there's no real collision).
     const stamp = Date.now().toString(36);
     let seq = 0;
+    const existingIds = new Set<string>([
+      ...current.nodes.map((n) => n.id),
+      ...current.edges.map((e) => e.id),
+    ]);
     const idMap = new Map<string, string>();
     const idFor = (oldId: string) => {
       let mapped = idMap.get(oldId);
       if (!mapped) {
-        mapped = `${oldId}_imp_${stamp}_${(++seq).toString(36)}`;
+        mapped = existingIds.has(oldId) ? `${oldId}_imp_${stamp}_${(++seq).toString(36)}` : oldId;
         idMap.set(oldId, mapped);
       }
       return mapped;
@@ -3029,8 +3072,8 @@ export class OmniboardCanvas {
 
     // Remap nested source-meta sourceId so exporters that consult __source can
     // still tell which originals these belonged to and patch them correctly on
-    // round-trip. Without this, every imported node looks "new" to the exporter
-    // and we'd append duplicates.
+    // round-trip. When no collision, idFor returns the original id so sourceId
+    // stays pointing at the original source-file element (immutable identity).
     const remapAttrs = (attrs: Record<string, unknown> | undefined): Record<string, unknown> | undefined => {
       if (!attrs) return attrs;
       const src = attrs.__source as { sourceId?: string } | undefined;
@@ -3040,8 +3083,6 @@ export class OmniboardCanvas {
         __source: { ...src, sourceId: idFor(src.sourceId) },
       };
     };
-
-    const current = this.getModel();
     const merged: CanvasModel = {
       nodes: [
         ...current.nodes,

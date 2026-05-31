@@ -72604,13 +72604,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         }
       },
       highlighting: {
-        // Only highlight on ADSORB (cursor actually snapped to a magnet) — not
-        // on AVAILABLE. With body-magnet on every node + 12 port magnets, the
-        // available-stroke ringed all 13 magnets at once during a drag and
-        // stacked into a kaleidoscope of overlapping circles. Adsorb-only keeps
-        // the snap-confirmation visible (one stroke at the snapped magnet)
-        // without the visual chaos.
-        magnetAdsorbed: { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } }
+        // No magnet highlights at all. magnetAvailable stacked into a kaleidoscope
+        // when every node had 13 magnets (body + 12 ports); magnetAdsorbed drew
+        // a fat stroke around whichever magnet the cursor snapped to — a big
+        // blue ring orbiting the cursor that the user (rightly) complained about.
+        // The arrow line itself is the only visual feedback during drag; X6 also
+        // switches the cursor to crosshair over valid drop targets, which is the
+        // bpmn.io convention.
       }
     });
     graph.use(new Selection({ rubberband: true, showNodeSelectionBox: true, pointerEvents: "none" }));

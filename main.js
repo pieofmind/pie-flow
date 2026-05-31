@@ -72604,8 +72604,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         }
       },
       highlighting: {
-        // Hovering a valid magnet during endpoint drag → blue outline (Omniboard UX).
-        magnetAvailable: { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } },
+        // Only highlight on ADSORB (cursor actually snapped to a magnet) — not
+        // on AVAILABLE. With body-magnet on every node + 12 port magnets, the
+        // available-stroke ringed all 13 magnets at once during a drag and
+        // stacked into a kaleidoscope of overlapping circles. Adsorb-only keeps
+        // the snap-confirmation visible (one stroke at the snapped magnet)
+        // without the visual chaos.
         magnetAdsorbed: { name: "stroke", args: { padding: 4, attrs: { "stroke-width": 3, stroke: ACCENT } } }
       }
     });

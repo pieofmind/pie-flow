@@ -339,6 +339,17 @@ export class OmniboardCanvas {
         // → "Chèn hình" picker (Omniboard-style).
         validateConnection: ({ sourceCell, targetCell }) =>
           !targetCell || (targetCell.isNode() && sourceCell !== targetCell),
+        // Only port circles may START a connection drag. The node body has
+        // `magnet: true` (so it can be a drop TARGET — bpmn.io drop-anywhere),
+        // but body mousedown must NOT start a drag — that would hijack clicks
+        // and break node selection (the regression we hit in add07d8).
+        // `validateMagnet` returning false here makes X6 abort the connection
+        // attempt at mousedown so the click bubbles up to the normal selection
+        // pipeline.
+        validateMagnet: ({ magnet }) => {
+          // Port circles carry class `x6-port-body`; the body hit rect doesn't.
+          return !!magnet && (magnet as Element).classList?.contains("x6-port-body");
+        },
       },
       highlighting: {
         // Hovering a valid magnet during endpoint drag → blue outline (Omniboard UX).

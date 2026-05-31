@@ -26,11 +26,16 @@ export function registerHtmlNode(): void {
       // across the full bbox (SVG default `visiblePainted` ignores transparent
       // areas — corner drops would fall through the hit rect onto the SVG
       // background and the connecting tool would see no magnet under the cursor).
-      // Transparent hit rect — no magnet (broke selection in commit add07d8).
-      // Body-drop connections are handled by handleDragToBlank instead: when a
-      // drop produces a "blank" target with raw {x,y}, we check the point
-      // against every node bbox and convert it to a pinned anchor connection.
-      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", pointerEvents: "all" },
+      // Body magnet enables bpmn.io-style drop-anywhere: any mousedown on the
+      // body during an arrow-drag (started elsewhere) becomes a valid drop
+      // target → pinDropAnchor pins the endpoint to the cursor pixel.
+      // Selection isn't broken (the add07d8 regression) because `validateMagnet`
+      // in the connecting config rejects the body as a drag SOURCE — clicks on
+      // the body fall through to normal selection.
+      // `pointerEvents: 'all'` keeps the transparent fill catching mouse events
+      // across the full bbox (SVG default `visiblePainted` ignores transparent
+      // areas — corner drops would otherwise fall through onto the SVG canvas).
+      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", magnet: true, pointerEvents: "all" },
       fo: { refWidth: "100%", refHeight: "100%" },
       content: { html: "", class: "hn" },
     },

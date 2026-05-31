@@ -77990,13 +77990,46 @@ function importBpmn(raw2) {
     });
     if (!di) warnings.push(`BPMN flow node "${fn2.id}" thi\u1EBFu BPMNShape DI \u2014 \u0111\u1EB7t v\u1ECB tr\xED m\u1EB7c \u0111\u1ECBnh.`);
   }
+  const nodeBox2 = /* @__PURE__ */ new Map();
+  for (const n3 of model.nodes) nodeBox2.set(n3.id, { x: n3.x, y: n3.y, w: n3.width, h: n3.height });
+  const nearestPort = (pt2, b3) => {
+    const dT = Math.abs(pt2.y - b3.y);
+    const dB = Math.abs(pt2.y - (b3.y + b3.h));
+    const dL = Math.abs(pt2.x - b3.x);
+    const dR = Math.abs(pt2.x - (b3.x + b3.w));
+    const m6 = Math.min(dT, dB, dL, dR);
+    let side;
+    let pos;
+    if (m6 === dT) {
+      side = "top";
+      pos = b3.w > 0 ? (pt2.x - b3.x) / b3.w : 0.5;
+    } else if (m6 === dB) {
+      side = "bottom";
+      pos = b3.w > 0 ? (pt2.x - b3.x) / b3.w : 0.5;
+    } else if (m6 === dL) {
+      side = "left";
+      pos = b3.h > 0 ? (pt2.y - b3.y) / b3.h : 0.5;
+    } else {
+      side = "right";
+      pos = b3.h > 0 ? (pt2.y - b3.y) / b3.h : 0.5;
+    }
+    if (pos < 0.375) return `${side}-1`;
+    if (pos > 0.625) return `${side}-2`;
+    return side;
+  };
   for (const e4 of edges) {
     const wps = diEdges.get(e4.id);
     const vertices = wps && wps.length > 2 ? wps.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y })) : void 0;
+    const srcBox = nodeBox2.get(e4.source);
+    const tgtBox = nodeBox2.get(e4.target);
+    const sourcePort = wps && wps.length >= 2 && srcBox ? nearestPort(wps[0], srcBox) : void 0;
+    const targetPort = wps && wps.length >= 2 && tgtBox ? nearestPort(wps[wps.length - 1], tgtBox) : void 0;
     model.edges.push({
       id: e4.id,
       source: e4.source,
+      sourcePort,
       target: e4.target,
+      targetPort,
       label: e4.name.replace(/&#10;/g, "\n") || void 0,
       vertices,
       router: "normal"

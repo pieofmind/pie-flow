@@ -605,7 +605,6 @@ export class LarkCanvas {
       edge.setTarget({ cell: created.id });
       edge.setData({ ...(edge.getData() as object) });
       this.applyMindmapRoutingIfNeeded(edge); this.applySeqRoutingIfNeeded(edge);
-      this.normalizeGenericEdge(edge);   // dynamic centre anchors → clean routing
       this.hidePopup();
       this.graph.resetSelection([created]);
       this.editLabel(created);
@@ -947,16 +946,14 @@ export class LarkCanvas {
     });
     this.graph.on("edge:unselected", ({ edge }) => { this.applyEdgeStyle(edge, false); edge.removeTools(); this.hideEdgeBar(); });
     // Endpoint drag (source-arrowhead / target-arrowhead) → wipe stale vertices
-    // and re-pick ports facing the new direction. Without this the manhattan
-    // router keeps the old port (often "bottom") and detours far below both
-    // nodes, producing the Lark-bug-style U shape.
+    // so the route re-computes cleanly to whichever side the user dropped on.
+    // Endpoint spec (port vs body-floating) is left as the user dropped it.
     const onEndpointMoved = ({ edge }: { edge: Edge }) => {
       if (this.isSeqLifeline(edge.getSourceCellId() ?? undefined) ||
           this.isSeqLifeline(edge.getTargetCellId() ?? undefined)) return;
       if (this.isMindmapNode(edge.getSourceCellId() ?? undefined) ||
           this.isMindmapNode(edge.getTargetCellId() ?? undefined)) return;
       if (edge.getVertices().length) edge.setVertices([]);
-      this.normalizeGenericEdge(edge);
       if (this.graph.getSelectedCells().some((c) => c.id === edge.id)) this.showEdgeBar(edge);
     };
     this.graph.on("edge:change:source", onEndpointMoved);
@@ -969,11 +966,10 @@ export class LarkCanvas {
 
     this.graph.on("node:selected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
     this.graph.on("node:unselected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
-    this.graph.on("node:moved", ({ node }) => {
-      // Lark-style: re-pick the port facing the target so the edge keeps exiting the
-      // right side as the node moves. normalizeGenericEdge skips reshaped (has-vertices)
-      // and seq/mm edges, so manual reshapes and special routings are preserved.
-      for (const e of this.graph.getConnectedEdges(node)) this.normalizeGenericEdge(e);
+    this.graph.on("node:moved", () => {
+      // Pinned-port endpoints follow the port (X6 native); body-drop endpoints
+      // re-dock automatically via the edge's anchor=center + boundary crop. No
+      // per-edge fixup needed.
       this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad();
     });
     this.graph.on("node:resized", () => { this.refreshContextBar(); this.refreshContextPad(); });
@@ -1020,7 +1016,6 @@ export class LarkCanvas {
       if (isNew && !edge.getTargetCellId()) { this.handleDragToBlank(edge); return; }
       this.applySeqRoutingIfNeeded(edge);
       this.applyMindmapRoutingIfNeeded(edge);
-      this.normalizeGenericEdge(edge);   // Lark-style dynamic anchoring (drop the fixed port)
     });
     // Robust fallback: some X6 builds don't emit edge:connected for a blank drop.
     // After any mouseup, scan for a freshly dangling edge (source cell, target point)
@@ -2691,40 +2686,6 @@ export class LarkCanvas {
     return !!k && SEQ_LIFELINE_KINDS.has(k);
   }
 
-  /**
-   * Re-anchor a GENERIC edge (not sequence, not mindmap) to dynamic centre anchors
-   * so the manhattan router exits/enters from the side facing the other node —
-   * Lark-style clean routing, independent of which port it was drawn from. No-op for
-   * sequence (`seq-msg` connector) and mindmap (`mm-edge`) edges, which keep their
-   * own routing.
-   */
-  private normalizeGenericEdge(edge: Edge): void {
-    const sId = edge.getSourceCellId() ?? undefined;
-    const tId = edge.getTargetCellId() ?? undefined;
-    if (!sId || !tId) return;
-    if (this.isSeqLifeline(sId) && this.isSeqLifeline(tId)) return;
-    if (this.isMindmapNode(sId) && this.isMindmapNode(tId)) return;
-    if (edge.getVertices().length) return;   // user reshaped (has vertices) → respect it, leave ports alone
-    const s = this.graph.getCellById(sId), t = this.graph.getCellById(tId);
-    if (!s?.isNode?.() || !t?.isNode?.()) return;
-    const { sp, tp } = this.bestPorts(s as Node, t as Node);
-    edge.setSource({ cell: sId, port: sp });
-    edge.setTarget({ cell: tId, port: tp });
-  }
-
-  /**
-   * Pick the fixed port on each node that faces the other node, by the dominant
-   * axis between their centres → the manhattan router exits/enters from that side
-   * (clean Lark-style routing) while keeping fixed ports so X6's reshape tools work.
-   */
-  private bestPorts(a: Node, b: Node): { sp: string; tp: string } {
-    const ba = a.getBBox(), bb = b.getBBox();
-    const dx = (bb.x + bb.width / 2) - (ba.x + ba.width / 2);
-    const dy = (bb.y + bb.height / 2) - (ba.y + ba.height / 2);
-    if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? { sp: "right", tp: "left" } : { sp: "left", tp: "right" };
-    return dy >= 0 ? { sp: "bottom", tp: "top" } : { sp: "top", tp: "bottom" };
-  }
-
   private applySeqRoutingIfNeeded(edge: Edge): void {
     const srcId = edge.getSourceCellId() ?? undefined;
     const tgtId = edge.getTargetCellId() ?? undefined;
@@ -2850,7 +2811,8 @@ export class LarkCanvas {
       });
       if (e.style) this.applyEdgeStyle(created); // custom relationship style overrides defaults
       if (mm) this.applyMindmapRoutingIfNeeded(created); // re-anchor right/left ports (old boards had none)
-      else this.normalizeGenericEdge(created); // auto-pick ports facing the target (old boards upgrade; reshaped edges kept)
+      // Generic edges: saved ports (sourcePort/targetPort) are honoured as-is.
+      // Body-drop endpoints (no port) float via the edge's anchor=center + boundary crop.
     }
     this.graph.stopBatch("load");
     this.resyncHtmlNodes();   // rebuild the mobile overlay from the freshly loaded nodes

@@ -72661,7 +72661,6 @@ var _LarkCanvas = class _LarkCanvas {
       edge.setData({ ...edge.getData() });
       this.applyMindmapRoutingIfNeeded(edge);
       this.applySeqRoutingIfNeeded(edge);
-      this.normalizeGenericEdge(edge);
       this.hidePopup();
       this.graph.resetSelection([created]);
       this.editLabel(created);
@@ -73069,7 +73068,6 @@ var _LarkCanvas = class _LarkCanvas {
       if (this.isSeqLifeline((_a3 = edge.getSourceCellId()) != null ? _a3 : void 0) || this.isSeqLifeline((_b2 = edge.getTargetCellId()) != null ? _b2 : void 0)) return;
       if (this.isMindmapNode((_c = edge.getSourceCellId()) != null ? _c : void 0) || this.isMindmapNode((_d = edge.getTargetCellId()) != null ? _d : void 0)) return;
       if (edge.getVertices().length) edge.setVertices([]);
-      this.normalizeGenericEdge(edge);
       if (this.graph.getSelectedCells().some((c6) => c6.id === edge.id)) this.showEdgeBar(edge);
     };
     this.graph.on("edge:change:source", onEndpointMoved);
@@ -73093,8 +73091,7 @@ var _LarkCanvas = class _LarkCanvas {
       this.refreshMindmapFabs();
       this.refreshContextPad();
     });
-    this.graph.on("node:moved", ({ node: node2 }) => {
-      for (const e4 of this.graph.getConnectedEdges(node2)) this.normalizeGenericEdge(e4);
+    this.graph.on("node:moved", () => {
       this.refreshContextBar();
       this.refreshProps();
       this.refreshMindmapFabs();
@@ -73151,7 +73148,6 @@ var _LarkCanvas = class _LarkCanvas {
       }
       this.applySeqRoutingIfNeeded(edge);
       this.applyMindmapRoutingIfNeeded(edge);
-      this.normalizeGenericEdge(edge);
     });
     this.graphMount.addEventListener("mouseup", () => {
       window.setTimeout(() => {
@@ -75011,39 +75007,6 @@ var _LarkCanvas = class _LarkCanvas {
     const k5 = (_a3 = c6.getData()) == null ? void 0 : _a3.kind;
     return !!k5 && SEQ_LIFELINE_KINDS.has(k5);
   }
-  /**
-   * Re-anchor a GENERIC edge (not sequence, not mindmap) to dynamic centre anchors
-   * so the manhattan router exits/enters from the side facing the other node —
-   * Lark-style clean routing, independent of which port it was drawn from. No-op for
-   * sequence (`seq-msg` connector) and mindmap (`mm-edge`) edges, which keep their
-   * own routing.
-   */
-  normalizeGenericEdge(edge) {
-    var _a3, _b2, _c, _d;
-    const sId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
-    const tId = (_b2 = edge.getTargetCellId()) != null ? _b2 : void 0;
-    if (!sId || !tId) return;
-    if (this.isSeqLifeline(sId) && this.isSeqLifeline(tId)) return;
-    if (this.isMindmapNode(sId) && this.isMindmapNode(tId)) return;
-    if (edge.getVertices().length) return;
-    const s5 = this.graph.getCellById(sId), t5 = this.graph.getCellById(tId);
-    if (!((_c = s5 == null ? void 0 : s5.isNode) == null ? void 0 : _c.call(s5)) || !((_d = t5 == null ? void 0 : t5.isNode) == null ? void 0 : _d.call(t5))) return;
-    const { sp, tp } = this.bestPorts(s5, t5);
-    edge.setSource({ cell: sId, port: sp });
-    edge.setTarget({ cell: tId, port: tp });
-  }
-  /**
-   * Pick the fixed port on each node that faces the other node, by the dominant
-   * axis between their centres → the manhattan router exits/enters from that side
-   * (clean Lark-style routing) while keeping fixed ports so X6's reshape tools work.
-   */
-  bestPorts(a5, b3) {
-    const ba = a5.getBBox(), bb = b3.getBBox();
-    const dx = bb.x + bb.width / 2 - (ba.x + ba.width / 2);
-    const dy = bb.y + bb.height / 2 - (ba.y + ba.height / 2);
-    if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? { sp: "right", tp: "left" } : { sp: "left", tp: "right" };
-    return dy >= 0 ? { sp: "bottom", tp: "top" } : { sp: "top", tp: "bottom" };
-  }
   applySeqRoutingIfNeeded(edge) {
     var _a3, _b2, _c, _d, _e3, _f;
     const srcId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
@@ -75158,7 +75121,6 @@ var _LarkCanvas = class _LarkCanvas {
       });
       if (e4.style) this.applyEdgeStyle(created);
       if (mm) this.applyMindmapRoutingIfNeeded(created);
-      else this.normalizeGenericEdge(created);
     }
     this.graph.stopBatch("load");
     this.resyncHtmlNodes();

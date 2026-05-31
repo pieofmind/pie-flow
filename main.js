@@ -73373,9 +73373,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const trackPointer = (cx, cy) => {
       this.lastPointerLocal = this.graph.clientToLocal(cx, cy);
     };
-    this.graphMount.addEventListener("mousemove", (e4) => trackPointer(e4.clientX, e4.clientY), true);
-    this.graphMount.addEventListener("mouseup", (e4) => trackPointer(e4.clientX, e4.clientY), true);
-    this.graphMount.addEventListener("touchmove", (e4) => {
+    document.addEventListener("mousemove", (e4) => trackPointer(e4.clientX, e4.clientY), true);
+    document.addEventListener("mouseup", (e4) => trackPointer(e4.clientX, e4.clientY), true);
+    document.addEventListener("touchmove", (e4) => {
       const t5 = e4.touches[0];
       if (t5) trackPointer(t5.clientX, t5.clientY);
     }, true);

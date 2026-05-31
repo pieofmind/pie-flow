@@ -1065,10 +1065,15 @@ export class OmniboardCanvas {
     // the cursor was over — not at the snapped port / center that X6 reports.
     // This is what makes manual draw match the imported-file behaviour: two
     // arrows dropped at different spots on the same node get distinct anchors.
+    // Listen on DOCUMENT (capture), not graphMount: during an X6 connect-drag
+    // the pointer can be captured by another element, so graphMount-scoped
+    // mousemove may stop firing mid-drag and lastPointerLocal would go stale →
+    // the drop falls back to whatever port X6 snapped to (the "only 3 fixed
+    // points" bug). Document capture always sees the move.
     const trackPointer = (cx: number, cy: number) => { this.lastPointerLocal = this.graph.clientToLocal(cx, cy); };
-    this.graphMount.addEventListener("mousemove", (e) => trackPointer(e.clientX, e.clientY), true);
-    this.graphMount.addEventListener("mouseup", (e) => trackPointer(e.clientX, e.clientY), true);
-    this.graphMount.addEventListener("touchmove", (e) => { const t = e.touches[0]; if (t) trackPointer(t.clientX, t.clientY); }, true);
+    document.addEventListener("mousemove", (e) => trackPointer(e.clientX, e.clientY), true);
+    document.addEventListener("mouseup", (e) => trackPointer(e.clientX, e.clientY), true);
+    document.addEventListener("touchmove", (e) => { const t = e.touches[0]; if (t) trackPointer(t.clientX, t.clientY); }, true);
 
     // Edges behave like nodes: click to select (highlighted), Delete to remove.
     // Double-click edits the label. No floating delete button.

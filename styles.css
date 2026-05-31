@@ -229,7 +229,19 @@
   position: absolute; z-index: 60; padding: 10px;
   background: var(--pg-surface); border: 1px solid var(--pg-border);
   border-radius: 14px; box-shadow: var(--sh-lg);
+  /* max-height set inline by positionFlyout() based on the actual board-view
+   * height (not 100vh) so the flyout always fits inside the leaf. */
+  overflow-y: auto;
 }
+.lk-flyout-more {
+  grid-column: 1 / -1;             /* span all 3 columns inside the grid */
+  margin: 4px 0 8px;
+  padding: 6px 10px;
+  background: var(--pg-surface-soft, #f5efe0); color: var(--pg-text);
+  border: 1px dashed var(--pg-border); border-radius: 7px;
+  font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.lk-flyout-more:hover { background: var(--pg-surface-hover, #ede4cc); }
 .lk-flyout-title { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--pg-text-soft); padding: 2px 4px 8px; }
 .lk-flyout-grid { display: grid; grid-template-columns: repeat(3, 66px); gap: 6px; }
 .lk-flyout-cell {
@@ -721,6 +733,25 @@
 .lk-root .bp-frame.bp-sub { position: relative; width: 100%; height: 100%; box-sizing: border-box; border: 1.6px solid var(--pg-border-strong); border-radius: 9px; background: color-mix(in srgb, var(--pg-accent) 4%, var(--pg-surface)); box-shadow: var(--sh-sm); }
 .lk-root .bp-frame-lbl { position: absolute; top: 8px; left: 0; right: 0; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--pg-text); }
 .lk-root .bp-plus { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 15px; height: 15px; border: 1.4px solid var(--pg-text-muted); border-radius: 2px; display: grid; place-items: center; font-size: 12px; line-height: 1; color: var(--pg-text-muted); }
+/* Đợt B — sibling Activity types (Transaction / Event sub-process / Call activity) */
+.lk-root .bp-frame.is-transaction { box-shadow: inset 0 0 0 2.5px var(--pg-surface), inset 0 0 0 4px var(--pg-border-strong), var(--sh-sm); }
+.lk-root .bp-frame.is-event-sub { border-style: dashed; }
+.lk-root .bp-task.is-call { border-width: 3px; }
+/* Đợt A — Event interrupting flag (boundary / event-subprocess start) */
+.lk-root .bp-event.is-non-interrupting { border-style: dashed !important; }
+/* Đợt A — Activity markers row (icons stacked at the bottom of a task/sub-process) */
+.lk-root .bp-markers { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: none; }
+.lk-root .bp-markers .bp-mk-ic svg { width: 12px; height: 12px; color: var(--pg-text-muted); display: block; }
+/* Đợt B — Data artifact variants (Collection / Input / Output overlay marks) */
+.lk-root .bp-dataobj.is-collection .bp-coll-bars { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 14px; height: 8px; background:
+  linear-gradient(to right, currentColor 0 2px, transparent 2px 6px, currentColor 6px 8px, transparent 8px 12px, currentColor 12px 14px); color: var(--pg-text-muted); }
+.lk-root .bp-dataobj.is-input .bp-data-arr, .lk-root .bp-dataobj.is-output .bp-data-arr { position: absolute; top: 4px; left: 6px; width: 11px; height: 8px;
+  background: currentColor; color: var(--pg-text-muted); clip-path: polygon(0% 30%, 60% 30%, 60% 0%, 100% 50%, 60% 100%, 60% 70%, 0% 70%); }
+.lk-root .bp-dataobj.is-input .bp-data-arr { background: transparent; border: 1.2px solid var(--pg-text-muted); clip-path: none; }
+.lk-root .bp-dataobj { position: relative; }
+/* Đợt B — Group (dashed-rounded container, no fill) */
+.lk-root .bp-group { width: 100%; height: 100%; box-sizing: border-box; border: 1.6px dashed var(--pg-border-strong); border-radius: 12px; background: transparent; position: relative; }
+.lk-root .bp-group-lbl { position: absolute; top: 6px; left: 10px; font-size: 12px; font-weight: 600; color: var(--pg-text-muted); background: var(--pg-surface); padding: 0 6px; }
 .lk-root .bp-lane { width: 100%; height: 100%; box-sizing: border-box; border: 1.4px solid var(--pg-border-strong); background: transparent; display: flex; align-items: center; }
 .lk-root .bp-lane span { writing-mode: vertical-rl; transform: rotate(180deg); padding: 0 7px; font-size: 11px; font-weight: 700; color: var(--pg-text-muted); }
 /* BPMN Pool composite: header band + N lane bands stacked vertically */

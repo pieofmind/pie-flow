@@ -1,7 +1,7 @@
 import { BpmnModdle } from "bpmn-moddle";
 import type { CanvasModel } from "../../canvas/types";
 import type { SourceMeta } from "../types";
-import { SHAPE_TO_BPMN } from "./shapes";
+import { SHAPE_TO_BPMN, TRIGGER_TO_EVENT_DEF } from "./shapes";
 
 /**
  * BPMN 2.0 exporter — uses `bpmn-moddle` so all namespace handling, attribute
@@ -47,10 +47,67 @@ function moddle(): BpmnModdle {
   return moddleSingleton;
 }
 
-function shapeToBpmnType(shape: string): string {
+function shapeToBpmnType(shape: string, attrs?: { attachedTo?: string }): string {
+  // Đợt F — if an intermediate event has attachedTo, export it as BoundaryEvent
+  // (not IntermediateThrowEvent) per OMG.
+  if (shape === "bpmn-event-intermediate" && attrs?.attachedTo) return "bpmn:BoundaryEvent";
   const tag = SHAPE_TO_BPMN[shape] ?? "task";
-  // SHAPE_TO_BPMN returns local names like "startEvent" → moddle wants "bpmn:StartEvent".
   return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
+}
+
+/** BPMN node attrs Đợt F — read by `applyBpmnExtras` to inject moddle children. */
+interface BpmnNodeAttrs {
+  trigger?: string;
+  throwing?: boolean;
+  interrupting?: boolean;
+  attachedTo?: string;
+  markers?: string[];
+}
+
+/** Inject eventDefinitions + loopCharacteristics + isInterrupting + isForCompensation
+ *  + triggeredByEvent + isCollection onto a freshly-created or patched moddle element.
+ *  Đợt F. */
+function applyBpmnExtras(m: BpmnModdle, fe: ModdleElement, shape: string, attrs: BpmnNodeAttrs): void {
+  // Event trigger → <bpmn:xxxEventDefinition/> (idempotent; replaces existing if present)
+  if (attrs.trigger && TRIGGER_TO_EVENT_DEF[attrs.trigger]) {
+    const defName = TRIGGER_TO_EVENT_DEF[attrs.trigger];
+    const defType = "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1);
+    const def = m.create(defType, {}) as ModdleElement;
+    (fe as ModdleElement & { eventDefinitions?: ModdleElement[] }).eventDefinitions = [def];
+  }
+  // Loop / multi-instance
+  const markers = attrs.markers ?? [];
+  if (markers.includes("mi-par") || markers.includes("mi-seq")) {
+    const loop = m.create("bpmn:MultiInstanceLoopCharacteristics", { isSequential: markers.includes("mi-seq") }) as ModdleElement;
+    (fe as ModdleElement & { loopCharacteristics?: ModdleElement }).loopCharacteristics = loop;
+  } else if (markers.includes("loop")) {
+    const loop = m.create("bpmn:StandardLoopCharacteristics", {}) as ModdleElement;
+    (fe as ModdleElement & { loopCharacteristics?: ModdleElement }).loopCharacteristics = loop;
+  }
+  if (markers.includes("compensation")) {
+    (fe as ModdleElement & { isForCompensation?: boolean }).isForCompensation = true;
+  }
+  // Interrupting (event-subprocess start + boundary)
+  if (attrs.interrupting === false) {
+    if (shape === "bpmn-event-start") {
+      (fe as ModdleElement & { isInterrupting?: boolean }).isInterrupting = false;
+    } else {
+      // boundary uses cancelActivity (true=interrupting per spec; false=non-interrupting)
+      (fe as ModdleElement & { cancelActivity?: boolean }).cancelActivity = false;
+    }
+  }
+  // Boundary attachment
+  if (attrs.attachedTo) {
+    (fe as ModdleElement & { attachedToRef?: { id: string } }).attachedToRef = { id: attrs.attachedTo };
+  }
+  // Event sub-process: subProcess + triggeredByEvent=true
+  if (shape === "bpmn-event-subprocess") {
+    (fe as ModdleElement & { triggeredByEvent?: boolean }).triggeredByEvent = true;
+  }
+  // Collection flag for data object collection
+  if (shape === "bpmn-data-collection") {
+    (fe as ModdleElement & { isCollection?: boolean }).isCollection = true;
+  }
 }
 
 /** Locate an existing <participant> by id inside any collaboration. */
@@ -145,7 +202,8 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle): Pr
       di.label = undefined;
     } else {
       // New node — add bpmn:* element + BPMNShape DI
-      const fe = m.create(shapeToBpmnType(n.shape), { id: n.id, name: n.label ?? "" }) as ModdleElement;
+      const fe = m.create(shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs), { id: n.id, name: n.label ?? "" }) as ModdleElement;
+      applyBpmnExtras(m, fe, n.shape, (n.attrs ?? {}) as BpmnNodeAttrs);
       (process.flowElements ??= []).push(fe);
       di = m.create("bpmndi:BPMNShape", {
         bpmnElement: fe,
@@ -154,9 +212,13 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle): Pr
       (mainPlane.planeElement ??= []).push(di);
       diShape.set(n.id, di);
     }
-    // Patch name if changed.
+    // Patch name + BPMN extras (Đợt F) on existing nodes too — survives
+    // re-export when user adds a trigger/marker after import.
     const existing = flowById.get(n.id);
-    if (existing && typeof n.label === "string") existing.name = n.label;
+    if (existing) {
+      if (typeof n.label === "string") existing.name = n.label;
+      applyBpmnExtras(m, existing, n.shape, (n.attrs ?? {}) as BpmnNodeAttrs);
+    }
   }
   // Drop deleted flow nodes from process + DI — but preserve any element a
   // surviving SequenceFlow still references via sourceRef/targetRef (e.g.
@@ -401,7 +463,8 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
   const feById = new Map<string, ModdleElement>();
   process.flowElements = [];
   for (const n of model.nodes) {
-    const fe = m.create(shapeToBpmnType(n.shape), { id: n.id, name: n.label ?? "" }) as ModdleElement;
+    const fe = m.create(shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs), { id: n.id, name: n.label ?? "" }) as ModdleElement;
+    applyBpmnExtras(m, fe, n.shape, (n.attrs ?? {}) as BpmnNodeAttrs);
     process.flowElements.push(fe);
     feById.set(n.id, fe);
   }

@@ -93,34 +93,71 @@ export const SHAPE_CATEGORIES: ShapeCategory[] = [
   {
     title: "BPMN",
     items: [
-      { shape: "bpmn-start", label: "Start", w: 40, h: 40 },
-      { shape: "bpmn-start-message", label: "Start message", w: 40, h: 40 },
-      { shape: "bpmn-start-timer", label: "Start timer", w: 40, h: 40 },
-      { shape: "bpmn-intermediate", label: "Intermediate", w: 40, h: 40 },
-      { shape: "bpmn-intermediate-message", label: "Inter. message", w: 40, h: 40 },
-      { shape: "bpmn-intermediate-timer", label: "Inter. timer", w: 40, h: 40 },
-      { shape: "bpmn-end", label: "End", w: 40, h: 40 },
-      { shape: "bpmn-end-message", label: "End message", w: 40, h: 40 },
-      { shape: "bpmn-end-terminate", label: "Terminate", w: 40, h: 40 },
+      // Events — unified Đợt A. Palette lists the 3 base kinds + the common
+      // OMG triggers per position. Each trigger entry seeds extra.trigger so the
+      // dropped node renders the correct icon immediately.
+      // ── 18 common shapes shown by default ──
+      // Events (9)
+      { shape: "bpmn-event-start", label: "Start", w: 40, h: 40 },
+      { shape: "bpmn-event-start", label: "Start msg", w: 40, h: 40, seed: { trigger: "message" } },
+      { shape: "bpmn-event-start", label: "Start timer", w: 40, h: 40, seed: { trigger: "timer" } },
+      { shape: "bpmn-event-intermediate", label: "Intermediate", w: 40, h: 40 },
+      { shape: "bpmn-event-intermediate", label: "Inter. msg", w: 40, h: 40, seed: { trigger: "message" } },
+      { shape: "bpmn-event-intermediate", label: "Inter. timer", w: 40, h: 40, seed: { trigger: "timer" } },
+      { shape: "bpmn-event-end", label: "End", w: 40, h: 40 },
+      { shape: "bpmn-event-end", label: "End msg", w: 40, h: 40, seed: { trigger: "message" } },
+      { shape: "bpmn-event-end", label: "Terminate", w: 40, h: 40, seed: { trigger: "terminate" } },
+      // Gateways (3)
       { shape: "bpmn-gateway-x", label: "Exclusive GW", w: 50, h: 50 },
       { shape: "bpmn-gateway-parallel", label: "Parallel GW", w: 50, h: 50 },
       { shape: "bpmn-gateway-inclusive", label: "Inclusive GW", w: 50, h: 50 },
-      { shape: "bpmn-gateway-event", label: "Event GW", w: 50, h: 50 },
-      { shape: "bpmn-gateway-complex", label: "Complex GW", w: 50, h: 50 },
+      // Tasks (3)
       { shape: "bpmn-task", label: "Task", w: 120, h: 60 },
       { shape: "bpmn-task-user", label: "User task", w: 120, h: 60 },
       { shape: "bpmn-task-service", label: "Service task", w: 120, h: 60 },
-      { shape: "bpmn-task-script", label: "Script task", w: 120, h: 60 },
-      { shape: "bpmn-task-manual", label: "Manual task", w: 120, h: 60 },
-      { shape: "bpmn-task-send", label: "Send task", w: 120, h: 60 },
-      { shape: "bpmn-task-receive", label: "Receive task", w: 120, h: 60 },
-      { shape: "bpmn-task-rule", label: "Rule task", w: 120, h: 60 },
+      // Activities + swimlanes (3)
       { shape: "bpmn-subprocess", label: "Sub-process", w: 200, h: 120 },
-      { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76 },
-      { shape: "bpmn-data-store", label: "Data store", w: 70, h: 64 },
-      { shape: "bpmn-annotation", label: "Annotation", w: 150, h: 56 },
       { shape: "bpmn-lane", label: "Lane", w: 480, h: 140 },
       { shape: "bpmn-pool", label: "Pool", w: 560, h: 200 },
+      // ── Load more (hidden by default) ──
+      // Remaining event triggers
+      { shape: "bpmn-event-start", label: "Start signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
+      { shape: "bpmn-event-start", label: "Start cond.", w: 40, h: 40, seed: { trigger: "conditional" }, advanced: true },
+      { shape: "bpmn-event-start", label: "Start multi", w: 40, h: 40, seed: { trigger: "multiple" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. error", w: 40, h: 40, seed: { trigger: "error" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. escal.", w: 40, h: 40, seed: { trigger: "escalation" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. comp.", w: 40, h: 40, seed: { trigger: "compensation" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. cond.", w: 40, h: 40, seed: { trigger: "conditional" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. link", w: 40, h: 40, seed: { trigger: "link" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. cancel", w: 40, h: 40, seed: { trigger: "cancel" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End error", w: 40, h: 40, seed: { trigger: "error" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End escal.", w: 40, h: 40, seed: { trigger: "escalation" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End comp.", w: 40, h: 40, seed: { trigger: "compensation" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End cancel", w: 40, h: 40, seed: { trigger: "cancel" }, advanced: true },
+      // Remaining gateways
+      { shape: "bpmn-gateway-event", label: "Event GW", w: 50, h: 50, advanced: true },
+      { shape: "bpmn-gateway-complex", label: "Complex GW", w: 50, h: 50, advanced: true },
+      // Remaining tasks
+      { shape: "bpmn-task-script", label: "Script task", w: 120, h: 60, advanced: true },
+      { shape: "bpmn-task-manual", label: "Manual task", w: 120, h: 60, advanced: true },
+      { shape: "bpmn-task-send", label: "Send task", w: 120, h: 60, advanced: true },
+      { shape: "bpmn-task-receive", label: "Receive task", w: 120, h: 60, advanced: true },
+      { shape: "bpmn-task-rule", label: "Rule task", w: 120, h: 60, advanced: true },
+      // Remaining activities
+      { shape: "bpmn-transaction", label: "Transaction", w: 200, h: 120, advanced: true },
+      { shape: "bpmn-event-subprocess", label: "Event sub-process", w: 200, h: 120, advanced: true },
+      { shape: "bpmn-call-activity", label: "Call activity", w: 120, h: 60, advanced: true },
+      // Data artifacts
+      { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
+      { shape: "bpmn-data-collection", label: "Data collection", w: 60, h: 76, advanced: true },
+      { shape: "bpmn-data-input", label: "Data input", w: 60, h: 76, advanced: true },
+      { shape: "bpmn-data-output", label: "Data output", w: 60, h: 76, advanced: true },
+      { shape: "bpmn-data-store", label: "Data store", w: 70, h: 64, advanced: true },
+      // Misc
+      { shape: "bpmn-annotation", label: "Annotation", w: 150, h: 56, advanced: true },
+      { shape: "bpmn-group", label: "Group", w: 200, h: 120, advanced: true },
     ],
   },
 ];
@@ -202,12 +239,68 @@ const ICONS: Record<string, string> = {
   "bpmn-task-receive": I(`<rect x="5" y="10" width="22" height="12" rx="4" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/><rect x="9" y="13" width="9" height="6" fill="none" stroke="#1565c0" stroke-width="1.2"/><path d="m9 13 4.5 3 4.5-3" stroke="#1565c0" stroke-width="1.2" fill="none"/>`),
   "bpmn-task-rule": I(`<rect x="5" y="10" width="22" height="12" rx="4" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="8" y="12" width="8" height="8" fill="none" stroke="#1565c0" stroke-width="1.1"/><path d="M8 15h8M12 12v8" stroke="#1565c0" stroke-width="1.1"/>`),
   "bpmn-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="13" y="18" width="6" height="4" fill="none" stroke="#1565c0" stroke-width="1.2"/><path d="M16 18.6v2.8M14.6 20h2.8" stroke="#1565c0" stroke-width="1"/>`),
+  // Đợt A unified events (3 base — trigger overlay picked from extra)
+  "bpmn-event-start": I(`<circle cx="16" cy="16" r="9" fill="#e7f9ed" stroke="#2e7d32" stroke-width="2"/>`),
+  "bpmn-event-intermediate": I(`<circle cx="16" cy="16" r="9" fill="#fff8e1" stroke="#f57f17" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="none" stroke="#f57f17" stroke-width="1.5"/>`),
+  "bpmn-event-end": I(`<circle cx="16" cy="16" r="9" fill="#fde8e8" stroke="#c62828" stroke-width="3"/>`),
+  // Đợt B — Activities
+  "bpmn-transaction": I(`<rect x="3" y="8" width="26" height="16" rx="4" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="5.5" y="10.5" width="21" height="11" rx="2.5" fill="none" stroke="#1565c0" stroke-width="1.2"/>`),
+  "bpmn-event-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M16 12v8M12 16h8" stroke="#1565c0" stroke-width="1.2"/>`),
+  "bpmn-call-activity": I(`<rect x="4" y="10" width="24" height="12" rx="3" fill="#fff" stroke="#1565c0" stroke-width="3"/>`),
+  // Đợt B — Data artifacts
+  "bpmn-data-collection": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/><path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`),
+  "bpmn-data-input": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="none" stroke="#607d8b" stroke-width="1.3"/>`),
+  "bpmn-data-output": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="#607d8b"/>`),
+  // Đợt B — Group
+  "bpmn-group": I(`<rect x="4" y="8" width="24" height="16" rx="4" fill="none" stroke="#5e7a99" stroke-width="1.8" stroke-dasharray="4 2"/>`),
   "bpmn-data-object": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/>`),
   "bpmn-data-store": I(`<ellipse cx="16" cy="9" rx="9" ry="3" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M7 9v14c0 1.6 4 3 9 3s9-1.4 9-3V9" fill="none" stroke="#607d8b" stroke-width="2"/>`),
   "bpmn-annotation": I(`<path d="M11 6H26V26H11" fill="none" stroke="#90a4ae" stroke-width="2"/><path d="M11 6V26" stroke="#607d8b" stroke-width="2.5"/>`),
   "bpmn-lane": I(`<rect x="4" y="9" width="24" height="14" fill="none" stroke="#546e7a" stroke-width="2"/><rect x="4" y="9" width="6" height="14" fill="#eceff1" stroke="#546e7a" stroke-width="2"/>`),
 };
 
-export function shapeIcon(shape: string): string {
+export function shapeIcon(shape: string, seed?: { trigger?: string }): string {
+  // When a palette entry carries a trigger seed (Đợt A unified events), look up
+  // the legacy combo icon if it exists — so the BPMN flyout still shows the
+  // familiar Start-message / Inter-timer / End-terminate visuals.
+  if (seed?.trigger) {
+    const map: Record<string, Record<string, string>> = {
+      "bpmn-event-start": {
+        message: "bpmn-start-message", timer: "bpmn-start-timer",
+      },
+      "bpmn-event-intermediate": {
+        message: "bpmn-intermediate-message", timer: "bpmn-intermediate-timer",
+      },
+      "bpmn-event-end": {
+        message: "bpmn-end-message", terminate: "bpmn-end-terminate",
+      },
+    };
+    const alias = map[shape]?.[seed.trigger];
+    if (alias && ICONS[alias]) return ICONS[alias];
+    // Inline icon for the remaining triggers — circle border + trigger glyph
+    const borderByPos: Record<string, string> = {
+      "bpmn-event-start": `<circle cx="16" cy="16" r="9" fill="#e7f9ed" stroke="#2e7d32" stroke-width="2"/>`,
+      "bpmn-event-intermediate": `<circle cx="16" cy="16" r="9" fill="#fff8e1" stroke="#f57f17" stroke-width="2"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#f57f17" stroke-width="1.2"/>`,
+      "bpmn-event-end": `<circle cx="16" cy="16" r="9" fill="#fde8e8" stroke="#c62828" stroke-width="3"/>`,
+    };
+    const color: Record<string, string> = {
+      "bpmn-event-start": "#2e7d32", "bpmn-event-intermediate": "#f57f17", "bpmn-event-end": "#c62828",
+    };
+    const c = color[shape] ?? "#666";
+    const glyph: Record<string, string> = {
+      signal: `<path d="M16 11 22 21 10 21Z" fill="none" stroke="${c}" stroke-width="1.4"/>`,
+      error: `<path d="M9 21 13 13l3 4 3-4 3 8" fill="none" stroke="${c}" stroke-width="1.5"/>`,
+      escalation: `<path d="M16 11 21 21 16 18 11 21Z" fill="none" stroke="${c}" stroke-width="1.4"/>`,
+      compensation: `<path d="M17 12 12 16 17 20ZM22 12 17 16 22 20Z" fill="none" stroke="${c}" stroke-width="1.3"/>`,
+      conditional: `<rect x="11" y="11" width="10" height="10" fill="none" stroke="${c}" stroke-width="1.3"/><path d="M13 14h6M13 16h6M13 18h4" stroke="${c}" stroke-width="1"/>`,
+      link: `<path d="M11 16h8l-2-2M19 16l-2 2" fill="none" stroke="${c}" stroke-width="1.6"/>`,
+      cancel: `<path d="m12 12 8 8M20 12l-8 8" stroke="${c}" stroke-width="1.8"/>`,
+      multiple: `<path d="M16 11 21 14.5 19 21h-6L11 14.5Z" fill="none" stroke="${c}" stroke-width="1.4"/>`,
+      "parallel-multiple": `<path d="M16 11v10M11 16h10" stroke="${c}" stroke-width="1.8"/>`,
+      terminate: `<circle cx="16" cy="16" r="5" fill="${c}"/>`,
+    };
+    const g = glyph[seed.trigger] ?? "";
+    return `<svg viewBox="0 0 32 32" fill="none">${borderByPos[shape] ?? ""}${g}</svg>`;
+  }
   return ICONS[shape] ?? I(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
 }

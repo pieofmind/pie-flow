@@ -285,3 +285,109 @@ describe("parse robustness", () => {
     expect(roundTrip(empty)).toEqual(empty);
   });
 });
+
+// ── Đợt F+G: BPMN 2.0 extras (trigger / throwing / interrupting / attachedTo / markers / flowType) ──
+describe("BPMN 2.0 extras round-trip (Đợt A→F)", () => {
+  it("preserves event trigger + throwing through serialize→parse", () => {
+    const m: CanvasModel = {
+      nodes: [
+        { id: "s1", shape: "bpmn-event-start", x: 0, y: 0, width: 40, height: 40, label: "",
+          attrs: { trigger: "message" } },
+        { id: "i1", shape: "bpmn-event-intermediate", x: 100, y: 0, width: 40, height: 40, label: "",
+          attrs: { trigger: "timer", throwing: true } },
+        { id: "e1", shape: "bpmn-event-end", x: 200, y: 0, width: 40, height: 40, label: "",
+          attrs: { trigger: "terminate" } },
+      ],
+      edges: [],
+    };
+    expect(roundTrip(m)).toEqual(m);
+  });
+
+  it("preserves 12 OMG event triggers (incl. signal/error/escalation/compensation/conditional/link/cancel/multiple/parallel-multiple)", () => {
+    const triggers = [
+      "message", "timer", "signal", "error", "escalation", "compensation",
+      "conditional", "link", "cancel", "terminate", "multiple", "parallel-multiple",
+    ] as const;
+    const m: CanvasModel = {
+      nodes: triggers.map((t, i) => ({
+        id: `evt-${i}`, shape: "bpmn-event-intermediate",
+        x: i * 60, y: 0, width: 40, height: 40, label: t,
+        attrs: { trigger: t },
+      })),
+      edges: [],
+    };
+    const r = roundTrip(m);
+    for (let i = 0; i < triggers.length; i++) {
+      expect((r.nodes[i].attrs as Record<string, unknown>).trigger).toBe(triggers[i]);
+    }
+  });
+
+  it("preserves activity markers (multi-select)", () => {
+    const m: CanvasModel = {
+      nodes: [
+        { id: "t1", shape: "bpmn-task-user", x: 0, y: 0, width: 120, height: 60, label: "Review",
+          attrs: { markers: ["loop", "compensation"] } },
+        { id: "t2", shape: "bpmn-subprocess", x: 200, y: 0, width: 200, height: 120, label: "Loop sub",
+          attrs: { markers: ["mi-par"] } },
+        { id: "t3", shape: "bpmn-task-service", x: 0, y: 200, width: 120, height: 60, label: "Seq",
+          attrs: { markers: ["mi-seq", "adhoc"] } },
+      ],
+      edges: [],
+    };
+    expect(roundTrip(m)).toEqual(m);
+  });
+
+  it("preserves interrupting flag + boundary attachment", () => {
+    const m: CanvasModel = {
+      nodes: [
+        { id: "task", shape: "bpmn-task", x: 0, y: 0, width: 120, height: 60, label: "Pay" },
+        { id: "boundary", shape: "bpmn-event-intermediate", x: 100, y: 50, width: 36, height: 36, label: "",
+          attrs: { trigger: "timer", attachedTo: "task", interrupting: false } },
+      ],
+      edges: [],
+    };
+    expect(roundTrip(m)).toEqual(m);
+  });
+
+  it("preserves edge flowType + preset (default/message/conditional/association)", () => {
+    const m: CanvasModel = {
+      nodes: [
+        { id: "a", shape: "bpmn-task", x: 0, y: 0, width: 120, height: 60, label: "A" },
+        { id: "b", shape: "bpmn-task", x: 200, y: 0, width: 120, height: 60, label: "B" },
+      ],
+      edges: [
+        { id: "f1", source: "a", target: "b",
+          style: { flowType: "default", dash: "solid", start: "def-slash", end: "arrow" } },
+        { id: "f2", source: "a", target: "b",
+          style: { flowType: "message", dash: "dashed", start: "circle", end: "triangle" } },
+        { id: "f3", source: "a", target: "b",
+          style: { flowType: "conditional", dash: "solid", start: "diamond-o", end: "arrow" } },
+        { id: "f4", source: "a", target: "b",
+          style: { flowType: "association", dash: "dotted", start: "none", end: "arrow-open" } },
+      ],
+    };
+    const r = roundTrip(m);
+    for (let i = 0; i < m.edges.length; i++) {
+      expect(r.edges[i].style?.flowType).toBe(m.edges[i].style?.flowType);
+      expect(r.edges[i].style?.start).toBe(m.edges[i].style?.start);
+      expect(r.edges[i].style?.end).toBe(m.edges[i].style?.end);
+    }
+  });
+
+  it("preserves the 3 new Activity kinds + Group + 3 new Data artifacts", () => {
+    const kinds = [
+      "bpmn-transaction", "bpmn-event-subprocess", "bpmn-call-activity",
+      "bpmn-group", "bpmn-data-collection", "bpmn-data-input", "bpmn-data-output",
+    ];
+    const m: CanvasModel = {
+      nodes: kinds.map((k, i) => ({
+        id: `k${i}`, shape: k, x: i * 220, y: 0, width: 160, height: 80, label: k,
+      })),
+      edges: [],
+    };
+    const r = roundTrip(m);
+    for (let i = 0; i < kinds.length; i++) {
+      expect(r.nodes[i].shape).toBe(kinds[i]);
+    }
+  });
+});

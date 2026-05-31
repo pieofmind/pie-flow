@@ -13,8 +13,8 @@
     return mod3 || (0, cb[__getOwnPropNames(cb)[0]])((mod3 = { exports: {} }).exports, mod3), mod3.exports;
   };
   var __export = (target, all) => {
-    for (var name in all)
-      __defProp(target, name, { get: all[name], enumerable: true });
+    for (var name2 in all)
+      __defProp(target, name2, { get: all[name2], enumerable: true });
   };
   var __copyProps = (to, from, except, desc) => {
     if (from && typeof from === "object" || typeof from === "function") {
@@ -6578,14 +6578,14 @@
         }
         // https://www.w3.org/TR/PNG/#11iCCP
         decodeiCCP(length2) {
-          const name = readKeyword(this);
+          const name2 = readKeyword(this);
           const compressionMethod = this.readUint8();
           if (compressionMethod !== CompressionMethod.DEFLATE) {
             throw new Error(`Unsupported iCCP compression method: ${compressionMethod}`);
           }
-          const compressedProfile = this.readBytes(length2 - name.length - 2);
+          const compressedProfile = this.readBytes(length2 - name2.length - 2);
           this._png.iccEmbeddedProfile = {
-            name,
+            name: name2,
             profile: inflate_1(compressedProfile)
           };
         }
@@ -7215,7 +7215,7 @@
           if (lineBreak2 === void 0) {
             lineBreak2 = "strict";
           }
-          var types = [];
+          var types2 = [];
           var indices = [];
           var categories = [];
           codePoints.forEach(function(codePoint, index3) {
@@ -7229,42 +7229,42 @@
             if (["normal", "auto", "loose"].indexOf(lineBreak2) !== -1) {
               if ([8208, 8211, 12316, 12448].indexOf(codePoint) !== -1) {
                 indices.push(index3);
-                return types.push(CB);
+                return types2.push(CB);
               }
             }
             if (classType === CM || classType === ZWJ$1) {
               if (index3 === 0) {
                 indices.push(index3);
-                return types.push(AL);
+                return types2.push(AL);
               }
-              var prev = types[index3 - 1];
+              var prev = types2[index3 - 1];
               if (LINE_BREAKS.indexOf(prev) === -1) {
                 indices.push(indices[index3 - 1]);
-                return types.push(prev);
+                return types2.push(prev);
               }
               indices.push(index3);
-              return types.push(AL);
+              return types2.push(AL);
             }
             indices.push(index3);
             if (classType === CJ) {
-              return types.push(lineBreak2 === "strict" ? NS : ID);
+              return types2.push(lineBreak2 === "strict" ? NS : ID);
             }
             if (classType === SA) {
-              return types.push(AL);
+              return types2.push(AL);
             }
             if (classType === AI) {
-              return types.push(AL);
+              return types2.push(AL);
             }
             if (classType === XX) {
               if (codePoint >= 131072 && codePoint <= 196605 || codePoint >= 196608 && codePoint <= 262141) {
-                return types.push(ID);
+                return types2.push(ID);
               } else {
-                return types.push(AL);
+                return types2.push(AL);
               }
             }
-            types.push(classType);
+            types2.push(classType);
           });
-          return [indices, types, categories];
+          return [indices, types2, categories];
         };
         var isAdjacentWithSpaceIgnored = function(a4, b2, currentIndex, classTypes) {
           var current = classTypes[currentIndex];
@@ -7583,7 +7583,7 @@
         var A4 = 65;
         var E2 = 69;
         var F3 = 70;
-        var U2 = 85;
+        var U3 = 85;
         var Z3 = 90;
         var isDigit = function(codePoint) {
           return codePoint >= ZERO && codePoint <= 57;
@@ -7911,7 +7911,7 @@
                 case RIGHT_CURLY_BRACKET:
                   return RIGHT_CURLY_BRACKET_TOKEN;
                 case u3:
-                case U2:
+                case U3:
                   var u1 = this.peekCodePoint(0);
                   var u22 = this.peekCodePoint(1);
                   if (u1 === PLUS_SIGN && (isHex(u22) || u22 === QUESTION_MARK)) {
@@ -8201,24 +8201,24 @@
             return Tokenizer2;
           }()
         );
-        var Parser2 = (
+        var Parser3 = (
           /** @class */
           function() {
-            function Parser3(tokens) {
+            function Parser4(tokens) {
               this._tokens = tokens;
             }
-            Parser3.create = function(value) {
+            Parser4.create = function(value) {
               var tokenizer = new Tokenizer();
               tokenizer.write(value);
-              return new Parser3(tokenizer.read());
+              return new Parser4(tokenizer.read());
             };
-            Parser3.parseValue = function(value) {
-              return Parser3.create(value).parseComponentValue();
+            Parser4.parseValue = function(value) {
+              return Parser4.create(value).parseComponentValue();
             };
-            Parser3.parseValues = function(value) {
-              return Parser3.create(value).parseComponentValues();
+            Parser4.parseValues = function(value) {
+              return Parser4.create(value).parseComponentValues();
             };
-            Parser3.prototype.parseComponentValue = function() {
+            Parser4.prototype.parseComponentValue = function() {
               var token = this.consumeToken();
               while (token.type === 31) {
                 token = this.consumeToken();
@@ -8236,7 +8236,7 @@
               }
               throw new SyntaxError("Error parsing CSS component value, multiple values found when expecting only one");
             };
-            Parser3.prototype.parseComponentValues = function() {
+            Parser4.prototype.parseComponentValues = function() {
               var values = [];
               while (true) {
                 var value = this.consumeComponentValue();
@@ -8247,7 +8247,7 @@
                 values.push();
               }
             };
-            Parser3.prototype.consumeComponentValue = function() {
+            Parser4.prototype.consumeComponentValue = function() {
               var token = this.consumeToken();
               switch (token.type) {
                 case 11:
@@ -8259,7 +8259,7 @@
               }
               return token;
             };
-            Parser3.prototype.consumeSimpleBlock = function(type) {
+            Parser4.prototype.consumeSimpleBlock = function(type) {
               var block2 = { type, values: [] };
               var token = this.consumeToken();
               while (true) {
@@ -8271,7 +8271,7 @@
                 token = this.consumeToken();
               }
             };
-            Parser3.prototype.consumeFunction = function(functionToken) {
+            Parser4.prototype.consumeFunction = function(functionToken) {
               var cssFunction = {
                 name: functionToken.value,
                 values: [],
@@ -8287,14 +8287,14 @@
                 cssFunction.values.push(this.consumeComponentValue());
               }
             };
-            Parser3.prototype.consumeToken = function() {
+            Parser4.prototype.consumeToken = function() {
               var token = this._tokens.shift();
               return typeof token === "undefined" ? EOF_TOKEN : token;
             };
-            Parser3.prototype.reconsumeToken = function(token) {
+            Parser4.prototype.reconsumeToken = function(token) {
               this._tokens.unshift(token);
             };
-            return Parser3;
+            return Parser4;
           }()
         );
         var isDimensionToken = function(token) {
@@ -8588,7 +8588,7 @@
           rgba: rgb
         };
         var parseColor = function(context, value) {
-          return color$1.parse(context, Parser2.create(value).parseComponentValue());
+          return color$1.parse(context, Parser3.create(value).parseComponentValue());
         };
         var COLORS = {
           ALICEBLUE: 4042850303,
@@ -10488,7 +10488,7 @@
           var tokenizer = new Tokenizer();
           var value = style2 !== null && typeof style2 !== "undefined" ? style2.toString() : descriptor.initialValue;
           tokenizer.write(value);
-          var parser = new Parser2(tokenizer.read());
+          var parser = new Parser3(tokenizer.read());
           switch (descriptor.type) {
             case 2:
               var token = parser.parseComponentValue();
@@ -11173,7 +11173,7 @@
             case 1:
               return text4.toLowerCase();
             case 3:
-              return text4.replace(CAPITALIZE, capitalize2);
+              return text4.replace(CAPITALIZE, capitalize3);
             case 2:
               return text4.toUpperCase();
             default:
@@ -11181,7 +11181,7 @@
           }
         };
         var CAPITALIZE = /(^|\s|:|-|\(|\))([a-z])/g;
-        var capitalize2 = function(m4, p1, p22) {
+        var capitalize3 = function(m4, p1, p22) {
           if (m4.length > 0) {
             return p1 + p22.toUpperCase();
           }
@@ -11519,15 +11519,15 @@
             function CounterState2() {
               this.counters = {};
             }
-            CounterState2.prototype.getCounterValue = function(name) {
-              var counter = this.counters[name];
+            CounterState2.prototype.getCounterValue = function(name2) {
+              var counter = this.counters[name2];
               if (counter && counter.length) {
                 return counter[counter.length - 1];
               }
               return 1;
             };
-            CounterState2.prototype.getCounterValues = function(name) {
-              var counter = this.counters[name];
+            CounterState2.prototype.getCounterValues = function(name2) {
+              var counter = this.counters[name2];
               return counter ? counter : [];
             };
             CounterState2.prototype.pop = function(counters) {
@@ -14455,18 +14455,18 @@
             return Logger2;
           }()
         );
-        var Context = (
+        var Context2 = (
           /** @class */
           function() {
-            function Context2(options, windowBounds) {
+            function Context3(options, windowBounds) {
               var _a2;
               this.windowBounds = windowBounds;
-              this.instanceName = "#" + Context2.instanceCount++;
+              this.instanceName = "#" + Context3.instanceCount++;
               this.logger = new Logger({ id: this.instanceName, enabled: options.logging });
               this.cache = (_a2 = options.cache) !== null && _a2 !== void 0 ? _a2 : new Cache2(this, options);
             }
-            Context2.instanceCount = 1;
-            return Context2;
+            Context3.instanceCount = 1;
+            return Context3;
           }()
         );
         var html2canvas = function(element, options) {
@@ -14510,7 +14510,7 @@
                     scrollY: (_j = opts.scrollY) !== null && _j !== void 0 ? _j : defaultView.pageYOffset
                   };
                   windowBounds = new Bounds(windowOptions.scrollX, windowOptions.scrollY, windowOptions.windowWidth, windowOptions.windowHeight);
-                  context = new Context(contextOptions, windowBounds);
+                  context = new Context2(contextOptions, windowBounds);
                   foreignObjectRendering = (_k = opts.foreignObjectRendering) !== null && _k !== void 0 ? _k : false;
                   cloneOptions = {
                     allowTaint: (_l = opts.allowTaint) !== null && _l !== void 0 ? _l : false,
@@ -14647,13 +14647,13 @@
       return construct(Func, args);
     };
   }
-  function addToSet(set, array) {
+  function addToSet(set2, array) {
     let transformCaseFunc = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : stringToLowerCase;
     if (setPrototypeOf) {
-      setPrototypeOf(set, null);
+      setPrototypeOf(set2, null);
     }
     if (!arrayIsArray(array)) {
-      return set;
+      return set2;
     }
     let l3 = array.length;
     while (l3--) {
@@ -14667,9 +14667,9 @@
           element = lcElement;
         }
       }
-      set[element] = true;
+      set2[element] = true;
     }
-    return set;
+    return set2;
   }
   function cleanArray(array) {
     for (let index3 = 0; index3 < array.length; index3++) {
@@ -15099,10 +15099,10 @@
         remove2(node2);
       }
     };
-    const _removeAttribute = function _removeAttribute2(name, element) {
+    const _removeAttribute = function _removeAttribute2(name2, element) {
       try {
         arrayPush2(DOMPurify.removed, {
-          attribute: element.getAttributeNode(name),
+          attribute: element.getAttributeNode(name2),
           from: element
         });
       } catch (_4) {
@@ -15111,8 +15111,8 @@
           from: element
         });
       }
-      element.removeAttribute(name);
-      if (name === "is") {
+      element.removeAttribute(name2);
+      if (name2 === "is") {
         if (RETURN_DOM || RETURN_DOM_FRAGMENT) {
           try {
             _forceRemove(element);
@@ -15120,7 +15120,7 @@
           }
         } else {
           try {
-            element.setAttribute(name, "");
+            element.setAttribute(name2, "");
           } catch (_4) {
           }
         }
@@ -15373,10 +15373,10 @@
       let l3 = attributes.length;
       while (l3--) {
         const attr2 = attributes[l3];
-        const name = attr2.name, namespaceURI = attr2.namespaceURI, attrValue = attr2.value;
-        const lcName = transformCaseFunc(name);
+        const name2 = attr2.name, namespaceURI = attr2.namespaceURI, attrValue = attr2.value;
+        const lcName = transformCaseFunc(name2);
         const initValue = attrValue;
-        let value = name === "value" ? initValue : stringTrim(initValue);
+        let value = name2 === "value" ? initValue : stringTrim(initValue);
         hookEvent.attrName = lcName;
         hookEvent.attrValue = value;
         hookEvent.keepAttr = true;
@@ -15384,26 +15384,26 @@
         _executeHooks(hooks.uponSanitizeAttribute, currentNode, hookEvent);
         value = hookEvent.attrValue;
         if (SANITIZE_NAMED_PROPS && (lcName === "id" || lcName === "name") && stringIndexOf(value, SANITIZE_NAMED_PROPS_PREFIX) !== 0) {
-          _removeAttribute(name, currentNode);
+          _removeAttribute(name2, currentNode);
           value = SANITIZE_NAMED_PROPS_PREFIX + value;
         }
         if (SAFE_FOR_XML && regExpTest(/((--!?|])>)|<\/(style|script|title|xmp|textarea|noscript|iframe|noembed|noframes)/i, value)) {
-          _removeAttribute(name, currentNode);
+          _removeAttribute(name2, currentNode);
           continue;
         }
         if (lcName === "attributename" && stringMatch(value, "href")) {
-          _removeAttribute(name, currentNode);
+          _removeAttribute(name2, currentNode);
           continue;
         }
         if (hookEvent.forceKeepAttr) {
           continue;
         }
         if (!hookEvent.keepAttr) {
-          _removeAttribute(name, currentNode);
+          _removeAttribute(name2, currentNode);
           continue;
         }
         if (!ALLOW_SELF_CLOSE_IN_ATTR && regExpTest(/\/>/i, value)) {
-          _removeAttribute(name, currentNode);
+          _removeAttribute(name2, currentNode);
           continue;
         }
         if (SAFE_FOR_TEMPLATES) {
@@ -15413,7 +15413,7 @@
         }
         const lcTag = transformCaseFunc(currentNode.nodeName);
         if (!_isValidAttribute(lcTag, lcName, value)) {
-          _removeAttribute(name, currentNode);
+          _removeAttribute(name2, currentNode);
           continue;
         }
         if (trustedTypesPolicy && typeof trustedTypes === "object" && typeof trustedTypes.getAttributeType === "function") {
@@ -15434,9 +15434,9 @@
         if (value !== initValue) {
           try {
             if (namespaceURI) {
-              currentNode.setAttributeNS(namespaceURI, name, value);
+              currentNode.setAttributeNS(namespaceURI, name2, value);
             } else {
-              currentNode.setAttribute(name, value);
+              currentNode.setAttribute(name2, value);
             }
             if (_isClobbered(currentNode)) {
               _forceRemove(currentNode);
@@ -15444,7 +15444,7 @@
               arrayPop(DOMPurify.removed);
             }
           } catch (_4) {
-            _removeAttribute(name, currentNode);
+            _removeAttribute(name2, currentNode);
           }
         }
       }
@@ -15475,10 +15475,10 @@
     const _sanitizeAttachedShadowRoots2 = function _sanitizeAttachedShadowRoots(root2) {
       const nodeType = getNodeType ? getNodeType(root2) : root2.nodeType;
       if (nodeType === NODE_TYPE.element) {
-        const sr = getShadowRoot ? getShadowRoot(root2) : root2.shadowRoot;
-        if (_isDocumentFragment(sr)) {
-          _sanitizeAttachedShadowRoots2(sr);
-          _sanitizeShadowDOM2(sr);
+        const sr2 = getShadowRoot ? getShadowRoot(root2) : root2.shadowRoot;
+        if (_isDocumentFragment(sr2)) {
+          _sanitizeAttachedShadowRoots2(sr2);
+          _sanitizeShadowDOM2(sr2);
         }
       }
       const childNodes = getChildNodes ? getChildNodes(root2) : root2.childNodes;
@@ -15815,7 +15815,7 @@
       module2.exports = function(exec) {
         try {
           return !!exec();
-        } catch (error) {
+        } catch (error3) {
           return true;
         }
       };
@@ -16107,7 +16107,7 @@
       module2.exports = function(argument) {
         try {
           return $String(argument);
-        } catch (error) {
+        } catch (error3) {
           return "Object";
         }
       };
@@ -16147,13 +16147,13 @@
       "use strict";
       var call3 = require_function_call();
       var isCallable = require_is_callable();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var $TypeError = TypeError;
       module2.exports = function(input, pref) {
         var fn2, val;
-        if (pref === "string" && isCallable(fn2 = input.toString) && !isObject2(val = call3(fn2, input))) return val;
-        if (isCallable(fn2 = input.valueOf) && !isObject2(val = call3(fn2, input))) return val;
-        if (pref !== "string" && isCallable(fn2 = input.toString) && !isObject2(val = call3(fn2, input))) return val;
+        if (pref === "string" && isCallable(fn2 = input.toString) && !isObject3(val = call3(fn2, input))) return val;
+        if (isCallable(fn2 = input.valueOf) && !isObject3(val = call3(fn2, input))) return val;
+        if (pref !== "string" && isCallable(fn2 = input.toString) && !isObject3(val = call3(fn2, input))) return val;
         throw new $TypeError("Can't convert object to primitive value");
       };
     }
@@ -16172,11 +16172,11 @@
     "node_modules/core-js/internals/define-global-property.js"(exports2, module2) {
       "use strict";
       var globalThis2 = require_global_this();
-      var defineProperty2 = Object.defineProperty;
+      var defineProperty3 = Object.defineProperty;
       module2.exports = function(key, value) {
         try {
-          defineProperty2(globalThis2, key, { value, configurable: true, writable: true });
-        } catch (error) {
+          defineProperty3(globalThis2, key, { value, configurable: true, writable: true });
+        } catch (error3) {
           globalThis2[key] = value;
         }
         return value;
@@ -16232,9 +16232,9 @@
       "use strict";
       var uncurryThis = require_function_uncurry_this();
       var toObject = require_to_object();
-      var hasOwnProperty18 = uncurryThis({}.hasOwnProperty);
+      var hasOwnProperty19 = uncurryThis({}.hasOwnProperty);
       module2.exports = Object.hasOwn || function hasOwn(it3, key) {
-        return hasOwnProperty18(toObject(it3), key);
+        return hasOwnProperty19(toObject(it3), key);
       };
     }
   });
@@ -16266,11 +16266,11 @@
       var Symbol3 = globalThis2.Symbol;
       var WellKnownSymbolsStore = shared("wks");
       var createWellKnownSymbol = USE_SYMBOL_AS_UID ? Symbol3["for"] || Symbol3 : Symbol3 && Symbol3.withoutSetter || uid;
-      module2.exports = function(name) {
-        if (!hasOwn(WellKnownSymbolsStore, name)) {
-          WellKnownSymbolsStore[name] = NATIVE_SYMBOL && hasOwn(Symbol3, name) ? Symbol3[name] : createWellKnownSymbol("Symbol." + name);
+      module2.exports = function(name2) {
+        if (!hasOwn(WellKnownSymbolsStore, name2)) {
+          WellKnownSymbolsStore[name2] = NATIVE_SYMBOL && hasOwn(Symbol3, name2) ? Symbol3[name2] : createWellKnownSymbol("Symbol." + name2);
         }
-        return WellKnownSymbolsStore[name];
+        return WellKnownSymbolsStore[name2];
       };
     }
   });
@@ -16280,7 +16280,7 @@
     "node_modules/core-js/internals/to-primitive.js"(exports2, module2) {
       "use strict";
       var call3 = require_function_call();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var isSymbol2 = require_is_symbol();
       var getMethod = require_get_method();
       var ordinaryToPrimitive = require_ordinary_to_primitive();
@@ -16288,13 +16288,13 @@
       var $TypeError = TypeError;
       var TO_PRIMITIVE = wellKnownSymbol("toPrimitive");
       module2.exports = function(input, pref) {
-        if (!isObject2(input) || isSymbol2(input)) return input;
+        if (!isObject3(input) || isSymbol2(input)) return input;
         var exoticToPrim = getMethod(input, TO_PRIMITIVE);
         var result;
         if (exoticToPrim) {
           if (pref === void 0) pref = "default";
           result = call3(exoticToPrim, input, pref);
-          if (!isObject2(result) || isSymbol2(result)) return result;
+          if (!isObject3(result) || isSymbol2(result)) return result;
           throw new $TypeError("Can't convert object to primitive value");
         }
         if (pref === void 0) pref = "number";
@@ -16321,9 +16321,9 @@
     "node_modules/core-js/internals/document-create-element.js"(exports2, module2) {
       "use strict";
       var globalThis2 = require_global_this();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var document2 = globalThis2.document;
-      var EXISTS = isObject2(document2) && isObject2(document2.createElement);
+      var EXISTS = isObject3(document2) && isObject3(document2.createElement);
       module2.exports = function(it3) {
         return EXISTS ? document2.createElement(it3) : {};
       };
@@ -16365,7 +16365,7 @@
         P3 = toPropertyKey2(P3);
         if (IE8_DOM_DEFINE) try {
           return $getOwnPropertyDescriptor(O4, P3);
-        } catch (error) {
+        } catch (error3) {
         }
         if (hasOwn(O4, P3)) return createPropertyDescriptor(!call3(propertyIsEnumerableModule.f, O4, P3), O4[P3]);
       };
@@ -16392,11 +16392,11 @@
   var require_an_object = __commonJS({
     "node_modules/core-js/internals/an-object.js"(exports2, module2) {
       "use strict";
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var $String = String;
       var $TypeError = TypeError;
       module2.exports = function(argument) {
-        if (isObject2(argument)) return argument;
+        if (isObject3(argument)) return argument;
         throw new $TypeError($String(argument) + " is not an object");
       };
     }
@@ -16417,7 +16417,7 @@
       var ENUMERABLE = "enumerable";
       var CONFIGURABLE = "configurable";
       var WRITABLE = "writable";
-      exports2.f = DESCRIPTORS ? V8_PROTOTYPE_DEFINE_BUG ? function defineProperty2(O4, P3, Attributes) {
+      exports2.f = DESCRIPTORS ? V8_PROTOTYPE_DEFINE_BUG ? function defineProperty3(O4, P3, Attributes) {
         anObject(O4);
         P3 = toPropertyKey2(P3);
         anObject(Attributes);
@@ -16433,13 +16433,13 @@
           }
         }
         return $defineProperty(O4, P3, Attributes);
-      } : $defineProperty : function defineProperty2(O4, P3, Attributes) {
+      } : $defineProperty : function defineProperty3(O4, P3, Attributes) {
         anObject(O4);
         P3 = toPropertyKey2(P3);
         anObject(Attributes);
         if (IE8_DOM_DEFINE) try {
           return $defineProperty(O4, P3, Attributes);
-        } catch (error) {
+        } catch (error3) {
         }
         if ("get" in Attributes || "set" in Attributes) throw new $TypeError("Accessors not supported");
         if ("value" in Attributes) O4[P3] = Attributes.value;
@@ -16539,7 +16539,7 @@
       "use strict";
       var NATIVE_WEAK_MAP = require_weak_map_basic_detection();
       var globalThis2 = require_global_this();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var createNonEnumerableProperty = require_create_non_enumerable_property();
       var hasOwn = require_has_own_property();
       var shared = require_shared_store();
@@ -16548,16 +16548,16 @@
       var OBJECT_ALREADY_INITIALIZED = "Object already initialized";
       var TypeError2 = globalThis2.TypeError;
       var WeakMap3 = globalThis2.WeakMap;
-      var set;
+      var set2;
       var get2;
-      var has2;
+      var has3;
       var enforce = function(it3) {
-        return has2(it3) ? get2(it3) : set(it3, {});
+        return has3(it3) ? get2(it3) : set2(it3, {});
       };
       var getterFor = function(TYPE2) {
         return function(it3) {
           var state;
-          if (!isObject2(it3) || (state = get2(it3)).type !== TYPE2) {
+          if (!isObject3(it3) || (state = get2(it3)).type !== TYPE2) {
             throw new TypeError2("Incompatible receiver, " + TYPE2 + " required");
           }
           return state;
@@ -16568,7 +16568,7 @@
         store.get = store.get;
         store.has = store.has;
         store.set = store.set;
-        set = function(it3, metadata) {
+        set2 = function(it3, metadata) {
           if (store.has(it3)) throw new TypeError2(OBJECT_ALREADY_INITIALIZED);
           metadata.facade = it3;
           store.set(it3, metadata);
@@ -16577,13 +16577,13 @@
         get2 = function(it3) {
           return store.get(it3) || {};
         };
-        has2 = function(it3) {
+        has3 = function(it3) {
           return store.has(it3);
         };
       } else {
         STATE = sharedKey("state");
         hiddenKeys[STATE] = true;
-        set = function(it3, metadata) {
+        set2 = function(it3, metadata) {
           if (hasOwn(it3, STATE)) throw new TypeError2(OBJECT_ALREADY_INITIALIZED);
           metadata.facade = it3;
           createNonEnumerableProperty(it3, STATE, metadata);
@@ -16592,16 +16592,16 @@
         get2 = function(it3) {
           return hasOwn(it3, STATE) ? it3[STATE] : {};
         };
-        has2 = function(it3) {
+        has3 = function(it3) {
           return hasOwn(it3, STATE);
         };
       }
       var store;
       var STATE;
       module2.exports = {
-        set,
+        set: set2,
         get: get2,
-        has: has2,
+        has: has3,
         enforce,
         getterFor
       };
@@ -16623,37 +16623,37 @@
       var enforceInternalState = InternalStateModule.enforce;
       var getInternalState = InternalStateModule.get;
       var $String = String;
-      var defineProperty2 = Object.defineProperty;
+      var defineProperty3 = Object.defineProperty;
       var stringSlice = uncurryThis("".slice);
       var replace = uncurryThis("".replace);
       var join = uncurryThis([].join);
       var CONFIGURABLE_LENGTH = DESCRIPTORS && !fails(function() {
-        return defineProperty2(function() {
+        return defineProperty3(function() {
         }, "length", { value: 8 }).length !== 8;
       });
       var TEMPLATE = String(String).split("String");
-      var makeBuiltIn = module2.exports = function(value, name, options) {
-        if (stringSlice($String(name), 0, 7) === "Symbol(") {
-          name = "[" + replace($String(name), /^Symbol\(([^)]*)\).*$/, "$1") + "]";
+      var makeBuiltIn = module2.exports = function(value, name2, options) {
+        if (stringSlice($String(name2), 0, 7) === "Symbol(") {
+          name2 = "[" + replace($String(name2), /^Symbol\(([^)]*)\).*$/, "$1") + "]";
         }
-        if (options && options.getter) name = "get " + name;
-        if (options && options.setter) name = "set " + name;
-        if (!hasOwn(value, "name") || CONFIGURABLE_FUNCTION_NAME && value.name !== name) {
-          if (DESCRIPTORS) defineProperty2(value, "name", { value: name, configurable: true });
-          else value.name = name;
+        if (options && options.getter) name2 = "get " + name2;
+        if (options && options.setter) name2 = "set " + name2;
+        if (!hasOwn(value, "name") || CONFIGURABLE_FUNCTION_NAME && value.name !== name2) {
+          if (DESCRIPTORS) defineProperty3(value, "name", { value: name2, configurable: true });
+          else value.name = name2;
         }
         if (CONFIGURABLE_LENGTH && options && hasOwn(options, "arity") && value.length !== options.arity) {
-          defineProperty2(value, "length", { value: options.arity });
+          defineProperty3(value, "length", { value: options.arity });
         }
         try {
           if (options && hasOwn(options, "constructor") && options.constructor) {
-            if (DESCRIPTORS) defineProperty2(value, "prototype", { writable: false });
+            if (DESCRIPTORS) defineProperty3(value, "prototype", { writable: false });
           } else if (value.prototype) value.prototype = void 0;
-        } catch (error) {
+        } catch (error3) {
         }
         var state = enforceInternalState(value);
         if (!hasOwn(state, "source")) {
-          state.source = join(TEMPLATE, typeof name == "string" ? name : "");
+          state.source = join(TEMPLATE, typeof name2 == "string" ? name2 : "");
         }
         return value;
       };
@@ -16674,8 +16674,8 @@
       module2.exports = function(O4, key, value, options) {
         if (!options) options = {};
         var simple = options.enumerable;
-        var name = options.name !== void 0 ? options.name : key;
-        if (isCallable(value)) makeBuiltIn(value, name, options);
+        var name2 = options.name !== void 0 ? options.name : key;
+        if (isCallable(value)) makeBuiltIn(value, name2, options);
         if (options.global) {
           if (simple) O4[key] = value;
           else defineGlobalProperty(key, value);
@@ -16683,7 +16683,7 @@
           try {
             if (!options.unsafe) delete O4[key];
             else if (O4[key]) simple = true;
-          } catch (error) {
+          } catch (error3) {
           }
           if (simple) O4[key] = value;
           else definePropertyModule.f(O4, key, {
@@ -16885,12 +16885,12 @@
       var definePropertyModule = require_object_define_property();
       module2.exports = function(target, source, exceptions) {
         var keys2 = ownKeys2(source);
-        var defineProperty2 = definePropertyModule.f;
+        var defineProperty3 = definePropertyModule.f;
         var getOwnPropertyDescriptor2 = getOwnPropertyDescriptorModule.f;
         for (var i3 = 0; i3 < keys2.length; i3++) {
           var key = keys2[i3];
           if (!hasOwn(target, key) && !(exceptions && hasOwn(exceptions, key))) {
-            defineProperty2(target, key, getOwnPropertyDescriptor2(source, key));
+            defineProperty3(target, key, getOwnPropertyDescriptor2(source, key));
           }
         }
       };
@@ -17012,7 +17012,7 @@
       module2.exports = function(object, key, method) {
         try {
           return uncurryThis(aCallable(Object.getOwnPropertyDescriptor(object, key)[method]));
-        } catch (error) {
+        } catch (error3) {
         }
       };
     }
@@ -17022,9 +17022,9 @@
   var require_is_possible_prototype = __commonJS({
     "node_modules/core-js/internals/is-possible-prototype.js"(exports2, module2) {
       "use strict";
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       module2.exports = function(argument) {
-        return isObject2(argument) || argument === null;
+        return isObject3(argument) || argument === null;
       };
     }
   });
@@ -17048,7 +17048,7 @@
     "node_modules/core-js/internals/object-set-prototype-of.js"(exports2, module2) {
       "use strict";
       var uncurryThisAccessor = require_function_uncurry_this_accessor();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var requireObjectCoercible = require_require_object_coercible();
       var aPossiblePrototype = require_a_possible_prototype();
       module2.exports = Object.setPrototypeOf || ("__proto__" in {} ? function() {
@@ -17059,12 +17059,12 @@
           setter = uncurryThisAccessor(Object.prototype, "__proto__", "set");
           setter(test, []);
           CORRECT_SETTER = test instanceof Array;
-        } catch (error) {
+        } catch (error3) {
         }
         return function setPrototypeOf2(O4, proto) {
           requireObjectCoercible(O4);
           aPossiblePrototype(proto);
-          if (!isObject2(O4)) return O4;
+          if (!isObject3(O4)) return O4;
           if (CORRECT_SETTER) setter(O4, proto);
           else O4.__proto__ = proto;
           return O4;
@@ -17077,14 +17077,14 @@
   var require_set_to_string_tag = __commonJS({
     "node_modules/core-js/internals/set-to-string-tag.js"(exports2, module2) {
       "use strict";
-      var defineProperty2 = require_object_define_property().f;
+      var defineProperty3 = require_object_define_property().f;
       var hasOwn = require_has_own_property();
       var wellKnownSymbol = require_well_known_symbol();
       var TO_STRING_TAG = wellKnownSymbol("toStringTag");
       module2.exports = function(target, TAG, STATIC) {
         if (target && !STATIC) target = target.prototype;
         if (target && !hasOwn(target, TO_STRING_TAG)) {
-          defineProperty2(target, TO_STRING_TAG, { configurable: true, value: TAG });
+          defineProperty3(target, TO_STRING_TAG, { configurable: true, value: TAG });
         }
       };
     }
@@ -17095,11 +17095,11 @@
     "node_modules/core-js/internals/define-built-in-accessor.js"(exports2, module2) {
       "use strict";
       var makeBuiltIn = require_make_built_in();
-      var defineProperty2 = require_object_define_property();
-      module2.exports = function(target, name, descriptor) {
-        if (descriptor.get) makeBuiltIn(descriptor.get, name, { getter: true });
-        if (descriptor.set) makeBuiltIn(descriptor.set, name, { setter: true });
-        return defineProperty2.f(target, name, descriptor);
+      var defineProperty3 = require_object_define_property();
+      module2.exports = function(target, name2, descriptor) {
+        if (descriptor.get) makeBuiltIn(descriptor.get, name2, { getter: true });
+        if (descriptor.set) makeBuiltIn(descriptor.set, name2, { setter: true });
+        return defineProperty3.f(target, name2, descriptor);
       };
     }
   });
@@ -17168,7 +17168,7 @@
       var tryGet = function(it3, key) {
         try {
           return it3[key];
-        } catch (error) {
+        } catch (error3) {
         }
       };
       module2.exports = TO_STRING_TAG_SUPPORT ? classofRaw : function(it3) {
@@ -17199,7 +17199,7 @@
         try {
           construct2(noop4, [], argument);
           return true;
-        } catch (error) {
+        } catch (error3) {
           return false;
         }
       };
@@ -17213,7 +17213,7 @@
         }
         try {
           return INCORRECT_TO_STRING || !!exec(constructorRegExp, inspectSource(argument));
-        } catch (error) {
+        } catch (error3) {
           return true;
         }
       };
@@ -17291,10 +17291,10 @@
       var uncurryThis = require_function_uncurry_this_clause();
       var aCallable = require_a_callable();
       var NATIVE_BIND = require_function_bind_native();
-      var bind = uncurryThis(uncurryThis.bind);
+      var bind2 = uncurryThis(uncurryThis.bind);
       module2.exports = function(fn2, that) {
         aCallable(fn2);
-        return that === void 0 ? fn2 : NATIVE_BIND ? bind(fn2, that) : function() {
+        return that === void 0 ? fn2 : NATIVE_BIND ? bind2(fn2, that) : function() {
           return fn2.apply(that, arguments);
         };
       };
@@ -17346,7 +17346,7 @@
       "use strict";
       var globalThis2 = require_global_this();
       var apply4 = require_function_apply();
-      var bind = require_function_bind_context();
+      var bind2 = require_function_bind_context();
       var isCallable = require_is_callable();
       var hasOwn = require_has_own_property();
       var fails = require_fails();
@@ -17356,7 +17356,7 @@
       var validateArgumentsLength = require_validate_arguments_length();
       var IS_IOS = require_environment_is_ios();
       var IS_NODE = require_environment_is_node();
-      var set = globalThis2.setImmediate;
+      var set2 = globalThis2.setImmediate;
       var clear = globalThis2.clearImmediate;
       var process2 = globalThis2.process;
       var Dispatch = globalThis2.Dispatch;
@@ -17391,8 +17391,8 @@
       var globalPostMessageDefer = function(id) {
         globalThis2.postMessage(String2(id), $location.protocol + "//" + $location.host);
       };
-      if (!set || !clear) {
-        set = function setImmediate(handler) {
+      if (!set2 || !clear) {
+        set2 = function setImmediate(handler) {
           validateArgumentsLength(arguments.length, 1);
           var fn2 = isCallable(handler) ? handler : Function2(handler);
           var args = arraySlice(arguments, 1);
@@ -17417,7 +17417,7 @@
           channel = new MessageChannel();
           port2 = channel.port2;
           channel.port1.onmessage = eventListener;
-          defer = bind(port2.postMessage, port2);
+          defer = bind2(port2.postMessage, port2);
         } else if (globalThis2.addEventListener && isCallable(globalThis2.postMessage) && !globalThis2.importScripts && $location && $location.protocol !== "file:" && !fails(globalPostMessageDefer)) {
           defer = globalPostMessageDefer;
           globalThis2.addEventListener("message", eventListener, false);
@@ -17435,7 +17435,7 @@
         }
       }
       module2.exports = {
-        set,
+        set: set2,
         clear
       };
     }
@@ -17448,9 +17448,9 @@
       var globalThis2 = require_global_this();
       var DESCRIPTORS = require_descriptors();
       var getOwnPropertyDescriptor2 = Object.getOwnPropertyDescriptor;
-      module2.exports = function(name) {
-        if (!DESCRIPTORS) return globalThis2[name];
-        var descriptor = getOwnPropertyDescriptor2(globalThis2, name);
+      module2.exports = function(name2) {
+        if (!DESCRIPTORS) return globalThis2[name2];
+        var descriptor = getOwnPropertyDescriptor2(globalThis2, name2);
         return descriptor && descriptor.value;
       };
     }
@@ -17509,7 +17509,7 @@
       "use strict";
       var globalThis2 = require_global_this();
       var safeGetBuiltIn = require_safe_get_built_in();
-      var bind = require_function_bind_context();
+      var bind2 = require_function_bind_context();
       var macrotask = require_task().set;
       var Queue = require_queue();
       var IS_IOS = require_environment_is_ios();
@@ -17533,9 +17533,9 @@
           if (IS_NODE && (parent = process2.domain)) parent.exit();
           while (fn2 = queue.get()) try {
             fn2();
-          } catch (error) {
+          } catch (error3) {
             if (queue.head) notify();
-            throw error;
+            throw error3;
           }
           if (parent) parent.enter();
         };
@@ -17549,7 +17549,7 @@
         } else if (!IS_IOS_PEBBLE && Promise3 && Promise3.resolve) {
           promise = Promise3.resolve(void 0);
           promise.constructor = Promise3;
-          then = bind(promise.then, promise);
+          then = bind2(promise.then, promise);
           notify = function() {
             then(flush);
           };
@@ -17558,7 +17558,7 @@
             process2.nextTick(flush);
           };
         } else {
-          macrotask = bind(macrotask, globalThis2);
+          macrotask = bind2(macrotask, globalThis2);
           notify = function() {
             macrotask(flush);
           };
@@ -17581,7 +17581,7 @@
       module2.exports = function(a3, b2) {
         try {
           arguments.length === 1 ? console.error(a3) : console.error(a3, b2);
-        } catch (error) {
+        } catch (error3) {
         }
       };
     }
@@ -17594,8 +17594,8 @@
       module2.exports = function(exec) {
         try {
           return { error: false, value: exec() };
-        } catch (error) {
-          return { error: true, value: error };
+        } catch (error3) {
+          return { error: true, value: error3 };
         }
       };
     }
@@ -17695,7 +17695,7 @@
       var setSpecies = require_set_species();
       var aCallable = require_a_callable();
       var isCallable = require_is_callable();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var anInstance = require_an_instance();
       var speciesConstructor = require_species_constructor();
       var task = require_task().set;
@@ -17735,7 +17735,7 @@
       var nativeThen;
       var isThenable = function(it3) {
         var then;
-        return isObject2(it3) && isCallable(then = it3.then) ? then : false;
+        return isObject3(it3) && isCallable(then = it3.then) ? then : false;
       };
       var callReaction = function(reaction, state) {
         var value = state.value;
@@ -17766,9 +17766,9 @@
               call3(then, result, resolve3, reject);
             } else resolve3(result);
           } else reject(value);
-        } catch (error) {
+        } catch (error3) {
           if (domain && !exited) domain.exit();
-          reject(error);
+          reject(error3);
         }
       };
       var notify = function(state, isReject) {
@@ -17784,17 +17784,17 @@
           if (isReject && !state.rejection) onUnhandled(state);
         });
       };
-      var dispatchEvent = function(name, promise, reason) {
+      var dispatchEvent = function(name2, promise, reason) {
         var event, handler;
         if (DISPATCH_EVENT) {
           event = document2.createEvent("Event");
           event.promise = promise;
           event.reason = reason;
-          event.initEvent(name, false, true);
+          event.initEvent(name2, false, true);
           globalThis2.dispatchEvent(event);
         } else event = { promise, reason };
-        if (!NATIVE_PROMISE_REJECTION_EVENT && (handler = globalThis2["on" + name])) handler(event);
-        else if (name === UNHANDLED_REJECTION) hostReportErrors("Unhandled promise rejection", reason);
+        if (!NATIVE_PROMISE_REJECTION_EVENT && (handler = globalThis2["on" + name2])) handler(event);
+        else if (name2 === UNHANDLED_REJECTION) hostReportErrors("Unhandled promise rejection", reason);
       };
       var onUnhandled = function(state) {
         call3(task, globalThis2, function() {
@@ -17824,7 +17824,7 @@
           } else dispatchEvent(REJECTION_HANDLED, promise, state.value);
         });
       };
-      var bind = function(fn2, state, unwrap) {
+      var bind2 = function(fn2, state, unwrap) {
         return function(value) {
           fn2(state, value, unwrap);
         };
@@ -17851,11 +17851,11 @@
                 call3(
                   then,
                   value,
-                  bind(internalResolve, wrapper, state),
-                  bind(internalReject, wrapper, state)
+                  bind2(internalResolve, wrapper, state),
+                  bind2(internalReject, wrapper, state)
                 );
-              } catch (error) {
-                internalReject(wrapper, error, state);
+              } catch (error3) {
+                internalReject(wrapper, error3, state);
               }
             });
           } else {
@@ -17863,8 +17863,8 @@
             state.state = FULFILLED;
             notify(state, false);
           }
-        } catch (error) {
-          internalReject({ done: false }, error, state);
+        } catch (error3) {
+          internalReject({ done: false }, error3, state);
         }
       };
       if (FORCED_PROMISE_CONSTRUCTOR) {
@@ -17874,9 +17874,9 @@
           call3(Internal, this);
           var state = getInternalPromiseState(this);
           try {
-            executor(bind(internalResolve, state), bind(internalReject, state));
-          } catch (error) {
-            internalReject(state, error);
+            executor(bind2(internalResolve, state), bind2(internalReject, state));
+          } catch (error3) {
+            internalReject(state, error3);
           }
         };
         PromisePrototype = PromiseConstructor.prototype;
@@ -17909,8 +17909,8 @@
           var promise = new Internal();
           var state = getInternalPromiseState(promise);
           this.promise = promise;
-          this.resolve = bind(internalResolve, state);
-          this.reject = bind(internalReject, state);
+          this.resolve = bind2(internalResolve, state);
+          this.reject = bind2(internalReject, state);
         };
         newPromiseCapabilityModule.f = newPromiseCapability = function(C3) {
           return C3 === PromiseConstructor || C3 === PromiseWrapper ? new OwnPromiseCapability(C3) : newGenericPromiseCapability(C3);
@@ -17927,7 +17927,7 @@
           }
           try {
             delete NativePromisePrototype.constructor;
-          } catch (error) {
+          } catch (error3) {
           }
           if (setPrototypeOf2) {
             setPrototypeOf2(NativePromisePrototype, PromisePrototype);
@@ -18016,9 +18016,9 @@
             return value;
           }
           innerResult = call3(innerResult, iterator);
-        } catch (error) {
+        } catch (error3) {
           innerError = true;
-          innerResult = error;
+          innerResult = error3;
         }
         if (kind === "throw") throw value;
         if (innerError) throw innerResult;
@@ -18032,7 +18032,7 @@
   var require_iterate = __commonJS({
     "node_modules/core-js/internals/iterate.js"(exports2, module2) {
       "use strict";
-      var bind = require_function_bind_context();
+      var bind2 = require_function_bind_context();
       var call3 = require_function_call();
       var anObject = require_an_object();
       var tryToString = require_try_to_string();
@@ -18054,7 +18054,7 @@
         var IS_RECORD = !!(options && options.IS_RECORD);
         var IS_ITERATOR = !!(options && options.IS_ITERATOR);
         var INTERRUPTED = !!(options && options.INTERRUPTED);
-        var fn2 = bind(unboundFunction, that);
+        var fn2 = bind2(unboundFunction, that);
         var iterator, iterFn, index3, length2, result, next, step;
         var stop = function(condition) {
           var $iterator = iterator;
@@ -18090,9 +18090,9 @@
           var value = step.value;
           try {
             result = callFn(value);
-          } catch (error) {
-            if (iterator) iteratorClose(iterator, "throw", error);
-            else throw error;
+          } catch (error3) {
+            if (iterator) iteratorClose(iterator, "throw", error3);
+            else throw error3;
           }
           if (typeof result == "object" && result && isPrototypeOf(ResultPrototype, result)) return result;
         }
@@ -18124,14 +18124,14 @@
         Array.from(iteratorWithReturn, function() {
           throw 2;
         });
-      } catch (error) {
+      } catch (error3) {
       }
       var called;
       var iteratorWithReturn;
       module2.exports = function(exec, SKIP_CLOSING) {
         try {
           if (!SKIP_CLOSING && !SAFE_CLOSING) return false;
-        } catch (error) {
+        } catch (error3) {
           return false;
         }
         var ITERATION_SUPPORT = false;
@@ -18145,7 +18145,7 @@
             };
           };
           exec(object);
-        } catch (error) {
+        } catch (error3) {
         }
         return ITERATION_SUPPORT;
       };
@@ -18287,11 +18287,11 @@
     "node_modules/core-js/internals/promise-resolve.js"(exports2, module2) {
       "use strict";
       var anObject = require_an_object();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var newPromiseCapability = require_new_promise_capability();
       module2.exports = function(C3, x3) {
         anObject(C3);
-        if (isObject2(x3) && x3.constructor === C3) return x3;
+        if (isObject3(x3) && x3.constructor === C3) return x3;
         var promiseCapability = newPromiseCapability.f(C3);
         var resolve3 = promiseCapability.resolve;
         resolve3(x3);
@@ -18446,10 +18446,10 @@
       var anObject = require_an_object();
       var toIndexedObject = require_to_indexed_object();
       var objectKeys = require_object_keys();
-      exports2.f = DESCRIPTORS && !V8_PROTOTYPE_DEFINE_BUG ? Object.defineProperties : function defineProperties(O4, Properties) {
+      exports2.f = DESCRIPTORS && !V8_PROTOTYPE_DEFINE_BUG ? Object.defineProperties : function defineProperties(O4, Properties2) {
         anObject(O4);
-        var props = toIndexedObject(Properties);
-        var keys2 = objectKeys(Properties);
+        var props = toIndexedObject(Properties2);
+        var keys2 = objectKeys(Properties2);
         var length2 = keys2.length;
         var index3 = 0;
         var key;
@@ -18504,7 +18504,7 @@
       var NullProtoObject = function() {
         try {
           activeXDocument = new ActiveXObject("htmlfile");
-        } catch (error) {
+        } catch (error3) {
         }
         NullProtoObject = typeof document != "undefined" ? document.domain && activeXDocument ? NullProtoObjectViaActiveX(activeXDocument) : NullProtoObjectViaIFrame() : NullProtoObjectViaActiveX(activeXDocument);
         var length2 = enumBugKeys.length;
@@ -18512,7 +18512,7 @@
         return NullProtoObject();
       };
       hiddenKeys[IE_PROTO] = true;
-      module2.exports = Object.create || function create2(O4, Properties) {
+      module2.exports = Object.create || function create2(O4, Properties2) {
         var result;
         if (O4 !== null) {
           EmptyConstructor[PROTOTYPE] = anObject(O4);
@@ -18520,7 +18520,7 @@
           EmptyConstructor[PROTOTYPE] = null;
           result[IE_PROTO] = O4;
         } else result = NullProtoObject();
-        return Properties === void 0 ? result : definePropertiesModule.f(result, Properties);
+        return Properties2 === void 0 ? result : definePropertiesModule.f(result, Properties2);
       };
     }
   });
@@ -18782,7 +18782,7 @@
         var INDICES_SUPPORT = true;
         try {
           RegExp2(".", "d");
-        } catch (error) {
+        } catch (error3) {
           INDICES_SUPPORT = false;
         }
         var O4 = {};
@@ -18859,7 +18859,7 @@
       var uncurryThis = require_function_uncurry_this();
       var fixRegExpWellKnownSymbolLogic = require_fix_regexp_well_known_symbol_logic();
       var anObject = require_an_object();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var toLength = require_to_length();
       var toString3 = require_to_string();
       var requireObjectCoercible = require_require_object_coercible();
@@ -18874,7 +18874,7 @@
           // https://tc39.es/ecma262/#sec-string.prototype.match
           function match(regexp) {
             var O4 = requireObjectCoercible(this);
-            var matcher = isObject2(regexp) ? getMethod(regexp, MATCH2) : void 0;
+            var matcher = isObject3(regexp) ? getMethod(regexp, MATCH2) : void 0;
             return matcher ? call3(matcher, regexp, O4) : new RegExp(regexp)[MATCH2](toString3(O4));
           },
           // `RegExp.prototype[@@match]` method
@@ -18966,7 +18966,7 @@
       var fails = require_fails();
       var anObject = require_an_object();
       var isCallable = require_is_callable();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var toIntegerOrInfinity = require_to_integer_or_infinity();
       var toLength = require_to_length();
       var toString3 = require_to_string();
@@ -19012,7 +19012,7 @@
           // https://tc39.es/ecma262/#sec-string.prototype.replace
           function replace(searchValue, replaceValue) {
             var O4 = requireObjectCoercible(this);
-            var replacer = isObject2(searchValue) ? getMethod(searchValue, REPLACE) : void 0;
+            var replacer = isObject3(searchValue) ? getMethod(searchValue, REPLACE) : void 0;
             return replacer ? call3(replacer, searchValue, O4, replaceValue) : call3(nativeReplace, toString3(O4), searchValue, replaceValue);
           },
           // `RegExp.prototype[@@replace]` method
@@ -19076,13 +19076,13 @@
   var require_is_regexp = __commonJS({
     "node_modules/core-js/internals/is-regexp.js"(exports2, module2) {
       "use strict";
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var classof = require_classof_raw();
       var wellKnownSymbol = require_well_known_symbol();
       var MATCH2 = wellKnownSymbol("match");
       module2.exports = function(it3) {
         var isRegExp;
-        return isObject2(it3) && ((isRegExp = it3[MATCH2]) !== void 0 ? !!isRegExp : classof(it3) === "RegExp");
+        return isObject3(it3) && ((isRegExp = it3[MATCH2]) !== void 0 ? !!isRegExp : classof(it3) === "RegExp");
       };
     }
   });
@@ -19116,7 +19116,7 @@
           try {
             regexp[MATCH2] = false;
             return "/./"[METHOD_NAME](regexp);
-          } catch (error2) {
+          } catch (error22) {
           }
         }
         return false;
@@ -19162,11 +19162,11 @@
       "use strict";
       var wellKnownSymbol = require_well_known_symbol();
       var create2 = require_object_create();
-      var defineProperty2 = require_object_define_property().f;
+      var defineProperty3 = require_object_define_property().f;
       var UNSCOPABLES = wellKnownSymbol("unscopables");
       var ArrayPrototype = Array.prototype;
       if (ArrayPrototype[UNSCOPABLES] === void 0) {
-        defineProperty2(ArrayPrototype, UNSCOPABLES, {
+        defineProperty3(ArrayPrototype, UNSCOPABLES, {
           configurable: true,
           value: create2(null)
         });
@@ -19221,7 +19221,7 @@
       "use strict";
       var fails = require_fails();
       var isCallable = require_is_callable();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var create2 = require_object_create();
       var getPrototypeOf2 = require_object_get_prototype_of();
       var defineBuiltIn = require_define_built_in();
@@ -19240,7 +19240,7 @@
           if (PrototypeOfArrayIteratorPrototype !== Object.prototype) IteratorPrototype = PrototypeOfArrayIteratorPrototype;
         }
       }
-      var NEW_ITERATOR_PROTOTYPE = !isObject2(IteratorPrototype) || fails(function() {
+      var NEW_ITERATOR_PROTOTYPE = !isObject3(IteratorPrototype) || fails(function() {
         var test = {};
         return IteratorPrototype[ITERATOR].call(test) !== test;
       });
@@ -19403,7 +19403,7 @@
       var addToUnscopables = require_add_to_unscopables();
       var Iterators = require_iterators();
       var InternalStateModule = require_internal_state();
-      var defineProperty2 = require_object_define_property().f;
+      var defineProperty3 = require_object_define_property().f;
       var defineIterator = require_iterator_define();
       var createIterResultObject = require_create_iter_result_object();
       var IS_PURE = require_is_pure();
@@ -19442,8 +19442,8 @@
       addToUnscopables("values");
       addToUnscopables("entries");
       if (!IS_PURE && DESCRIPTORS && values.name !== "values") try {
-        defineProperty2(values, "name", { value: "values" });
-      } catch (error) {
+        defineProperty3(values, "name", { value: "values" });
+      } catch (error3) {
       }
     }
   });
@@ -19516,14 +19516,14 @@
         if (CollectionPrototype) {
           if (CollectionPrototype[ITERATOR] !== ArrayValues) try {
             createNonEnumerableProperty(CollectionPrototype, ITERATOR, ArrayValues);
-          } catch (error) {
+          } catch (error3) {
             CollectionPrototype[ITERATOR] = ArrayValues;
           }
           setToStringTag(CollectionPrototype, COLLECTION_NAME2, true);
           if (DOMIterables[COLLECTION_NAME2]) for (var METHOD_NAME in ArrayIteratorMethods) {
             if (CollectionPrototype[METHOD_NAME] !== ArrayIteratorMethods[METHOD_NAME]) try {
               createNonEnumerableProperty(CollectionPrototype, METHOD_NAME, ArrayIteratorMethods[METHOD_NAME]);
-            } catch (error) {
+            } catch (error3) {
               CollectionPrototype[METHOD_NAME] = ArrayIteratorMethods[METHOD_NAME];
             }
           }
@@ -19706,7 +19706,7 @@
       var uncurryThis = require_function_uncurry_this();
       var fixRegExpWellKnownSymbolLogic = require_fix_regexp_well_known_symbol_logic();
       var anObject = require_an_object();
-      var isObject2 = require_is_object();
+      var isObject3 = require_is_object();
       var requireObjectCoercible = require_require_object_coercible();
       var speciesConstructor = require_species_constructor();
       var advanceStringIndex = require_advance_string_index();
@@ -19744,7 +19744,7 @@
           // https://tc39.es/ecma262/#sec-string.prototype.split
           function split(separator, limit) {
             var O4 = requireObjectCoercible(this);
-            var splitter = isObject2(separator) ? getMethod(separator, SPLIT) : void 0;
+            var splitter = isObject3(separator) ? getMethod(separator, SPLIT) : void 0;
             return splitter ? call3(splitter, separator, O4, limit) : call3(internalSplit, toString3(O4), separator, limit);
           },
           // `RegExp.prototype[@@split]` method
@@ -20226,8 +20226,8 @@
           for (var sc in simple_colors) {
             examples[examples.length] = sc;
           }
-          var xml2 = document.createElement("ul");
-          xml2.setAttribute("id", "rgbcolor-examples");
+          var xml3 = document.createElement("ul");
+          xml3.setAttribute("id", "rgbcolor-examples");
           for (var i4 = 0; i4 < examples.length; i4++) {
             try {
               var list_item = document.createElement("li");
@@ -20240,11 +20240,11 @@
               );
               list_item.appendChild(example_div);
               list_item.appendChild(list_item_value);
-              xml2.appendChild(list_item);
+              xml3.appendChild(list_item);
             } catch (e2) {
             }
           }
-          return xml2;
+          return xml3;
         };
       };
     }
@@ -20298,7 +20298,7 @@
     "node_modules/core-js/internals/is-array.js"(exports2, module2) {
       "use strict";
       var classof = require_classof_raw();
-      module2.exports = Array.isArray || function isArray2(argument) {
+      module2.exports = Array.isArray || function isArray4(argument) {
         return classof(argument) === "Array";
       };
     }
@@ -20310,12 +20310,12 @@
       "use strict";
       var $3 = require_export();
       var uncurryThis = require_function_uncurry_this();
-      var isArray2 = require_is_array();
+      var isArray4 = require_is_array();
       var nativeReverse = uncurryThis([].reverse);
       var test = [1, 2];
       $3({ target: "Array", proto: true, forced: String(test) === String(test.reverse()) }, {
         reverse: function reverse() {
-          if (isArray2(this)) this.length = this.length;
+          if (isArray4(this)) this.length = this.length;
           return nativeReverse(this);
         }
       });
@@ -20560,9 +20560,9 @@
               }, S3 = 0, L3 = s(A4, -d2, 0).map(I3); S3 < L3.length; S3++) {
                 (w3 = L3[S3]) > R3 && w3 < g2 && O5(y(u4.cX, d2, A4, w3));
               }
-              for (var H3 = 0, U2 = s(C3, -E2, 0).map(I3); H3 < U2.length; H3++) {
+              for (var H3 = 0, U3 = s(C3, -E2, 0).map(I3); H3 < U3.length; H3++) {
                 var w3;
-                (w3 = U2[H3]) > R3 && w3 < g2 && l4(y(u4.cY, E2, C3, w3));
+                (w3 = U3[H3]) > R3 && w3 < g2 && l4(y(u4.cY, E2, C3, w3));
               }
             }
             return r3;
@@ -20717,11 +20717,11 @@
       var getRegExpFlags = require_regexp_get_flags();
       var TO_STRING = "toString";
       var RegExpPrototype = RegExp.prototype;
-      var nativeToString = RegExpPrototype[TO_STRING];
+      var nativeToString2 = RegExpPrototype[TO_STRING];
       var NOT_GENERIC = fails(function() {
-        return nativeToString.call({ source: "a", flags: "b" }) !== "/a/b";
+        return nativeToString2.call({ source: "a", flags: "b" }) !== "/a/b";
       });
-      var INCORRECT_NAME = PROPER_FUNCTION_NAME && nativeToString.name !== TO_STRING;
+      var INCORRECT_NAME = PROPER_FUNCTION_NAME && nativeToString2.name !== TO_STRING;
       if (NOT_GENERIC || INCORRECT_NAME) {
         defineBuiltIn(RegExpPrototype, TO_STRING, function toString3() {
           var R3 = anObject(this);
@@ -21101,11 +21101,11 @@
     var matches = (str || "").match(/-?(\d+(?:\.\d*(?:[eE][+-]?\d+)?)?|\.\d+)(?=\D|$)/gm) || [];
     return matches.map(parseFloat);
   }
-  function normalizeAttributeName(name) {
-    if (allUppercase.test(name)) {
-      return name.toLowerCase();
+  function normalizeAttributeName(name2) {
+    if (allUppercase.test(name2)) {
+      return name2.toLowerCase();
     }
-    return name;
+    return name2;
   }
   function parseExternalUrl(url) {
     var urlMatch = /url\(('([^']+)'|"([^"]+)"|([^'")]+))\)/.exec(url) || [];
@@ -21325,8 +21325,8 @@
         image.onload = () => {
           resolve3(image);
         };
-        image.onerror = (_event, _source, _lineno, _colno, error) => {
-          reject(error);
+        image.onerror = (_event, _source, _lineno, _colno, error3) => {
+          reject(error3);
         };
         image.src = src;
       });
@@ -21401,9 +21401,9 @@
       elementRegex = /([^\s+>~.[:]+)/g;
       PSEUDO_ZERO = 1e-8;
       Property = class _Property {
-        constructor(document2, name, value) {
+        constructor(document2, name2, value) {
           this.document = document2;
-          this.name = name;
+          this.name = name2;
           this.value = value;
           this.isNormalizedColor = false;
         }
@@ -21414,9 +21414,9 @@
           var separator = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : " ";
           var {
             document: document2,
-            name
+            name: name2
           } = this;
-          return compressSpaces(this.getString()).trim().split(separator).map((value) => new _Property(document2, name, value));
+          return compressSpaces(this.getString()).trim().split(separator).map((value) => new _Property(document2, name2, value));
         }
         hasValue(zeroIsValue) {
           var {
@@ -21579,14 +21579,14 @@
         }
         getDefinition() {
           var asString = this.getString();
-          var name = /#([^)'"]+)/.exec(asString);
-          if (name) {
-            name = name[1];
+          var name2 = /#([^)'"]+)/.exec(asString);
+          if (name2) {
+            name2 = name2[1];
           }
-          if (!name) {
-            name = asString;
+          if (!name2) {
+            name2 = asString;
           }
-          return this.document.definitions[name];
+          return this.document.definitions[name2];
         }
         getFillStyleDefinition(element, opacity2) {
           var def = this.getDefinition();
@@ -22203,12 +22203,12 @@
             return _this.load(resource);
           })();
         }
-        parseFromString(xml2) {
+        parseFromString(xml3) {
           var parser = new this.DOMParser();
           try {
-            return this.checkDocument(parser.parseFromString(xml2, "image/svg+xml"));
+            return this.checkDocument(parser.parseFromString(xml3, "image/svg+xml"));
           } catch (err2) {
-            return this.checkDocument(parser.parseFromString(xml2, "text/xml"));
+            return this.checkDocument(parser.parseFromString(xml3, "text/xml"));
           }
         }
         checkDocument(document2) {
@@ -22222,8 +22222,8 @@
           var _this2 = this;
           return _asyncToGenerator(function* () {
             var response = yield _this2.fetch(url);
-            var xml2 = yield response.text();
-            return _this2.parseFromString(xml2);
+            var xml3 = yield response.text();
+            return _this2.parseFromString(xml3);
           })();
         }
       };
@@ -22538,8 +22538,8 @@
               if (!style2) {
                 return;
               }
-              var [name, value] = style2.split(":").map((_4) => _4.trim());
-              this.styles[name] = new Property(document2, name, value);
+              var [name2, value] = style2.split(":").map((_4) => _4.trim());
+              this.styles[name2] = new Property(document2, name2, value);
             });
           }
           var {
@@ -22562,12 +22562,12 @@
             }
           });
         }
-        getAttribute(name) {
+        getAttribute(name2) {
           var createIfNotExists = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : false;
-          var attr2 = this.attributes[name];
+          var attr2 = this.attributes[name2];
           if (!attr2 && createIfNotExists) {
-            var _attr = new Property(this.document, name, "");
-            this.attributes[name] = _attr;
+            var _attr = new Property(this.document, name2, "");
+            this.attributes[name2] = _attr;
             return _attr;
           }
           return attr2 || Property.empty(this.document);
@@ -22580,16 +22580,16 @@
           }
           return Property.empty(this.document);
         }
-        getStyle(name) {
+        getStyle(name2) {
           var createIfNotExists = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : false;
           var skipAncestors = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : false;
-          var style2 = this.styles[name];
+          var style2 = this.styles[name2];
           if (style2) {
             return style2;
           }
-          var attr2 = this.getAttribute(name);
+          var attr2 = this.getAttribute(name2);
           if (attr2 !== null && attr2 !== void 0 && attr2.hasValue()) {
-            this.styles[name] = attr2;
+            this.styles[name2] = attr2;
             return attr2;
           }
           if (!skipAncestors) {
@@ -22597,15 +22597,15 @@
               parent
             } = this;
             if (parent) {
-              var parentStyle = parent.getStyle(name);
+              var parentStyle = parent.getStyle(name2);
               if (parentStyle !== null && parentStyle !== void 0 && parentStyle.hasValue()) {
                 return parentStyle;
               }
             }
           }
           if (createIfNotExists) {
-            var _style = new Property(this.document, name, "");
-            this.styles[name] = _style;
+            var _style = new Property(this.document, name2, "");
+            this.styles[name2] = _style;
             return _style;
           }
           return style2 || Property.empty(this.document);
@@ -22622,10 +22622,10 @@
               mask.apply(ctx, this);
             }
           } else if (this.getStyle("filter").getValue("none") !== "none") {
-            var filter2 = this.getStyle("filter").getDefinition();
-            if (filter2) {
+            var filter3 = this.getStyle("filter").getDefinition();
+            if (filter3) {
               this.applyEffects(ctx);
-              filter2.apply(ctx, this);
+              filter3.apply(ctx, this);
             }
           } else {
             this.setContext(ctx);
@@ -22687,14 +22687,14 @@
               var style2 = styles[selector];
               var specificity = stylesSpecificity[selector];
               if (style2) {
-                for (var name in style2) {
-                  var existingSpecificity = this.stylesSpecificity[name];
+                for (var name2 in style2) {
+                  var existingSpecificity = this.stylesSpecificity[name2];
                   if (typeof existingSpecificity === "undefined") {
                     existingSpecificity = "000";
                   }
                   if (specificity >= existingSpecificity) {
-                    this.styles[name] = style2[name];
-                    this.stylesSpecificity[name] = specificity;
+                    this.styles[name2] = style2[name2];
+                    this.stylesSpecificity[name2] = specificity;
                   }
                 }
               }
@@ -22702,21 +22702,21 @@
           }
         }
         removeStyles(element, ignoreStyles) {
-          var toRestore = ignoreStyles.reduce((toRestore2, name) => {
-            var styleProp = element.getStyle(name);
+          var toRestore = ignoreStyles.reduce((toRestore2, name2) => {
+            var styleProp = element.getStyle(name2);
             if (!styleProp.hasValue()) {
               return toRestore2;
             }
             var value = styleProp.getString();
             styleProp.setValue("");
-            return [...toRestore2, [name, value]];
+            return [...toRestore2, [name2, value]];
           }, []);
           return toRestore;
         }
         restoreStyles(element, styles) {
           styles.forEach((_ref2) => {
-            var [name, value] = _ref2;
-            element.getStyle(name, true).setValue(value);
+            var [name2, value] = _ref2;
+            element.getStyle(name2, true).setValue(value);
           });
         }
         isFirstChild() {
@@ -22748,7 +22748,7 @@
           var fontSize = "";
           var fontFamily = "";
           var parts = compressSpaces(font).trim().split(" ");
-          var set = {
+          var set2 = {
             fontSize: false,
             fontStyle: false,
             fontWeight: false,
@@ -22756,35 +22756,35 @@
           };
           parts.forEach((part) => {
             switch (true) {
-              case (!set.fontStyle && _Font.styles.includes(part)):
+              case (!set2.fontStyle && _Font.styles.includes(part)):
                 if (part !== "inherit") {
                   fontStyle = part;
                 }
-                set.fontStyle = true;
+                set2.fontStyle = true;
                 break;
-              case (!set.fontVariant && _Font.variants.includes(part)):
+              case (!set2.fontVariant && _Font.variants.includes(part)):
                 if (part !== "inherit") {
                   fontVariant = part;
                 }
-                set.fontStyle = true;
-                set.fontVariant = true;
+                set2.fontStyle = true;
+                set2.fontVariant = true;
                 break;
-              case (!set.fontWeight && _Font.weights.includes(part)):
+              case (!set2.fontWeight && _Font.weights.includes(part)):
                 if (part !== "inherit") {
                   fontWeight = part;
                 }
-                set.fontStyle = true;
-                set.fontVariant = true;
-                set.fontWeight = true;
+                set2.fontStyle = true;
+                set2.fontVariant = true;
+                set2.fontWeight = true;
                 break;
-              case !set.fontSize:
+              case !set2.fontSize:
                 if (part !== "inherit") {
                   [fontSize] = part.split("/");
                 }
-                set.fontStyle = true;
-                set.fontVariant = true;
-                set.fontWeight = true;
-                set.fontSize = true;
+                set2.fontStyle = true;
+                set2.fontVariant = true;
+                set2.fontWeight = true;
+                set2.fontSize = true;
                 break;
               default:
                 if (part !== "inherit") {
@@ -23980,10 +23980,10 @@
          * @param name - The attribute name.
          * @returns The attribute value or null.
          */
-        getInheritedAttribute(name) {
+        getInheritedAttribute(name2) {
           var current = this;
           while (current instanceof _TextElement && current.isFirstChild()) {
-            var parentAttr = current.parent.getAttribute(name);
+            var parentAttr = current.parent.getAttribute(name2);
             if (parentAttr.hasValue(true)) {
               return parentAttr.getValue("0");
             }
@@ -25661,10 +25661,10 @@
               var props = document2.styles[cssClass] || {};
               cssProps.forEach((cssProp) => {
                 var prop2 = cssProp.indexOf(":");
-                var name = cssProp.substr(0, prop2).trim();
+                var name2 = cssProp.substr(0, prop2).trim();
                 var value = cssProp.substr(prop2 + 1, cssProp.length - prop2).trim();
-                if (name && value) {
-                  props[name] = new Property(document2, name, value);
+                if (name2 && value) {
+                  props[name2] = new Property(document2, name2, value);
                 }
               });
               document2.styles[cssClass] = props;
@@ -25937,16 +25937,16 @@
           if (!boundingBox) {
             return;
           }
-          var px = 0;
+          var px2 = 0;
           var py = 0;
           children2.forEach((child) => {
             var efd = child.extraFilterDistance || 0;
-            px = Math.max(px, efd);
+            px2 = Math.max(px2, efd);
             py = Math.max(py, efd);
           });
           var width2 = Math.floor(boundingBox.width);
           var height2 = Math.floor(boundingBox.height);
-          var tmpCanvasWidth = width2 + 2 * px;
+          var tmpCanvasWidth = width2 + 2 * px2;
           var tmpCanvasHeight = height2 + 2 * py;
           if (tmpCanvasWidth < 1 || tmpCanvasHeight < 1) {
             return;
@@ -25957,14 +25957,14 @@
           var tmpCanvas = document2.createCanvas(tmpCanvasWidth, tmpCanvasHeight);
           var tmpCtx = tmpCanvas.getContext("2d");
           document2.screen.setDefaults(tmpCtx);
-          tmpCtx.translate(-x3 + px, -y3 + py);
+          tmpCtx.translate(-x3 + px2, -y3 + py);
           element.render(tmpCtx);
           children2.forEach((child) => {
             if (typeof child.apply === "function") {
               child.apply(tmpCtx, 0, 0, tmpCanvasWidth, tmpCanvasHeight);
             }
           });
-          ctx.drawImage(tmpCanvas, 0, 0, tmpCanvasWidth, tmpCanvasHeight, x3 - px, y3 - py, tmpCanvasWidth, tmpCanvasHeight);
+          ctx.drawImage(tmpCanvas, 0, 0, tmpCanvasWidth, tmpCanvasHeight, x3 - px2, y3 - py, tmpCanvasWidth, tmpCanvasHeight);
           this.restoreStyles(element, ignoredStyles);
         }
         render(_4) {
@@ -26565,11 +26565,11 @@
     }, z3 = y3.__private__.f3 = function(t3) {
       if (isNaN(t3)) throw new Error("Invalid argument passed to jsPDF.f3");
       return D3(t3, 3);
-    }, U2 = y3.scale = y3.__private__.scale = function(t3) {
+    }, U3 = y3.scale = y3.__private__.scale = function(t3) {
       if (isNaN(t3)) throw new Error("Invalid argument passed to jsPDF.scale");
       return _4 === A4 ? t3 * St3 : _4 === S3 ? t3 : void 0;
     }, H3 = function(t3) {
-      return U2(function(t4) {
+      return U3(function(t4) {
         return _4 === A4 ? Pr() - t4 : _4 === S3 ? t4 : void 0;
       }(t3));
     };
@@ -26909,7 +26909,7 @@
           lt3("/CA " + T4(t3[e3]));
       }
       lt3(">>"), lt3("endobj");
-    }, fe2 = function(t3) {
+    }, fe3 = function(t3) {
       Zt3(t3.resourcesOid, true), lt3("<<"), lt3("/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]"), function() {
         for (var t4 in lt3("/Font <<"), Ft3) Ft3.hasOwnProperty(t4) && (false === v4 || true === v4 && b2.hasOwnProperty(t4)) && lt3("/" + t4 + " " + Ft3[t4].objectNumber + " 0 R");
         lt3(">>");
@@ -26964,7 +26964,7 @@
         case "p":
           i3 > a4 && (s3 = [a4, i3]);
       }
-      me3(s3), Qe2(Ze2), lt3(sr), 0 !== dr && lt3(dr + " J"), 0 !== pr && lt3(pr + " j"), Dt3.publish("addPage", { pageNumber: Et3 });
+      me3(s3), Qe2(Ze2), lt3(sr2), 0 !== dr && lt3(dr + " J"), 0 !== pr && lt3(pr + " j"), Dt3.publish("addPage", { pageNumber: Et3 });
     }, be2 = function(t3) {
       t3 > 0 && t3 <= Et3 && (ot3.splice(t3, 1), Rt3.splice(t3, 1), Et3--, $3 > Et3 && ($3 = Et3), this.setPage($3));
     }, ye3 = function(t3) {
@@ -27041,7 +27041,7 @@
       }(), function(t4) {
         var e4;
         for (e4 in jt3) jt3.hasOwnProperty(e4) && (jt3[e4] instanceof M2 ? ce3(jt3[e4]) : jt3[e4] instanceof q2 && le3(jt3[e4], t4));
-      }(t3), Dt3.publish("putResources"), t3.forEach(fe2), fe2({ resourcesOid: te3, objectOid: Number.MAX_SAFE_INTEGER }), Dt3.publish("postPutResources"), null !== m4 && (Oe2.oid = Xt3(), lt3("<<"), lt3("/Filter /Standard"), lt3("/V " + Oe2.v), lt3("/R " + Oe2.r), lt3("/U <" + Oe2.toHexString(Oe2.U) + ">"), lt3("/O <" + Oe2.toHexString(Oe2.O) + ">"), lt3("/P " + Oe2.P), lt3(">>"), lt3("endobj")), Le3(), xe3();
+      }(t3), Dt3.publish("putResources"), t3.forEach(fe3), fe3({ resourcesOid: te3, objectOid: Number.MAX_SAFE_INTEGER }), Dt3.publish("postPutResources"), null !== m4 && (Oe2.oid = Xt3(), lt3("<<"), lt3("/Filter /Standard"), lt3("/V " + Oe2.v), lt3("/R " + Oe2.r), lt3("/U <" + Oe2.toHexString(Oe2.U) + ">"), lt3("/O <" + Oe2.toHexString(Oe2.O) + ">"), lt3("/P " + Oe2.P), lt3(">>"), lt3("endobj")), Le3(), xe3();
       var e3 = it3;
       return _e3(), Ae3(), lt3("startxref"), lt3("" + e3), lt3("%%EOF"), ct3(ot3[$3]), nt3.join("\n");
     }, ke3 = y3.__private__.getBlob = function(t3) {
@@ -27245,7 +27245,7 @@
         var M3 = Math.cos(u4), q3 = Math.sin(u4);
         p5 = new Wt3(M3, q3, -q3, M3, 0, 0);
       } else u4 && u4 instanceof Wt3 && (p5 = u4);
-      _4 !== S3 || p5 || (p5 = Gt3), void 0 !== (l3 = i3.charSpace || hr) && (y4 += B3(U2(l3)) + " Tc\n", this.setCharSpace(this.getCharSpace() || 0)), void 0 !== (d2 = i3.horizontalScale) && (y4 += B3(100 * d2) + " Tz\n"), i3.lang;
+      _4 !== S3 || p5 || (p5 = Gt3), void 0 !== (l3 = i3.charSpace || hr) && (y4 += B3(U3(l3)) + " Tc\n", this.setCharSpace(this.getCharSpace() || 0)), void 0 !== (d2 = i3.horizontalScale) && (y4 += B3(100 * d2) + " Tz\n"), i3.lang;
       var E2 = -1, D4 = void 0 !== i3.renderingMode ? i3.renderingMode : i3.stroke, T5 = g3.internal.getCurrentPageInfo().pageContext;
       switch (D4) {
         case 0:
@@ -27295,17 +27295,17 @@
         var K4, Z4 = 0;
         if ("right" === c5) {
           r3 -= H4[0], e3 = [], C3 = s4.length;
-          for (var $4 = 0; $4 < C3; $4++) 0 === $4 ? (K4 = nr2(r3), X4 = ir2(n3)) : (K4 = U2(Z4 - H4[$4]), X4 = -W4), e3.push([s4[$4], K4, X4]), Z4 = H4[$4];
+          for (var $4 = 0; $4 < C3; $4++) 0 === $4 ? (K4 = nr2(r3), X4 = ir2(n3)) : (K4 = U3(Z4 - H4[$4]), X4 = -W4), e3.push([s4[$4], K4, X4]), Z4 = H4[$4];
         } else if ("center" === c5) {
           r3 -= H4[0] / 2, e3 = [], C3 = s4.length;
-          for (var Q4 = 0; Q4 < C3; Q4++) 0 === Q4 ? (K4 = nr2(r3), X4 = ir2(n3)) : (K4 = U2((Z4 - H4[Q4]) / 2), X4 = -W4), e3.push([s4[Q4], K4, X4]), Z4 = H4[Q4];
+          for (var Q4 = 0; Q4 < C3; Q4++) 0 === Q4 ? (K4 = nr2(r3), X4 = ir2(n3)) : (K4 = U3((Z4 - H4[Q4]) / 2), X4 = -W4), e3.push([s4[Q4], K4, X4]), Z4 = H4[Q4];
         } else if ("left" === c5) {
           e3 = [], C3 = s4.length;
           for (var tt4 = 0; tt4 < C3; tt4++) e3.push(s4[tt4]);
         } else if ("justify" === c5 && "Identity-H" === G3.encoding) {
           e3 = [], C3 = s4.length, h3 = 0 !== h3 ? h3 : V4;
           for (var et5 = 0, rt4 = 0; rt4 < C3; rt4++) if (X4 = 0 === rt4 ? ir2(n3) : -W4, K4 = 0 === rt4 ? nr2(r3) : et5, rt4 < C3 - 1) {
-            var nt4 = U2((h3 - H4[rt4]) / (s4[rt4].split(" ").length - 1)), it4 = s4[rt4].split(" ");
+            var nt4 = U3((h3 - H4[rt4]) / (s4[rt4].split(" ").length - 1)), it4 = s4[rt4].split(" ");
             e3.push([it4[0] + " ", K4, X4]), et5 = 0;
             for (var at4 = 1; at4 < it4.length; at4++) {
               var ot4 = (J4(it4[at4 - 1] + " " + it4[at4]) - J4(it4[at4])) * N5 + nt4;
@@ -27318,7 +27318,7 @@
           for (e3 = [], C3 = s4.length, h3 = 0 !== h3 ? h3 : V4, rt4 = 0; rt4 < C3; rt4++) {
             X4 = 0 === rt4 ? ir2(n3) : -W4, K4 = 0 === rt4 ? nr2(r3) : 0;
             var st4 = s4[rt4].split(" ").length - 1, ut4 = st4 > 0 ? (h3 - H4[rt4]) / st4 : 0;
-            rt4 < C3 - 1 ? Y4.push(B3(U2(ut4))) : Y4.push(0), e3.push([s4[rt4], K4, X4]);
+            rt4 < C3 - 1 ? Y4.push(B3(U3(ut4))) : Y4.push(0), e3.push([s4[rt4], K4, X4]);
           }
         }
       }
@@ -27429,11 +27429,11 @@
           return "W* S";
       }
     }, Ge2 = y3.moveTo = function(t3, e3) {
-      return lt3(B3(U2(t3)) + " " + B3(H3(e3)) + " m"), this;
+      return lt3(B3(U3(t3)) + " " + B3(H3(e3)) + " m"), this;
     }, Ye2 = y3.lineTo = function(t3, e3) {
-      return lt3(B3(U2(t3)) + " " + B3(H3(e3)) + " l"), this;
+      return lt3(B3(U3(t3)) + " " + B3(H3(e3)) + " l"), this;
     }, Je2 = y3.curveTo = function(t3, e3, r3, n3, i3, a4) {
-      return lt3([B3(U2(t3)), B3(H3(e3)), B3(U2(r3)), B3(H3(n3)), B3(U2(i3)), B3(H3(a4)), "c"].join(" ")), this;
+      return lt3([B3(U3(t3)), B3(H3(e3)), B3(U3(r3)), B3(H3(n3)), B3(U3(i3)), B3(H3(a4)), "c"].join(" ")), this;
     };
     y3.__private__.line = y3.line = function(t3, e3, r3, n3, i3) {
       if (isNaN(t3) || isNaN(e3) || isNaN(r3) || isNaN(n3) || !Re2(i3)) throw new Error("Invalid arguments passed to jsPDF.line");
@@ -27463,7 +27463,7 @@
       return this;
     }, y3.__private__.rect = y3.rect = function(t3, e3, r3, n3, i3) {
       if (isNaN(t3) || isNaN(e3) || isNaN(r3) || isNaN(n3) || !Re2(i3)) throw new Error("Invalid arguments passed to jsPDF.rect");
-      return _4 === A4 && (n3 = -n3), lt3([B3(U2(t3)), B3(H3(e3)), B3(U2(r3)), B3(U2(n3)), "re"].join(" ")), Ue2(i3), this;
+      return _4 === A4 && (n3 = -n3), lt3([B3(U3(t3)), B3(H3(e3)), B3(U3(r3)), B3(U3(n3)), "re"].join(" ")), Ue2(i3), this;
     }, y3.__private__.triangle = y3.triangle = function(t3, e3, r3, n3, i3, a4, o3) {
       if (isNaN(t3) || isNaN(e3) || isNaN(r3) || isNaN(n3) || isNaN(i3) || isNaN(a4) || !Re2(o3)) throw new Error("Invalid arguments passed to jsPDF.triangle");
       return this.lines([[r3 - t3, n3 - e3], [i3 - r3, a4 - n3], [t3 - i3, e3 - a4]], t3, e3, [1, 1], o3, true), this;
@@ -27495,13 +27495,13 @@
     var Ke2, Ze2 = e2.lineWidth || 0.200025, $e2 = y3.__private__.getLineWidth = y3.getLineWidth = function() {
       return Ze2;
     }, Qe2 = y3.__private__.setLineWidth = y3.setLineWidth = function(t3) {
-      return Ze2 = t3, lt3(B3(U2(t3)) + " w"), this;
+      return Ze2 = t3, lt3(B3(U3(t3)) + " w"), this;
     };
     y3.__private__.setLineDash = E.API.setLineDash = E.API.setLineDashPattern = function(t3, e3) {
       if (t3 = t3 || [], e3 = e3 || 0, isNaN(e3) || !Array.isArray(t3)) throw new Error("Invalid arguments passed to jsPDF.setLineDash");
       return t3 = t3.map(function(t4) {
-        return B3(U2(t4));
-      }).join(" "), e3 = B3(U2(e3)), lt3("[" + t3 + "] " + e3 + " d"), this;
+        return B3(U3(t4));
+      }).join(" "), e3 = B3(U3(e3)), lt3("[" + t3 + "] " + e3 + " d"), this;
     };
     var tr2 = y3.__private__.getLineHeight = y3.getLineHeight = function() {
       return pt2 * Ke2;
@@ -27516,18 +27516,18 @@
     };
     er3(e2.lineHeight);
     var nr2 = y3.__private__.getHorizontalCoordinate = function(t3) {
-      return U2(t3);
+      return U3(t3);
     }, ir2 = y3.__private__.getVerticalCoordinate = function(t3) {
-      return _4 === S3 ? t3 : Rt3[$3].mediaBox.topRightY - Rt3[$3].mediaBox.bottomLeftY - U2(t3);
+      return _4 === S3 ? t3 : Rt3[$3].mediaBox.topRightY - Rt3[$3].mediaBox.bottomLeftY - U3(t3);
     }, ar = y3.__private__.getHorizontalCoordinateString = y3.getHorizontalCoordinateString = function(t3) {
       return B3(nr2(t3));
     }, or2 = y3.__private__.getVerticalCoordinateString = y3.getVerticalCoordinateString = function(t3) {
       return B3(ir2(t3));
-    }, sr = e2.strokeColor || "0 G";
+    }, sr2 = e2.strokeColor || "0 G";
     y3.__private__.getStrokeColor = y3.getDrawColor = function() {
-      return ee3(sr);
+      return ee3(sr2);
     }, y3.__private__.setStrokeColor = y3.setDrawColor = function(t3, e3, r3, n3) {
-      return sr = re3({ ch1: t3, ch2: e3, ch3: r3, ch4: n3, pdfColorType: "draw", precision: 2 }), lt3(sr), this;
+      return sr2 = re3({ ch1: t3, ch2: e3, ch3: r3, ch4: n3, pdfColorType: "draw", precision: 2 }), lt3(sr2), this;
     };
     var ur = e2.fillColor || "0 g";
     y3.__private__.getFillColor = y3.getFillColor = function() {
@@ -27561,7 +27561,7 @@
       return pr = e3, lt3(e3 + " j"), this;
     }, y3.__private__.setLineMiterLimit = y3.__private__.setMiterLimit = y3.setLineMiterLimit = y3.setMiterLimit = function(t3) {
       if (t3 = t3 || 0, isNaN(t3)) throw new Error("Invalid argument passed to jsPDF.setLineMiterLimit");
-      return lt3(B3(U2(t3)) + " M"), this;
+      return lt3(B3(U3(t3)) + " M"), this;
     }, y3.GState = O3, y3.setGState = function(t3) {
       (t3 = "string" == typeof t3 ? Bt3[Mt3[t3]] : gr(null, t3)).equals(qt3) || (lt3("/" + t3.id + " gs"), qt3 = t3);
     };
@@ -28000,10 +28000,10 @@
         }
         for (f4 = 0, l5 = 0; l5 < 8; ++l5) {
           r4 = t5[f4], n4 = t5[f4 + 8], i5 = t5[f4 + 16], a5 = t5[f4 + 24], o5 = t5[f4 + 32], s5 = t5[f4 + 40], u5 = t5[f4 + 48];
-          var O5 = r4 + (c6 = t5[f4 + 56]), B4 = r4 - c6, M4 = n4 + u5, q4 = n4 - u5, E3 = i5 + s5, R3 = i5 - s5, D3 = a5 + o5, T4 = a5 - o5, z3 = O5 + D3, U2 = O5 - D3, H3 = M4 + E3, W3 = M4 - E3;
+          var O5 = r4 + (c6 = t5[f4 + 56]), B4 = r4 - c6, M4 = n4 + u5, q4 = n4 - u5, E3 = i5 + s5, R3 = i5 - s5, D3 = a5 + o5, T4 = a5 - o5, z3 = O5 + D3, U3 = O5 - D3, H3 = M4 + E3, W3 = M4 - E3;
           t5[f4] = z3 + H3, t5[f4 + 32] = z3 - H3;
-          var V3 = 0.707106781 * (W3 + U2);
-          t5[f4 + 16] = U2 + V3, t5[f4 + 48] = U2 - V3;
+          var V3 = 0.707106781 * (W3 + U3);
+          t5[f4 + 16] = U3 + V3, t5[f4 + 48] = U3 - V3;
           var G2 = 0.382683433 * ((z3 = T4 + R3) - (W3 = q4 + B4)), Y3 = 0.5411961 * z3 + G2, J3 = 1.306562965 * W3 + G2, X3 = 0.707106781 * (H3 = R3 + q4), K3 = B4 + X3, Z3 = B4 - X3;
           t5[f4 + 40] = Z3 + Y3, t5[f4 + 24] = Z3 - Y3, t5[f4 + 8] = K3 + J3, t5[f4 + 56] = K3 - J3, f4++;
         }
@@ -28063,9 +28063,9 @@
       }(), M3(65498), M3(12), B3(3), B3(1), B3(0), B3(2), B3(17), B3(3), B3(17), B3(0), B3(63), B3(0);
       var o4 = 0, h4 = 0, f4 = 0;
       m4 = 0, v4 = 7, this.encode.displayName = "_encode_";
-      for (var d3, p5, N5, x4, j4, R3, D3, T4, z3, U2 = t4.data, H3 = t4.width, W3 = t4.height, V3 = 4 * H3, G2 = 0; G2 < W3; ) {
+      for (var d3, p5, N5, x4, j4, R3, D3, T4, z3, U3 = t4.data, H3 = t4.width, W3 = t4.height, V3 = 4 * H3, G2 = 0; G2 < W3; ) {
         for (d3 = 0; d3 < V3; ) {
-          for (j4 = V3 * G2 + d3, D3 = -1, T4 = 0, z3 = 0; z3 < 64; z3++) R3 = j4 + (T4 = z3 >> 3) * V3 + (D3 = 4 * (7 & z3)), G2 + T4 >= W3 && (R3 -= V3 * (G2 + 1 + T4 - W3)), d3 + D3 >= V3 && (R3 -= d3 + D3 - V3 + 4), p5 = U2[R3++], N5 = U2[R3++], x4 = U2[R3++], b2[z3] = (L3[p5] + L3[N5 + 256 | 0] + L3[x4 + 512 | 0] >> 16) - 128, y3[z3] = (L3[p5 + 768 | 0] + L3[N5 + 1024 | 0] + L3[x4 + 1280 | 0] >> 16) - 128, w3[z3] = (L3[p5 + 1280 | 0] + L3[N5 + 1536 | 0] + L3[x4 + 1792 | 0] >> 16) - 128;
+          for (j4 = V3 * G2 + d3, D3 = -1, T4 = 0, z3 = 0; z3 < 64; z3++) R3 = j4 + (T4 = z3 >> 3) * V3 + (D3 = 4 * (7 & z3)), G2 + T4 >= W3 && (R3 -= V3 * (G2 + 1 + T4 - W3)), d3 + D3 >= V3 && (R3 -= d3 + D3 - V3 + 4), p5 = U3[R3++], N5 = U3[R3++], x4 = U3[R3++], b2[z3] = (L3[p5] + L3[N5 + 256 | 0] + L3[x4 + 512 | 0] >> 16) - 128, y3[z3] = (L3[p5 + 768 | 0] + L3[N5 + 1024 | 0] + L3[x4 + 1280 | 0] >> 16) - 128, w3[z3] = (L3[p5 + 1280 | 0] + L3[N5 + 1536 | 0] + L3[x4 + 1792 | 0] >> 16) - 128;
           o4 = q3(b2, c4, o4, e2, n2), h4 = q3(y3, l3, h4, r2, i3), f4 = q3(w3, l3, f4, r2, i3), d3 += 32;
         }
         G2 += 8;
@@ -28279,11 +28279,11 @@
       function z3(t5, e3) {
         return ((4278124286 & (t5 ^ e3)) >>> 1) + (t5 & e3) >>> 0;
       }
-      function U2(t5) {
+      function U3(t5) {
         return 0 <= t5 && 256 > t5 ? t5 : 0 > t5 ? 0 : 255 < t5 ? 255 : void 0;
       }
       function H3(t5, e3) {
-        return U2(t5 + (t5 - e3 + 0.5 >> 1));
+        return U3(t5 + (t5 - e3 + 0.5 >> 1));
       }
       function W3(t5, e3, r3) {
         return Math.abs(e3 - r3) - Math.abs(t5 - r3);
@@ -28643,8 +28643,8 @@
                     var B4, M4 = C4, q4 = k4, D4 = 1 << (8 >> q4.b), T5 = a3(D4);
                     if (null == T5) I4 = 0;
                     else {
-                      var z4 = q4.K[0], U3 = q4.w;
-                      for (T5[0] = q4.K[0][0], B4 = 1; B4 < 1 * M4; ++B4) T5[B4] = R3(z4[U3 + B4], T5[B4 - 1]);
+                      var z4 = q4.K[0], U4 = q4.w;
+                      for (T5[0] = q4.K[0][0], B4 = 1; B4 < 1 * M4; ++B4) T5[B4] = R3(z4[U4 + B4], T5[B4 - 1]);
                       for (; B4 < 4 * D4; ++B4) T5[B4] = 0;
                       q4.K[0] = null, q4.K[0] = T5, I4 = 1;
                     }
@@ -28742,8 +28742,8 @@
                 if (mt4.nd = Nt4, mt4.Qb = 0, Nt4 && (mt4.qb = (vt4[3][bt4[3] + 0].value << 24 | vt4[1][bt4[1] + 0].value << 16 | vt4[2][bt4[2] + 0].value) >>> 0, 0 == wt4 && 256 > vt4[0][bt4[0] + 0].value && (mt4.Qb = 1, mt4.qb += vt4[0][bt4[0] + 0].value << 8)), mt4.jc = !mt4.Qb && 6 > Lt4, mt4.jc) {
                   var ue4, ce4 = mt4;
                   for (ue4 = 0; ue4 < Er; ++ue4) {
-                    var le4 = ue4, he4 = ce4.pd[le4], fe3 = ce4.G[0][ce4.H[0] + le4];
-                    256 <= fe3.value ? (he4.g = fe3.g + 256, he4.value = fe3.value) : (he4.g = 0, he4.value = 0, le4 >>= yt3(fe3, 8, he4), le4 >>= yt3(ce4.G[1][ce4.H[1] + le4], 16, he4), le4 >>= yt3(ce4.G[2][ce4.H[2] + le4], 0, he4), yt3(ce4.G[3][ce4.H[3] + le4], 24, he4));
+                    var le4 = ue4, he4 = ce4.pd[le4], fe4 = ce4.G[0][ce4.H[0] + le4];
+                    256 <= fe4.value ? (he4.g = fe4.g + 256, he4.value = fe4.value) : (he4.g = 0, he4.value = 0, le4 >>= yt3(fe4, 8, he4), le4 >>= yt3(ce4.G[1][ce4.H[1] + le4], 16, he4), le4 >>= yt3(ce4.G[2][ce4.H[2] + le4], 0, he4), yt3(ce4.G[3][ce4.H[3] + le4], 24, he4));
                   }
                 }
               }
@@ -28991,7 +28991,7 @@
       function he3(t5, e3) {
         ce3(t5, e3, 8);
       }
-      function fe2(t5, e3) {
+      function fe3(t5, e3) {
         ce3(t5, e3, 16);
       }
       function de3(t5, e3) {
@@ -29189,16 +29189,16 @@
       function or2() {
         this.Lc = this.Z = this.$a = this.i = this.c = 0, this.l = new Gt3(), this.ic = 0, this.ca = [], this.tb = 0, this.qd = null, this.rd = 0;
       }
-      function sr(t5, e3, r3, n3, i4, a4, o4) {
+      function sr2(t5, e3, r3, n3, i4, a4, o4) {
         for (t5 = null == t5 ? 0 : t5[e3 + 0], e3 = 0; e3 < o4; ++e3) i4[a4 + e3] = t5 + r3[n3 + e3] & 255, t5 = i4[a4 + e3];
       }
       function ur(t5, e3, r3, n3, i4, a4, o4) {
         var s4;
-        if (null == t5) sr(null, null, r3, n3, i4, a4, o4);
+        if (null == t5) sr2(null, null, r3, n3, i4, a4, o4);
         else for (s4 = 0; s4 < o4; ++s4) i4[a4 + s4] = t5[e3 + s4] + r3[n3 + s4] & 255;
       }
       function cr(t5, e3, r3, n3, i4, a4, o4) {
-        if (null == t5) sr(null, null, r3, n3, i4, a4, o4);
+        if (null == t5) sr2(null, null, r3, n3, i4, a4, o4);
         else {
           var s4, u5 = t5[e3 + 0], c6 = u5, l5 = u5;
           for (s4 = 0; s4 < o4; ++s4) c6 = l5 + (u5 = t5[e3 + s4]) - c6, l5 = r3[n3 + s4] + (-256 & c6 ? 0 > c6 ? 0 : 255 : c6) & 255, c6 = u5, i4[a4 + s4] = l5;
@@ -29213,7 +29213,7 @@
             if (t5.ga = new or2(), (c6 = null == t5.ga) || (c6 = r3.width * r3.o, e2(0 == t5.Gb.length), t5.Gb = a3(c6), t5.Uc = 0, null == t5.Gb ? c6 = 0 : (t5.mb = t5.Gb, t5.nb = t5.Uc, t5.rc = null, c6 = 1), c6 = !c6), !c6) {
               c6 = t5.ga;
               var l5 = t5.Fa, h5 = t5.P, f5 = t5.qc, d4 = t5.mb, p6 = t5.nb, g4 = h5 + 1, m6 = f5 - 1, b4 = c6.l;
-              if (e2(null != l5 && null != d4 && null != r3), gi[0] = null, gi[1] = sr, gi[2] = ur, gi[3] = cr, c6.ca = d4, c6.tb = p6, c6.c = r3.width, c6.i = r3.height, e2(0 < c6.c && 0 < c6.i), 1 >= f5) r3 = 0;
+              if (e2(null != l5 && null != d4 && null != r3), gi[0] = null, gi[1] = sr2, gi[2] = ur, gi[3] = cr, c6.ca = d4, c6.tb = p6, c6.c = r3.width, c6.i = r3.height, e2(0 < c6.c && 0 < c6.i), 1 >= f5) r3 = 0;
               else if (c6.$a = 3 & l5[h5 + 0], c6.Z = l5[h5 + 0] >> 2 & 3, c6.Lc = l5[h5 + 0] >> 4 & 3, h5 = l5[h5 + 0] >> 6 & 3, 0 > c6.$a || 1 < c6.$a || 4 <= c6.Z || 1 < c6.Lc || h5) r3 = 0;
               else if (b4.put = dt3, b4.ac = ft3, b4.bc = pt2, b4.ma = c6, b4.width = r3.width, b4.height = r3.height, b4.Da = r3.Da, b4.v = r3.v, b4.va = r3.va, b4.j = r3.j, b4.o = r3.o, c6.$a) t: {
                 e2(1 == c6.$a), r3 = kt3();
@@ -29631,7 +29631,7 @@
         return 0 >= W3(n3 >> 24 & 255, t5 >> 24 & 255, (e3 = e3[r3 - 1]) >> 24 & 255) + W3(n3 >> 16 & 255, t5 >> 16 & 255, e3 >> 16 & 255) + W3(n3 >> 8 & 255, t5 >> 8 & 255, e3 >> 8 & 255) + W3(255 & n3, 255 & t5, 255 & e3) ? n3 : t5;
       }, t4.Predictor12 = function(t5, e3, r3) {
         var n3 = e3[r3 + 0];
-        return (U2((t5 >> 24 & 255) + (n3 >> 24 & 255) - ((e3 = e3[r3 - 1]) >> 24 & 255)) << 24 | U2((t5 >> 16 & 255) + (n3 >> 16 & 255) - (e3 >> 16 & 255)) << 16 | U2((t5 >> 8 & 255) + (n3 >> 8 & 255) - (e3 >> 8 & 255)) << 8 | U2((255 & t5) + (255 & n3) - (255 & e3))) >>> 0;
+        return (U3((t5 >> 24 & 255) + (n3 >> 24 & 255) - ((e3 = e3[r3 - 1]) >> 24 & 255)) << 24 | U3((t5 >> 16 & 255) + (n3 >> 16 & 255) - (e3 >> 16 & 255)) << 16 | U3((t5 >> 8 & 255) + (n3 >> 8 & 255) - (e3 >> 8 & 255)) << 8 | U3((255 & t5) + (255 & n3) - (255 & e3))) >>> 0;
       }, t4.Predictor13 = function(t5, e3, r3) {
         var n3 = e3[r3 - 1];
         return (H3((t5 = z3(t5, e3[r3 + 0])) >> 24 & 255, n3 >> 24 & 255) << 24 | H3(t5 >> 16 & 255, n3 >> 16 & 255) << 16 | H3(t5 >> 8 & 255, n3 >> 8 & 255) << 8 | H3(255 & t5, 255 & n3)) >>> 0;
@@ -29782,7 +29782,7 @@
                               for (s5 = -255; 510 >= s5; ++s5) Fn2[255 + s5] = 0 > s5 ? 0 : 255 < s5 ? 255 : s5;
                               In2 = 1;
                             }
-                            nn2 = ue3, an2 = ie3, sn2 = ae3, un2 = oe3, cn2 = se3, on2 = ne3, ln3 = Ye2, hn2 = Je2, fn2 = Ze2, dn2 = $e2, pn2 = Xe2, gn2 = Ke2, mn2 = Qe2, vn2 = tr2, bn2 = ze2, yn2 = Ue2, wn2 = He2, Nn2 = We2, hi[0] = xe3, hi[1] = le3, hi[2] = Ne3, hi[3] = Le3, hi[4] = Ae3, hi[5] = _e3, hi[6] = Se3, hi[7] = Pe3, hi[8] = Fe3, hi[9] = ke3, li[0] = me3, li[1] = fe2, li[2] = de3, li[3] = pe3, li[4] = ve3, li[5] = be2, li[6] = ye3, fi[0] = Oe2, fi[1] = he3, fi[2] = Ie3, fi[3] = Ce3, fi[4] = Me2, fi[5] = Be2, fi[6] = qe2, s5 = 1;
+                            nn2 = ue3, an2 = ie3, sn2 = ae3, un2 = oe3, cn2 = se3, on2 = ne3, ln3 = Ye2, hn2 = Je2, fn2 = Ze2, dn2 = $e2, pn2 = Xe2, gn2 = Ke2, mn2 = Qe2, vn2 = tr2, bn2 = ze2, yn2 = Ue2, wn2 = He2, Nn2 = We2, hi[0] = xe3, hi[1] = le3, hi[2] = Ne3, hi[3] = Le3, hi[4] = Ae3, hi[5] = _e3, hi[6] = Se3, hi[7] = Pe3, hi[8] = Fe3, hi[9] = ke3, li[0] = me3, li[1] = fe3, li[2] = de3, li[3] = pe3, li[4] = ve3, li[5] = be2, li[6] = ye3, fi[0] = Oe2, fi[1] = he3, fi[2] = Ie3, fi[3] = Ce3, fi[4] = Me2, fi[5] = Be2, fi[6] = qe2, s5 = 1;
                           } else s5 = 0;
                         }
                         s5 && (s5 = function(t7, r5) {
@@ -29953,7 +29953,7 @@
   function le2() {
     this.internal.__metadata__.metadataObjectNumber && this.internal.write("/Metadata " + this.internal.__metadata__.metadataObjectNumber + " 0 R");
   }
-  var i2, o2, l2, f2, d, L2, _3, F2, R2, D2, T3, z2, U, H2, W2, V2, G, Y2, J2, X2, K2, Z2, $2, Q2, tt2, et3, rt2, nt2, it2, at2, ot2, st2, ut2, ct2, lt2, ht, ft2, dt2, pt, gt2, mt2, vt2, bt2, yt2, wt2, Nt2, Lt2, xt2, At2, St2, _t2, kt2, Ft2, It2, Ct2, jt2, Mt2, qt2, zt2, Ut2, Ht2, Wt2, Vt2, Gt2, he2, fe, de2, pe2, ge2, me2, ve2, be, ye2, we2, Ne2, Le2, xe2, Ae2, Se2, _e2, Pe2, ke2, Fe2, Ie2, Ce2;
+  var i2, o2, l2, f2, d, L2, _3, F2, R2, D2, T3, z2, U2, H2, W2, V2, G, Y2, J2, X2, K2, Z2, $2, Q2, tt2, et3, rt2, nt2, it2, at2, ot2, st2, ut2, ct2, lt2, ht, ft2, dt2, pt, gt2, mt2, vt2, bt2, yt2, wt2, Nt2, Lt2, xt2, At2, St2, _t2, kt2, Ft2, It2, Ct2, jt2, Mt2, qt2, zt2, Ut2, Ht2, Wt2, Vt2, Gt2, he2, fe2, de2, pe2, ge2, me2, ve2, be, ye2, we2, Ne2, Le2, xe2, Ae2, Se2, _e2, Pe2, ke2, Fe2, Ie2, Ce2;
   var init_jspdf_es_min = __esm({
     "node_modules/jspdf/dist/jspdf.es.min.js"() {
       init_typeof();
@@ -30047,7 +30047,7 @@
       z2 = function(t3) {
         return t3.replace(/\\\\/g, "\\").replace(/\\\(/g, "(").replace(/\\\)/g, ")");
       };
-      U = function(t3) {
+      U2 = function(t3) {
         return t3.toString().replace(/#/g, "#23").replace(/[\s\n\r()<>[\]{}\/%]/g, function(t4) {
           var e2 = t4.charCodeAt(0).toString(16).toUpperCase();
           return "#" + (1 === e2.length ? "0" + e2 : e2);
@@ -30263,7 +30263,7 @@
               a3 += e2[o3].toString();
               break;
             case "string":
-              "/" === e2[o3].substr(0, 1) ? a3 += "/" + U(e2[o3].substr(1)) : (void 0 !== r2 && n2 && (i3 = n2.internal.getEncryptor(r2)), a3 += "(" + T3(i3(e2[o3].toString())) + ")");
+              "/" === e2[o3].substr(0, 1) ? a3 += "/" + U2(e2[o3].substr(1)) : (void 0 !== r2 && n2 && (i3 = n2.internal.getEncryptor(r2)), a3 += "(" + T3(i3(e2[o3].toString())) + ")");
           }
           return a3 + "]";
         }
@@ -30452,7 +30452,7 @@
         } }), Object.defineProperty(this, "defaultValue", { enumerable: true, configurable: true, get: function() {
           return this instanceof vt2 == 1 ? z2(f3.substr(1, f3.length - 1)) : f3;
         }, set: function(t3) {
-          t3 = t3.toString(), f3 = this instanceof vt2 == 1 ? "/" + U(t3) : t3;
+          t3 = t3.toString(), f3 = this instanceof vt2 == 1 ? "/" + U2(t3) : t3;
         } });
         var d2 = null;
         Object.defineProperty(this, "_V", { enumerable: false, configurable: false, get: function() {
@@ -30466,7 +30466,7 @@
         } }), Object.defineProperty(this, "value", { enumerable: true, configurable: true, get: function() {
           return this instanceof vt2 == 1 ? z2(d2.substr(1, d2.length - 1)) : d2;
         }, set: function(t3) {
-          t3 = t3.toString(), d2 = this instanceof vt2 == 1 ? "/" + U(t3) : t3;
+          t3 = t3.toString(), d2 = this instanceof vt2 == 1 ? "/" + U2(t3) : t3;
         } }), Object.defineProperty(this, "hasAnnotation", { enumerable: true, configurable: true, get: function() {
           return this.Rect;
         } }), Object.defineProperty(this, "Type", { enumerable: true, configurable: false, get: function() {
@@ -30639,11 +30639,11 @@
           return e2;
         }, set: function(t3) {
           var r3 = null == t3 ? "" : t3.toString();
-          "/" === r3.substr(0, 1) && (r3 = r3.substr(1)), e2 = "/" + U(r3);
+          "/" === r3.substr(0, 1) && (r3 = r3.substr(1)), e2 = "/" + U2(r3);
         } }), Object.defineProperty(this, "appearanceState", { enumerable: true, configurable: true, get: function() {
           return e2.substr(1, e2.length - 1);
         }, set: function(t3) {
-          e2 = "/" + U(t3);
+          e2 = "/" + U2(t3);
         } });
       };
       V2(vt2, ft2);
@@ -30691,12 +30691,12 @@
           return n2;
         }, set: function(t3) {
           var e3 = null == t3 ? "" : t3.toString();
-          "/" === e3.substr(0, 1) && (e3 = e3.substr(1)), n2 = "/" + U(e3);
+          "/" === e3.substr(0, 1) && (e3 = e3.substr(1)), n2 = "/" + U2(e3);
         } }), Object.defineProperty(this, "appearanceState", { enumerable: true, configurable: true, get: function() {
           return n2.substr(1, n2.length - 1);
         }, set: function(t3) {
           var e3 = null == t3 ? "" : t3.toString();
-          "/" === e3.substr(0, 1) && (e3 = e3.substr(1)), n2 = "/" + U(e3);
+          "/" === e3.substr(0, 1) && (e3 = e3.substr(1)), n2 = "/" + U2(e3);
         } }), this.caption = "l", this.appearanceState = "Off", this._AppearanceType = At2.RadioButton.Circle, this.appearanceStreamContent = this._AppearanceType.createAppearanceStream(this.optionName);
       };
       V2(wt2, ft2), yt2.prototype.setAppearance = function(t3) {
@@ -33132,7 +33132,7 @@
       }(E), E.API.TTFFont = function() {
         function t3(t4) {
           var e2;
-          if (this.rawData = t4, e2 = this.contents = new fe(t4), this.contents.pos = 4, "ttcf" === e2.readString(4)) throw new Error("TTCF not supported.");
+          if (this.rawData = t4, e2 = this.contents = new fe2(t4), this.contents.pos = 4, "ttcf" === e2.readString(4)) throw new Error("TTCF not supported.");
           e2.pos = 0, this.parse(), this.subset = new Ce2(this), this.registerTTF();
         }
         return t3.open = function(e2) {
@@ -33161,7 +33161,7 @@
           return null == e2 && (e2 = false), r2 = e2 ? this.lineGap : 0, (this.ascender + r2 - this.decender) / 1e3 * t4;
         }, t3;
       }();
-      fe = function() {
+      fe2 = function() {
         function t3(t4) {
           this.data = null != t4 ? t4 : [], this.pos = 0, this.length = this.data.length;
         }
@@ -33227,12 +33227,12 @@
         }
         return e2.prototype.encode = function(e3) {
           var r2, n2, i3, a3, o3, s3, u3, c4, l3, h3, f3, d2, p4;
-          for (p4 in f3 = Object.keys(e3).length, s3 = Math.log(2), l3 = 16 * Math.floor(Math.log(f3) / s3), a3 = Math.floor(l3 / s3), c4 = 16 * f3 - l3, (n2 = new fe()).writeInt(this.scalarType), n2.writeShort(f3), n2.writeShort(l3), n2.writeShort(a3), n2.writeShort(c4), i3 = 16 * f3, u3 = n2.pos + i3, o3 = null, d2 = [], e3) for (h3 = e3[p4], n2.writeString(p4), n2.writeInt(t3(h3)), n2.writeInt(u3), n2.writeInt(h3.length), d2 = d2.concat(h3), "head" === p4 && (o3 = u3), u3 += h3.length; u3 % 4; ) d2.push(0), u3++;
+          for (p4 in f3 = Object.keys(e3).length, s3 = Math.log(2), l3 = 16 * Math.floor(Math.log(f3) / s3), a3 = Math.floor(l3 / s3), c4 = 16 * f3 - l3, (n2 = new fe2()).writeInt(this.scalarType), n2.writeShort(f3), n2.writeShort(l3), n2.writeShort(a3), n2.writeShort(c4), i3 = 16 * f3, u3 = n2.pos + i3, o3 = null, d2 = [], e3) for (h3 = e3[p4], n2.writeString(p4), n2.writeInt(t3(h3)), n2.writeInt(u3), n2.writeInt(h3.length), d2 = d2.concat(h3), "head" === p4 && (o3 = u3), u3 += h3.length; u3 % 4; ) d2.push(0), u3++;
           return n2.write(d2), r2 = 2981146554 - t3(n2.data), n2.pos = o3 + 8, n2.writeUInt32(r2), n2.data;
         }, t3 = function(t4) {
           var e3, r2, n2, i3;
           for (t4 = _e2.call(t4); t4.length % 4; ) t4.push(0);
-          for (n2 = new fe(t4), r2 = 0, e3 = 0, i3 = t4.length; e3 < i3; e3 = e3 += 4) r2 += n2.readUInt32();
+          for (n2 = new fe2(t4), r2 = 0, e3 = 0, i3 = t4.length; e3 < i3; e3 = e3 += 4) r2 += n2.readUInt32();
           return 4294967295 & r2;
         }, e2;
       }();
@@ -33263,7 +33263,7 @@
           return t4.pos = this.offset, this.version = t4.readInt(), this.revision = t4.readInt(), this.checkSumAdjustment = t4.readInt(), this.magicNumber = t4.readInt(), this.flags = t4.readShort(), this.unitsPerEm = t4.readShort(), this.created = t4.readLongLong(), this.modified = t4.readLongLong(), this.xMin = t4.readShort(), this.yMin = t4.readShort(), this.xMax = t4.readShort(), this.yMax = t4.readShort(), this.macStyle = t4.readShort(), this.lowestRecPPEM = t4.readShort(), this.fontDirectionHint = t4.readShort(), this.indexToLocFormat = t4.readShort(), this.glyphDataFormat = t4.readShort();
         }, t3.prototype.encode = function(t4) {
           var e2;
-          return (e2 = new fe()).writeInt(this.version), e2.writeInt(this.revision), e2.writeInt(this.checkSumAdjustment), e2.writeInt(this.magicNumber), e2.writeShort(this.flags), e2.writeShort(this.unitsPerEm), e2.writeLongLong(this.created), e2.writeLongLong(this.modified), e2.writeShort(this.xMin), e2.writeShort(this.yMin), e2.writeShort(this.xMax), e2.writeShort(this.yMax), e2.writeShort(this.macStyle), e2.writeShort(this.lowestRecPPEM), e2.writeShort(this.fontDirectionHint), e2.writeShort(t4), e2.writeShort(this.glyphDataFormat), e2.data;
+          return (e2 = new fe2()).writeInt(this.version), e2.writeInt(this.revision), e2.writeInt(this.checkSumAdjustment), e2.writeInt(this.magicNumber), e2.writeShort(this.flags), e2.writeShort(this.unitsPerEm), e2.writeLongLong(this.created), e2.writeLongLong(this.modified), e2.writeShort(this.xMin), e2.writeShort(this.yMin), e2.writeShort(this.xMax), e2.writeShort(this.yMax), e2.writeShort(this.macStyle), e2.writeShort(this.lowestRecPPEM), e2.writeShort(this.fontDirectionHint), e2.writeShort(t4), e2.writeShort(this.glyphDataFormat), e2.data;
         }, t3;
       }();
       ve2 = function() {
@@ -33299,8 +33299,8 @@
           t4.pos = l3;
         }
         return t3.encode = function(t4, e2) {
-          var r2, n2, i3, a3, o3, s3, u3, c4, l3, h3, f3, d2, p4, g2, m4, v4, b2, y3, w3, N4, L3, x3, A4, S3, _4, P3, k3, F3, I3, C3, j3, O4, B3, M3, q3, E2, R3, D3, T4, z3, U2, H3, W3, V3, G2, Y3;
-          switch (F3 = new fe(), a3 = Object.keys(t4).sort(function(t5, e3) {
+          var r2, n2, i3, a3, o3, s3, u3, c4, l3, h3, f3, d2, p4, g2, m4, v4, b2, y3, w3, N4, L3, x3, A4, S3, _4, P3, k3, F3, I3, C3, j3, O4, B3, M3, q3, E2, R3, D3, T4, z3, U3, H3, W3, V3, G2, Y3;
+          switch (F3 = new fe2(), a3 = Object.keys(t4).sort(function(t5, e3) {
             return t5 - e3;
           }), e2) {
             case "macroman":
@@ -33320,7 +33320,7 @@
                 if (_4 - (k3 = r2[_4].new) >= 32768) for (s3.push(0), N4.push(2 * (f3.length + A4 - d2)), n2 = O4 = _4; _4 <= c4 ? O4 <= c4 : O4 >= c4; n2 = _4 <= c4 ? ++O4 : --O4) f3.push(r2[n2].new);
                 else s3.push(k3 - _4), N4.push(0);
               }
-              for (F3.writeUInt16(3), F3.writeUInt16(1), F3.writeUInt32(12), F3.writeUInt16(4), F3.writeUInt16(16 + 8 * A4 + 2 * f3.length), F3.writeUInt16(0), F3.writeUInt16(S3), F3.writeUInt16(x3), F3.writeUInt16(h3), F3.writeUInt16(L3), U2 = 0, E2 = l3.length; U2 < E2; U2++) n2 = l3[U2], F3.writeUInt16(n2);
+              for (F3.writeUInt16(3), F3.writeUInt16(1), F3.writeUInt32(12), F3.writeUInt16(4), F3.writeUInt16(16 + 8 * A4 + 2 * f3.length), F3.writeUInt16(0), F3.writeUInt16(S3), F3.writeUInt16(x3), F3.writeUInt16(h3), F3.writeUInt16(L3), U3 = 0, E2 = l3.length; U3 < E2; U3++) n2 = l3[U3], F3.writeUInt16(n2);
               for (F3.writeUInt16(0), H3 = 0, R3 = P3.length; H3 < R3; H3++) n2 = P3[H3], F3.writeUInt16(n2);
               for (V3 = 0, D3 = s3.length; V3 < D3; V3++) o3 = s3[V3], F3.writeUInt16(o3);
               for (G2 = 0, T4 = N4.length; G2 < T4; G2++) y3 = N4[G2], F3.writeUInt16(y3);
@@ -33339,7 +33339,7 @@
           return true;
         }, t3.encode = function(t4, e2) {
           var r2, n2;
-          return null == e2 && (e2 = "macroman"), r2 = ve2.encode(t4, e2), (n2 = new fe()).writeUInt16(0), n2.writeUInt16(1), r2.table = n2.data.concat(r2.subtable), r2;
+          return null == e2 && (e2 = "macroman"), r2 = ve2.encode(t4, e2), (n2 = new fe2()).writeUInt16(0), n2.writeUInt16(1), r2.table = n2.data.concat(r2.subtable), r2;
         }, t3;
       }();
       ye2 = function() {
@@ -33454,7 +33454,7 @@
           return this.cache = {};
         }, t3.prototype.glyphFor = function(t4) {
           var e2, r2, n2, i3, a3, o3, s3, u3, c4, l3;
-          return t4 in this.cache ? this.cache[t4] : (i3 = this.file.loca, e2 = this.file.contents, r2 = i3.indexOf(t4), 0 === (n2 = i3.lengthOf(t4)) ? this.cache[t4] = null : (e2.pos = this.offset + r2, a3 = (o3 = new fe(e2.read(n2))).readShort(), u3 = o3.readShort(), l3 = o3.readShort(), s3 = o3.readShort(), c4 = o3.readShort(), this.cache[t4] = -1 === a3 ? new Fe2(o3, u3, l3, s3, c4) : new ke2(o3, a3, u3, l3, s3, c4), this.cache[t4]));
+          return t4 in this.cache ? this.cache[t4] : (i3 = this.file.loca, e2 = this.file.contents, r2 = i3.indexOf(t4), 0 === (n2 = i3.lengthOf(t4)) ? this.cache[t4] = null : (e2.pos = this.offset + r2, a3 = (o3 = new fe2(e2.read(n2))).readShort(), u3 = o3.readShort(), l3 = o3.readShort(), s3 = o3.readShort(), c4 = o3.readShort(), this.cache[t4] = -1 === a3 ? new Fe2(o3, u3, l3, s3, c4) : new ke2(o3, a3, u3, l3, s3, c4), this.cache[t4]));
         }, t3.prototype.encode = function(t4, e2, r2) {
           var n2, i3, a3, o3, s3;
           for (a3 = [], i3 = [], o3 = 0, s3 = e2.length; o3 < s3; o3++) n2 = t4[e2[o3]], i3.push(a3.length), n2 && (a3 = a3.concat(n2.encode(r2)));
@@ -33476,7 +33476,7 @@
         }
         return t3.prototype.encode = function() {
           var t4, e2, r2;
-          for (e2 = new fe(_e2.call(this.raw.data)), t4 = 0, r2 = this.glyphIDs.length; t4 < r2; ++t4) e2.pos = this.glyphOffsets[t4];
+          for (e2 = new fe2(_e2.call(this.raw.data)), t4 = 0, r2 = this.glyphIDs.length; t4 < r2; ++t4) e2.pos = this.glyphOffsets[t4];
           return e2.data;
         }, t3;
       }();
@@ -33687,11 +33687,11 @@
   };
   (function(DisposableSet2) {
     function from(items) {
-      const set = new DisposableSet2();
+      const set2 = new DisposableSet2();
       items.forEach((item) => {
-        set.add(item);
+        set2.add(item);
       });
-      return set;
+      return set2;
     }
     DisposableSet2.from = from;
   })(DisposableSet || (DisposableSet = {}));
@@ -34347,9 +34347,9 @@
   var freeProcess = moduleExports2 && freeGlobal_default.process;
   var nodeUtil = function() {
     try {
-      var types = freeModule2 && freeModule2.require && freeModule2.require("util").types;
-      if (types) {
-        return types;
+      var types2 = freeModule2 && freeModule2.require && freeModule2.require("util").types;
+      if (types2) {
+        return types2;
       }
       return freeProcess && freeProcess.binding && freeProcess.binding("util");
     } catch (e2) {
@@ -35289,13 +35289,13 @@
   var camelCase_default = camelCase;
 
   // node_modules/lodash-es/_baseClamp.js
-  function baseClamp(number, lower, upper) {
+  function baseClamp(number, lower2, upper) {
     if (number === number) {
       if (upper !== void 0) {
         number = number <= upper ? number : upper;
       }
-      if (lower !== void 0) {
-        number = number >= lower ? number : lower;
+      if (lower2 !== void 0) {
+        number = number >= lower2 ? number : lower2;
       }
     }
     return number;
@@ -35303,20 +35303,20 @@
   var baseClamp_default = baseClamp;
 
   // node_modules/lodash-es/clamp.js
-  function clamp(number, lower, upper) {
+  function clamp(number, lower2, upper) {
     if (upper === void 0) {
-      upper = lower;
-      lower = void 0;
+      upper = lower2;
+      lower2 = void 0;
     }
     if (upper !== void 0) {
       upper = toNumber_default(upper);
       upper = upper === upper ? upper : 0;
     }
-    if (lower !== void 0) {
-      lower = toNumber_default(lower);
-      lower = lower === lower ? lower : 0;
+    if (lower2 !== void 0) {
+      lower2 = toNumber_default(lower2);
+      lower2 = lower2 === lower2 ? lower2 : 0;
     }
-    return baseClamp_default(toNumber_default(number), lower, upper);
+    return baseClamp_default(toNumber_default(number), lower2, upper);
   }
   var clamp_default = clamp;
 
@@ -35884,9 +35884,9 @@
   var mapToArray_default = mapToArray;
 
   // node_modules/lodash-es/_setToArray.js
-  function setToArray(set) {
-    var index3 = -1, result = Array(set.size);
-    set.forEach(function(value) {
+  function setToArray(set2) {
+    var index3 = -1, result = Array(set2.size);
+    set2.forEach(function(value) {
       result[++index3] = value;
     });
     return result;
@@ -36959,9 +36959,9 @@
       isCommon = false;
       includes = arrayIncludesWith_default;
     } else if (length2 >= LARGE_ARRAY_SIZE3) {
-      var set = iteratee ? null : createSet_default(array);
-      if (set) {
-        return setToArray_default(set);
+      var set2 = iteratee ? null : createSet_default(array);
+      if (set2) {
+        return setToArray_default(set2);
       }
       isCommon = false;
       includes = cacheHas_default;
@@ -37009,9 +37009,9 @@
 
   // node_modules/lodash-es/uniqueId.js
   var idCounter = 0;
-  function uniqueId(prefix) {
+  function uniqueId(prefix2) {
     var id = ++idCounter;
-    return toString_default(prefix) + id;
+    return toString_default(prefix2) + id;
   }
   var uniqueId_default = uniqueId;
 
@@ -37095,31 +37095,31 @@
     constructor() {
       this.listeners = {};
     }
-    on(name, handler, context) {
+    on(name2, handler, context) {
       if (handler == null) {
         return this;
       }
-      if (!this.listeners[name]) {
-        this.listeners[name] = [];
+      if (!this.listeners[name2]) {
+        this.listeners[name2] = [];
       }
-      const cache = this.listeners[name];
+      const cache = this.listeners[name2];
       cache.push(handler, context);
       return this;
     }
-    once(name, handler, context) {
+    once(name2, handler, context) {
       const cb = (...args) => {
-        this.off(name, cb);
+        this.off(name2, cb);
         return call2([handler, context], args);
       };
-      return this.on(name, cb, this);
+      return this.on(name2, cb, this);
     }
-    off(name, handler, context) {
-      if (!(name || handler || context)) {
+    off(name2, handler, context) {
+      if (!(name2 || handler || context)) {
         this.listeners = {};
         return this;
       }
       const listeners = this.listeners;
-      const names = name ? [name] : Object.keys(listeners);
+      const names = name2 ? [name2] : Object.keys(listeners);
       names.forEach((n2) => {
         const cache = listeners[n2];
         if (!cache) {
@@ -37137,10 +37137,10 @@
       });
       return this;
     }
-    trigger(name, ...args) {
+    trigger(name2, ...args) {
       let returned = true;
-      if (name !== "*") {
-        const list2 = this.listeners[name];
+      if (name2 !== "*") {
+        const list2 = this.listeners[name2];
         if (list2 != null) {
           returned = call2([...list2], args);
         }
@@ -37149,13 +37149,13 @@
       if (list != null) {
         return main_exports.toAsyncBoolean([
           returned,
-          call2([...list], [name, ...args])
+          call2([...list], [name2, ...args])
         ]);
       }
       return returned;
     }
-    emit(name, ...args) {
-      return this.trigger(name, ...args);
+    emit(name2, ...args) {
+      return this.trigger(name2, ...args);
     }
   };
 
@@ -37190,9 +37190,9 @@
   // node_modules/@antv/x6-common/es/object/mixins.js
   function applyMixins(derivedCtor, ...baseCtors) {
     baseCtors.forEach((baseCtor) => {
-      Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-        if (name !== "constructor") {
-          Object.defineProperty(derivedCtor.prototype, name, Object.getOwnPropertyDescriptor(baseCtor.prototype, name));
+      Object.getOwnPropertyNames(baseCtor.prototype).forEach((name2) => {
+        if (name2 !== "constructor") {
+          Object.defineProperty(derivedCtor.prototype, name2, Object.getOwnPropertyDescriptor(baseCtor.prototype, name2));
         }
       });
     });
@@ -37436,18 +37436,18 @@
   }
 
   // node_modules/@antv/x6-common/es/string/suggestion.js
-  function getSpellingSuggestion(name, candidates, getName) {
-    const maximumLengthDifference = Math.min(2, Math.floor(name.length * 0.34));
-    let bestDistance = Math.floor(name.length * 0.4) + 1;
+  function getSpellingSuggestion(name2, candidates, getName) {
+    const maximumLengthDifference = Math.min(2, Math.floor(name2.length * 0.34));
+    let bestDistance = Math.floor(name2.length * 0.4) + 1;
     let bestCandidate;
     let justCheckExactMatches = false;
-    const nameLowerCase = name.toLowerCase();
+    const nameLowerCase = name2.toLowerCase();
     for (const candidate of candidates) {
       const candidateName = getName(candidate);
       if (candidateName !== void 0 && Math.abs(candidateName.length - nameLowerCase.length) <= maximumLengthDifference) {
         const candidateNameLowerCase = candidateName.toLowerCase();
         if (candidateNameLowerCase === nameLowerCase) {
-          if (candidateName === name) {
+          if (candidateName === name2) {
             continue;
           }
           return candidate;
@@ -37530,16 +37530,16 @@
   function mod(n2, m4) {
     return (n2 % m4 + m4) % m4;
   }
-  function random(lower, upper) {
+  function random(lower2, upper) {
     if (upper == null) {
-      upper = lower == null ? 1 : lower;
-      lower = 0;
-    } else if (upper < lower) {
-      const tmp = lower;
-      lower = upper;
+      upper = lower2 == null ? 1 : lower2;
+      lower2 = 0;
+    } else if (upper < lower2) {
+      const tmp = lower2;
+      lower2 = upper;
       upper = tmp;
     }
-    return Math.floor(Math.random() * (upper - lower + 1) + lower);
+    return Math.floor(Math.random() * (upper - lower2 + 1) + lower2);
   }
   function isPercentage(val) {
     return typeof val === "string" && val.slice(-1) === "%";
@@ -37864,8 +37864,8 @@
   }
   function createSvgDocument(content5) {
     if (content5) {
-      const xml2 = `<svg xmlns="${ns.svg}" xmlns:xlink="${ns.xlink}" version="${svgVersion}">${content5}</svg>`;
-      const { documentElement } = parseXML(xml2, { async: false });
+      const xml3 = `<svg xmlns="${ns.svg}" xmlns:xlink="${ns.xlink}" version="${svgVersion}">${content5}</svg>`;
+      const { documentElement } = parseXML(xml3, { async: false });
       return documentElement;
     }
     const svg3 = document.createElementNS(ns.svg, "svg");
@@ -37874,21 +37874,21 @@
     return svg3;
   }
   function parseXML(data2, options = {}) {
-    let xml2;
+    let xml3;
     try {
       const parser = new DOMParser();
       if (options.async != null) {
         const instance = parser;
         instance.async = options.async;
       }
-      xml2 = parser.parseFromString(data2, options.mimeType || "text/xml");
-    } catch (error) {
-      xml2 = void 0;
+      xml3 = parser.parseFromString(data2, options.mimeType || "text/xml");
+    } catch (error3) {
+      xml3 = void 0;
     }
-    if (!xml2 || xml2.getElementsByTagName("parsererror").length) {
+    if (!xml3 || xml3.getElementsByTagName("parsererror").length) {
       throw new Error(`Invalid XML: ${data2}`);
     }
-    return xml2;
+    return xml3;
   }
   function tagName(node2, lowercase = true) {
     const nodeName = node2.nodeName;
@@ -38013,39 +38013,39 @@
     "lengthAdjust",
     "gradientUnits"
   ];
-  function getAttribute(elem, name) {
-    return elem.getAttribute(name);
+  function getAttribute(elem, name2) {
+    return elem.getAttribute(name2);
   }
-  function removeAttribute(elem, name) {
-    const qualified = qualifyAttr(name);
+  function removeAttribute(elem, name2) {
+    const qualified = qualifyAttr(name2);
     if (qualified.ns) {
       if (elem.hasAttributeNS(qualified.ns, qualified.local)) {
         elem.removeAttributeNS(qualified.ns, qualified.local);
       }
-    } else if (elem.hasAttribute(name)) {
-      elem.removeAttribute(name);
+    } else if (elem.hasAttribute(name2)) {
+      elem.removeAttribute(name2);
     }
   }
-  function setAttribute(elem, name, value) {
+  function setAttribute(elem, name2, value) {
     if (value == null) {
-      return removeAttribute(elem, name);
+      return removeAttribute(elem, name2);
     }
-    const qualified = qualifyAttr(name);
+    const qualified = qualifyAttr(name2);
     if (qualified.ns && typeof value === "string") {
-      elem.setAttributeNS(qualified.ns, name, value);
-    } else if (name === "id") {
+      elem.setAttributeNS(qualified.ns, name2, value);
+    } else if (name2 === "id") {
       elem.id = `${value}`;
     } else {
-      elem.setAttribute(name, `${value}`);
+      elem.setAttribute(name2, `${value}`);
     }
   }
   function setAttributes(elem, attrs) {
-    Object.keys(attrs).forEach((name) => {
-      setAttribute(elem, name, attrs[name]);
+    Object.keys(attrs).forEach((name2) => {
+      setAttribute(elem, name2, attrs[name2]);
     });
   }
-  function attr(elem, name, value) {
-    if (name == null) {
+  function attr(elem, name2, value) {
+    if (name2 == null) {
       const attrs = elem.attributes;
       const ret = {};
       for (let i3 = 0; i3 < attrs.length; i3 += 1) {
@@ -38053,18 +38053,18 @@
       }
       return ret;
     }
-    if (typeof name === "string" && value === void 0) {
-      return elem.getAttribute(name);
+    if (typeof name2 === "string" && value === void 0) {
+      return elem.getAttribute(name2);
     }
-    if (typeof name === "object") {
-      setAttributes(elem, name);
+    if (typeof name2 === "object") {
+      setAttributes(elem, name2);
     } else {
-      setAttribute(elem, name, value);
+      setAttribute(elem, name2, value);
     }
   }
-  function qualifyAttr(name) {
-    if (name.indexOf(":") !== -1) {
-      const combinedKey = name.split(":");
+  function qualifyAttr(name2) {
+    if (name2.indexOf(":") !== -1) {
+      const combinedKey = name2.split(":");
       return {
         ns: ns[combinedKey[0]],
         local: combinedKey[1]
@@ -38072,14 +38072,14 @@
     }
     return {
       ns: null,
-      local: name
+      local: name2
     };
   }
   function kebablizeAttrs(attrs) {
     const result = {};
     Object.keys(attrs).forEach((key) => {
-      const name = CASE_SENSITIVE_ATTR.includes(key) ? key : kebabCase(key);
-      result[name] = attrs[key];
+      const name2 = CASE_SENSITIVE_ATTR.includes(key) ? key : kebabCase(key);
+      result[name2] = attrs[key];
     });
     return result;
   }
@@ -38215,8 +38215,8 @@
   var DataUri;
   (function(DataUri2) {
     function isDataUrl(url) {
-      const prefix = "data:";
-      return url.substr(0, prefix.length) === prefix;
+      const prefix2 = "data:";
+      return url.substr(0, prefix2.length) === prefix2;
     }
     DataUri2.isDataUrl = isDataUrl;
     function imageToDataUri(url, callback) {
@@ -38273,12 +38273,12 @@
     }
     DataUri2.imageToDataUri = imageToDataUri;
     function dataUriToBlob(dataUrl) {
-      let uri = dataUrl.replace(/\s/g, "");
-      uri = decodeURIComponent(uri);
-      const index3 = uri.indexOf(",");
-      const dataType = uri.slice(0, index3);
+      let uri2 = dataUrl.replace(/\s/g, "");
+      uri2 = decodeURIComponent(uri2);
+      const index3 = uri2.indexOf(",");
+      const dataType = uri2.slice(0, index3);
       const mime = dataType.split(":")[1].split(";")[0];
-      const data2 = uri.slice(index3 + 1);
+      const data2 = uri2.slice(index3 + 1);
       let decodedString;
       if (dataType.indexOf("base64") >= 0) {
         decodedString = atob(data2);
@@ -38535,9 +38535,9 @@
   var memoized = {};
   var prefixes = ["webkit", "ms", "moz", "o"];
   var testStyle = typeof document !== "undefined" ? document.createElement("div").style : {};
-  function getWithPrefix(name) {
+  function getWithPrefix(name2) {
     for (let i3 = 0; i3 < prefixes.length; i3 += 1) {
-      const prefixedName = prefixes[i3] + name;
+      const prefixedName = prefixes[i3] + name2;
       if (prefixedName in testStyle) {
         return prefixedName;
       }
@@ -38545,26 +38545,26 @@
     return null;
   }
   function getVendorPrefixedName(property2) {
-    const name = camelize(property2);
-    if (memoized[name] == null) {
-      const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
-      memoized[name] = name in testStyle ? name : getWithPrefix(capitalizedName);
+    const name2 = camelize(property2);
+    if (memoized[name2] == null) {
+      const capitalizedName = name2.charAt(0).toUpperCase() + name2.slice(1);
+      memoized[name2] = name2 in testStyle ? name2 : getWithPrefix(capitalizedName);
     }
-    return memoized[name];
+    return memoized[name2];
   }
 
   // node_modules/@antv/x6-common/es/dom/style.js
-  function setPrefixedStyle(style2, name, value) {
-    const vendor = getVendorPrefixedName(name);
+  function setPrefixedStyle(style2, name2, value) {
+    const vendor = getVendorPrefixedName(name2);
     if (vendor != null) {
       style2[vendor] = value;
     }
-    style2[name] = value;
+    style2[name2] = value;
   }
-  function getComputedStyle2(elem, name) {
+  function getComputedStyle2(elem, name2) {
     const computed = elem.ownerDocument && elem.ownerDocument.defaultView && elem.ownerDocument.defaultView.opener ? elem.ownerDocument.defaultView.getComputedStyle(elem, null) : window.getComputedStyle(elem, null);
-    if (computed && name) {
-      return computed.getPropertyValue(name) || computed[name];
+    if (computed && name2) {
+      return computed.getPropertyValue(name2) || computed[name2];
     }
     return computed;
   }
@@ -38661,15 +38661,15 @@
 
   // node_modules/@antv/x6-common/es/dom/data.js
   var dataset = /* @__PURE__ */ new WeakMap();
-  function getData(elem, name) {
-    const key = string_exports.camelCase(name);
+  function getData(elem, name2) {
+    const key = string_exports.camelCase(name2);
     const cache = dataset.get(elem);
     if (cache) {
       return cache[key];
     }
   }
-  function setData(elem, name, value) {
-    const key = string_exports.camelCase(name);
+  function setData(elem, name2, value) {
+    const key = string_exports.camelCase(name2);
     const cache = dataset.get(elem);
     if (cache) {
       cache[key] = value;
@@ -38679,23 +38679,23 @@
       });
     }
   }
-  function data(elem, name, value) {
-    if (!name) {
+  function data(elem, name2, value) {
+    if (!name2) {
       const datas = {};
       Object.keys(dataset).forEach((key) => {
         datas[key] = getData(elem, key);
       });
       return datas;
     }
-    if (typeof name === "string") {
+    if (typeof name2 === "string") {
       if (value === void 0) {
-        return getData(elem, name);
+        return getData(elem, name2);
       }
-      setData(elem, name, value);
+      setData(elem, name2, value);
       return;
     }
-    for (const key in name) {
-      data(elem, key, name[key]);
+    for (const key in name2) {
+      data(elem, key, name2[key]);
     }
   }
 
@@ -38811,32 +38811,32 @@
       const ref2 = _Vector.toNode(target);
       return getTransformToElement(this.node, ref2);
     }
-    removeAttribute(name) {
-      removeAttribute(this.node, name);
+    removeAttribute(name2) {
+      removeAttribute(this.node, name2);
       return this;
     }
-    getAttribute(name) {
-      return getAttribute(this.node, name);
+    getAttribute(name2) {
+      return getAttribute(this.node, name2);
     }
-    setAttribute(name, value) {
-      setAttribute(this.node, name, value);
+    setAttribute(name2, value) {
+      setAttribute(this.node, name2, value);
       return this;
     }
     setAttributes(attrs) {
       setAttributes(this.node, attrs);
       return this;
     }
-    attr(name, value) {
-      if (name == null) {
+    attr(name2, value) {
+      if (name2 == null) {
         return attr(this.node);
       }
-      if (typeof name === "string" && value === void 0) {
-        return attr(this.node, name);
+      if (typeof name2 === "string" && value === void 0) {
+        return attr(this.node, name2);
       }
-      if (typeof name === "object") {
-        attr(this.node, name);
+      if (typeof name2 === "object") {
+        attr(this.node, name2);
       } else {
-        attr(this.node, name, value);
+        attr(this.node, name2, value);
       }
       return this;
     }
@@ -39876,9 +39876,9 @@
     return { x: dx, y: dy };
   }
   function decomposeMatrix(matrix) {
-    const px = deltaTransformPoint(matrix, { x: 0, y: 1 });
+    const px2 = deltaTransformPoint(matrix, { x: 0, y: 1 });
     const py = deltaTransformPoint(matrix, { x: 1, y: 0 });
-    const skewX = 180 / Math.PI * Math.atan2(px.y, px.x) - 90;
+    const skewX = 180 / Math.PI * Math.atan2(px2.y, px2.x) - 90;
     const skewY = 180 / Math.PI * Math.atan2(py.y, py.x);
     return {
       skewX,
@@ -40084,8 +40084,8 @@
   (function(Util4) {
     const rNotHTMLWhite = /[^\x20\t\r\n\f]+/g;
     const rNamespace = /^([^.]*)(?:\.(.+)|)/;
-    function splitType(types) {
-      return (types || "").match(rNotHTMLWhite) || [""];
+    function splitType(types2) {
+      return (types2 || "").match(rNotHTMLWhite) || [""];
     }
     Util4.splitType = splitType;
     function normalizeType(type) {
@@ -40250,8 +40250,8 @@
     EventObject2.create = create2;
   })(EventObject || (EventObject = {}));
   (function(EventObject2) {
-    function addProperty(name, hook) {
-      Object.defineProperty(EventObject2.prototype, name, {
+    function addProperty(name2, hook) {
+      Object.defineProperty(EventObject2.prototype, name2, {
         enumerable: true,
         configurable: true,
         get: typeof hook === "function" ? (
@@ -40265,12 +40265,12 @@
           // eslint-disable-next-line
           function() {
             if (this.originalEvent) {
-              return this.originalEvent[name];
+              return this.originalEvent[name2];
             }
           }
         ),
         set(value) {
-          Object.defineProperty(this, name, {
+          Object.defineProperty(this, name2, {
             enumerable: true,
             configurable: true,
             writable: true,
@@ -40315,7 +40315,7 @@
       metaKey: true,
       shiftKey: true
     };
-    Object.keys(commonProps).forEach((name) => EventObject2.addProperty(name, commonProps[name]));
+    Object.keys(commonProps).forEach((name2) => EventObject2.addProperty(name2, commonProps[name2]));
   })(EventObject || (EventObject = {}));
 
   // node_modules/@antv/x6-common/es/dom/event/special.js
@@ -40382,7 +40382,7 @@
   var Core;
   (function(Core2) {
     let triggered;
-    function on2(elem, types, handler, data2, selector) {
+    function on2(elem, types2, handler, data2, selector) {
       if (!Util.isValidTarget(elem)) {
         return;
       }
@@ -40401,7 +40401,7 @@
         };
       }
       const guid = Util.ensureHandlerId(handler);
-      Util.splitType(types).forEach((item) => {
+      Util.splitType(types2).forEach((item) => {
         const { originType, namespaces } = Util.normalizeType(item);
         if (!originType) {
           return;
@@ -40441,7 +40441,7 @@
       });
     }
     Core2.on = on2;
-    function off(elem, types, handler, selector, mappedTypes) {
+    function off(elem, types2, handler, selector, mappedTypes) {
       const store = Store.get(elem);
       if (!store) {
         return;
@@ -40450,7 +40450,7 @@
       if (!events) {
         return;
       }
-      Util.splitType(types).forEach((item) => {
+      Util.splitType(types2).forEach((item) => {
         const { originType, namespaces } = Util.normalizeType(item);
         if (!originType) {
           Object.keys(events).forEach((key) => {
@@ -40647,13 +40647,13 @@
   })(Event || (Event = {}));
   var Private;
   (function(Private7) {
-    function on2(elem, types, selector, data2, fn2, once) {
-      if (typeof types === "object") {
+    function on2(elem, types2, selector, data2, fn2, once) {
+      if (typeof types2 === "object") {
         if (typeof selector !== "string") {
           data2 = data2 || selector;
           selector = void 0;
         }
-        Object.keys(types).forEach((type) => on2(elem, type, selector, data2, types[type], once));
+        Object.keys(types2).forEach((type) => on2(elem, type, selector, data2, types2[type], once));
         return;
       }
       if (data2 == null && fn2 == null) {
@@ -40682,7 +40682,7 @@
         };
         Util.setHandlerId(fn2, Util.ensureHandlerId(originHandler));
       }
-      Core.on(elem, types, fn2, data2, selector);
+      Core.on(elem, types2, fn2, data2, selector);
     }
     Private7.on = on2;
     function off(elem, events, selector, fn2) {
@@ -40693,8 +40693,8 @@
         return;
       }
       if (typeof events === "object") {
-        const types = events;
-        Object.keys(types).forEach((type) => off(elem, type, selector, types[type]));
+        const types2 = events;
+        Object.keys(types2).forEach((type) => off(elem, type, selector, types2[type]));
         return;
       }
       if (selector === false || typeof selector === "function") {
@@ -40846,7 +40846,7 @@
     const trigger = debounce2(() => {
       listeners.forEach((listener) => listener(element));
     });
-    const bind = (listener) => {
+    const bind2 = (listener) => {
       if (!sensor) {
         sensor = create2();
       }
@@ -40875,7 +40875,7 @@
     };
     return {
       element,
-      bind,
+      bind: bind2,
       destroy,
       unbind
     };
@@ -40896,7 +40896,7 @@
       trigger();
       return s3;
     };
-    const bind = (listener) => {
+    const bind2 = (listener) => {
       if (!sensor) {
         sensor = create2();
       }
@@ -40922,7 +40922,7 @@
     };
     return {
       element,
-      bind,
+      bind: bind2,
       destroy,
       unbind
     };
@@ -41641,8 +41641,8 @@
       }
       const { or: or2, and } = parse2(modifiers);
       const match = (key) => {
-        const name = `${key.toLowerCase()}Key`;
-        return e2[name] === true;
+        const name2 = `${key.toLowerCase()}Key`;
+        return e2[name2] === true;
       };
       return or2.some((key) => match(key)) && and.every((key) => match(key));
     }
@@ -41961,8 +41961,8 @@
     ensure: () => ensure2
   });
   var cssModules = [];
-  function ensure2(name, content5) {
-    const cssModule = cssModules.find((m4) => m4.name === name);
+  function ensure2(name2, content5) {
+    const cssModule = cssModules.find((m4) => m4.name === name2);
     if (cssModule) {
       cssModule.loadTimes += 1;
       if (cssModule.loadTimes > 1) {
@@ -41978,14 +41978,14 @@
         head.insertBefore(styleElement, head.firstChild);
       }
       cssModules.push({
-        name,
+        name: name2,
         loadTimes: 1,
         styleElement
       });
     }
   }
-  function clean(name) {
-    const index3 = cssModules.findIndex((m4) => m4.name === name);
+  function clean(name2) {
+    const index3 = cssModules.findIndex((m4) => m4.name === name2);
     if (index3 > -1) {
       const cssModule = cssModules[index3];
       cssModule.loadTimes -= 1;
@@ -42026,21 +42026,21 @@
     }
     GeometryUtil2.round = round2;
     function random2(min, max2) {
-      let mmin;
-      let mmax;
+      let mmin2;
+      let mmax2;
       if (max2 == null) {
-        mmax = min == null ? 1 : min;
-        mmin = 0;
+        mmax2 = min == null ? 1 : min;
+        mmin2 = 0;
       } else {
-        mmax = max2;
-        mmin = min == null ? 0 : min;
+        mmax2 = max2;
+        mmin2 = min == null ? 0 : min;
       }
-      if (mmax < mmin) {
-        const temp = mmin;
-        mmin = mmax;
-        mmax = temp;
+      if (mmax2 < mmin2) {
+        const temp = mmin2;
+        mmin2 = mmax2;
+        mmax2 = temp;
       }
-      return Math.floor(Math.random() * (mmax - mmin + 1) + mmin);
+      return Math.floor(Math.random() * (mmax2 - mmin2 + 1) + mmin2);
     }
     GeometryUtil2.random = random2;
     function clamp2(value, min, max2) {
@@ -46652,62 +46652,62 @@
     get names() {
       return Object.keys(this.data);
     }
-    register(name, options, force = false) {
-      if (typeof name === "object") {
-        Object.entries(name).forEach(([key, val]) => {
+    register(name2, options, force = false) {
+      if (typeof name2 === "object") {
+        Object.entries(name2).forEach(([key, val]) => {
           this.register(key, val, options);
         });
         return;
       }
-      if (this.exist(name) && !force && !Platform.isApplyingHMR()) {
-        this.onDuplicated(name);
+      if (this.exist(name2) && !force && !Platform.isApplyingHMR()) {
+        this.onDuplicated(name2);
       }
       const process2 = this.options.process;
-      const entity = process2 ? main_exports.call(process2, this, name, options) : options;
-      this.data[name] = entity;
+      const entity = process2 ? main_exports.call(process2, this, name2, options) : options;
+      this.data[name2] = entity;
       return entity;
     }
-    unregister(name) {
-      const entity = name ? this.data[name] : null;
-      delete this.data[name];
+    unregister(name2) {
+      const entity = name2 ? this.data[name2] : null;
+      delete this.data[name2];
       return entity;
     }
-    get(name) {
-      return name ? this.data[name] : null;
+    get(name2) {
+      return name2 ? this.data[name2] : null;
     }
-    exist(name) {
-      return name ? this.data[name] != null : false;
+    exist(name2) {
+      return name2 ? this.data[name2] != null : false;
     }
-    onDuplicated(name) {
+    onDuplicated(name2) {
       try {
         if (this.options.onConflict) {
-          main_exports.call(this.options.onConflict, this, name);
+          main_exports.call(this.options.onConflict, this, name2);
         }
-        throw new Error(`${string_exports.upperFirst(this.options.type)} with name '${name}' already registered.`);
+        throw new Error(`${string_exports.upperFirst(this.options.type)} with name '${name2}' already registered.`);
       } catch (err2) {
         throw err2;
       }
     }
-    onNotFound(name, prefix) {
-      throw new Error(this.getSpellingSuggestion(name, prefix));
+    onNotFound(name2, prefix2) {
+      throw new Error(this.getSpellingSuggestion(name2, prefix2));
     }
-    getSpellingSuggestion(name, prefix) {
-      const suggestion = this.getSpellingSuggestionForName(name);
-      const prefixed = prefix ? `${prefix} ${string_exports.lowerFirst(this.options.type)}` : this.options.type;
+    getSpellingSuggestion(name2, prefix2) {
+      const suggestion = this.getSpellingSuggestionForName(name2);
+      const prefixed = prefix2 ? `${prefix2} ${string_exports.lowerFirst(this.options.type)}` : this.options.type;
       return (
         // eslint-disable-next-line
-        `${string_exports.upperFirst(prefixed)} with name '${name}' does not exist.${suggestion ? ` Did you mean '${suggestion}'?` : ""}`
+        `${string_exports.upperFirst(prefixed)} with name '${name2}' does not exist.${suggestion ? ` Did you mean '${suggestion}'?` : ""}`
       );
     }
-    getSpellingSuggestionForName(name) {
-      return string_exports.getSpellingSuggestion(name, Object.keys(this.data), (candidate) => candidate);
+    getSpellingSuggestionForName(name2) {
+      return string_exports.getSpellingSuggestion(name2, Object.keys(this.data), (candidate) => candidate);
     }
   };
-  (function(Registry2) {
+  (function(Registry3) {
     function create2(options) {
-      return new Registry2(options);
+      return new Registry3(options);
     }
-    Registry2.create = create2;
+    Registry3.create = create2;
   })(Registry || (Registry = {}));
 
   // node_modules/@antv/x6/es/registry/grid/main.js
@@ -47455,7 +47455,7 @@
       const json = (str) => {
         try {
           return JSON.parse(str);
-        } catch (error) {
+        } catch (error3) {
           return str;
         }
       };
@@ -47635,8 +47635,8 @@
   // node_modules/@antv/x6/es/registry/attr/filter.js
   var filter = {
     qualify: object_exports.isPlainObject,
-    set(filter2, { view }) {
-      return `url(#${view.graph.defineFilter(filter2)})`;
+    set(filter3, { view }) {
+      return `url(#${view.graph.defineFilter(filter3)})`;
     }
   };
 
@@ -47933,14 +47933,14 @@
   };
   function createMarker(type, marker, view, attrs, manual2 = {}) {
     const def = typeof marker === "string" ? { name: marker } : marker;
-    const { name, args } = def, others = __rest9(def, ["name", "args"]);
+    const { name: name2, args } = def, others = __rest9(def, ["name", "args"]);
     let preset = others;
-    if (name && typeof name === "string") {
-      const fn2 = Marker.registry.get(name);
+    if (name2 && typeof name2 === "string") {
+      const fn2 = Marker.registry.get(name2);
       if (fn2) {
         preset = fn2(Object.assign(Object.assign({}, others), args));
       } else {
-        return Marker.registry.onNotFound(name);
+        return Marker.registry.onNotFound(name2);
       }
     }
     const options = Object.assign(Object.assign(Object.assign({}, normalizeAttr(attrs, type)), manual2), preset);
@@ -48287,8 +48287,8 @@
     }
     Util4.getBoundingOffsetRect = getBoundingOffsetRect;
     function toGeometryShape(elem) {
-      const attr2 = (name) => {
-        const s3 = elem.getAttribute(name);
+      const attr2 = (name2) => {
+        const s3 = elem.getAttribute(name2);
         const v4 = s3 ? parseFloat(s3) : 0;
         return Number.isNaN(v4) ? 0 : v4;
       };
@@ -48413,7 +48413,7 @@
       let magnetBBox;
       try {
         pathData = magnetVel.toPathData();
-      } catch (error) {
+      } catch (error3) {
         magnetBBox = Util2.bbox(magnetVel.node, true);
         pathData = main_exports3.rectToPathData(Object.assign(Object.assign({}, options), magnetBBox));
       }
@@ -48490,12 +48490,12 @@
   // node_modules/@antv/x6/es/registry/highlighter/index.js
   var Highlighter;
   (function(Highlighter2) {
-    function check(name, highlighter) {
+    function check(name2, highlighter) {
       if (typeof highlighter.highlight !== "function") {
-        throw new Error(`Highlighter '${name}' is missing required \`highlight()\` method`);
+        throw new Error(`Highlighter '${name2}' is missing required \`highlight()\` method`);
       }
       if (typeof highlighter.unhighlight !== "function") {
-        throw new Error(`Highlighter '${name}' is missing required \`unhighlight()\` method`);
+        throw new Error(`Highlighter '${name2}' is missing required \`unhighlight()\` method`);
       }
     }
     Highlighter2.check = check;
@@ -49003,13 +49003,13 @@
       return this;
     }
     undelegateEvent(eventName, selector, listener) {
-      const name = eventName + this.getEventNamespace();
+      const name2 = eventName + this.getEventNamespace();
       if (selector == null) {
-        main_exports3.Event.off(this.container, name);
+        main_exports3.Event.off(this.container, name2);
       } else if (typeof selector === "string") {
-        main_exports3.Event.off(this.container, name, selector, listener);
+        main_exports3.Event.off(this.container, name2, selector, listener);
       } else {
-        main_exports3.Event.off(this.container, name, selector);
+        main_exports3.Event.off(this.container, name2, selector);
       }
       return this;
     }
@@ -49105,7 +49105,7 @@
       return isSvgElement ? main_exports3.createSvgElement(tagName2 || "g") : main_exports3.createElementNS(tagName2 || "div");
     }
     View2.createElement = createElement2;
-    function find2(selector, rootElem, selectors) {
+    function find3(selector, rootElem, selectors) {
       if (!selector || selector === ".") {
         return { elems: [rootElem] };
       }
@@ -49125,7 +49125,7 @@
       }
       return { elems: [] };
     }
-    View2.find = find2;
+    View2.find = find3;
     function normalizeEvent(evt) {
       let normalizedEvent = evt;
       const originalEvent = evt.originalEvent;
@@ -49282,11 +49282,11 @@
             if (!Array.isArray(nodeGroups)) {
               nodeGroups = [nodeGroups];
             }
-            nodeGroups.forEach((name) => {
-              if (!groups[name]) {
-                groups[name] = [];
+            nodeGroups.forEach((name2) => {
+              if (!groups[name2]) {
+                groups[name2] = [];
               }
-              groups[name].push(node2);
+              groups[name2].push(node2);
             });
           }
           parentNode.appendChild(node2);
@@ -49481,13 +49481,13 @@
     }
     processAttrs(elem, raw2) {
       let normal4;
-      let set;
+      let set2;
       let offset3;
       let position2;
       const specials = [];
-      Object.keys(raw2).forEach((name) => {
-        const val = raw2[name];
-        const definition = this.getDefinition(name);
+      Object.keys(raw2).forEach((name2) => {
+        const val = raw2[name2];
+        const definition = this.getDefinition(name2);
         const isValid2 = main_exports.call(Attr.isValidDefinition, this.view, definition, val, {
           elem,
           attrs: raw2,
@@ -49501,44 +49501,44 @@
             }
             normal4[definition] = val;
           } else if (val !== null) {
-            specials.push({ name, definition });
+            specials.push({ name: name2, definition });
           }
         } else {
           if (normal4 == null) {
             normal4 = {};
           }
-          const normalName = main_exports3.CASE_SENSITIVE_ATTR.includes(name) ? name : string_exports.kebabCase(name);
+          const normalName = main_exports3.CASE_SENSITIVE_ATTR.includes(name2) ? name2 : string_exports.kebabCase(name2);
           normal4[normalName] = val;
         }
       });
-      specials.forEach(({ name, definition }) => {
-        const val = raw2[name];
+      specials.forEach(({ name: name2, definition }) => {
+        const val = raw2[name2];
         const setDefine = definition;
         if (typeof setDefine.set === "function") {
-          if (set == null) {
-            set = {};
+          if (set2 == null) {
+            set2 = {};
           }
-          set[name] = val;
+          set2[name2] = val;
         }
         const offsetDefine = definition;
         if (typeof offsetDefine.offset === "function") {
           if (offset3 == null) {
             offset3 = {};
           }
-          offset3[name] = val;
+          offset3[name2] = val;
         }
         const positionDefine = definition;
         if (typeof positionDefine.position === "function") {
           if (position2 == null) {
             position2 = {};
           }
-          position2[name] = val;
+          position2[name2] = val;
         }
       });
       return {
         raw: raw2,
         normal: normal4,
-        set,
+        set: set2,
         offset: offset3,
         position: position2
       };
@@ -49615,15 +49615,15 @@
         refBBox: refBBox.clone()
       });
       if (setAttrs != null) {
-        Object.keys(setAttrs).forEach((name) => {
-          const val = setAttrs[name];
-          const def = this.getDefinition(name);
+        Object.keys(setAttrs).forEach((name2) => {
+          const val = setAttrs[name2];
+          const def = this.getDefinition(name2);
           if (def != null) {
             const ret = main_exports.call(def.set, this.view, val, getOptions());
             if (typeof ret === "object") {
               nodeAttrs = Object.assign(Object.assign({}, nodeAttrs), ret);
             } else if (ret != null) {
-              nodeAttrs[name] = ret;
+              nodeAttrs[name2] = ret;
             }
           }
         });
@@ -49643,9 +49643,9 @@
       }
       let positioned = false;
       if (positionAttrs != null) {
-        Object.keys(positionAttrs).forEach((name) => {
-          const val = positionAttrs[name];
-          const def = this.getDefinition(name);
+        Object.keys(positionAttrs).forEach((name2) => {
+          const val = positionAttrs[name2];
+          const def = this.getDefinition(name2);
           if (def != null) {
             const ts = main_exports.call(def.position, this.view, val, getOptions());
             if (ts != null) {
@@ -49661,9 +49661,9 @@
         const nodeBoundingRect = this.view.getBoundingRectOfElement(elem);
         if (nodeBoundingRect.width > 0 && nodeBoundingRect.height > 0) {
           const nodeBBox = Util2.transformRectangle(nodeBoundingRect, nodeMatrix);
-          Object.keys(offsetAttrs).forEach((name) => {
-            const val = offsetAttrs[name];
-            const def = this.getDefinition(name);
+          Object.keys(offsetAttrs).forEach((name2) => {
+            const val = offsetAttrs[name2];
+            const def = this.getDefinition(name2);
             if (def != null) {
               const ts = main_exports.call(def.offset, this.view, val, {
                 elem,
@@ -50232,15 +50232,15 @@
       }
       return magnet;
     }
-    hasTools(name) {
+    hasTools(name2) {
       const tools = this.tools;
       if (tools == null) {
         return false;
       }
-      if (name == null) {
+      if (name2 == null) {
         return true;
       }
-      return tools.name === name;
+      return tools.name === name2;
     }
     addTools(config) {
       this.removeTools();
@@ -50285,9 +50285,9 @@
       this.addTools(tools);
       return this;
     }
-    notify(name, args) {
-      this.trigger(name, args);
-      this.graph.trigger(name, args);
+    notify(name2, args) {
+      this.trigger(name2, args);
+      this.graph.trigger(name2, args);
       return this;
     }
     getEventArgs(e2, x3, y3) {
@@ -50339,9 +50339,9 @@
     onMouseWheel(e2, x3, y3, delta) {
       this.notify("cell:mousewheel", Object.assign({ delta }, this.getEventArgs(e2, x3, y3)));
     }
-    onCustomEvent(e2, name, x3, y3) {
-      this.notify("cell:customevent", Object.assign({ name }, this.getEventArgs(e2, x3, y3)));
-      this.notify(name, Object.assign({}, this.getEventArgs(e2, x3, y3)));
+    onCustomEvent(e2, name2, x3, y3) {
+      this.notify("cell:customevent", Object.assign({ name: name2 }, this.getEventArgs(e2, x3, y3)));
+      this.notify(name2, Object.assign({}, this.getEventArgs(e2, x3, y3)));
     }
     onMagnetMouseDown(e2, magnet, x3, y3) {
     }
@@ -50480,8 +50480,8 @@
             normalizedTools.push(meta);
           }
         } else {
-          const name = typeof meta === "object" ? meta.name : meta;
-          if (name === "vertices") {
+          const name2 = typeof meta === "object" ? meta.name : meta;
+          if (name2 === "vertices") {
             normalizedTools.unshift(meta);
           } else {
             normalizedTools.push(meta);
@@ -50494,22 +50494,22 @@
         if (_ToolsView.ToolItem.isToolItem(meta)) {
           tool = meta;
         } else {
-          const name = typeof meta === "object" ? meta.name : meta;
+          const name2 = typeof meta === "object" ? meta.name : meta;
           const args = typeof meta === "object" ? meta.args || {} : {};
-          if (name) {
+          if (name2) {
             if (this.cell.isNode()) {
-              const ctor = NodeTool.registry.get(name);
+              const ctor = NodeTool.registry.get(name2);
               if (ctor) {
                 tool = new ctor(args);
               } else {
-                return NodeTool.registry.onNotFound(name);
+                return NodeTool.registry.onNotFound(name2);
               }
             } else if (this.cell.isEdge()) {
-              const ctor = EdgeTool.registry.get(name);
+              const ctor = EdgeTool.registry.get(name2);
               if (ctor) {
                 tool = new ctor(args);
               } else {
-                return EdgeTool.registry.onNotFound(name);
+                return EdgeTool.registry.onNotFound(name2);
               }
             }
           }
@@ -50733,9 +50733,9 @@
     ToolsView2.ToolItem = ToolItem;
     (function(ToolItem2) {
       let counter = 0;
-      function getClassName(name) {
-        if (name) {
-          return string_exports.pascalCase(name);
+      function getClassName(name2) {
+        if (name2) {
+          return string_exports.pascalCase(name2);
         }
         counter += 1;
         return `CustomTool${counter}`;
@@ -52453,7 +52453,7 @@
     };
     NodeTool2.registry = Registry.create({
       type: "node tool",
-      process(name, options) {
+      process(name2, options) {
         if (typeof options === "function") {
           return options;
         }
@@ -52468,7 +52468,7 @@
           }
         }
         if (others.name == null) {
-          others.name = name;
+          others.name = name2;
         }
         return parent.define.call(parent, others);
       }
@@ -52491,7 +52491,7 @@
     };
     EdgeTool2.registry = Registry.create({
       type: "edge tool",
-      process(name, options) {
+      process(name2, options) {
         if (typeof options === "function") {
           return options;
         }
@@ -52506,7 +52506,7 @@
           }
         }
         if (others.name == null) {
-          others.name = name;
+          others.name = name2;
         }
         return parent.define.call(parent, others);
       }
@@ -53537,13 +53537,13 @@
     if (!diff) {
       return step;
     }
-    const abs2 = Math.abs(diff);
-    const count = Math.round(abs2 / step);
+    const abs3 = Math.abs(diff);
+    const count = Math.round(abs3 / step);
     if (!count) {
-      return abs2;
+      return abs3;
     }
     const roundedDiff = count * step;
-    const remainder = abs2 - roundedDiff;
+    const remainder = abs3 - roundedDiff;
     const correction = remainder / count;
     return step + correction;
   }
@@ -54907,15 +54907,15 @@
       });
       this.store.on("changed", ({ options }) => this.notify("changed", { options, cell: this }));
     }
-    notify(name, args) {
-      this.trigger(name, args);
+    notify(name2, args) {
+      this.trigger(name2, args);
       const model = this.model;
       if (model) {
-        model.notify(`cell:${name}`, args);
+        model.notify(`cell:${name2}`, args);
         if (this.isNode()) {
-          model.notify(`node:${name}`, Object.assign(Object.assign({}, args), { node: this }));
+          model.notify(`node:${name2}`, Object.assign(Object.assign({}, args), { node: this }));
         } else if (this.isEdge()) {
-          model.notify(`edge:${name}`, Object.assign(Object.assign({}, args), { edge: this }));
+          model.notify(`edge:${name2}`, Object.assign(Object.assign({}, args), { edge: this }));
         }
       }
       return this;
@@ -54999,8 +54999,8 @@
       }
       return this.setProp(key, value || {});
     }
-    previous(name) {
-      return this.store.getPrevious(name);
+    previous(name2) {
+      return this.store.getPrevious(name2);
     }
     // #endregion
     // #region zIndex
@@ -55127,15 +55127,15 @@
       if (attrs == null) {
         this.removeAttrs(options);
       } else {
-        const set = (attrs2) => this.store.set("attrs", attrs2, options);
+        const set2 = (attrs2) => this.store.set("attrs", attrs2, options);
         if (options.overwrite === true) {
-          set(attrs);
+          set2(attrs);
         } else {
           const prev = this.getAttrs();
           if (options.deep === false) {
-            set(Object.assign(Object.assign({}, prev), attrs));
+            set2(Object.assign(Object.assign({}, prev), attrs));
           } else {
-            set(object_exports.merge({}, prev, attrs));
+            set2(object_exports.merge({}, prev, attrs));
           }
         }
       }
@@ -55159,8 +55159,8 @@
       const hooks = ctor.getAttrHooks() || {};
       let definition = hooks[attrName] || Attr.registry.get(attrName);
       if (!definition) {
-        const name = string_exports.camelCase(attrName);
-        definition = hooks[name] || Attr.registry.get(name);
+        const name2 = string_exports.camelCase(attrName);
+        definition = hooks[name2] || Attr.registry.get(name2);
       }
       return definition || null;
     }
@@ -55248,15 +55248,15 @@
       if (data2 == null) {
         this.removeData(options);
       } else {
-        const set = (data3) => this.store.set("data", data3, options);
+        const set2 = (data3) => this.store.set("data", data3, options);
         if (options.overwrite === true) {
-          set(data2);
+          set2(data2);
         } else {
           const prev = this.getData();
           if (options.deep === false) {
-            set(typeof data2 === "object" ? Object.assign(Object.assign({}, prev), data2) : data2);
+            set2(typeof data2 === "object" ? Object.assign(Object.assign({}, prev), data2) : data2);
           } else {
-            set(object_exports.merge({}, prev, data2));
+            set2(object_exports.merge({}, prev, data2));
           }
         }
       }
@@ -55319,8 +55319,8 @@
       }
       return this;
     }
-    filterChild(filter2, context) {
-      return this.children ? this.children.filter(filter2, context) : [];
+    filterChild(filter3, context) {
+      return this.children ? this.children.filter(filter3, context) : [];
     }
     getChildCount() {
       return this.children == null ? 0 : this.children.length;
@@ -55546,20 +55546,20 @@
     }
     addTools(items, obj, options) {
       const toolItems = Array.isArray(items) ? items : [items];
-      const name = typeof obj === "string" ? obj : null;
+      const name2 = typeof obj === "string" ? obj : null;
       const config = typeof obj === "object" ? obj : typeof options === "object" ? options : {};
       if (config.reset) {
-        return this.setTools({ name, items: toolItems, local: config.local }, config);
+        return this.setTools({ name: name2, items: toolItems, local: config.local }, config);
       }
       let tools = object_exports.cloneDeep(this.getTools());
-      if (tools == null || name == null || tools.name === name) {
+      if (tools == null || name2 == null || tools.name === name2) {
         if (tools == null) {
           tools = {};
         }
         if (!tools.items) {
           tools.items = [];
         }
-        tools.name = name;
+        tools.name = name2;
         tools.items = [...tools.items, ...toolItems];
         return this.setTools(Object.assign({}, tools), config);
       }
@@ -55579,22 +55579,22 @@
       this.store.remove("tools", options);
       return this;
     }
-    hasTools(name) {
+    hasTools(name2) {
       const tools = this.getTools();
       if (tools == null) {
         return false;
       }
-      if (name == null) {
+      if (name2 == null) {
         return true;
       }
-      return tools.name === name;
+      return tools.name === name2;
     }
-    hasTool(name) {
+    hasTool(name2) {
       const tools = this.getTools();
       if (tools == null) {
         return false;
       }
-      return tools.items.some((item) => typeof item === "string" ? item === name : item.name === name);
+      return tools.items.some((item) => typeof item === "string" ? item === name2 : item.name === name2);
     }
     removeTool(nameOrIndex, options = {}) {
       const tools = object_exports.cloneDeep(this.getTools());
@@ -55662,9 +55662,9 @@
       Object.keys(attrs).forEach((key) => {
         const attr2 = attrs[key];
         const defaultAttr = defaultAttrs[key];
-        Object.keys(attr2).forEach((name) => {
-          const value = attr2[name];
-          const defaultValue = defaultAttr ? defaultAttr[name] : null;
+        Object.keys(attr2).forEach((name2) => {
+          const value = attr2[name2];
+          const defaultValue = defaultAttr ? defaultAttr[name2] : null;
           if (value != null && typeof value === "object" && !Array.isArray(value)) {
             Object.keys(value).forEach((subName) => {
               const subValue = value[subName];
@@ -55672,10 +55672,10 @@
                 if (finalAttrs[key] == null) {
                   finalAttrs[key] = {};
                 }
-                if (finalAttrs[key][name] == null) {
-                  finalAttrs[key][name] = {};
+                if (finalAttrs[key][name2] == null) {
+                  finalAttrs[key][name2] = {};
                 }
-                const tmp = finalAttrs[key][name];
+                const tmp = finalAttrs[key][name2];
                 tmp[subName] = subValue;
               }
             });
@@ -55683,7 +55683,7 @@
             if (finalAttrs[key] == null) {
               finalAttrs[key] = {};
             }
-            finalAttrs[key][name] = value;
+            finalAttrs[key][name2] = value;
           }
         });
       });
@@ -55716,25 +55716,25 @@
     }
     // #endregion
     // #region batch
-    startBatch(name, data2 = {}, model = this.model) {
-      this.notify("batch:start", { name, data: data2, cell: this });
+    startBatch(name2, data2 = {}, model = this.model) {
+      this.notify("batch:start", { name: name2, data: data2, cell: this });
       if (model) {
-        model.startBatch(name, Object.assign(Object.assign({}, data2), { cell: this }));
+        model.startBatch(name2, Object.assign(Object.assign({}, data2), { cell: this }));
       }
       return this;
     }
-    stopBatch(name, data2 = {}, model = this.model) {
+    stopBatch(name2, data2 = {}, model = this.model) {
       if (model) {
-        model.stopBatch(name, Object.assign(Object.assign({}, data2), { cell: this }));
+        model.stopBatch(name2, Object.assign(Object.assign({}, data2), { cell: this }));
       }
-      this.notify("batch:stop", { name, data: data2, cell: this });
+      this.notify("batch:stop", { name: name2, data: data2, cell: this });
       return this;
     }
-    batchUpdate(name, execute, data2) {
+    batchUpdate(name2, execute, data2) {
       const model = this.model;
-      this.startBatch(name, data2, model);
+      this.startBatch(name2, data2, model);
       const result = execute();
-      this.stopBatch(name, data2, model);
+      this.stopBatch(name2, data2, model);
       return result;
     }
     // #endregion
@@ -55873,8 +55873,8 @@
   (function(ShareRegistry2) {
     let edgeRegistry;
     let nodeRegistry;
-    function exist(name, isNode) {
-      return isNode ? edgeRegistry != null && edgeRegistry.exist(name) : nodeRegistry != null && nodeRegistry.exist(name);
+    function exist(name2, isNode) {
+      return isNode ? edgeRegistry != null && edgeRegistry.exist(name2) : nodeRegistry != null && nodeRegistry.exist(name2);
     }
     ShareRegistry2.exist = exist;
     function setEdgeRegistry(registry) {
@@ -56023,9 +56023,9 @@
       return label;
     }
     getPortLabelLayout(port2, portPosition, elemBBox) {
-      const name = port2.label.position.name || "left";
+      const name2 = port2.label.position.name || "left";
       const args = port2.label.position.args || {};
-      const layoutFn = PortLabelLayout.registry.get(name) || PortLabelLayout.presets.left;
+      const layoutFn = PortLabelLayout.registry.get(name2) || PortLabelLayout.presets.left;
       if (layoutFn) {
         return layoutFn(portPosition, elemBBox, args);
       }
@@ -56698,9 +56698,9 @@
   })(Node2 || (Node2 = {}));
   (function(Node4) {
     let counter = 0;
-    function getClassName(name) {
-      if (name) {
-        return string_exports.pascalCase(name);
+    function getClassName(name2) {
+      if (name2) {
+        return string_exports.pascalCase(name2);
       }
       counter += 1;
       return `CustomNode${counter}`;
@@ -56952,11 +56952,11 @@
     getRouter() {
       return this.store.get("router");
     }
-    setRouter(name, args, options) {
-      if (typeof name === "object") {
-        this.store.set("router", name, args);
+    setRouter(name2, args, options) {
+      if (typeof name2 === "object") {
+        this.store.set("router", name2, args);
       } else {
-        this.store.set("router", { name, args }, options);
+        this.store.set("router", { name: name2, args }, options);
       }
       return this;
     }
@@ -56979,11 +56979,11 @@
     getConnector() {
       return this.store.get("connector");
     }
-    setConnector(name, args, options) {
-      if (typeof name === "object") {
-        this.store.set("connector", name, args);
+    setConnector(name2, args, options) {
+      if (typeof name2 === "object") {
+        this.store.set("connector", name2, args);
       } else {
-        this.store.set("connector", { name, args }, options);
+        this.store.set("connector", { name: name2, args }, options);
       }
       return this;
     }
@@ -57362,9 +57362,9 @@
   })(Edge || (Edge = {}));
   (function(Edge4) {
     let counter = 0;
-    function getClassName(name) {
-      if (name) {
-        return string_exports.pascalCase(name);
+    function getClassName(name2) {
+      if (name2) {
+        return string_exports.pascalCase(name2);
       }
       counter += 1;
       return `CustomEdge${counter}`;
@@ -57645,14 +57645,14 @@
       cell.off("*", this.notifyCellEvent, this);
       delete this.map[cell.id];
     }
-    notifyCellEvent(name, args) {
+    notifyCellEvent(name2, args) {
       const cell = args.cell;
-      this.trigger(`cell:${name}`, args);
+      this.trigger(`cell:${name2}`, args);
       if (cell) {
         if (cell.isNode()) {
-          this.trigger(`node:${name}`, Object.assign(Object.assign({}, args), { node: cell }));
+          this.trigger(`node:${name2}`, Object.assign(Object.assign({}, args), { node: cell }));
         } else if (cell.isEdge()) {
-          this.trigger(`edge:${name}`, Object.assign(Object.assign({}, args), { edge: cell }));
+          this.trigger(`edge:${name2}`, Object.assign(Object.assign({}, args), { edge: cell }));
         }
       }
     }
@@ -57691,14 +57691,14 @@
       this.collection = new Collection(cells);
       this.setup();
     }
-    notify(name, args) {
-      this.trigger(name, args);
+    notify(name2, args) {
+      this.trigger(name2, args);
       const graph = this.graph;
       if (graph) {
-        if (name === "sorted" || name === "reseted" || name === "updated") {
-          graph.trigger(`model:${name}`, args);
+        if (name2 === "sorted" || name2 === "reseted" || name2 === "updated") {
+          graph.trigger(`model:${name2}`, args);
         } else {
-          graph.trigger(name, args);
+          graph.trigger(name2, args);
         }
       }
       return this;
@@ -58570,24 +58570,24 @@
     }
     // #endregion
     // #region batch
-    startBatch(name, data2 = {}) {
-      this.batches[name] = (this.batches[name] || 0) + 1;
-      this.notify("batch:start", { name, data: data2 });
+    startBatch(name2, data2 = {}) {
+      this.batches[name2] = (this.batches[name2] || 0) + 1;
+      this.notify("batch:start", { name: name2, data: data2 });
       return this;
     }
-    stopBatch(name, data2 = {}) {
-      this.batches[name] = (this.batches[name] || 0) - 1;
-      this.notify("batch:stop", { name, data: data2 });
+    stopBatch(name2, data2 = {}) {
+      this.batches[name2] = (this.batches[name2] || 0) - 1;
+      this.notify("batch:stop", { name: name2, data: data2 });
       return this;
     }
-    batchUpdate(name, execute, data2 = {}) {
-      this.startBatch(name, data2);
+    batchUpdate(name2, execute, data2 = {}) {
+      this.startBatch(name2, data2);
       const result = execute();
-      this.stopBatch(name, data2);
+      this.stopBatch(name2, data2);
       return result;
     }
-    hasActiveBatch(name = Object.keys(this.batches)) {
-      const names = Array.isArray(name) ? name : [name];
+    hasActiveBatch(name2 = Object.keys(this.batches)) {
+      const names = Array.isArray(name2) ? name2 : [name2];
       return names.some((batch) => this.batches[batch] > 0);
     }
     // #endregion
@@ -58699,13 +58699,13 @@
       return this;
     }
   };
-  (function(Base3) {
-    Base3.bodyAttr = {
+  (function(Base4) {
+    Base4.bodyAttr = {
       fill: "#ffffff",
       stroke: "#333333",
       strokeWidth: 2
     };
-    Base3.labelAttr = {
+    Base4.labelAttr = {
       fontSize: 14,
       fill: "#000000",
       refX: 0.5,
@@ -58714,8 +58714,8 @@
       textVerticalAnchor: "middle",
       fontFamily: "Arial, helvetica, sans-serif"
     };
-    Base3.config({
-      attrs: { text: Object.assign({}, Base3.labelAttr) },
+    Base4.config({
+      attrs: { text: Object.assign({}, Base4.labelAttr) },
       propHooks(metadata) {
         const { label } = metadata, others = __rest18(metadata, ["label"]);
         if (label) {
@@ -59475,16 +59475,16 @@
       super.onMouseUp(e2, x3, y3);
       this.notify("node:mouseup", this.getEventArgs(e2, x3, y3));
     }
-    notifyPortEvent(name, e2, pos) {
+    notifyPortEvent(name2, e2, pos) {
       const port2 = this.findAttr("port", e2.target);
       if (port2) {
         const originType = e2.type;
-        if (name === "node:port:mouseenter") {
+        if (name2 === "node:port:mouseenter") {
           e2.type = "mouseenter";
-        } else if (name === "node:port:mouseleave") {
+        } else if (name2 === "node:port:mouseleave") {
           e2.type = "mouseleave";
         }
-        this.notify(name, this.getPortEventArgs(e2, port2, pos));
+        this.notify(name2, this.getPortEventArgs(e2, port2, pos));
         e2.type = originType;
       }
     }
@@ -59597,9 +59597,9 @@
     onMagnetMouseDown(e2, magnet, x3, y3) {
       this.startMagnetDragging(e2, x3, y3);
     }
-    onCustomEvent(e2, name, x3, y3) {
-      this.notify("node:customevent", Object.assign({ name }, this.getEventArgs(e2, x3, y3)));
-      super.onCustomEvent(e2, name, x3, y3);
+    onCustomEvent(e2, name2, x3, y3) {
+      this.notify("node:customevent", Object.assign({ name: name2 }, this.getEventArgs(e2, x3, y3)));
+      super.onCustomEvent(e2, name2, x3, y3);
     }
     prepareEmbedding(e2) {
       const graph = this.graph;
@@ -59846,7 +59846,7 @@
         node: this.cell
       });
     }
-    notifyNodeMove(name, e2, x3, y3, cell) {
+    notifyNodeMove(name2, e2, x3, y3, cell) {
       let cells = [cell];
       const selection = this.graph.getPlugin("selection");
       if (selection && selection.isSelectionMovable()) {
@@ -59856,7 +59856,7 @@
         }
       }
       cells.forEach((c4) => {
-        this.notify(name, {
+        this.notify(name2, {
           e: e2,
           x: x3,
           y: y3,
@@ -60476,17 +60476,17 @@
         throw new Error(`Anchor should be specified.`);
       }
       let anchor3;
-      const name = config.name;
+      const name2 = config.name;
       if (isEdge) {
-        const fn2 = EdgeAnchor.registry.get(name);
+        const fn2 = EdgeAnchor.registry.get(name2);
         if (typeof fn2 !== "function") {
-          return EdgeAnchor.registry.onNotFound(name);
+          return EdgeAnchor.registry.onNotFound(name2);
         }
         anchor3 = main_exports.call(fn2, this, cellView, magnet, ref2, config.args || {}, terminalType);
       } else {
-        const fn2 = NodeAnchor.registry.get(name);
+        const fn2 = NodeAnchor.registry.get(name2);
         if (typeof fn2 !== "function") {
-          return NodeAnchor.registry.onNotFound(name);
+          return NodeAnchor.registry.onNotFound(name2);
         }
         anchor3 = main_exports.call(fn2, this, cellView, magnet, ref2, config.args || {}, terminalType);
       }
@@ -60499,11 +60499,11 @@
       if (typeof router2 === "function") {
         routePoints = main_exports.call(router2, this, vertices, {}, this);
       } else {
-        const name = typeof router2 === "string" ? router2 : router2.name;
+        const name2 = typeof router2 === "string" ? router2 : router2.name;
         const args = typeof router2 === "string" ? {} : router2.args || {};
-        const fn2 = name ? Router.registry.get(name) : Router.presets.normal;
+        const fn2 = name2 ? Router.registry.get(name2) : Router.presets.normal;
         if (typeof fn2 !== "function") {
-          return Router.registry.onNotFound(name);
+          return Router.registry.onNotFound(name2);
         }
         routePoints = main_exports.call(fn2, this, vertices, args, this);
       }
@@ -60548,11 +60548,11 @@
       if (def == null) {
         return anchor3;
       }
-      const name = typeof def === "string" ? def : def.name;
+      const name2 = typeof def === "string" ? def : def.name;
       const args = typeof def === "string" ? {} : def.args;
-      const fn2 = ConnectionPoint.registry.get(name);
+      const fn2 = ConnectionPoint.registry.get(name2);
       if (typeof fn2 !== "function") {
-        return ConnectionPoint.registry.onNotFound(name);
+        return ConnectionPoint.registry.onNotFound(name2);
       }
       const connectionPoint = main_exports.call(fn2, this, line2, view, magnet, args || {}, endType);
       return connectionPoint ? connectionPoint.round(this.POINT_ROUNDING) : anchor3;
@@ -60594,19 +60594,19 @@
     }
     findPath(routePoints, sourcePoint, targetPoint) {
       const def = this.cell.getConnector() || this.graph.options.connecting.connector;
-      let name;
+      let name2;
       let args;
       let fn2;
       if (typeof def === "string") {
-        name = def;
+        name2 = def;
       } else {
-        name = def.name;
+        name2 = def.name;
         args = def.args;
       }
-      if (name) {
-        const method = Connector.registry.get(name);
+      if (name2) {
+        const method = Connector.registry.get(name2);
         if (typeof method !== "function") {
-          return Connector.registry.onNotFound(name);
+          return Connector.registry.onNotFound(name2);
         }
         fn2 = method;
       } else {
@@ -61045,21 +61045,21 @@
       super.onMouseWheel(e2, x3, y3, delta);
       this.notify("edge:mousewheel", Object.assign({ delta }, this.getEventArgs(e2, x3, y3)));
     }
-    onCustomEvent(e2, name, x3, y3) {
+    onCustomEvent(e2, name2, x3, y3) {
       const tool = main_exports3.findParentByClass(e2.target, "edge-tool", this.container);
       if (tool) {
         e2.stopPropagation();
         if (this.can("useEdgeTools")) {
-          if (name === "edge:remove") {
+          if (name2 === "edge:remove") {
             this.cell.remove({ ui: true });
             return;
           }
-          this.notify("edge:customevent", Object.assign({ name }, this.getEventArgs(e2, x3, y3)));
+          this.notify("edge:customevent", Object.assign({ name: name2 }, this.getEventArgs(e2, x3, y3)));
         }
         this.notifyMouseDown(e2, x3, y3);
       } else {
-        this.notify("edge:customevent", Object.assign({ name }, this.getEventArgs(e2, x3, y3)));
-        super.onCustomEvent(e2, name, x3, y3);
+        this.notify("edge:customevent", Object.assign({ name: name2 }, this.getEventArgs(e2, x3, y3)));
+        super.onCustomEvent(e2, name2, x3, y3);
       }
     }
     onLabelMouseDown(e2, x3, y3) {
@@ -63140,7 +63140,7 @@
       if (cache && cache.image !== options.image) {
         return;
       }
-      let uri;
+      let uri2;
       const opacity2 = options.opacity;
       const backgroundSize = options.size;
       let backgroundRepeat = options.repeat || "no-repeat";
@@ -63153,7 +63153,7 @@
         if (!(canvas2 instanceof HTMLCanvasElement)) {
           throw new Error("Background pattern must return an HTML Canvas instance");
         }
-        uri = canvas2.toDataURL("image/png");
+        uri2 = canvas2.toDataURL("image/png");
         if (options.repeat && backgroundRepeat !== options.repeat) {
           backgroundRepeat = options.repeat;
         } else {
@@ -63169,7 +63169,7 @@
           };
         }
       } else {
-        uri = img.src;
+        uri2 = img.src;
         if (backgroundSize === void 0) {
           options.size = {
             width: img.width,
@@ -63181,7 +63181,7 @@
         cache.size = object_exports.clone(options.size);
       }
       const style2 = this.elem.style;
-      style2.backgroundImage = `url(${uri})`;
+      style2.backgroundImage = `url(${uri2})`;
       style2.backgroundRepeat = backgroundRepeat;
       style2.opacity = opacity2 == null || opacity2 >= 1 ? "" : `${opacity2}`;
       this.updateBackgroundImage(options);
@@ -63618,8 +63618,8 @@
       while (job = this.queue.shift()) {
         try {
           job.cb();
-        } catch (error) {
-          console.log(error);
+        } catch (error3) {
+          console.log(error3);
         }
       }
       this.isFlushing = false;
@@ -64233,14 +64233,14 @@
     }
     filter(options) {
       let filterId = options.id;
-      const name = options.name;
+      const name2 = options.name;
       if (!filterId) {
-        filterId = `filter-${name}-${this.cid}-${string_exports.hashcode(JSON.stringify(options))}`;
+        filterId = `filter-${name2}-${this.cid}-${string_exports.hashcode(JSON.stringify(options))}`;
       }
       if (!this.isDefined(filterId)) {
-        const fn2 = Filter.registry.get(name);
+        const fn2 = Filter.registry.get(name2);
         if (fn2 == null) {
-          return Filter.registry.onNotFound(name);
+          return Filter.registry.onNotFound(name2);
         }
         const markup = fn2(options.args || {});
         const attrs = Object.assign(Object.assign({ x: -1, y: -1, width: 3, height: 3, filterUnits: "objectBoundingBox" }, options.attrs), { id: filterId });
@@ -64444,14 +64444,14 @@
       const def = typeof highlighterDef === "string" ? {
         name: highlighterDef
       } : highlighterDef;
-      const name = def.name;
-      const highlighter = Highlighter.registry.get(name);
+      const name2 = def.name;
+      const highlighter = Highlighter.registry.get(name2);
       if (highlighter == null) {
-        return Highlighter.registry.onNotFound(name);
+        return Highlighter.registry.onNotFound(name2);
       }
-      Highlighter.check(name, highlighter);
+      Highlighter.check(name2, highlighter);
       return {
-        name,
+        name: name2,
         highlighter,
         args: def.args || {}
       };
@@ -64798,19 +64798,19 @@
     getCellsBBox(cells, options = {}) {
       return this.model.getCellsBBox(cells, options);
     }
-    startBatch(name, data2 = {}) {
-      this.model.startBatch(name, data2);
+    startBatch(name2, data2 = {}) {
+      this.model.startBatch(name2, data2);
     }
-    stopBatch(name, data2 = {}) {
-      this.model.stopBatch(name, data2);
+    stopBatch(name2, data2 = {}) {
+      this.model.stopBatch(name2, data2);
     }
     batchUpdate(arg1, arg2, arg3) {
-      const name = typeof arg1 === "string" ? arg1 : "update";
+      const name2 = typeof arg1 === "string" ? arg1 : "update";
       const execute = typeof arg1 === "string" ? arg2 : arg1;
       const data2 = typeof arg2 === "function" ? arg3 : arg2;
-      this.startBatch(name, data2);
+      this.startBatch(name2, data2);
       const result = execute();
-      this.stopBatch(name, data2);
+      this.stopBatch(name2, data2);
       return result;
     }
     updateCellId(cell, newId) {
@@ -65685,8 +65685,8 @@
       }
       return this;
     }
-    setFilter(filter2) {
-      this.options.filter = filter2;
+    setFilter(filter3) {
+      this.options.filter = filter3;
     }
     setContent(content5) {
       this.options.content = content5;
@@ -65726,18 +65726,18 @@
       this.delegateDocumentEvents(Private5.documentEvents, evt.data);
     }
     filter(cells) {
-      const filter2 = this.options.filter;
+      const filter3 = this.options.filter;
       return cells.filter((cell) => {
-        if (Array.isArray(filter2)) {
-          return filter2.some((item) => {
+        if (Array.isArray(filter3)) {
+          return filter3.some((item) => {
             if (typeof item === "string") {
               return cell.shape === item;
             }
             return cell.id === item.id;
           });
         }
-        if (typeof filter2 === "function") {
-          return main_exports.call(filter2, this.graph, cell);
+        if (typeof filter3 === "function") {
+          return main_exports.call(filter3, this.graph, cell);
         }
         return true;
       });
@@ -65987,10 +65987,10 @@
       }
       return views;
     }
-    notifyBoxEvent(name, e2, x3, y3) {
+    notifyBoxEvent(name2, e2, x3, y3) {
       const data2 = this.getEventData(e2);
       const view = data2.activeView;
-      this.trigger(name, { e: e2, view, x: x3, y: y3, cell: view.cell });
+      this.trigger(name2, { e: e2, view, x: x3, y: y3, cell: view.cell });
     }
     getSelectedClassName(cell) {
       return this.prefixClassName(`${cell.isNode() ? "node" : "edge"}-selected`);
@@ -66461,10 +66461,10 @@
     }
     return this;
   };
-  Graph.prototype.setSelectionFilter = function(filter2) {
+  Graph.prototype.setSelectionFilter = function(filter3) {
     const selection = this.getPlugin("selection");
     if (selection) {
-      selection.setSelectionFilter(filter2);
+      selection.setSelectionFilter(filter3);
     }
     return this;
   };
@@ -66711,8 +66711,8 @@
     setRubberbandModifiers(modifiers) {
       this.setModifiers(modifiers);
     }
-    setSelectionFilter(filter2) {
-      this.setFilter(filter2);
+    setSelectionFilter(filter3) {
+      this.setFilter(filter3);
       return this;
     }
     setSelectionDisplayContent(content5) {
@@ -66756,9 +66756,9 @@
     }
     // #endregion
     setup() {
-      this.selectionImpl.on("*", (name, args) => {
-        this.trigger(name, args);
-        this.graph.trigger(name, args);
+      this.selectionImpl.on("*", (name2, args) => {
+        this.trigger(name2, args);
+        this.graph.trigger(name2, args);
       });
     }
     startListening() {
@@ -66863,8 +66863,8 @@
       this.selectionImpl.setContent(content5);
       return this;
     }
-    setFilter(filter2) {
-      this.selectionImpl.setFilter(filter2);
+    setFilter(filter3) {
+      this.selectionImpl.setFilter(filter3);
       return this;
     }
     dispose() {
@@ -67174,9 +67174,9 @@
       const _a2 = this.options, { enabled } = _a2, others = __rest28(_a2, ["enabled"]);
       return others;
     }
-    notify(name, args) {
-      this.trigger(name, args);
-      this.graph.trigger(name, args);
+    notify(name2, args) {
+      this.trigger(name2, args);
+      this.graph.trigger(name2, args);
     }
     dispose() {
       this.clean(true);
@@ -67410,9 +67410,9 @@
       this.model.on("batch:start", this.initBatchCommand, this);
       this.model.on("batch:stop", this.storeBatchCommand, this);
       if (this.options.eventNames) {
-        this.options.eventNames.forEach((name, index3) => {
-          this.handlers[index3] = this.addCommand.bind(this, name);
-          this.model.on(name, this.handlers[index3]);
+        this.options.eventNames.forEach((name2, index3) => {
+          this.handlers[index3] = this.addCommand.bind(this, name2);
+          this.model.on(name2, this.handlers[index3]);
         });
       }
       this.validator.on("invalid", (args) => this.trigger("invalid", args));
@@ -67421,8 +67421,8 @@
       this.model.off("batch:start", this.initBatchCommand, this);
       this.model.off("batch:stop", this.storeBatchCommand, this);
       if (this.options.eventNames) {
-        this.options.eventNames.forEach((name, index3) => {
-          this.model.off(name, this.handlers[index3]);
+        this.options.eventNames.forEach((name2, index3) => {
+          this.model.off(name2, this.handlers[index3]);
         });
         this.handlers.length = 0;
       }
@@ -68175,8 +68175,8 @@
         this.stopListening();
       }
     }
-    setFilter(filter2) {
-      this.options.filter = filter2;
+    setFilter(filter3) {
+      this.options.filter = filter3;
     }
     render() {
       const container = this.containerWrapper = new Vector("svg");
@@ -68211,8 +68211,8 @@
       this.model.off("batch:stop", this.onBatchStop, this);
       this.undelegateDocumentEvents();
     }
-    onBatchStop({ name, data: data2 }) {
-      if (name === "resize") {
+    onBatchStop({ name: name2, data: data2 }) {
+      if (name2 === "resize") {
         this.snapOnResizing(data2.cell, data2);
       }
     }
@@ -68539,17 +68539,17 @@
       return targetNode.id === snapNode.id || targetNode.isDescendantOf(snapNode) || !this.filter(targetNode);
     }
     filter(node2) {
-      const filter2 = this.options.filter;
-      if (Array.isArray(filter2)) {
-        return filter2.some((item) => {
+      const filter3 = this.options.filter;
+      if (Array.isArray(filter3)) {
+        return filter3.some((item) => {
           if (typeof item === "string") {
             return node2.shape === item;
           }
           return node2.id === item.id;
         });
       }
-      if (typeof filter2 === "function") {
-        return main_exports.call(filter2, this.graph, node2);
+      if (typeof filter3 === "function") {
+        return main_exports.call(filter3, this.graph, node2);
       }
       return true;
     }
@@ -68674,10 +68674,10 @@
     }
     return this;
   };
-  Graph.prototype.setSnaplineFilter = function(filter2) {
+  Graph.prototype.setSnaplineFilter = function(filter3) {
     const snapline = this.getPlugin("snapline");
     if (snapline) {
-      snapline.setFilter(filter2);
+      snapline.setFilter(filter3);
     }
     return this;
   };
@@ -68800,8 +68800,8 @@
       this.snaplineImpl.hide();
       return this;
     }
-    setFilter(filter2) {
-      this.snaplineImpl.setFilter(filter2);
+    setFilter(filter3) {
+      this.snaplineImpl.setFilter(filter3);
       return this;
     }
     isOnResizingEnabled() {
@@ -69279,12 +69279,12 @@
         }
       }
     }
-    notify(name, evt, view, args = {}) {
+    notify(name2, evt, view, args = {}) {
       if (view) {
         const graph = view.graph;
         const e2 = graph.view.normalizeEvent(evt);
         const localPoint = graph.snapToGrid(e2.clientX, e2.clientY);
-        this.trigger(name, Object.assign({
+        this.trigger(name2, Object.assign({
           e: e2,
           view,
           node: view.cell,
@@ -69534,9 +69534,9 @@
       const widget = this.createTransform(node2);
       if (widget) {
         this.widgets.set(node2, widget);
-        widget.on("*", (name, args) => {
-          this.trigger(name, args);
-          this.graph.trigger(name, args);
+        widget.on("*", (name2, args) => {
+          this.trigger(name2, args);
+          this.graph.trigger(name2, args);
         });
       }
     }
@@ -69627,16 +69627,33 @@
     const circle2 = { r: 5.5, magnet: true, stroke: stroke3, fill: "#fff", strokeWidth: 1.5 };
     return {
       groups: {
-        top: { position: "top", attrs: { circle: circle2 } },
-        bottom: { position: "bottom", attrs: { circle: circle2 } },
-        left: { position: "left", attrs: { circle: circle2 } },
-        right: { position: "right", attrs: { circle: circle2 } }
+        // Cardinal (visible) — one item per group so X6 doesn't auto-distribute.
+        pTop: { position: "top", attrs: { circle: circle2 } },
+        pBottom: { position: "bottom", attrs: { circle: circle2 } },
+        pLeft: { position: "left", attrs: { circle: circle2 } },
+        pRight: { position: "right", attrs: { circle: circle2 } },
+        // Quarter (invisible, backward-compat) — 2 items per group auto-distribute
+        // at 25% / 75% of the side.
+        pTopQ: { position: "top", attrs: { circle: circle2 } },
+        pBottomQ: { position: "bottom", attrs: { circle: circle2 } },
+        pLeftQ: { position: "left", attrs: { circle: circle2 } },
+        pRightQ: { position: "right", attrs: { circle: circle2 } }
       },
       items: [
-        { id: "top", group: "top" },
-        { id: "bottom", group: "bottom" },
-        { id: "left", group: "left" },
-        { id: "right", group: "right" }
+        // Cardinal — IDs match what's saved by existing boards.
+        { id: "top", group: "pTop" },
+        { id: "bottom", group: "pBottom" },
+        { id: "left", group: "pLeft" },
+        { id: "right", group: "pRight" },
+        // Quarter (invisible) — resolve any port IDs saved by the 12-port version.
+        { id: "top-1", group: "pTopQ" },
+        { id: "top-2", group: "pTopQ" },
+        { id: "bottom-1", group: "pBottomQ" },
+        { id: "bottom-2", group: "pBottomQ" },
+        { id: "left-1", group: "pLeftQ" },
+        { id: "left-2", group: "pLeftQ" },
+        { id: "right-1", group: "pRightQ" },
+        { id: "right-2", group: "pRightQ" }
       ]
     };
   }
@@ -69657,14 +69674,34 @@
         }
       ],
       attrs: {
-        hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none" },
+        // `magnet: 'passive'` lets X6 treat the body as a valid DROP target during
+        // an arrow-drag (so the user can drop anywhere on the node and pinDropAnchor
+        // pins to that exact pixel) WITHOUT making body clicks initiate a connect
+        // drag — that would break selection (we tried `magnet: true` earlier, it
+        // hijacked the click; commit add07d8 reverted it).
+        // `pointerEvents: 'all'` so transparent fill still catches mouse events
+        // across the full bbox (SVG default `visiblePainted` ignores transparent
+        // areas — corner drops would fall through the hit rect onto the SVG
+        // background and the connecting tool would see no magnet under the cursor).
+        // Body magnet enables bpmn.io-style drop-anywhere: any mousedown on the
+        // body during an arrow-drag (started elsewhere) becomes a valid drop
+        // target → pinDropAnchor pins the endpoint to the cursor pixel.
+        // Selection isn't broken (the add07d8 regression) because `validateMagnet`
+        // in the connecting config rejects the body as a drag SOURCE — clicks on
+        // the body fall through to normal selection.
+        // `pointerEvents: 'all'` keeps the transparent fill catching mouse events
+        // across the full bbox (SVG default `visiblePainted` ignores transparent
+        // areas — corner drops would otherwise fall through onto the SVG canvas).
+        hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", magnet: true, pointerEvents: "all" },
         fo: { refWidth: "100%", refHeight: "100%" },
         content: { html: "", class: "hn" }
       },
       ports: makePorts()
     }, true);
   }
-  var esc = (s3) => String(s3 ?? "").replace(/[&<>]/g, (c4) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c4]);
+  var esc = (s3) => String(s3 ?? "").replace(/[&<>"']/g, (c4) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c4]);
+  var cssSafe = (v4) => String(v4 ?? "").replace(/["'<>\\]/g, "");
+  var px = (v4) => Number(v4) || 0;
   var nl = (s3) => s3.replace(/\n/g, "<br>");
   function defaultErdCols() {
     return [
@@ -69680,17 +69717,17 @@
   function styleStr(ov) {
     if (!ov) return "";
     const p4 = [];
-    if (ov.fill) p4.push(`background:${ov.fill}`);
-    if (ov.stroke) p4.push(`border-color:${ov.stroke}`);
-    if (ov.fontSize) p4.push(`font-size:${ov.fontSize}px`);
+    if (ov.fill) p4.push(`background:${cssSafe(ov.fill)}`);
+    if (ov.stroke) p4.push(`border-color:${cssSafe(ov.stroke)}`);
+    if (ov.fontSize) p4.push(`font-size:${px(ov.fontSize)}px`);
     if (ov.bold) p4.push("font-weight:700");
     if (ov.italic) p4.push("font-style:italic");
     const deco = [ov.underline ? "underline" : "", ov.strike ? "line-through" : ""].filter(Boolean).join(" ");
     if (deco) p4.push(`text-decoration:${deco}`);
-    if (ov.color) p4.push(`color:${ov.color}`);
-    if (ov.align) p4.push(`text-align:${ov.align}`);
-    if (ov.borderWidth) p4.push(`border-width:${ov.borderWidth}px`);
-    if (ov.borderDash && ov.borderDash !== "solid") p4.push(`border-style:${ov.borderDash}`);
+    if (ov.color) p4.push(`color:${cssSafe(ov.color)}`);
+    if (ov.align === "left" || ov.align === "center" || ov.align === "right") p4.push(`text-align:${ov.align}`);
+    if (ov.borderWidth) p4.push(`border-width:${px(ov.borderWidth)}px`);
+    if (ov.borderDash === "dashed" || ov.borderDash === "dotted") p4.push(`border-style:${ov.borderDash}`);
     return p4.join(";");
   }
   function withStyle(html3, sty) {
@@ -69714,13 +69751,58 @@
     cyl: svg(`<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/>`)
   };
   var ACTOR = svg(`<circle cx="12" cy="6" r="3"/><path d="M12 9v7M7 12h10M12 16l-4 5M12 16l4 5"/>`);
+  var TRIG_OUT = {
+    message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5"/></svg>`,
+    timer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><path d="M12 7v5l3 2"/><path d="M12 5v1M12 18v1M5 12h1M18 12h1" stroke-width="1.2"/></svg>`,
+    signal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 21 19H3Z"/></svg>`,
+    error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18 10 8l3 6 3-4 4 10"/></svg>`,
+    escalation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+    compensation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+    conditional: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14"/><path d="M7 9h10M7 12h10M7 15h6"/></svg>`,
+    link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h11l-3-3M15 12l-3 3"/></svg>`,
+    cancel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg>`,
+    terminate: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`,
+    multiple: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+    "parallel-multiple": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>`
+  };
+  var TRIG_FILL = {
+    message: `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`,
+    signal: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 21 19H3Z"/></svg>`,
+    error: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 10 8l3 6 3-4 4 10Z"/></svg>`,
+    escalation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+    compensation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+    link: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h11l-3-3M15 12l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 10h11v4H4z"/></svg>`,
+    multiple: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+    cancel: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 6 6 6-6 2 2-6 6 6 6-2 2-6-6-6 6-2-2 6-6-6-6Z"/></svg>`
+  };
+  function trigIcon(trigger, filled) {
+    if (!trigger) return "";
+    const t3 = trigger;
+    if (t3 === "terminate") return TRIG_OUT.terminate;
+    if (filled && TRIG_FILL[t3]) return TRIG_FILL[t3];
+    return TRIG_OUT[t3] ?? "";
+  }
+  var MARKER_ICON = {
+    loop: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9a4 4 0 1 0 1-3M5 5V3M5 5H3"/></svg>`,
+    "mi-par": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="2.4" height="10"/><rect x="6.8" y="3" width="2.4" height="10"/><rect x="10.6" y="3" width="2.4" height="10"/></svg>`,
+    "mi-seq": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="2.4"/><rect x="3" y="6.8" width="10" height="2.4"/><rect x="3" y="10.6" width="10" height="2.4"/></svg>`,
+    adhoc: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10c2-4 4-4 6 0s4 4 6 0"/></svg>`,
+    compensation: `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M9 3 3 8l6 5ZM15 3 9 8l6 5Z"/></svg>`,
+    subprocess: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10"/><path d="M8 5.5v5M5.5 8h5"/></svg>`
+  };
+  function renderMarkers(markers) {
+    if (!markers || markers.length === 0) return "";
+    const items = markers.map((m4) => MARKER_ICON[m4] ? `<span class="bp-mk-ic">${MARKER_ICON[m4]}</span>` : "").join("");
+    return items ? `<div class="bp-markers">${items}</div>` : "";
+  }
   function nodeHtml(kind, label, ov, extra) {
     return withStyle(nodeHtmlBase(kind, label, extra), styleStr(ov));
   }
   function erdHtml(label, cols) {
-    const rows = cols.map(
-      (c4, i3) => `<div class="erd-col" data-col-idx="${i3}"><span class="kk ${c4.k.toLowerCase()}">${esc(c4.k)}</span><span class="cname">${esc(c4.name)}</span><span class="ctype">${esc(c4.type)}</span></div>`
-    ).join("");
+    const rows = cols.map((c4, i3) => {
+      const k3 = c4.k === "PK" || c4.k === "FK" ? c4.k : "";
+      return `<div class="erd-col" data-col-idx="${i3}"><span class="kk ${k3.toLowerCase()}">${k3}</span><span class="cname">${esc(c4.name)}</span><span class="ctype">${esc(c4.type)}</span></div>`;
+    }).join("");
     return `<div class="erd-table"><div class="erd-th">${KEY}${esc(label) || "Table"}</div>${rows}</div>`;
   }
   function umlLine(s3, comp, idx) {
@@ -69731,9 +69813,9 @@
     return `<div class="uml-comp">${lines.map((s3, i3) => umlLine(s3, comp, i3)).join("")}</div>`;
   }
   function umlHtml(label, fields, methods, stereo) {
-    const name = `<div class="uml-name">${stereo ? `<span class="stereo">${stereo}</span>` : ""}${esc(label) || "ClassName"}</div>`;
+    const name2 = `<div class="uml-name">${stereo ? `<span class="stereo">${stereo}</span>` : ""}${esc(label) || "ClassName"}</div>`;
     const comps = stereo ? umlComp(methods, "methods") : (fields.length ? umlComp(fields, "fields") : "") + (methods.length ? umlComp(methods, "methods") : "");
-    return `<div class="uml">${name}${comps}</div>`;
+    return `<div class="uml">${name2}${comps}</div>`;
   }
   function nodeHtmlBase(kind, label, extra) {
     const L3 = esc(label);
@@ -69816,10 +69898,10 @@
       case "mm-leaf":
         return `<div class="mm l2">${nl(L3) || "L\xE1"}</div>`;
       case "sq-actor":
-        return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${ACTOR}</div><div class="sq-actor-lbl">${L3 || "Actor"}</div></div><div class="sq-line"></div></div>`;
+        return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${ACTOR}</div><div class="sq-actor-lbl">${L3 || "Actor"}</div></div>${SQ_LINE}</div>`;
       case "sq-participant": {
         const who = extra?.who ?? "";
-        return `<div class="sq-life"><div class="sq-head sq-pill">${L3 || "Participant"}${who ? `<span class="sq-who">${esc(who)}</span>` : ""}</div><div class="sq-line"></div></div>`;
+        return `<div class="sq-life"><div class="sq-head sq-pill">${L3 || "Participant"}${who ? `<span class="sq-who">${esc(who)}</span>` : ""}</div>${SQ_LINE}</div>`;
       }
       case "sq-activation":
         return `<div class="sq-act"></div>`;
@@ -69841,24 +69923,30 @@
         return seqFrag("loop", L3, false);
       case "sq-frag-par":
         return seqFrag("par", L3, true);
+      case "bpmn-event-start":
+        return bpEvent("start", L3, void 0, extra);
+      case "bpmn-event-intermediate":
+        return bpEvent("inter", L3, void 0, extra);
+      case "bpmn-event-end":
+        return bpEvent("end", L3, void 0, extra);
       case "bpmn-start":
         return bpEvent("start", L3, void 0, extra);
       case "bpmn-start-message":
-        return bpEvent("start", L3, BP_ICON.msg, extra);
+        return bpEvent("start", L3, void 0, { ...extra, trigger: "message" });
       case "bpmn-start-timer":
-        return bpEvent("start", L3, BP_ICON.clock, extra);
+        return bpEvent("start", L3, void 0, { ...extra, trigger: "timer" });
       case "bpmn-intermediate":
         return bpEvent("inter", L3, void 0, extra);
       case "bpmn-intermediate-message":
-        return bpEvent("inter", L3, BP_ICON.msg, extra);
+        return bpEvent("inter", L3, void 0, { ...extra, trigger: "message" });
       case "bpmn-intermediate-timer":
-        return bpEvent("inter", L3, BP_ICON.clock, extra);
+        return bpEvent("inter", L3, void 0, { ...extra, trigger: "timer" });
       case "bpmn-end":
         return bpEvent("end", L3, void 0, extra);
       case "bpmn-end-message":
-        return bpEvent("end", L3, BP_ICON.send, extra);
+        return bpEvent("end", L3, void 0, { ...extra, trigger: "message", throwing: true });
       case "bpmn-end-terminate":
-        return bpEvent("end", L3, `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="currentColor"/></svg>`, extra);
+        return bpEvent("end", L3, void 0, { ...extra, trigger: "terminate" });
       case "bpmn-gateway-x":
         return bpGateway("\u2715", L3, extra);
       case "bpmn-gateway-parallel":
@@ -69870,29 +69958,43 @@
       case "bpmn-gateway-complex":
         return bpGateway(`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16M6 6l12 12M18 6 6 18"/></svg>`, L3, extra);
       case "bpmn-task":
-        return bpTask(L3);
+        return bpTask(L3, void 0, extra);
       case "bpmn-task-user":
-        return bpTask(L3, "user");
+        return bpTask(L3, "user", extra);
       case "bpmn-task-service":
-        return bpTask(L3, "gear");
+        return bpTask(L3, "gear", extra);
       case "bpmn-task-script":
-        return bpTask(L3, "script");
+        return bpTask(L3, "script", extra);
       case "bpmn-task-manual":
-        return bpTask(L3, "hand");
+        return bpTask(L3, "hand", extra);
       case "bpmn-task-send":
-        return bpTask(L3, "send");
+        return bpTask(L3, "send", extra);
       case "bpmn-task-receive":
-        return bpTask(L3, "msg");
+        return bpTask(L3, "msg", extra);
       case "bpmn-task-rule":
-        return bpTask(L3, "rule");
+        return bpTask(L3, "rule", extra);
       case "bpmn-subprocess":
-        return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L3 || "Sub-process"}</span><span class="bp-plus">+</span></div>`;
+        return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L3 || "Sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
+      case "bpmn-transaction":
+        return `<div class="bp-frame bp-sub is-transaction"><span class="bp-frame-lbl">${L3 || "Transaction"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
+      case "bpmn-event-subprocess":
+        return `<div class="bp-frame bp-sub is-event-sub"><span class="bp-frame-lbl">${L3 || "Event sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
+      case "bpmn-call-activity":
+        return `<div class="bp-task is-call">${nl(L3) || "Call activity"}${renderMarkers(extra?.markers)}</div>`;
       case "bpmn-data-object":
         return `<div class="bp-dataobj"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L3}</span></div>`;
+      case "bpmn-data-collection":
+        return `<div class="bp-dataobj is-collection"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L3}</span><span class="bp-coll-bars"></span></div>`;
+      case "bpmn-data-input":
+        return `<div class="bp-dataobj is-input"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L3 || "Input"}</span><span class="bp-data-arr"></span></div>`;
+      case "bpmn-data-output":
+        return `<div class="bp-dataobj is-output"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L3 || "Output"}</span><span class="bp-data-arr"></span></div>`;
       case "bpmn-data-store":
         return `<div class="bp-datastore"><span class="ic">${BP_ICON.cyl}</span><span class="lbl">${L3}</span></div>`;
       case "bpmn-annotation":
         return `<div class="bp-anno">${L3 || "Annotation"}</div>`;
+      case "bpmn-group":
+        return `<div class="bp-group">${L3 ? `<span class="bp-group-lbl">${L3}</span>` : ""}</div>`;
       case "bpmn-lane":
         return `<div class="bp-lane"><span>${L3}</span></div>`;
       case "bpmn-pool":
@@ -69901,11 +70003,12 @@
         return `<div class="fc rect">${L3}</div>`;
     }
   }
+  var SQ_LINE = `<svg class="sq-line" preserveAspectRatio="none"><line x1="50%" y1="0" x2="50%" y2="100%"></line></svg>`;
   var SQ_BOUNDARY = svg(`<circle cx="14" cy="9" r="5"/><path d="M5 4v10M5 9h4"/>`);
   var SQ_CONTROL = svg(`<circle cx="12" cy="10" r="5"/><path d="M12 5l-2.5 1.5L12 7"/>`);
   var SQ_ENTITY = svg(`<circle cx="12" cy="8" r="5"/><path d="M7 15h10"/>`);
   function seqLife(icon, label) {
-    return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${icon}</div><div class="sq-actor-lbl">${esc(label)}</div></div><div class="sq-line"></div></div>`;
+    return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${icon}</div><div class="sq-actor-lbl">${esc(label)}</div></div>${SQ_LINE}</div>`;
   }
   function seqFrag(tag, label, divider) {
     return `<div class="sq-frag"><span class="sq-frag-tab">${esc(tag)}</span>${label ? `<span class="sq-frag-cond">[${esc(label)}]</span>` : ""}${divider ? `<div class="sq-frag-div"></div>` : ""}</div>`;
@@ -69913,18 +70016,22 @@
   function lblStyle(extra) {
     const o3 = extra?.labelOffset;
     if (!o3) return "";
-    return ` style="transform:translate(${o3.x}px,${o3.y}px)"`;
+    return ` style="margin:${px(o3.y)}px 0 0 ${px(o3.x)}px"`;
   }
   function bpEvent(kind, label, icon, extra) {
-    const inner = icon ?? (kind === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`));
-    return `<div class="bp-event ${kind}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${esc(label)}</div></div>`;
+    const pos = kind;
+    const filledByPos = pos === "end" || extra?.throwing === true;
+    const trigIc = extra?.trigger ? trigIcon(extra.trigger, filledByPos) : null;
+    const inner = trigIc ?? icon ?? (pos === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`));
+    const interrupt = extra?.interrupting === false ? " is-non-interrupting" : "";
+    return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
   }
-  function bpTask(label, iconKey) {
+  function bpTask(label, iconKey, extra) {
     const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
-    return `<div class="bp-task">${icon}${esc(label)}</div>`;
+    return `<div class="bp-task">${icon}${nl(label)}${renderMarkers(extra?.markers)}</div>`;
   }
   function bpGateway(mark, label, extra) {
-    return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${esc(label)}</div>` : ""}</div>`;
+    return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : ""}</div>`;
   }
   function bpPool(label, extra) {
     const lanes = extra?.lanes?.length ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
@@ -70023,34 +70130,71 @@
     {
       title: "BPMN",
       items: [
-        { shape: "bpmn-start", label: "Start", w: 40, h: 40 },
-        { shape: "bpmn-start-message", label: "Start message", w: 40, h: 40 },
-        { shape: "bpmn-start-timer", label: "Start timer", w: 40, h: 40 },
-        { shape: "bpmn-intermediate", label: "Intermediate", w: 40, h: 40 },
-        { shape: "bpmn-intermediate-message", label: "Inter. message", w: 40, h: 40 },
-        { shape: "bpmn-intermediate-timer", label: "Inter. timer", w: 40, h: 40 },
-        { shape: "bpmn-end", label: "End", w: 40, h: 40 },
-        { shape: "bpmn-end-message", label: "End message", w: 40, h: 40 },
-        { shape: "bpmn-end-terminate", label: "Terminate", w: 40, h: 40 },
+        // Events — unified Đợt A. Palette lists the 3 base kinds + the common
+        // OMG triggers per position. Each trigger entry seeds extra.trigger so the
+        // dropped node renders the correct icon immediately.
+        // ── 18 common shapes shown by default ──
+        // Events (9)
+        { shape: "bpmn-event-start", label: "Start", w: 40, h: 40 },
+        { shape: "bpmn-event-start", label: "Start msg", w: 40, h: 40, seed: { trigger: "message" } },
+        { shape: "bpmn-event-start", label: "Start timer", w: 40, h: 40, seed: { trigger: "timer" } },
+        { shape: "bpmn-event-intermediate", label: "Intermediate", w: 40, h: 40 },
+        { shape: "bpmn-event-intermediate", label: "Inter. msg", w: 40, h: 40, seed: { trigger: "message" } },
+        { shape: "bpmn-event-intermediate", label: "Inter. timer", w: 40, h: 40, seed: { trigger: "timer" } },
+        { shape: "bpmn-event-end", label: "End", w: 40, h: 40 },
+        { shape: "bpmn-event-end", label: "End msg", w: 40, h: 40, seed: { trigger: "message" } },
+        { shape: "bpmn-event-end", label: "Terminate", w: 40, h: 40, seed: { trigger: "terminate" } },
+        // Gateways (3)
         { shape: "bpmn-gateway-x", label: "Exclusive GW", w: 50, h: 50 },
         { shape: "bpmn-gateway-parallel", label: "Parallel GW", w: 50, h: 50 },
         { shape: "bpmn-gateway-inclusive", label: "Inclusive GW", w: 50, h: 50 },
-        { shape: "bpmn-gateway-event", label: "Event GW", w: 50, h: 50 },
-        { shape: "bpmn-gateway-complex", label: "Complex GW", w: 50, h: 50 },
+        // Tasks (3)
         { shape: "bpmn-task", label: "Task", w: 120, h: 60 },
         { shape: "bpmn-task-user", label: "User task", w: 120, h: 60 },
         { shape: "bpmn-task-service", label: "Service task", w: 120, h: 60 },
-        { shape: "bpmn-task-script", label: "Script task", w: 120, h: 60 },
-        { shape: "bpmn-task-manual", label: "Manual task", w: 120, h: 60 },
-        { shape: "bpmn-task-send", label: "Send task", w: 120, h: 60 },
-        { shape: "bpmn-task-receive", label: "Receive task", w: 120, h: 60 },
-        { shape: "bpmn-task-rule", label: "Rule task", w: 120, h: 60 },
+        // Activities + swimlanes (3)
         { shape: "bpmn-subprocess", label: "Sub-process", w: 200, h: 120 },
-        { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76 },
-        { shape: "bpmn-data-store", label: "Data store", w: 70, h: 64 },
-        { shape: "bpmn-annotation", label: "Annotation", w: 150, h: 56 },
         { shape: "bpmn-lane", label: "Lane", w: 480, h: 140 },
-        { shape: "bpmn-pool", label: "Pool", w: 560, h: 200 }
+        { shape: "bpmn-pool", label: "Pool", w: 560, h: 200 },
+        // ── Load more (hidden by default) ──
+        // Remaining event triggers
+        { shape: "bpmn-event-start", label: "Start signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
+        { shape: "bpmn-event-start", label: "Start cond.", w: 40, h: 40, seed: { trigger: "conditional" }, advanced: true },
+        { shape: "bpmn-event-start", label: "Start multi", w: 40, h: 40, seed: { trigger: "multiple" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. error", w: 40, h: 40, seed: { trigger: "error" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. escal.", w: 40, h: 40, seed: { trigger: "escalation" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. comp.", w: 40, h: 40, seed: { trigger: "compensation" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. cond.", w: 40, h: 40, seed: { trigger: "conditional" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. link", w: 40, h: 40, seed: { trigger: "link" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. cancel", w: 40, h: 40, seed: { trigger: "cancel" }, advanced: true },
+        { shape: "bpmn-event-end", label: "End signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
+        { shape: "bpmn-event-end", label: "End error", w: 40, h: 40, seed: { trigger: "error" }, advanced: true },
+        { shape: "bpmn-event-end", label: "End escal.", w: 40, h: 40, seed: { trigger: "escalation" }, advanced: true },
+        { shape: "bpmn-event-end", label: "End comp.", w: 40, h: 40, seed: { trigger: "compensation" }, advanced: true },
+        { shape: "bpmn-event-end", label: "End cancel", w: 40, h: 40, seed: { trigger: "cancel" }, advanced: true },
+        // Remaining gateways
+        { shape: "bpmn-gateway-event", label: "Event GW", w: 50, h: 50, advanced: true },
+        { shape: "bpmn-gateway-complex", label: "Complex GW", w: 50, h: 50, advanced: true },
+        // Remaining tasks
+        { shape: "bpmn-task-script", label: "Script task", w: 120, h: 60, advanced: true },
+        { shape: "bpmn-task-manual", label: "Manual task", w: 120, h: 60, advanced: true },
+        { shape: "bpmn-task-send", label: "Send task", w: 120, h: 60, advanced: true },
+        { shape: "bpmn-task-receive", label: "Receive task", w: 120, h: 60, advanced: true },
+        { shape: "bpmn-task-rule", label: "Rule task", w: 120, h: 60, advanced: true },
+        // Remaining activities
+        { shape: "bpmn-transaction", label: "Transaction", w: 200, h: 120, advanced: true },
+        { shape: "bpmn-event-subprocess", label: "Event sub-process", w: 200, h: 120, advanced: true },
+        { shape: "bpmn-call-activity", label: "Call activity", w: 120, h: 60, advanced: true },
+        // Data artifacts
+        { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
+        { shape: "bpmn-data-collection", label: "Data collection", w: 60, h: 76, advanced: true },
+        { shape: "bpmn-data-input", label: "Data input", w: 60, h: 76, advanced: true },
+        { shape: "bpmn-data-output", label: "Data output", w: 60, h: 76, advanced: true },
+        { shape: "bpmn-data-store", label: "Data store", w: 70, h: 64, advanced: true },
+        // Misc
+        { shape: "bpmn-annotation", label: "Annotation", w: 150, h: 56, advanced: true },
+        { shape: "bpmn-group", label: "Group", w: 200, h: 120, advanced: true }
       ]
     }
   ];
@@ -70131,12 +70275,69 @@
     "bpmn-task-receive": I(`<rect x="5" y="10" width="22" height="12" rx="4" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/><rect x="9" y="13" width="9" height="6" fill="none" stroke="#1565c0" stroke-width="1.2"/><path d="m9 13 4.5 3 4.5-3" stroke="#1565c0" stroke-width="1.2" fill="none"/>`),
     "bpmn-task-rule": I(`<rect x="5" y="10" width="22" height="12" rx="4" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="8" y="12" width="8" height="8" fill="none" stroke="#1565c0" stroke-width="1.1"/><path d="M8 15h8M12 12v8" stroke="#1565c0" stroke-width="1.1"/>`),
     "bpmn-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="13" y="18" width="6" height="4" fill="none" stroke="#1565c0" stroke-width="1.2"/><path d="M16 18.6v2.8M14.6 20h2.8" stroke="#1565c0" stroke-width="1"/>`),
+    // Đợt A unified events (3 base — trigger overlay picked from extra)
+    "bpmn-event-start": I(`<circle cx="16" cy="16" r="9" fill="#e7f9ed" stroke="#2e7d32" stroke-width="2"/>`),
+    "bpmn-event-intermediate": I(`<circle cx="16" cy="16" r="9" fill="#fff8e1" stroke="#f57f17" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="none" stroke="#f57f17" stroke-width="1.5"/>`),
+    "bpmn-event-end": I(`<circle cx="16" cy="16" r="9" fill="#fde8e8" stroke="#c62828" stroke-width="3"/>`),
+    // Đợt B — Activities
+    "bpmn-transaction": I(`<rect x="3" y="8" width="26" height="16" rx="4" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="5.5" y="10.5" width="21" height="11" rx="2.5" fill="none" stroke="#1565c0" stroke-width="1.2"/>`),
+    "bpmn-event-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M16 12v8M12 16h8" stroke="#1565c0" stroke-width="1.2"/>`),
+    "bpmn-call-activity": I(`<rect x="4" y="10" width="24" height="12" rx="3" fill="#fff" stroke="#1565c0" stroke-width="3"/>`),
+    // Đợt B — Data artifacts
+    "bpmn-data-collection": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/><path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`),
+    "bpmn-data-input": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="none" stroke="#607d8b" stroke-width="1.3"/>`),
+    "bpmn-data-output": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="#607d8b"/>`),
+    // Đợt B — Group
+    "bpmn-group": I(`<rect x="4" y="8" width="24" height="16" rx="4" fill="none" stroke="#5e7a99" stroke-width="1.8" stroke-dasharray="4 2"/>`),
     "bpmn-data-object": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/>`),
     "bpmn-data-store": I(`<ellipse cx="16" cy="9" rx="9" ry="3" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M7 9v14c0 1.6 4 3 9 3s9-1.4 9-3V9" fill="none" stroke="#607d8b" stroke-width="2"/>`),
     "bpmn-annotation": I(`<path d="M11 6H26V26H11" fill="none" stroke="#90a4ae" stroke-width="2"/><path d="M11 6V26" stroke="#607d8b" stroke-width="2.5"/>`),
     "bpmn-lane": I(`<rect x="4" y="9" width="24" height="14" fill="none" stroke="#546e7a" stroke-width="2"/><rect x="4" y="9" width="6" height="14" fill="#eceff1" stroke="#546e7a" stroke-width="2"/>`)
   };
-  function shapeIcon(shape) {
+  function shapeIcon(shape, seed) {
+    if (seed?.trigger) {
+      const map = {
+        "bpmn-event-start": {
+          message: "bpmn-start-message",
+          timer: "bpmn-start-timer"
+        },
+        "bpmn-event-intermediate": {
+          message: "bpmn-intermediate-message",
+          timer: "bpmn-intermediate-timer"
+        },
+        "bpmn-event-end": {
+          message: "bpmn-end-message",
+          terminate: "bpmn-end-terminate"
+        }
+      };
+      const alias = map[shape]?.[seed.trigger];
+      if (alias && ICONS[alias]) return ICONS[alias];
+      const borderByPos = {
+        "bpmn-event-start": `<circle cx="16" cy="16" r="9" fill="#e7f9ed" stroke="#2e7d32" stroke-width="2"/>`,
+        "bpmn-event-intermediate": `<circle cx="16" cy="16" r="9" fill="#fff8e1" stroke="#f57f17" stroke-width="2"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#f57f17" stroke-width="1.2"/>`,
+        "bpmn-event-end": `<circle cx="16" cy="16" r="9" fill="#fde8e8" stroke="#c62828" stroke-width="3"/>`
+      };
+      const color = {
+        "bpmn-event-start": "#2e7d32",
+        "bpmn-event-intermediate": "#f57f17",
+        "bpmn-event-end": "#c62828"
+      };
+      const c4 = color[shape] ?? "#666";
+      const glyph = {
+        signal: `<path d="M16 11 22 21 10 21Z" fill="none" stroke="${c4}" stroke-width="1.4"/>`,
+        error: `<path d="M9 21 13 13l3 4 3-4 3 8" fill="none" stroke="${c4}" stroke-width="1.5"/>`,
+        escalation: `<path d="M16 11 21 21 16 18 11 21Z" fill="none" stroke="${c4}" stroke-width="1.4"/>`,
+        compensation: `<path d="M17 12 12 16 17 20ZM22 12 17 16 22 20Z" fill="none" stroke="${c4}" stroke-width="1.3"/>`,
+        conditional: `<rect x="11" y="11" width="10" height="10" fill="none" stroke="${c4}" stroke-width="1.3"/><path d="M13 14h6M13 16h6M13 18h4" stroke="${c4}" stroke-width="1"/>`,
+        link: `<path d="M11 16h8l-2-2M19 16l-2 2" fill="none" stroke="${c4}" stroke-width="1.6"/>`,
+        cancel: `<path d="m12 12 8 8M20 12l-8 8" stroke="${c4}" stroke-width="1.8"/>`,
+        multiple: `<path d="M16 11 21 14.5 19 21h-6L11 14.5Z" fill="none" stroke="${c4}" stroke-width="1.4"/>`,
+        "parallel-multiple": `<path d="M16 11v10M11 16h10" stroke="${c4}" stroke-width="1.8"/>`,
+        terminate: `<circle cx="16" cy="16" r="5" fill="${c4}"/>`
+      };
+      const g2 = glyph[seed.trigger] ?? "";
+      return `<svg viewBox="0 0 32 32" fill="none">${borderByPos[shape] ?? ""}${g2}</svg>`;
+    }
     return ICONS[shape] ?? I(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
   }
 
@@ -70240,7 +70441,8 @@
         methods: n2.attrs?.methods
       };
       const inner = nodeHtml(n2.shape, n2.label, style2, extra);
-      return `<foreignObject x="${n2.x}" y="${n2.y}" width="${n2.width}" height="${n2.height}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
+      const num = (v4) => Number(v4) || 0;
+      return `<foreignObject x="${num(n2.x)}" y="${num(n2.y)}" width="${num(n2.width)}" height="${num(n2.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
     }).join("");
     return `<svg xmlns="${SVGNS}" class="lk-root" width="${w3}" height="${h3}" viewBox="${x3} ${y3} ${w3} ${h3}"><defs><marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker></defs>` + (css2 ? `<style>${css2}</style>` : "") + (bg && bg !== "transparent" ? `<rect x="${x3}" y="${y3}" width="${w3}" height="${h3}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
   }
@@ -70869,6 +71071,7 @@
     return e2.reduce((t3, r2, o3) => (t3[r2] = n2[o3], t3), {});
   }
   var _ = "\0";
+  var U = "3.0.0";
   var K = class {
     constructor() {
       pe(this, "_sentinel");
@@ -71883,8 +72086,19 @@
       typeof t3 == "string" && (t3 = t3.toLowerCase()), n2[t3] = r2;
     }), n2;
   }
+  function fe(e2) {
+    let n2 = N(e2), t3 = new p({ compound: true, multigraph: true }).setGraph({});
+    return e2.nodes().forEach((r2) => {
+      t3.setNode(r2, { label: r2 }), t3.setParent(r2, "layer" + e2.node(r2).rank);
+    }), e2.edges().forEach((r2) => t3.setEdge(r2.v, r2.w, {}, r2.name)), n2.forEach((r2, o3) => {
+      let i3 = "layer" + o3;
+      t3.setNode(i3, { rank: "same" }), r2.reduce((s3, a3) => (t3.setEdge(s3, a3, { style: "invis" }), a3));
+    }), t3;
+  }
+  var sr = { graphlib: z, version: U, layout: he, debug: fe, util: { time: P, notime: M } };
+  var To = sr;
 
-  // src/canvas/LarkCanvas.ts
+  // src/canvas/OmniboardCanvas.ts
   var FILL_SWATCHES = [
     "transparent",
     "#FFFFFF",
@@ -71905,7 +72119,6 @@
     "#8E51FF",
     "#86909C"
   ];
-  var FONT_SIZES = [12, 14, 16, 18, 24, 32];
   var clamp01 = (n2) => Math.max(0, Math.min(1, n2));
   function hexToRgb(hex) {
     const m4 = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec(hex.trim());
@@ -71951,8 +72164,8 @@
     if (html3 !== void 0) node2.innerHTML = html3;
     return node2;
   }
-  var SMART_ROUTER = { name: "manhattan", args: { padding: 16 } };
-  var CONNECTOR = { name: "rounded", args: { radius: 10 } };
+  var SMART_ROUTER = { name: "orth", args: { padding: 16 } };
+  var CONNECTOR = { name: "rounded", args: { radius: 6 } };
   var SEQ_CONNECTOR_REGISTERED = false;
   function ensureSeqConnector() {
     if (SEQ_CONNECTOR_REGISTERED) return;
@@ -71987,9 +72200,25 @@
   var ACCENT = "#5E8FB9";
   var EDGE_STROKE2 = "#9c8b7e";
   var CURSOR_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l7 16 2-6 6-2z"/></svg>`;
+  var HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6.5a1.5 1.5 0 0 0-3 0M15 10.5V5a1.5 1.5 0 0 0-3 0v5M12 10V6.5a1.5 1.5 0 0 0-3 0V11M9 11V8a1.5 1.5 0 0 0-3 0v6a6 6 0 0 0 6 6h1.5a5 5 0 0 0 5-5v-3"/></svg>`;
+  var ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
   var EDGE_ATTRS = { line: { stroke: EDGE_STROKE2, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
   var EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" };
-  var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move" };
+  var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle" };
+  var FLOW_TYPE_PRESETS = {
+    sequence: { dash: "solid", start: "none", end: "arrow" },
+    default: { dash: "solid", start: "def-slash", end: "arrow" },
+    message: { dash: "dashed", start: "circle", end: "triangle" },
+    conditional: { dash: "solid", start: "diamond-o", end: "arrow" },
+    association: { dash: "dotted", start: "none", end: "arrow-open" }
+  };
+  var FLOW_TYPE_LABEL = {
+    sequence: "Sequence",
+    default: "Default",
+    message: "Message",
+    conditional: "Conditional",
+    association: "Association"
+  };
   var EDGE_DASHES = { solid: "", dashed: "6 4", dotted: "2 4" };
   var ACT_WIDTH = 12;
   var FRAME_KINDS = /* @__PURE__ */ new Set([
@@ -71998,9 +72227,12 @@
     "sq-frag-loop",
     "sq-frag-par",
     "bpmn-subprocess",
+    "bpmn-transaction",
+    "bpmn-event-subprocess",
     "bpmn-lane",
     "bpmn-pool",
-    "bpmn-annotation"
+    "bpmn-annotation",
+    "bpmn-group"
   ]);
   var CONTAINER_KINDS = /* @__PURE__ */ new Set([
     "sq-frag-alt",
@@ -72008,9 +72240,80 @@
     "sq-frag-loop",
     "sq-frag-par",
     "bpmn-subprocess",
+    "bpmn-transaction",
+    "bpmn-event-subprocess",
     "bpmn-lane",
-    "bpmn-pool"
+    "bpmn-pool",
+    "bpmn-group"
   ]);
+  var BPMN_TRIGGERS = [
+    "none",
+    "message",
+    "timer",
+    "signal",
+    "error",
+    "escalation",
+    "compensation",
+    "conditional",
+    "link",
+    "cancel",
+    "terminate",
+    "multiple",
+    "parallel-multiple"
+  ];
+  var BPMN_TRIGGER_LABEL = {
+    none: "Kh\xF4ng",
+    message: "Message",
+    timer: "Timer",
+    signal: "Signal",
+    error: "Error",
+    escalation: "Escalation",
+    compensation: "Compensation",
+    conditional: "Conditional",
+    link: "Link",
+    cancel: "Cancel",
+    terminate: "Terminate",
+    multiple: "Multiple",
+    "parallel-multiple": "Parallel Multiple"
+  };
+  var BPMN_ACTIVITY_KINDS = /* @__PURE__ */ new Set([
+    "bpmn-task",
+    "bpmn-task-user",
+    "bpmn-task-service",
+    "bpmn-task-script",
+    "bpmn-task-manual",
+    "bpmn-task-send",
+    "bpmn-task-receive",
+    "bpmn-task-rule",
+    "bpmn-subprocess",
+    "bpmn-transaction",
+    "bpmn-event-subprocess",
+    "bpmn-call-activity"
+  ]);
+  var BPMN_MARKERS = ["loop", "mi-par", "mi-seq", "adhoc", "compensation"];
+  var BPMN_MARKER_LABEL = {
+    loop: "Loop",
+    "mi-par": "Multi-Instance Parallel",
+    "mi-seq": "Multi-Instance Sequential",
+    adhoc: "Ad-Hoc",
+    compensation: "Compensation"
+  };
+  function migrateBpmnEventKind(shape, extra) {
+    const M3 = {
+      "bpmn-start": { kind: "bpmn-event-start", patch: {} },
+      "bpmn-start-message": { kind: "bpmn-event-start", patch: { trigger: "message" } },
+      "bpmn-start-timer": { kind: "bpmn-event-start", patch: { trigger: "timer" } },
+      "bpmn-intermediate": { kind: "bpmn-event-intermediate", patch: {} },
+      "bpmn-intermediate-message": { kind: "bpmn-event-intermediate", patch: { trigger: "message" } },
+      "bpmn-intermediate-timer": { kind: "bpmn-event-intermediate", patch: { trigger: "timer" } },
+      "bpmn-end": { kind: "bpmn-event-end", patch: {} },
+      "bpmn-end-message": { kind: "bpmn-event-end", patch: { trigger: "message", throwing: true } },
+      "bpmn-end-terminate": { kind: "bpmn-event-end", patch: { trigger: "terminate" } }
+    };
+    const hit = M3[shape];
+    if (!hit) return { kind: shape, extra };
+    return { kind: hit.kind, extra: { ...extra, ...hit.patch } };
+  }
   function buildMarker(kind, color) {
     switch (kind) {
       case "arrow":
@@ -72037,6 +72340,8 @@
         return { name: "path", d: "M16 -8 2 0 16 8 M16 0 2 0 M14 -8 14 8", fill: "none", stroke: color, "stroke-width": 1.5 };
       case "bar-bar":
         return { name: "path", d: "M5 -8 5 8 M10 -8 10 8", fill: "none", stroke: color, "stroke-width": 1.5 };
+      case "def-slash":
+        return { name: "path", d: "M2 -6 10 6", fill: "none", stroke: color, "stroke-width": 1.8 };
       case "none":
       default:
         return null;
@@ -72060,15 +72365,31 @@
   };
   var EDGE_WIDTHS = [1.4, 2.4, 3.6];
   var EDGE_SHAPES = {
-    orthogonal: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 10 } } },
-    elbow: { router: { name: "manhattan", args: { padding: 16 } }, connector: { name: "normal" } },
+    orthogonal: { router: { name: "orth", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 6 } } },
+    elbow: { router: { name: "orth", args: { padding: 16 } }, connector: { name: "normal" } },
     straight: { router: { name: "normal" }, connector: { name: "normal" } },
     curved: { router: { name: "normal" }, connector: { name: "smooth" } }
   };
   var EDGE_JUMPS = { none: "none", arc: "arc", gap: "gap" };
-  var LarkCanvas = class {
+  var ARROW_TYPES = [
+    { key: "sync", label: "\u0110\u1ED3ng b\u1ED9", style: { end: "arrow", dash: "solid", shape: "straight" } },
+    { key: "async", label: "B\u1EA5t \u0111\u1ED3ng b\u1ED9", style: { end: "arrow-open", dash: "solid", shape: "straight" } },
+    { key: "reply", label: "Ph\u1EA3n h\u1ED3i", style: { end: "arrow-open", dash: "dashed", shape: "straight" } },
+    { key: "line", label: "\u0110\u01B0\u1EDDng th\u1EB3ng", style: { end: "none", dash: "solid", shape: "straight" } }
+  ];
+  function arrowPreview(style2) {
+    const dash = style2.dash === "dashed" ? ` stroke-dasharray="3 3"` : style2.dash === "dotted" ? ` stroke-dasharray="1 3"` : "";
+    const head = style2.end === "none" ? "" : style2.end === "arrow-open" ? `<path d="M20 4 27 9 20 14" fill="none" stroke="currentColor" stroke-width="1.8"/>` : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
+    return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
+  }
+  var OmniboardCanvas = class _OmniboardCanvas {
     constructor(root2, categories, onChange) {
       this.edgeBar = null;
+      this.edgeBarDebounce = null;
+      // debounce showEdgeBar() during continuous segment/vertex drags
+      this.edgeDragFrames = null;
+      // TEMP perf probe: frame times during an edge-tool drag
+      this.edgeDragRaf = null;
       this.labelInput = null;
       this.propsBody = null;
       this.propsPanel = null;
@@ -72078,14 +72399,151 @@
       this.minimapSvg = null;
       this.minimapVp = null;
       this.mm = { scale: 1, ox: 0, oy: 0, bx: 0, by: 0 };
+      // minimap↔graph mapping
+      this.tool = "select";
+      this.railSelect = null;
+      this.railHand = null;
+      this.panStart = null;
+      this.pendingShape = null;
+      this.pendingHint = null;
+      this.selDrag = null;
+      this.dragBatch = false;
+      // an X6 history batch is open around the current touch-drag
+      this.mbar = null;
+      // mobile bottom toolbar
+      // Two-finger pinch: zoom around the finger midpoint while also panning with it.
+      this.pinch = null;
       this.mmFabs = null;
       this.padLayer = null;
       this.pendingDrop = null;
       // dangling edge awaiting a shape pick (drag-to-blank)
       this.lastSelectedAt = /* @__PURE__ */ new Map();
       // when each node became selected (for click-to-edit)
+      this.lastPointerClient = null;
+      // last cursor pos in RAW client coords (converted to graph coords lazily at drop)
+      this.docListeners = [];
+      // document-scoped listeners to remove on destroy()
+      // Mobile-only HTML overlay: WebKit/iOS mis-positions <foreignObject> HTML content
+      // (position:absolute, clip-path, transform, %-height flex all jump to 0,0). We hide
+      // the foreignObject visuals on mobile and render each node into a real <div> overlay
+      // (where that CSS works), positioned to match. Interaction stays on the SVG hit rect.
+      this.isMobile = typeof document !== "undefined" && !!document.body?.classList.contains("is-mobile");
+      this.htmlLayer = null;
+      this.htmlNodes = /* @__PURE__ */ new Map();
       this.flyout = null;
       this.flyoutTimer = null;
+      // ── Touch interaction (select tool): tap-select, drag-move, tap-to-place ──
+      this.onSelDown = (e2) => {
+        if (this.selDrag) {
+          if (this.dragBatch) {
+            this.graph.stopBatch("move");
+            this.dragBatch = false;
+          }
+          this.selDrag = null;
+        }
+        const node2 = this.nodeAtPoint(e2.clientX, e2.clientY);
+        if (this.pendingShape && !node2 && this.graph.getSelectedCells().length === 0) {
+          const it3 = this.pendingShape;
+          const p4 = this.graph.clientToLocal(e2.clientX, e2.clientY);
+          const created = this.addHtmlNode(it3.shape, p4.x - it3.w / 2, p4.y - it3.h / 2, it3.w, it3.h, it3.label);
+          this.graph.resetSelection([created]);
+          this.setPending(null);
+          this.onChange();
+          e2.preventDefault();
+          return;
+        }
+        if (e2.pointerType === "mouse") return;
+        if (node2) {
+          this.setPending(null);
+          const wasSelected = this.graph.isSelected(node2);
+          this.graph.resetSelection([node2]);
+          const pos = node2.position();
+          this.selDrag = { id: e2.pointerId, node: node2, px: e2.clientX, py: e2.clientY, nx: pos.x, ny: pos.y, moved: false, wasSelected };
+          this.graph.startBatch("move");
+          this.dragBatch = true;
+          try {
+            this.graphMount.setPointerCapture(e2.pointerId);
+          } catch {
+          }
+          e2.preventDefault();
+          return;
+        }
+        const edge = this.edgeAtPoint(e2.clientX, e2.clientY);
+        if (edge) {
+          this.setPending(null);
+          this.graph.resetSelection([edge]);
+          e2.preventDefault();
+        } else {
+          this.setPending(null);
+          this.closeFlyoutNow();
+          this.hidePopup();
+          this.graph.cleanSelection();
+          e2.preventDefault();
+        }
+      };
+      this.onSelMove = (e2) => {
+        if (this.pinch) return;
+        const d2 = this.selDrag;
+        if (!d2 || e2.pointerId !== d2.id) return;
+        const s3 = this.graph.scale().sx || 1;
+        const was = d2.moved;
+        if (Math.abs(e2.clientX - d2.px) + Math.abs(e2.clientY - d2.py) > 3) d2.moved = true;
+        if (d2.moved && !was) {
+          if (this.padLayer) this.padLayer.style.display = "none";
+          this.contextBar.style.display = "none";
+        }
+        d2.node.position(d2.nx + (e2.clientX - d2.px) / s3, d2.ny + (e2.clientY - d2.py) / s3);
+        e2.preventDefault();
+      };
+      this.onSelUp = (e2) => {
+        const d2 = this.selDrag;
+        if (!d2 || e2.pointerId !== d2.id) return;
+        try {
+          this.graphMount.releasePointerCapture(e2.pointerId);
+        } catch {
+        }
+        if (this.dragBatch) {
+          this.graph.stopBatch("move");
+          this.dragBatch = false;
+        }
+        if (d2.moved) {
+          this.onChange();
+          this.refreshContextBar();
+          this.refreshContextPad();
+        } else if (d2.wasSelected) {
+          this.editAtPoint(d2.node, d2.px, d2.py);
+        }
+        this.selDrag = null;
+      };
+      this.onPanDown = (e2) => {
+        if (e2.pointerType === "mouse" && e2.button !== 0) return;
+        this.closeFlyoutNow();
+        this.hidePopup();
+        const t3 = this.graph.translate();
+        this.panStart = { px: e2.clientX, py: e2.clientY, tx: t3.tx, ty: t3.ty, id: e2.pointerId };
+        try {
+          this.graphMount.setPointerCapture(e2.pointerId);
+        } catch {
+        }
+        this.graphMount.style.cursor = "grabbing";
+        e2.preventDefault();
+      };
+      this.onPanMove = (e2) => {
+        if (this.pinch) return;
+        const s3 = this.panStart;
+        if (!s3 || e2.pointerId !== s3.id) return;
+        this.graph.translate(s3.tx + (e2.clientX - s3.px), s3.ty + (e2.clientY - s3.py));
+        e2.preventDefault();
+      };
+      this.onPanUp = (e2) => {
+        if (!this.panStart || e2.pointerId !== this.panStart.id) return;
+        try {
+          this.graphMount.releasePointerCapture(e2.pointerId);
+        } catch {
+        }
+        this.panStart = null;
+        if (this.tool === "pan") this.graphMount.style.cursor = "grab";
+      };
       this.styleClipboard = null;
       this.root = root2;
       this.categories = categories;
@@ -72093,11 +72551,19 @@
       this.root.classList.add("lk-root");
       this.graphMount = el("div", "lk-graph-mount");
       this.root.appendChild(this.graphMount);
+      const stopTouch = (e2) => e2.stopPropagation();
+      for (const t3 of ["touchstart", "touchmove", "touchend"]) {
+        this.graphMount.addEventListener(t3, stopTouch, { passive: true });
+      }
       ensureSeqConnector();
       ensureMindmapConnector();
       this.graph = this.initGraph();
-      this.buildLeftToolbar();
-      this.buildBottomControls();
+      if (this.isMobile) {
+        this.buildMobileToolbar();
+      } else {
+        this.buildLeftToolbar();
+        this.buildBottomControls();
+      }
       this.buildPropsPanel();
       this.buildCanvasHelp();
       this.buildMinimap();
@@ -72118,9 +72584,12 @@
       this.root.appendChild(this.popupLayer);
       this.bindEvents();
       this.enableTrackpadPan();
+      this.enablePinch();
       this.enableLabelDrag();
       this.enableInlineLabelEdit();
       this.refreshProps();
+      this.setTool("select");
+      this.initHtmlOverlay();
     }
     // ── Graph ──────────────────────────────────────────────────────────────
     initGraph() {
@@ -72130,13 +72599,19 @@
         panning: { enabled: true, modifiers: ["space"] },
         mousewheel: { enabled: true, modifiers: ["ctrl", "meta"], zoomAtMousePosition: true },
         // Allow user to drag edge labels (bpmn.io behaviour — avoid label overlap on busy intersections).
-        interacting: { edgeLabelMovable: true },
+        interacting: this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true },
         grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
         background: { color: "transparent" },
         connecting: {
-          snap: { radius: 28 },
+          // Small radius so only drops that LAND on (or right next to) a port
+          // circle snap to that port. Everything else falls through to body-drop
+          // → pinDropAnchor / handleDragToBlank pins the endpoint at the exact
+          // cursor pixel (bpmn.io-style unlimited positioning). With the old 30px
+          // radius almost every drop on a 120×80 node was within range of *some*
+          // port and the user couldn't drop anywhere they actually wanted.
+          snap: { radius: 8 },
           allowBlank: true,
-          // drop on empty canvas → Larksuite-style "pick shape" picker
+          // drop on empty canvas → "pick shape" picker
           allowLoop: false,
           // no self-loops
           allowNode: true,
@@ -72144,19 +72619,39 @@
           allowEdge: false,
           allowMulti: true,
           highlight: true,
+          // Bind endpoints to the node CENTER (logical anchor) — without this the
+          // endpoint stores a raw {x, y} which breaks routing the moment the node
+          // moves. The visual connection stops at the node BOUNDARY (no piercing).
+          anchor: "center",
+          connectionPoint: "boundary",
           router: SMART_ROUTER,
           connector: CONNECTOR,
           createEdge() {
             return this.createEdge({ attrs: EDGE_ATTRS });
           },
-          // Accept a drop on any other node — target ports are hidden, so requiring
-          // a magnet made connections fail. Snap/router still pick a clean endpoint.
-          // Also accept a drop on EMPTY canvas (no targetCell) so allowBlank fires
-          // edge:connected → we then show the "Chèn hình" picker (Larksuite-style).
-          validateConnection: ({ sourceCell, targetCell }) => !targetCell || targetCell.isNode() && sourceCell !== targetCell
+          // Accept a drop on any other node — body magnet handles snap; this also
+          // accepts EMPTY-canvas drops so allowBlank still fires edge:connected
+          // → "Chèn hình" picker (Omniboard-style).
+          validateConnection: ({ sourceCell, targetCell }) => !targetCell || targetCell.isNode() && sourceCell !== targetCell,
+          // Only port circles may START a connection drag. The node body has
+          // `magnet: true` (so it can be a drop TARGET — bpmn.io drop-anywhere),
+          // but body mousedown must NOT start a drag — that would hijack clicks
+          // and break node selection (the regression we hit in add07d8).
+          // `validateMagnet` returning false here makes X6 abort the connection
+          // attempt at mousedown so the click bubbles up to the normal selection
+          // pipeline.
+          validateMagnet: ({ magnet }) => {
+            return !!magnet && magnet.classList?.contains("x6-port-body");
+          }
         },
         highlighting: {
-          magnetAdsorbed: { name: "stroke", args: { attrs: { fill: "#fff", stroke: ACCENT } } }
+          // No magnet highlights at all. magnetAvailable stacked into a kaleidoscope
+          // when every node had 13 magnets (body + 12 ports); magnetAdsorbed drew
+          // a fat stroke around whichever magnet the cursor snapped to — a big
+          // blue ring orbiting the cursor that the user (rightly) complained about.
+          // The arrow line itself is the only visual feedback during drag; X6 also
+          // switches the cursor to crosshair over valid drop targets, which is the
+          // bpmn.io convention.
         }
       });
       graph.use(new Selection({ rubberband: true, showNodeSelectionBox: true, pointerEvents: "none" }));
@@ -72198,7 +72693,14 @@
       graph.bindKey("esc", () => {
         this.hidePopup();
         this.commitLabel();
+        this.setPending(null);
         graph.cleanSelection();
+      });
+      graph.bindKey("v", () => {
+        this.setTool("select");
+      });
+      graph.bindKey("h", () => {
+        this.setTool("pan");
       });
       graph.bindKey("tab", () => {
         const n2 = this.singleSelectedMindmapNode();
@@ -72395,7 +72897,7 @@
         if (onlyCats && !onlyCats.includes(cat.title)) continue;
         for (const item of cat.items) {
           if (item.shape.startsWith("mm-")) continue;
-          const cell = el("div", "lk-shape-cell", shapeIcon(item.shape));
+          const cell = el("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
           cell.title = item.label;
           cell.onclick = () => onPick(item);
           grid.appendChild(cell);
@@ -72423,6 +72925,51 @@
         this.categoriesFor(source)
       ), anchor3);
     }
+    /** bpmn.io-style drop-anywhere — after the user finishes a connect drag, pin the
+     *  endpoint(s) that landed on a node BODY (no explicit port) to the exact pixel
+     *  position they dropped on. Each endpoint stored as `{ anchor: { topLeft +
+     *  dx/dy }, connectionPoint: boundary }` — unlimited positioning, no 12-port
+     *  grid snap. setSource/setTarget runs ONCE per connect; we never mutate the
+     *  spec again afterwards (the recursive-relayout freeze came from doing this
+     *  inside change:* / node:moved handlers, not from the mutation itself). */
+    pinDropAnchor(edge, which) {
+      const sId = edge.getSourceCellId() ?? void 0;
+      const tId = edge.getTargetCellId() ?? void 0;
+      if (this.isSeqLifeline(sId) || this.isSeqLifeline(tId)) return;
+      if (this.isMindmapNode(sId) || this.isMindmapNode(tId)) return;
+      const id = which === "source" ? sId : tId;
+      if (!id) return;
+      const node2 = this.graph.getCellById(id);
+      if (!node2?.isNode?.()) return;
+      const c4 = this.lastPointerClient;
+      if (!c4) return;
+      const p4 = this.graph.clientToLocal(c4.x, c4.y);
+      const endSpec = this.dockAnchorSpec(id, node2, p4);
+      if (which === "source") edge.setSource(endSpec);
+      else edge.setTarget(endSpec);
+    }
+    /**
+     * Build an endpoint spec that docks to the node EDGE nearest the given point.
+     * An arrow endpoint must sit on the boundary anyway; snapping to the nearest
+     * *edge* (not an independent x/y clamp) means a drop in a diagonal/corner
+     * region docks to whichever SIDE is closer instead of the corner — the free
+     * coordinate along that side is preserved so multiple arrows on the same side
+     * still land at distinct points (bpmn.io docking). Removes the "endpoint jumps
+     * to the top-right corner, then I must add a bend to fix the route" problem.
+     * Shared by pinDropAnchor (magnet drop) and handleDragToBlank (geometric drop).
+     */
+    dockAnchorSpec(cellId, node2, pt2) {
+      const b2 = node2.getBBox();
+      let dx = Math.max(0, Math.min(b2.width, pt2.x - b2.x));
+      let dy = Math.max(0, Math.min(b2.height, pt2.y - b2.y));
+      const dLeft = dx, dRight = b2.width - dx, dTop = dy, dBottom = b2.height - dy;
+      const m4 = Math.min(dLeft, dRight, dTop, dBottom);
+      if (m4 === dTop) dy = 0;
+      else if (m4 === dBottom) dy = b2.height;
+      else if (m4 === dLeft) dx = 0;
+      else dx = b2.width;
+      return { cell: cellId, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "anchor" } };
+    }
     /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
     handleDragToBlank(edge) {
       const srcId = edge.getSourceCellId();
@@ -72432,12 +72979,30 @@
         return;
       }
       const pt2 = edge.getTargetPoint();
+      const srcPort = edge.getSource()?.port;
+      for (const n2 of this.graph.getNodes()) {
+        if (n2.id === src.id) continue;
+        const b2 = n2.getBBox();
+        if (pt2.x < b2.x || pt2.x > b2.x + b2.width || pt2.y < b2.y || pt2.y > b2.y + b2.height) continue;
+        edge.setTarget(this.dockAnchorSpec(n2.id, n2, pt2));
+        this.applyMindmapRoutingIfNeeded(edge);
+        this.applySeqRoutingIfNeeded(edge);
+        return;
+      }
       this.pendingDrop = edge;
       const wrap = el("div", "lk-shape-popup");
       wrap.appendChild(el("div", "lk-flyout-title", "Ch\xE8n h\xECnh"));
       wrap.appendChild(this.buildShapeGrid((item) => {
         this.pendingDrop = null;
-        const created = this.addHtmlNode(item.shape, pt2.x - item.w / 2, pt2.y - item.h / 2, item.w, item.h, "");
+        const sb = src.getBBox();
+        let nx = pt2.x - item.w / 2;
+        let ny = pt2.y - item.h / 2;
+        if (srcPort === "right" || srcPort === "left") {
+          ny = sb.y + sb.height / 2 - item.h / 2;
+        } else if (srcPort === "top" || srcPort === "bottom") {
+          nx = sb.x + sb.width / 2 - item.w / 2;
+        }
+        const created = this.addHtmlNode(item.shape, nx, ny, item.w, item.h, "", void 0, void 0, item.seed);
         edge.setTarget({ cell: created.id });
         edge.setData({ ...edge.getData() });
         this.applyMindmapRoutingIfNeeded(edge);
@@ -72486,7 +73051,7 @@
         if (horiz) y3 += item.h + 20;
         else x3 += item.w + 20;
       }
-      const created = this.addHtmlNode(item.shape, x3, y3, item.w, item.h, "");
+      const created = this.addHtmlNode(item.shape, x3, y3, item.w, item.h, "", void 0, void 0, item.seed);
       const opp = { top: "bottom", bottom: "top", left: "right", right: "left" };
       this.graph.addEdge({
         source: { cell: source.id, port: dir },
@@ -72526,6 +73091,47 @@
       this.graphMount.addEventListener("wheel", this.wheelPan, { passive: false });
     }
     /**
+     * Two-finger pinch on touch: zoom around the finger midpoint and pan with it.
+     * A single transform handles both — we re-anchor the graph-local point that was
+     * under the midpoint at gesture start back under the (possibly moved) midpoint.
+     * Touch's native page pinch-zoom is suppressed via preventDefault (non-passive).
+     */
+    enablePinch() {
+      const dist = (t3) => Math.hypot(t3[0].clientX - t3[1].clientX, t3[0].clientY - t3[1].clientY);
+      const mid = (t3) => ({ x: (t3[0].clientX + t3[1].clientX) / 2, y: (t3[0].clientY + t3[1].clientY) / 2 });
+      const start = (e2) => {
+        if (e2.touches.length !== 2) return;
+        const m4 = mid(e2.touches);
+        const lp = this.graph.clientToLocal(m4.x, m4.y);
+        this.pinch = { d0: dist(e2.touches) || 1, scale0: this.graph.scale().sx, lx: lp.x, ly: lp.y };
+        if (this.dragBatch) {
+          this.graph.stopBatch("move");
+          this.dragBatch = false;
+        }
+        this.selDrag = null;
+        this.panStart = null;
+        e2.preventDefault();
+      };
+      const moveFn = (e2) => {
+        const p4 = this.pinch;
+        if (!p4 || e2.touches.length !== 2) return;
+        e2.preventDefault();
+        const m4 = mid(e2.touches);
+        const next = Math.min(3, Math.max(0.2, p4.scale0 * (dist(e2.touches) / p4.d0)));
+        this.graph.zoom(next, { absolute: true });
+        const cur = this.graph.localToClient(p4.lx, p4.ly);
+        this.graph.translateBy(m4.x - cur.x, m4.y - cur.y);
+        this.updateZoom();
+      };
+      const end = (e2) => {
+        if (e2.touches.length < 2) this.pinch = null;
+      };
+      this.graphMount.addEventListener("touchstart", start, { passive: false });
+      this.graphMount.addEventListener("touchmove", moveFn, { passive: false });
+      this.graphMount.addEventListener("touchend", end, { passive: true });
+      this.graphMount.addEventListener("touchcancel", end, { passive: true });
+    }
+    /**
      * Make BPMN node labels (.bp-elabel) draggable so users can manually move
      * them out of overlapping arrows when auto-flip isn't enough.
      * Persists the offset in node.data.labelOffset and re-renders the template.
@@ -72549,7 +73155,7 @@
         const mv = (ev) => {
           const dx = (ev.clientX - start.x) / scale2;
           const dy = (ev.clientY - start.y) / scale2;
-          lbl.style.transform = `translate(${base.x + dx}px, ${base.y + dy}px)`;
+          lbl.style.margin = `${base.y + dy}px 0 0 ${base.x + dx}px`;
         };
         const up = (ev) => {
           document.removeEventListener("pointermove", mv);
@@ -72588,11 +73194,21 @@
           return true;
         }
       }
+      const erdTh = target.closest(".erd-table .erd-th");
+      if (erdTh) {
+        this.editLabelAt(node2, erdTh);
+        return true;
+      }
+      const umlName = target.closest(".uml .uml-name");
+      if (umlName) {
+        this.editLabelAt(node2, umlName);
+        return true;
+      }
       const erdKey = target.closest(".erd-col .kk");
       if (erdKey) {
         const idx = +(erdKey.closest(".erd-col")?.getAttribute("data-col-idx") ?? "-1");
         if (idx >= 0) {
-          this.cycleErdKey(node2, idx);
+          this.pickErdKey(node2, idx, erdKey);
           return true;
         }
       }
@@ -72703,18 +73319,35 @@
         }
       });
     }
-    /** Cycle ERD column key marker: "" → PK → FK → "". */
-    cycleErdKey(node2, idx) {
+    /** Open a small menu over an ERD key cell to set its marker (PK / FK / none). */
+    pickErdKey(node2, idx, anchor3) {
       const ex = this.nodeExtra(node2);
       const cols = (ex.cols ?? []).slice();
       if (idx < 0 || idx >= cols.length) return;
-      const order = ["", "PK", "FK"];
       const cur = cols[idx].k;
-      const next = order[(order.indexOf(cur) + 1) % order.length];
-      cols[idx] = { ...cols[idx], k: next };
-      node2.setData({ ...node2.getData(), cols });
-      this.rerender(node2);
-      this.onChange();
+      const menu = el("div", "lk-context-menu lk-key-menu");
+      const opts = [
+        { k: "PK", label: "PK \u2014 Primary Key" },
+        { k: "FK", label: "FK \u2014 Foreign Key" },
+        { k: "", label: "Kh\xF4ng (\u0111\u1EC3 tr\u1ED1ng)" }
+      ];
+      opts.forEach((o3) => {
+        const item = el("div", "lk-menu-item" + (o3.k === cur ? " active" : ""));
+        item.appendChild(el("span", "kk " + (o3.k.toLowerCase() || "none"), o3.k || "\u2014"));
+        item.appendChild(el("span", void 0, o3.label));
+        item.onclick = () => {
+          const next = (this.nodeExtra(node2).cols ?? []).slice();
+          if (idx < next.length) {
+            next[idx] = { ...next[idx], k: o3.k };
+            node2.setData({ ...node2.getData(), cols: next });
+            this.rerender(node2);
+            this.onChange();
+          }
+          this.hidePopup();
+        };
+        menu.appendChild(item);
+      });
+      this.showPopup(menu, anchor3);
     }
     /** Inline edit a UML field/method line. */
     editUmlLine(node2, comp, idx, anchor3) {
@@ -72751,13 +73384,52 @@
       ].forEach((ev) => this.graph.on(ev, changed));
       this.graph.on("node:mouseenter", ({ node: node2 }) => this.togglePorts(node2, true));
       this.graph.on("node:mouseleave", ({ node: node2 }) => this.togglePorts(node2, false));
+      const startDrag = () => this.root.classList.add("lk-dragging-edge");
+      this.graph.on("node:magnet:mousedown", startDrag);
+      const onDomDown = (e2) => {
+        const t3 = e2.target;
+        if (!t3 || typeof t3.closest !== "function") return;
+        if (t3.closest(".x6-port-body, .x6-edge-tool-source-arrowhead, .x6-edge-tool-target-arrowhead, [magnet]")) {
+          startDrag();
+        }
+      };
+      this.graphMount.addEventListener("mousedown", onDomDown, true);
+      this.graphMount.addEventListener("touchstart", onDomDown, true);
+      const addDoc = (type, fn2) => {
+        document.addEventListener(type, fn2, true);
+        this.docListeners.push({ type, fn: fn2 });
+      };
+      const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
+      addDoc("mouseup", clearDrag);
+      addDoc("touchend", clearDrag);
+      addDoc("touchcancel", clearDrag);
+      const trackPointer = (cx, cy) => {
+        this.lastPointerClient = { x: cx, y: cy };
+      };
+      addDoc("pointermove", (e2) => trackPointer(e2.clientX, e2.clientY));
+      addDoc("pointerdown", (e2) => trackPointer(e2.clientX, e2.clientY));
+      addDoc("pointerup", (e2) => trackPointer(e2.clientX, e2.clientY));
+      addDoc("mousemove", (e2) => trackPointer(e2.clientX, e2.clientY));
+      addDoc("touchmove", (e2) => {
+        const t3 = e2.touches[0];
+        if (t3) trackPointer(t3.clientX, t3.clientY);
+      });
       this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
       this.graph.on("edge:selected", ({ edge }) => {
         this.applyEdgeStyle(edge, true);
+        const originalVerts = edge.getVertices().map((p4) => ({ x: p4.x, y: p4.y }));
+        edge.__selVertsSnapshot = originalVerts;
+        edge.__selVertsUserChanged = false;
+        if (this.isOrthogonalEdge(edge) && originalVerts.length === 0) {
+          const bends = this.materializeEditableBends(edge);
+          if (bends.length > 0) {
+            edge.setVertices(bends, { ui: false, toolId: "auto-segments" });
+          }
+        }
         const dot2 = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
         edge.addTools([
-          { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6 } } },
           { name: "segments", args: { threshold: 8 } },
+          { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } },
           { name: "source-arrowhead", args: dot2 },
           { name: "target-arrowhead", args: dot2 }
         ]);
@@ -72768,6 +73440,28 @@
         this.applyEdgeStyle(edge, false);
         edge.removeTools();
         this.hideEdgeBar();
+        const snap2 = edge.__selVertsSnapshot;
+        const changed2 = edge.__selVertsUserChanged;
+        if (snap2 !== void 0 && !changed2) {
+          edge.setVertices(snap2, { ui: false, toolId: "auto-segments-revert" });
+        }
+        delete edge.__selVertsSnapshot;
+        delete edge.__selVertsUserChanged;
+      });
+      const onEndpointMoved = ({ edge }) => {
+        if (this.isSeqLifeline(edge.getSourceCellId() ?? void 0) || this.isSeqLifeline(edge.getTargetCellId() ?? void 0)) return;
+        if (this.isMindmapNode(edge.getSourceCellId() ?? void 0) || this.isMindmapNode(edge.getTargetCellId() ?? void 0)) return;
+        if (edge.getVertices().length) edge.setVertices([]);
+        this.scheduleEdgeBar(edge);
+      };
+      this.graph.on("edge:change:source", onEndpointMoved);
+      this.graph.on("edge:change:target", onEndpointMoved);
+      this.graph.on("edge:change:vertices", ({ edge, options }) => {
+        const tid = options?.toolId;
+        if (tid !== "auto-segments" && tid !== "auto-segments-revert") {
+          edge.__selVertsUserChanged = true;
+        }
+        this.scheduleEdgeBar(edge);
       });
       this.graph.on("edge:dblclick", ({ edge, e: e2 }) => {
         e2.stopPropagation();
@@ -72790,6 +73484,20 @@
         this.refreshProps();
         this.refreshMindmapFabs();
         this.refreshContextPad();
+      });
+      this.graph.on("node:change:position", ({ node: node2, current, previous, options }) => {
+        if (options?.["__boundary_follow"]) return;
+        if (!current || !previous) return;
+        const dx = current.x - previous.x;
+        const dy = current.y - previous.y;
+        if (dx === 0 && dy === 0) return;
+        const movedId = node2.id;
+        for (const child of this.graph.getNodes()) {
+          if (child.id === movedId) continue;
+          if (child.getData()?.attachedTo !== movedId) continue;
+          const p4 = child.getPosition();
+          child.setPosition(p4.x + dx, p4.y + dy, { "__boundary_follow": true });
+        }
       });
       this.graph.on("node:resized", () => {
         this.refreshContextBar();
@@ -72832,15 +73540,18 @@
       this.graph.on("blank:click", () => {
         this.hidePopup();
         this.commitLabel();
+        this.graph.cleanSelection();
       });
       this.graph.on("blank:mousedown", () => this.hidePopup());
-      this.graph.on("edge:connected", ({ edge, isNew }) => {
+      this.graph.on("edge:connected", ({ edge, isNew, type }) => {
         if (isNew && !edge.getTargetCellId()) {
           this.handleDragToBlank(edge);
           return;
         }
         this.applySeqRoutingIfNeeded(edge);
         this.applyMindmapRoutingIfNeeded(edge);
+        const dropped = type === "source" ? "source" : "target";
+        this.pinDropAnchor(edge, dropped);
       });
       this.graphMount.addEventListener("mouseup", () => {
         window.setTimeout(() => {
@@ -72862,20 +73573,37 @@
       const view = this.graph.findViewByCell(node2);
       if (!view) return;
       view.container.querySelectorAll(".x6-port circle").forEach((c4) => {
-        c4.style.visibility = visible ? "visible" : "hidden";
+        const id = c4.getAttribute("port") ?? "";
+        const isCardinal = id === "top" || id === "right" || id === "bottom" || id === "left";
+        c4.style.visibility = visible && isCardinal ? "visible" : "hidden";
       });
     }
     // ── Left tool dock (design "PHẦN TỬ" — labeled vertical list) ─────────────
-    // Compact icon rail (Larksuite-style): one icon per category; hover reveals a
+    // Compact icon rail (Omniboard-style): one icon per category; hover reveals a
     // flyout grid of that category's shapes (draggable onto the canvas).
     buildLeftToolbar() {
       const rail = el("div", "lk-rail");
       const sel = el("div", "lk-rail-item is-active");
       sel.innerHTML = CURSOR_ICON;
       sel.title = "Ch\u1ECDn (V)";
-      sel.onclick = () => this.graph.cleanSelection();
+      sel.onclick = () => this.setTool("select");
       sel.onmouseenter = () => this.scheduleFlyoutClose();
       rail.appendChild(sel);
+      this.railSelect = sel;
+      const hand = el("div", "lk-rail-item");
+      hand.innerHTML = HAND_ICON;
+      hand.title = "K\xE9o board (H)";
+      hand.onclick = () => this.setTool(this.tool === "pan" ? "select" : "pan");
+      hand.onmouseenter = () => this.scheduleFlyoutClose();
+      rail.appendChild(hand);
+      this.railHand = hand;
+      const arrow = el("div", "lk-rail-item");
+      arrow.innerHTML = ARROW_ICON;
+      arrow.title = "M\u0169i t\xEAn";
+      arrow.onmouseenter = () => this.openArrowFlyout(arrow);
+      arrow.onmouseleave = () => this.scheduleFlyoutClose();
+      arrow.onclick = () => this.openArrowFlyout(arrow);
+      rail.appendChild(arrow);
       rail.appendChild(el("div", "lk-rail-sep"));
       const REP = {
         "C\u01A1 b\u1EA3n": "bs-rect",
@@ -72898,31 +73626,305 @@
       }
       this.root.appendChild(rail);
     }
-    openFlyout(cat, anchor3) {
+    static {
+      // Representative shape icon for each diagram category (rail + mobile bar).
+      this.CAT_REP = {
+        "C\u01A1 b\u1EA3n": "bs-rect",
+        "Flowchart": "fc-decision",
+        "ERD": "erd-entity",
+        "UML": "uml-class",
+        "State": "st-state",
+        "Sequence": "sq-actor",
+        "Mindmap": "mm-root",
+        "BPMN": "bpmn-gateway-x"
+      };
+    }
+    static {
+      // Diagram categories that get a dedicated button on the mobile bottom bar (rest → "Sơ đồ khác" sheet).
+      this.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
+    }
+    /**
+     * Mobile toolbar (Excalidraw-style): one bottom bar in the thumb zone.
+     * Tools (select / pan / arrow) · quick shapes (Flowchart, BPMN) · "Sơ đồ khác"
+     * sheet for the rest · fit-to-frame. Zoom +/- is omitted — pinch handles zoom.
+     */
+    buildMobileToolbar() {
+      const FIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>`;
+      const MORE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;
+      const bar = el("div", "lk-mbar");
+      const btn = (html3, title2, onClick) => {
+        const b2 = el("div", "lk-mbar-item");
+        b2.innerHTML = html3;
+        b2.title = title2;
+        b2.onclick = onClick;
+        bar.appendChild(b2);
+        return b2;
+      };
+      const sep = () => bar.appendChild(el("div", "lk-mbar-sep"));
+      this.railSelect = btn(CURSOR_ICON, "Ch\u1ECDn", () => this.setTool("select"));
+      this.railSelect.classList.add("is-active");
+      this.railHand = btn(HAND_ICON, "K\xE9o board", () => this.setTool(this.tool === "pan" ? "select" : "pan"));
+      const arrow = btn(ARROW_ICON, "M\u0169i t\xEAn", () => {
+      });
+      arrow.onclick = () => this.openArrowFlyout(arrow);
+      sep();
+      const byTitle = (t3) => this.categories.find((c4) => c4.title === t3);
+      for (const title2 of _OmniboardCanvas.QUICK_CATS) {
+        const cat = byTitle(title2);
+        if (!cat) continue;
+        const b2 = btn(shapeIcon(_OmniboardCanvas.CAT_REP[title2] ?? cat.items[0].shape), title2, () => {
+        });
+        b2.onclick = () => this.openFlyout(cat, b2);
+      }
+      const more = btn(MORE, "S\u01A1 \u0111\u1ED3 kh\xE1c", () => {
+      });
+      more.onclick = () => this.openMoreSheet(more);
+      sep();
+      btn(FIT, "V\u1EEBa khung", () => {
+        this.graph.zoomToFit({ padding: 40, maxScale: 1.2 });
+        this.updateZoom();
+      });
+      this.root.appendChild(bar);
+      this.mbar = bar;
+    }
+    /** Bottom-sheet of the remaining diagram categories (mobile "Sơ đồ khác"). */
+    openMoreSheet(anchor3) {
+      this.cancelFlyoutClose();
+      this.closeFlyoutNow();
+      const rest = this.categories.filter((c4) => !_OmniboardCanvas.QUICK_CATS.includes(c4.title));
+      const fly = el("div", "lk-flyout");
+      fly.appendChild(el("div", "lk-flyout-title", "S\u01A1 \u0111\u1ED3 kh\xE1c"));
+      const grid = el("div", "lk-flyout-grid");
+      for (const cat of rest) {
+        const cell = el(
+          "div",
+          "lk-flyout-cell",
+          `${shapeIcon(_OmniboardCanvas.CAT_REP[cat.title] ?? cat.items[0].shape)}<span class="lbl">${cat.title}</span>`
+        );
+        cell.style.cursor = "pointer";
+        cell.onclick = () => this.openFlyout(cat, anchor3);
+        grid.appendChild(cell);
+      }
+      fly.appendChild(grid);
+      this.root.appendChild(fly);
+      this.positionFlyout(fly, anchor3);
+      this.flyout = fly;
+    }
+    /** Arrow-type flyout (mirrors openFlyout but drops edges, not nodes). */
+    openArrowFlyout(anchor3) {
       this.cancelFlyoutClose();
       this.closeFlyoutNow();
       const fly = el("div", "lk-flyout");
-      fly.appendChild(el("div", "lk-flyout-title", cat.title));
+      fly.appendChild(el("div", "lk-flyout-title", "M\u0169i t\xEAn"));
       const grid = el("div", "lk-flyout-grid");
-      for (const item of cat.items) {
-        const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape)}<span class="lbl">${item.label}</span>`);
-        cell.title = `K\xE9o "${item.label}" v\xE0o canvas`;
-        cell.onmousedown = (e2) => {
-          this.startDrag(e2, item);
+      for (const a3 of ARROW_TYPES) {
+        const cell = el("div", "lk-flyout-cell", `${arrowPreview(a3.style)}<span class="lbl">${a3.label}</span>`);
+        cell.title = `Th\xEAm m\u0169i t\xEAn "${a3.label}"`;
+        cell.addEventListener("pointerdown", (e2) => {
+          e2.stopPropagation();
+          e2.preventDefault();
+          this.placeArrow(a3.style);
           this.closeFlyoutNow();
-        };
+        });
         grid.appendChild(cell);
       }
       fly.appendChild(grid);
       fly.onmouseenter = () => this.cancelFlyoutClose();
       fly.onmouseleave = () => this.scheduleFlyoutClose();
       this.root.appendChild(fly);
+      this.positionFlyout(fly, anchor3);
+      this.flyout = fly;
+    }
+    /** Drop a standalone straight arrow at the centre of the visible canvas. */
+    placeArrow(style2) {
+      const r2 = this.graphMount.getBoundingClientRect();
+      const t3 = this.graph.translate();
+      const s3 = this.graph.scale().sx || 1;
+      const cx = (r2.width / 2 - t3.tx) / s3, cy = (r2.height / 2 - t3.ty) / s3;
+      const edge = this.graph.addEdge({
+        source: { x: Math.round(cx - 70), y: Math.round(cy) },
+        target: { x: Math.round(cx + 70), y: Math.round(cy) },
+        router: { name: "normal" },
+        connector: { name: "normal" },
+        attrs: EDGE_ATTRS,
+        data: { style: style2 }
+      });
+      this.applyEdgeStyle(edge);
+      this.graph.resetSelection([edge]);
+      this.onChange();
+    }
+    /**
+     * Switch between the select tool and a free-pan ("hand") tool. In pan mode the
+     * board is draggable anywhere without a modifier key (essential on touch, where
+     * there is no Space key) and node interaction is suspended so drags always pan.
+     */
+    setTool(tool) {
+      this.tool = tool;
+      const pan = tool === "pan";
+      this.graph.options.interacting = pan ? false : this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true };
+      const g2 = this.graph;
+      if (pan) g2.disableRubberband?.();
+      else g2.enableRubberband?.();
+      if (pan) this.graph.cleanSelection();
+      const m4 = this.graphMount;
+      m4.removeEventListener("pointerdown", this.onPanDown);
+      m4.removeEventListener("pointermove", this.onPanMove);
+      m4.removeEventListener("pointerup", this.onPanUp);
+      m4.removeEventListener("pointercancel", this.onPanUp);
+      m4.removeEventListener("pointerdown", this.onSelDown);
+      m4.removeEventListener("pointermove", this.onSelMove);
+      m4.removeEventListener("pointerup", this.onSelUp);
+      m4.removeEventListener("pointercancel", this.onSelUp);
+      if (pan) {
+        m4.addEventListener("pointerdown", this.onPanDown);
+        m4.addEventListener("pointermove", this.onPanMove);
+        m4.addEventListener("pointerup", this.onPanUp);
+        m4.addEventListener("pointercancel", this.onPanUp);
+        m4.style.cursor = "grab";
+        this.setPending(null);
+      } else {
+        m4.addEventListener("pointerdown", this.onSelDown);
+        m4.addEventListener("pointermove", this.onSelMove);
+        m4.addEventListener("pointerup", this.onSelUp);
+        m4.addEventListener("pointercancel", this.onSelUp);
+        m4.style.cursor = "";
+        this.panStart = null;
+      }
+      this.railSelect?.classList.toggle("is-active", !pan);
+      this.railHand?.classList.toggle("is-active", pan);
+    }
+    /**
+     * Node under a client point — geometric bbox test, NOT elementFromPoint.
+     * On mobile the node body is a foreignObject hidden via `visibility:hidden`
+     * (WebKit overlay fix), so it isn't returned by elementFromPoint and ERD/UML
+     * nodes became unselectable. Bbox containment works regardless. Topmost wins.
+     */
+    nodeAtPoint(x3, y3) {
+      const p4 = this.graph.clientToLocal(x3, y3);
+      let hit = null;
+      let hitZ = -Infinity;
+      for (const n2 of this.graph.getNodes()) {
+        const b2 = n2.getBBox();
+        if (p4.x >= b2.x && p4.x <= b2.x + b2.width && p4.y >= b2.y && p4.y <= b2.y + b2.height) {
+          const z3 = n2.getZIndex?.() ?? 0;
+          if (z3 >= hitZ) {
+            hit = n2;
+            hitZ = z3;
+          }
+        }
+      }
+      return hit;
+    }
+    /**
+     * Edge near a client point — geometric distance to each edge's rendered path
+     * (EdgeView.getClosestPoint covers manhattan bends). A thin ~2px line is hard to
+     * tap, so accept anything within ~14 screen px. Closest edge wins.
+     */
+    edgeAtPoint(x3, y3) {
+      const p4 = this.graph.clientToLocal(x3, y3);
+      let best = null;
+      let bestD = 14 / (this.graph.scale().sx || 1);
+      for (const edge of this.graph.getEdges()) {
+        const view = this.graph.findViewByCell(edge);
+        const cp = view?.getClosestPoint?.(p4);
+        if (!cp) continue;
+        const d2 = Math.hypot(cp.x - p4.x, cp.y - p4.y);
+        if (d2 <= bestD) {
+          bestD = d2;
+          best = edge;
+        }
+      }
+      return best;
+    }
+    /** Arm a shape for tap-to-place (mobile-friendly add); shows a hint banner. */
+    setPending(item) {
+      this.pendingShape = item;
+      this.graphMount.style.cursor = item ? "copy" : this.tool === "pan" ? "grab" : "";
+      if (item && !this.pendingHint) {
+        this.pendingHint = el("div", "lk-place-hint", "Ch\u1EA1m v\xE0o canvas \u0111\u1EC3 \u0111\u1EB7t h\xECnh");
+        this.root.appendChild(this.pendingHint);
+      } else if (!item && this.pendingHint) {
+        this.pendingHint.remove();
+        this.pendingHint = null;
+      }
+    }
+    /**
+     * Mobile inline-edit: foreignObject is hidden on mobile so X6's node:dblclick /
+     * DOM hit-test can't tell WHICH sub-label was tapped. Instead hit-test against the
+     * real overlay div's children (visible, correct rects) and route to the matching
+     * editor. Falls back to the node's main label.
+     */
+    editAtPoint(node2, clientX, clientY) {
+      const overlay = this.htmlNodes.get(node2.id);
+      let target = null;
+      if (overlay) {
+        const SEL = ".bp-pool-head, .bp-pool-lane-head, .erd-th, .erd-col .kk, .erd-col .cname, .erd-col .ctype, .uml-name, .uml-comp .ln, .bp-elabel, .sq-actor-lbl, .sq-pill, .sq-who";
+        let bestArea = Infinity;
+        overlay.querySelectorAll(SEL).forEach((elm) => {
+          const r2 = elm.getBoundingClientRect();
+          if (clientX >= r2.left && clientX <= r2.right && clientY >= r2.top && clientY <= r2.bottom) {
+            const a3 = r2.width * r2.height;
+            if (a3 < bestArea) {
+              bestArea = a3;
+              target = elm;
+            }
+          }
+        });
+      }
+      if (target && this.tryEditChildLabel(target, node2)) return;
+      this.editLabel(node2);
+    }
+    openFlyout(cat, anchor3) {
+      this.cancelFlyoutClose();
+      this.closeFlyoutNow();
+      const fly = el("div", "lk-flyout");
+      fly.appendChild(el("div", "lk-flyout-title", cat.title));
+      const grid = el("div", "lk-flyout-grid");
+      const mkCell = (item) => {
+        const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape, item.seed)}<span class="lbl">${item.label}</span>`);
+        cell.title = `K\xE9o "${item.label}" v\xE0o canvas`;
+        cell.addEventListener("pointerdown", (e2) => {
+          if (e2.pointerType === "mouse") this.startDrag(e2, item, cell);
+        });
+        cell.addEventListener("touchstart", (e2) => this.startTouchDrag(e2, item, cell), { passive: false });
+        return cell;
+      };
+      const common2 = cat.items.filter((i3) => !i3.advanced);
+      const advanced = cat.items.filter((i3) => i3.advanced);
+      for (const item of common2) grid.appendChild(mkCell(item));
+      if (advanced.length > 0) {
+        const more = el("button", "lk-flyout-more", `Load more (${advanced.length})`);
+        more.onclick = () => {
+          const frag = document.createDocumentFragment();
+          for (const it3 of advanced) frag.appendChild(mkCell(it3));
+          more.parentElement?.insertBefore(frag, more);
+          more.remove();
+          this.positionFlyout(fly, anchor3);
+        };
+        grid.appendChild(more);
+      }
+      fly.appendChild(grid);
+      fly.onmouseenter = () => this.cancelFlyoutClose();
+      fly.onmouseleave = () => this.scheduleFlyoutClose();
+      this.root.appendChild(fly);
+      this.positionFlyout(fly, anchor3);
+      this.flyout = fly;
+    }
+    /** Place a flyout just to the right of its rail anchor, clamped within the root. */
+    positionFlyout(fly, anchor3) {
       const ir2 = anchor3.getBoundingClientRect();
       const rr2 = this.root.getBoundingClientRect();
+      fly.style.maxHeight = Math.max(160, rr2.height - 24) + "px";
+      if (this.isMobile) {
+        const w3 = fly.offsetWidth;
+        const left4 = Math.min(Math.max(8, ir2.left - rr2.left + ir2.width / 2 - w3 / 2), Math.max(8, rr2.width - w3 - 8));
+        fly.style.left = left4 + "px";
+        fly.style.top = Math.max(8, ir2.top - rr2.top - fly.offsetHeight - 10) + "px";
+        return;
+      }
       fly.style.left = ir2.right - rr2.left + 8 + "px";
       const maxTop = rr2.height - fly.offsetHeight - 12;
       fly.style.top = Math.min(Math.max(8, ir2.top - rr2.top - 6), Math.max(8, maxTop)) + "px";
-      this.flyout = fly;
     }
     closeFlyoutNow() {
       this.flyout?.remove();
@@ -72938,29 +73940,109 @@
       this.cancelFlyoutClose();
       this.flyoutTimer = window.setTimeout(() => this.closeFlyoutNow(), 160);
     }
-    // Drag a shape from the panel onto the canvas
-    startDrag(e2, item) {
+    // Add a shape from the palette to the canvas.
+    /**
+     * Two ways to add, both via Pointer Events (mouse + touch):
+     *  - DRAG the cell onto the bare canvas → drop the node at the release point.
+     *  - TAP the cell (no real drag, or release still over the flyout) → arm the
+     *    shape for tap-to-place; the next tap on the canvas drops it there. This is
+     *    the mobile path and also fixes the old bug where a tap created the node at
+     *    the flyout's location (top-left) because the flyout overlays the canvas.
+     */
+    startDrag(e2, item, source) {
       e2.preventDefault();
-      const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape));
+      const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape, item.seed));
       document.body.appendChild(ghost);
+      let moved = false;
       const move = (ev) => {
+        if (Math.abs(ev.clientX - e2.clientX) + Math.abs(ev.clientY - e2.clientY) > 6) moved = true;
         ghost.style.left = ev.clientX + 8 + "px";
         ghost.style.top = ev.clientY + 8 + "px";
       };
       move(e2);
-      const up = (ev) => {
-        document.removeEventListener("mousemove", move);
-        document.removeEventListener("mouseup", up);
+      try {
+        source.setPointerCapture(e2.pointerId);
+      } catch {
+      }
+      const end = (ev) => {
+        source.removeEventListener("pointermove", move);
+        source.removeEventListener("pointerup", end);
+        source.removeEventListener("pointercancel", end);
+        try {
+          source.releasePointerCapture(ev.pointerId);
+        } catch {
+        }
         ghost.remove();
-        const rect2 = this.graphMount.getBoundingClientRect();
-        if (ev.clientX >= rect2.left && ev.clientX <= rect2.right && ev.clientY >= rect2.top && ev.clientY <= rect2.bottom) {
+        const onCanvas = this.pointInGraph(ev.clientX, ev.clientY);
+        const onFlyout = this.flyout ? this.pointInRect(ev.clientX, ev.clientY, this.flyout) : false;
+        this.closeFlyoutNow();
+        if (moved && onCanvas && !onFlyout) {
           const p4 = this.graph.clientToLocal(ev.clientX, ev.clientY);
-          const node2 = this.addHtmlNode(item.shape, p4.x - item.w / 2, p4.y - item.h / 2, item.w, item.h, item.label);
-          this.graph.select(node2);
+          const node2 = this.addHtmlNode(item.shape, p4.x - item.w / 2, p4.y - item.h / 2, item.w, item.h, item.label, void 0, void 0, item.seed);
+          this.graph.resetSelection([node2]);
+          this.onChange();
+        } else {
+          if (this.tool === "pan") this.setTool("select");
+          this.setPending(item);
         }
       };
-      document.addEventListener("mousemove", move);
-      document.addEventListener("mouseup", up);
+      source.addEventListener("pointermove", move);
+      source.addEventListener("pointerup", end);
+      source.addEventListener("pointercancel", end);
+    }
+    /**
+     * Touch counterpart of startDrag (iOS WebKit). touchmove/touchend reliably fire
+     * on the touchstart target even after the finger leaves it, so a single press →
+     * drag → release drops the node at the release point. No second tap needed.
+     */
+    startTouchDrag(e2, item, source) {
+      if (e2.touches.length !== 1) return;
+      e2.preventDefault();
+      const t0 = e2.touches[0];
+      const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape, item.seed));
+      document.body.appendChild(ghost);
+      const place = (x3, y3) => {
+        ghost.style.left = x3 + 8 + "px";
+        ghost.style.top = y3 + 8 + "px";
+      };
+      place(t0.clientX, t0.clientY);
+      let moved = false;
+      const move = (ev) => {
+        const t3 = ev.touches[0];
+        if (!t3) return;
+        if (Math.abs(t3.clientX - t0.clientX) + Math.abs(t3.clientY - t0.clientY) > 6) moved = true;
+        place(t3.clientX, t3.clientY);
+        ev.preventDefault();
+      };
+      const end = (ev) => {
+        source.removeEventListener("touchmove", move);
+        source.removeEventListener("touchend", end);
+        source.removeEventListener("touchcancel", end);
+        ghost.remove();
+        const t3 = ev.changedTouches[0];
+        const onCanvas = !!t3 && this.pointInGraph(t3.clientX, t3.clientY);
+        const onFlyout = !!t3 && !!this.flyout && this.pointInRect(t3.clientX, t3.clientY, this.flyout);
+        this.closeFlyoutNow();
+        if (moved && onCanvas && !onFlyout && t3) {
+          const p4 = this.graph.clientToLocal(t3.clientX, t3.clientY);
+          const node2 = this.addHtmlNode(item.shape, p4.x - item.w / 2, p4.y - item.h / 2, item.w, item.h, item.label, void 0, void 0, item.seed);
+          this.graph.resetSelection([node2]);
+          this.onChange();
+        } else {
+          if (this.tool === "pan") this.setTool("select");
+          this.setPending(item);
+        }
+      };
+      source.addEventListener("touchmove", move, { passive: false });
+      source.addEventListener("touchend", end);
+      source.addEventListener("touchcancel", end);
+    }
+    pointInRect(x3, y3, el2) {
+      const r2 = el2.getBoundingClientRect();
+      return x3 >= r2.left && x3 <= r2.right && y3 >= r2.top && y3 <= r2.bottom;
+    }
+    pointInGraph(x3, y3) {
+      return this.pointInRect(x3, y3, this.graphMount);
     }
     // ── Zoom control (bottom-left, design style) ─────────────────────────────
     buildBottomControls() {
@@ -73151,25 +74233,33 @@
       };
       field(s22, "M\xE0u n\u1EC1n", swatchRow("fill"));
       field(s22, "M\xE0u vi\u1EC1n", swatchRow("stroke"));
-      const fontSel = el("select", "lk-pinput");
-      FONT_SIZES.forEach((sz) => {
-        const o3 = el("option", void 0, String(sz));
-        o3.value = String(sz);
-        fontSel.appendChild(o3);
-      });
-      fontSel.value = String(st3.fontSize || 13);
-      fontSel.onchange = () => this.setStyle(node2, { fontSize: Number(fontSel.value) });
-      field(s22, "C\u1EE1 ch\u1EEF", fontSel);
+      const fontIn = el("input", "lk-pinput");
+      fontIn.type = "number";
+      fontIn.min = "6";
+      fontIn.max = "96";
+      fontIn.step = "1";
+      fontIn.value = String(st3.fontSize || 13);
+      const applyFont = () => {
+        const v4 = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || 13));
+        fontIn.value = String(v4);
+        this.setStyle(node2, { fontSize: v4 });
+      };
+      fontIn.oninput = () => {
+        const n2 = Number(fontIn.value);
+        if (Number.isFinite(n2) && n2 >= 6 && n2 <= 96) this.setStyle(node2, { fontSize: Math.round(n2) });
+      };
+      fontIn.onblur = applyFont;
+      field(s22, "C\u1EE1 ch\u1EEF", fontIn);
       const s3 = sec("V\u1ECB tr\xED & k\xEDch th\u01B0\u1EDBc");
       const pos = node2.getPosition();
       const size = node2.getSize();
       const numRow = el("div", "lk-prow2");
-      const mkNum = (val, set) => {
+      const mkNum = (val, set2) => {
         const i3 = el("input", "lk-pinput");
         i3.type = "number";
         i3.value = String(Math.round(val));
         i3.onchange = () => {
-          set(Number(i3.value));
+          set2(Number(i3.value));
           this.onChange();
         };
         return i3;
@@ -73215,11 +74305,11 @@
       ksel.value = col.k;
       ksel.style.flex = "0 0 52px";
       ksel.onchange = () => update({ k: ksel.value });
-      const name = el("input", "lk-pinput");
-      name.value = col.name;
-      name.placeholder = "t\xEAn";
-      name.style.flex = "1";
-      name.oninput = () => update({ name: name.value });
+      const name2 = el("input", "lk-pinput");
+      name2.value = col.name;
+      name2.placeholder = "t\xEAn";
+      name2.style.flex = "1";
+      name2.oninput = () => update({ name: name2.value });
       const type = el("input", "lk-pinput");
       type.value = col.type;
       type.placeholder = "ki\u1EC3u";
@@ -73232,7 +74322,7 @@
         this.setExtra(node2, { cols: cols().filter((_4, i3) => i3 !== idx) });
         rerenderList();
       };
-      [ksel, name, type, del].forEach((e2) => row.appendChild(e2));
+      [ksel, name2, type, del].forEach((e2) => row.appendChild(e2));
       return row;
     }
     buildUmlEditor(node2, body) {
@@ -73303,13 +74393,46 @@
       this.contextBar.appendChild(mkBtn(`<span class="lk-color-ring" style="border-color:${st3.stroke || "#888"}"></span>`, "M\xE0u vi\u1EC1n", (ev) => this.openColorPopup(node2, "stroke", ev.currentTarget)));
       this.contextBar.appendChild(mkBtn(`<b style="font-size:15px">A</b>`, "Ch\u1EEF", (ev) => this.openTextPopup(node2, ev.currentTarget)));
       this.contextBar.appendChild(mkBtn("\u29C9", "Nh\xE2n b\u1EA3n", () => this.duplicateSelection()));
-      this.contextBar.appendChild(mkBtn("\u{1F5D1}", "X\xF3a", () => {
+      const TRASH_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6m5 4v6m4-6v6"/></svg>`;
+      this.contextBar.appendChild(mkBtn(TRASH_ICON, "X\xF3a", () => {
         this.graph.removeCells(this.graph.getSelectedCells());
       }));
       this.contextBar.appendChild(mkBtn("\u22EF", "Th\xEAm", (ev) => {
         const r2 = ev.currentTarget.getBoundingClientRect();
         this.showContextMenu(r2.left, r2.bottom + 4);
       }));
+      const kindNow = this.nodeKind(node2);
+      if (kindNow === "bpmn-event-start" || kindNow === "bpmn-event-intermediate" || kindNow === "bpmn-event-end") {
+        this.contextBar.appendChild(el("div", "lk-cb-sep"));
+        const cur = this.nodeExtra(node2).trigger ?? "none";
+        this.contextBar.appendChild(mkBtn(
+          `<span style="font-size:11px;font-weight:600">${BPMN_TRIGGER_LABEL[cur] ?? "Trigger"}</span><span class="lk-cb-caret">\u25BE</span>`,
+          "Trigger s\u1EF1 ki\u1EC7n",
+          (ev) => this.openBpmnTriggerPopup(node2, ev.currentTarget)
+        ));
+        const interr = this.nodeExtra(node2).interrupting !== false;
+        this.contextBar.appendChild(mkBtn(
+          `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7" stroke-dasharray="${interr ? "" : "3 2"}"/></svg>`,
+          interr ? "\u0110ang: Interrupting (click \u0111\u1EC3 Non-Interrupting)" : "\u0110ang: Non-Interrupting (click \u0111\u1EC3 Interrupting)",
+          () => this.toggleEventInterrupting(node2)
+        ));
+        if (kindNow === "bpmn-event-intermediate") {
+          const isBoundary = !!this.nodeExtra(node2).attachedTo;
+          this.contextBar.appendChild(mkBtn(
+            `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="11" height="8"/><circle cx="15" cy="14" r="3" fill="${isBoundary ? "currentColor" : "none"}"/></svg>`,
+            isBoundary ? "B\u1ECF \u0111\xEDnh kh\u1ECFi activity" : "\u0110\xEDnh v\xE0o activity g\u1EA7n nh\u1EA5t (boundary)",
+            () => this.toggleBoundaryAttach(node2)
+          ));
+        }
+      }
+      if (BPMN_ACTIVITY_KINDS.has(kindNow)) {
+        this.contextBar.appendChild(el("div", "lk-cb-sep"));
+        this.contextBar.appendChild(mkBtn(
+          `<svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor"><rect x="3" y="8" width="3" height="3"/><rect x="8.5" y="8" width="3" height="3"/><rect x="14" y="8" width="3" height="3"/></svg><span class="lk-cb-caret">\u25BE</span>`,
+          "Activity markers (loop / MI / ad-hoc / compensation)",
+          (ev) => this.openBpmnMarkerPopup(node2, ev.currentTarget)
+        ));
+      }
       if (this.nodeKind(node2) === "bpmn-pool") {
         this.contextBar.appendChild(el("div", "lk-cb-sep"));
         const ic = (svg3) => `<svg viewBox="0 0 20 20" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">${svg3}</svg>`;
@@ -73334,32 +74457,51 @@
           () => this.dividePool(node2, 3)
         ));
       }
+      this.contextBar.style.display = "flex";
+      if (this.isMobile) {
+        this.dockBarAboveMbar(this.contextBar);
+        return;
+      }
       const bbox2 = node2.getBBox();
       const s3 = this.graph.scale().sx;
       const t3 = this.graph.translate();
       const left4 = bbox2.x * s3 + t3.tx + bbox2.width * s3 / 2;
       const top4 = bbox2.y * s3 + t3.ty;
-      this.contextBar.style.display = "flex";
       const bw = this.contextBar.offsetWidth || 280;
       const bh = this.contextBar.offsetHeight || 40;
-      this.contextBar.style.left = Math.max(8, left4 - bw / 2) + "px";
+      const rw = this.root.clientWidth;
+      this.contextBar.style.left = Math.max(8, Math.min(left4 - bw / 2, rw - bw - 8)) + "px";
       this.contextBar.style.top = Math.max(8, top4 - 42 - bh) + "px";
+    }
+    /**
+     * Mobile: while a label editor is open, hide only the floating "+" quick-connect
+     * pads (the toolbars stay visible — user preference). Restore on close.
+     */
+    setEditingChrome(editing) {
+      if (editing) {
+        if (this.padLayer) this.padLayer.style.display = "none";
+      } else {
+        this.refreshContextPad();
+      }
+    }
+    /** Mobile: pin a toolbar as a centered strip directly above the bottom bar. */
+    dockBarAboveMbar(bar) {
+      const gap = (this.mbar?.offsetHeight || 54) + 8;
+      bar.style.left = "50%";
+      bar.style.transform = "translateX(-50%)";
+      bar.style.top = "auto";
+      bar.style.bottom = `calc(${gap}px + (3px + env(safe-area-inset-bottom)) / 2)`;
     }
     // ── Popups ───────────────────────────────────────────────────────────────
     openShapePopup(node2, anchor3) {
-      const grid = el("div", "lk-shape-grid");
-      for (const cat of this.categories) {
-        for (const item of cat.items) {
-          const cell = el("div", "lk-shape-cell", shapeIcon(item.shape));
-          cell.title = item.label;
-          cell.onclick = () => {
-            this.morphShape(node2, item.shape);
-            this.hidePopup();
-            this.refreshContextBar();
-          };
-          grid.appendChild(cell);
-        }
-      }
+      const grid = this.buildShapeGrid(
+        (item) => {
+          this.morphShape(node2, item.shape);
+          this.hidePopup();
+          this.refreshContextBar();
+        },
+        this.categoriesFor(node2)
+      );
       this.showPopup(grid, anchor3);
     }
     openColorPopup(node2, key, anchor3) {
@@ -73470,12 +74612,12 @@
           document.addEventListener("pointerup", up);
         });
       };
-      drag(sv, (px, py) => {
-        s3 = px;
+      drag(sv, (px2, py) => {
+        s3 = px2;
         v4 = 1 - py;
       });
-      drag(hue, (px) => {
-        h3 = px * 360;
+      drag(hue, (px2) => {
+        h3 = px2 * 360;
       });
       hex.onpointerdown = (e2) => e2.stopPropagation();
       hex.onkeydown = (e2) => {
@@ -73492,16 +74634,37 @@
     openTextPopup(node2, anchor3) {
       const st3 = this.nodeStyle(node2);
       const wrap = el("div", "lk-line-popup");
-      const szRow = el("div", "lk-line-row");
-      FONT_SIZES.forEach((sz) => {
-        const b2 = el("div", "lk-line-cell" + ((st3.fontSize ?? 13) === sz ? " on" : ""), String(sz));
-        b2.onclick = () => {
-          this.setStyle(node2, { fontSize: sz });
-          this.refreshContextBar();
-          this.openTextPopup(node2, anchor3);
-        };
-        szRow.appendChild(b2);
-      });
+      const szRow = el("div", "lk-line-row lk-fs-row");
+      const dec = el("div", "lk-line-cell lk-fs-btn", "\u2212");
+      const szIn = el("input", "lk-fs-input");
+      szIn.type = "number";
+      szIn.min = "6";
+      szIn.max = "96";
+      szIn.step = "1";
+      szIn.value = String(st3.fontSize ?? 13);
+      const inc = el("div", "lk-line-cell lk-fs-btn", "+");
+      const apply4 = (v4) => {
+        const clamped = Math.max(6, Math.min(96, Math.round(v4) || 13));
+        szIn.value = String(clamped);
+        this.setStyle(node2, { fontSize: clamped });
+        this.refreshContextBar();
+      };
+      szIn.oninput = () => {
+        const n2 = Number(szIn.value);
+        if (Number.isFinite(n2) && n2 >= 6 && n2 <= 96) apply4(n2);
+      };
+      szIn.onblur = () => apply4(Number(szIn.value));
+      szIn.onkeydown = (e2) => {
+        if (e2.key === "Enter") {
+          apply4(Number(szIn.value));
+          e2.preventDefault();
+        }
+      };
+      dec.onclick = () => apply4((Number(szIn.value) || 13) - 1);
+      inc.onclick = () => apply4((Number(szIn.value) || 13) + 1);
+      szRow.appendChild(dec);
+      szRow.appendChild(szIn);
+      szRow.appendChild(inc);
       wrap.appendChild(szRow);
       const tgRow = el("div", "lk-line-row");
       const toggle = (label, key, css2) => {
@@ -73519,12 +74682,13 @@
       toggle("S", "strike", "text-decoration:line-through");
       wrap.appendChild(tgRow);
       const alRow = el("div", "lk-line-row");
-      [["left", "\u2261", "Tr\xE1i"], ["center", "\u2261", "Gi\u1EEFa"], ["right", "\u2261", "Ph\u1EA3i"]].forEach(([al, , title2]) => {
-        const b2 = el(
-          "div",
-          "lk-line-cell" + ((st3.align ?? "center") === al ? " on" : ""),
-          `<span style="display:block;width:18px;text-align:${al};font-size:13px">\u2261</span>`
-        );
+      const ALIGN_SVG = {
+        left: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>`,
+        center: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
+        right: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>`
+      };
+      [["left", "Tr\xE1i"], ["center", "Gi\u1EEFa"], ["right", "Ph\u1EA3i"]].forEach(([al, title2]) => {
+        const b2 = el("div", "lk-line-cell" + ((st3.align ?? "center") === al ? " on" : ""), ALIGN_SVG[al]);
         b2.title = title2;
         b2.onclick = () => {
           this.setStyle(node2, { align: al });
@@ -73606,7 +74770,7 @@
       this.graph.getSelectedCells().filter((c4) => c4.isNode()).forEach((n2) => this.setStyle(n2, this.styleClipboard));
     }
     // ── HTML node helpers ────────────────────────────────────────────────────
-    addHtmlNode(kind, x3, y3, w3, h3, label, style2, id, extra) {
+    addHtmlNode(kind, x3, y3, w3, h3, label, style2, id, extra, source) {
       const ex = this.mergeExtra(kind, extra);
       const node2 = this.graph.addNode({
         id,
@@ -73615,7 +74779,11 @@
         y: y3,
         width: w3,
         height: h3,
-        data: { kind, label, style: style2 ?? {}, ...ex },
+        // `__source` carries import provenance (BPMN pool kind, original ids) and
+        // MUST survive the load→getModel round-trip — otherwise re-saving the
+        // board (e.g. when opened on another device) drops it and the pool/lane
+        // identity + export fidelity are lost.
+        data: { kind, label, style: style2 ?? {}, ...ex, ...source !== void 0 ? { __source: source } : {} },
         attrs: { content: { html: nodeHtml(kind, label, style2, ex), class: "hn" } }
       });
       if (kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf") {
@@ -73644,6 +74812,11 @@
       if (data2?.who !== void 0) out.who = data2.who;
       if (data2?.labelOffset) out.labelOffset = data2.labelOffset;
       if (data2?.lanes && data2.lanes.length > 0) out.lanes = data2.lanes;
+      if (data2?.trigger) out.trigger = data2.trigger;
+      if (data2?.throwing !== void 0) out.throwing = data2.throwing;
+      if (data2?.interrupting !== void 0) out.interrupting = data2.interrupting;
+      if (data2?.attachedTo) out.attachedTo = data2.attachedTo;
+      if (data2?.markers && data2.markers.length > 0) out.markers = data2.markers;
       return out;
     }
     nodeKind(n2) {
@@ -73657,13 +74830,90 @@
     }
     nodeExtra(n2) {
       const d2 = n2.getData() ?? {};
-      return { cols: d2.cols, fields: d2.fields, methods: d2.methods, who: d2.who, labelOffset: d2.labelOffset, lanes: d2.lanes };
+      return {
+        cols: d2.cols,
+        fields: d2.fields,
+        methods: d2.methods,
+        who: d2.who,
+        labelOffset: d2.labelOffset,
+        lanes: d2.lanes,
+        trigger: d2.trigger,
+        throwing: d2.throwing,
+        interrupting: d2.interrupting,
+        attachedTo: d2.attachedTo,
+        markers: d2.markers
+      };
     }
     rerender(n2) {
       n2.attr("content/html", nodeHtml(this.nodeKind(n2), this.nodeLabel(n2), this.nodeStyle(n2), this.nodeExtra(n2)));
       const k3 = this.nodeKind(n2);
       if (k3 === "mm-root" || k3 === "mm-branch" || k3 === "mm-leaf") {
         this.scheduleMindmapAutoGrow(n2);
+      }
+      this.upsertHtmlNode(n2);
+    }
+    // ── Mobile HTML overlay (real <div> mirror of node content) ──────────────
+    initHtmlOverlay() {
+      if (!this.isMobile) return;
+      this.root.classList.add("lk-mobile");
+      this.htmlLayer = el("div", "lk-html-layer");
+      this.graphMount.appendChild(this.htmlLayer);
+      const xform = () => this.syncHtmlTransform();
+      this.graph.on("scale", xform);
+      this.graph.on("translate", xform);
+      this.graph.on("resize", xform);
+      this.graph.on("node:added", ({ node: node2 }) => this.upsertHtmlNode(node2));
+      this.graph.on("node:removed", ({ node: node2 }) => this.removeHtmlNode(node2.id));
+      this.graph.on("node:change:position", ({ cell }) => this.placeHtmlNode(cell));
+      this.graph.on("node:change:size", ({ cell }) => this.placeHtmlNode(cell));
+      this.graph.on("node:change:zIndex", ({ cell }) => this.placeHtmlNode(cell));
+      this.graph.on("node:change:data", ({ cell }) => this.upsertHtmlNode(cell));
+      this.resyncHtmlNodes();
+    }
+    /** Rebuild the whole overlay from the current node set (after loadModel). */
+    resyncHtmlNodes() {
+      if (!this.htmlLayer) return;
+      const live = /* @__PURE__ */ new Set();
+      for (const n2 of this.graph.getNodes()) {
+        this.upsertHtmlNode(n2);
+        live.add(n2.id);
+      }
+      for (const id of [...this.htmlNodes.keys()]) if (!live.has(id)) this.removeHtmlNode(id);
+      this.syncHtmlTransform();
+    }
+    syncHtmlTransform() {
+      if (!this.htmlLayer) return;
+      const t3 = this.graph.translate();
+      const s3 = this.graph.scale().sx || 1;
+      this.htmlLayer.style.transform = `translate(${t3.tx}px, ${t3.ty}px) scale(${s3})`;
+    }
+    upsertHtmlNode(node2) {
+      if (!this.htmlLayer) return;
+      let div = this.htmlNodes.get(node2.id);
+      if (!div) {
+        div = el("div", "lk-hnode");
+        this.htmlLayer.appendChild(div);
+        this.htmlNodes.set(node2.id, div);
+      }
+      div.innerHTML = `<div class="hn">${nodeHtml(this.nodeKind(node2), this.nodeLabel(node2), this.nodeStyle(node2), this.nodeExtra(node2))}</div>`;
+      this.placeHtmlNode(node2);
+    }
+    placeHtmlNode(node2) {
+      const div = this.htmlNodes.get(node2.id);
+      if (!div) return;
+      const p4 = node2.position();
+      const sz = node2.size();
+      div.style.left = p4.x + "px";
+      div.style.top = p4.y + "px";
+      div.style.width = sz.width + "px";
+      div.style.height = sz.height + "px";
+      div.style.zIndex = String(node2.getZIndex?.() ?? 1);
+    }
+    removeHtmlNode(id) {
+      const div = this.htmlNodes.get(id);
+      if (div) {
+        div.remove();
+        this.htmlNodes.delete(id);
       }
     }
     setStyle(n2, patch) {
@@ -73695,6 +74945,109 @@
       this.rerender(node2);
       this.autoHeight(node2);
       this.onChange();
+    }
+    // ── BPMN Đợt D — Trigger / Marker / Interrupting pickers ────────────────
+    /** Open the trigger picker for an event node (popup grid of 12 OMG triggers). */
+    openBpmnTriggerPopup(node2, anchor3) {
+      const list = el("div", "lk-line-list");
+      const cur = this.nodeExtra(node2).trigger ?? "none";
+      for (const t3 of BPMN_TRIGGERS) {
+        const row = el("button", "lk-line-row" + (t3 === cur ? " on" : ""), `<span>${BPMN_TRIGGER_LABEL[t3]}</span>`);
+        row.onclick = () => {
+          const data2 = node2.getData() ?? {};
+          const nextTrigger = t3 === "none" ? void 0 : t3;
+          node2.setData({ ...data2, trigger: nextTrigger });
+          this.rerender(node2);
+          this.onChange();
+          this.hidePopup();
+          this.refreshContextBar();
+        };
+        list.appendChild(row);
+      }
+      this.showPopup(list, anchor3);
+    }
+    /** Toggle Interrupting ↔ Non-Interrupting on event nodes (boundary / event-subprocess start). */
+    toggleEventInterrupting(node2) {
+      const data2 = node2.getData() ?? {};
+      const cur = data2.interrupting !== false;
+      node2.setData({ ...data2, interrupting: !cur ? void 0 : false });
+      this.rerender(node2);
+      this.onChange();
+      this.refreshContextBar();
+    }
+    /** Đợt E — Toggle boundary attachment. Picks the nearest BPMN activity bbox
+     *  (Manhattan distance from event center to nearest bbox edge ≤ 60px) and
+     *  sets extra.attachedTo. Snaps the event onto the activity's right edge by
+     *  default so it visually overlaps per OMG. */
+    toggleBoundaryAttach(node2) {
+      const data2 = node2.getData() ?? {};
+      if (data2.attachedTo) {
+        node2.setData({ ...data2, attachedTo: void 0 });
+        this.rerender(node2);
+        this.onChange();
+        this.refreshContextBar();
+        return;
+      }
+      const p4 = node2.getPosition();
+      const s3 = node2.getSize();
+      const cx = p4.x + s3.width / 2;
+      const cy = p4.y + s3.height / 2;
+      let bestId = null;
+      let bestDist = Infinity;
+      let bestParent = null;
+      for (const cand of this.graph.getNodes()) {
+        if (cand.id === node2.id) continue;
+        if (!BPMN_ACTIVITY_KINDS.has(this.nodeKind(cand))) continue;
+        const cp = cand.getPosition();
+        const cs = cand.getSize();
+        const dx = Math.max(cp.x - cx, 0, cx - (cp.x + cs.width));
+        const dy = Math.max(cp.y - cy, 0, cy - (cp.y + cs.height));
+        const d2 = dx + dy;
+        if (d2 < bestDist) {
+          bestDist = d2;
+          bestId = cand.id;
+          bestParent = { x: cp.x, y: cp.y, w: cs.width, h: cs.height };
+        }
+      }
+      if (!bestId || !bestParent || bestDist > 80) {
+        return;
+      }
+      const snapX = bestParent.x + bestParent.w - s3.width / 2;
+      const snapY = bestParent.y + bestParent.h - s3.height / 2;
+      node2.setPosition(snapX, snapY);
+      node2.setData({ ...data2, attachedTo: bestId });
+      this.rerender(node2);
+      this.onChange();
+      this.refreshContextBar();
+    }
+    /** Open the activity-marker picker (multi-select: loop / MI-par / MI-seq / ad-hoc / compensation). */
+    openBpmnMarkerPopup(node2, anchor3) {
+      const list = el("div", "lk-line-list");
+      const cur = new Set(this.nodeExtra(node2).markers ?? []);
+      for (const mk of BPMN_MARKERS) {
+        const on2 = cur.has(mk);
+        const row = el("button", "lk-line-row" + (on2 ? " on" : ""), `<span>${on2 ? "\u2611" : "\u2610"} ${BPMN_MARKER_LABEL[mk]}</span>`);
+        row.onclick = () => {
+          const data2 = node2.getData() ?? {};
+          const next = new Set(data2.markers ?? []);
+          if (on2) next.delete(mk);
+          else next.add(mk);
+          if (mk === "mi-par" && !on2) next.delete("mi-seq");
+          if (mk === "mi-seq" && !on2) next.delete("mi-par");
+          if ((mk === "mi-par" || mk === "mi-seq") && !on2) next.delete("loop");
+          if (mk === "loop" && !on2) {
+            next.delete("mi-par");
+            next.delete("mi-seq");
+          }
+          const arr = Array.from(next);
+          node2.setData({ ...data2, markers: arr.length ? arr : void 0 });
+          this.rerender(node2);
+          this.onChange();
+          this.openBpmnMarkerPopup(node2, anchor3);
+        };
+        list.appendChild(row);
+      }
+      this.showPopup(list, anchor3);
     }
     // ── BPMN Pool lane operations ───────────────────────────────────────────
     newLaneId() {
@@ -73730,6 +75083,7 @@
      */
     inlineEdit(opts) {
       this.commitLabel();
+      if (this.isMobile) this.setEditingChrome(true);
       const ta = el("textarea", "lk-label-input" + (opts.vertical ? " is-vertical" : ""));
       ta.value = opts.value;
       ta.style.left = opts.left + "px";
@@ -73754,12 +75108,13 @@
         done = true;
         if (save) {
           const v4 = ta.value.trim();
-          if (v4) opts.onCommit(v4);
+          if (v4 || opts.allowEmpty) opts.onCommit(v4);
         }
         this.graph.off("scale", abort);
         this.graph.off("translate", abort);
         ta.remove();
         this.labelInput = null;
+        if (this.isMobile) this.setEditingChrome(false);
       };
       const abort = () => finish(true);
       ta.addEventListener("input", autoGrow);
@@ -73869,51 +75224,31 @@
     commitLabel() {
       if (this.labelInput) this.labelInput.blur();
     }
-    // Inline-edit an edge's label (double-click the arrow).
+    // Inline-edit an edge's label (double-click the arrow). Multi-line via Shift+Enter
+    // (Enter commits, Escape cancels). Empty commit clears the label. Long lines wrap
+    // automatically at the EDGE_LABEL_TEXT.textWrap.width in the rendered SVG.
     editEdgeLabel(edge) {
-      this.commitLabel();
       const bbox2 = edge.getBBox();
-      const s3 = this.graph.scale().sx;
-      const t3 = this.graph.translate();
+      const s3 = this.graph.scale().sx, t3 = this.graph.translate();
       const cx = (bbox2.x + bbox2.width / 2) * s3 + t3.tx;
       const cy = (bbox2.y + bbox2.height / 2) * s3 + t3.ty;
-      const input = el("input", "lk-label-input");
       const cur = edge.getLabels()?.[0]?.attrs?.label?.text;
-      input.value = cur ? String(cur) : "";
-      input.style.left = cx - 70 + "px";
-      input.style.top = cy - 15 + "px";
-      input.style.width = "140px";
-      input.style.height = "30px";
-      let done = false;
-      const commit = () => {
-        if (done) return;
-        done = true;
-        const v4 = input.value.trim();
-        edge.setLabels(v4 ? [{ attrs: { body: EDGE_LABEL_BODY, label: { ...EDGE_LABEL_TEXT, text: v4 } } }] : []);
-        if (v4) this.applyEdgeTextAngle(edge);
-        this.onChange();
-        input.remove();
-        this.labelInput = null;
-      };
-      input.addEventListener("keydown", (e2) => {
-        e2.stopPropagation();
-        if (e2.key === "Enter") {
-          e2.preventDefault();
-          commit();
-        }
-        if (e2.key === "Escape") {
-          done = true;
-          input.remove();
-          this.labelInput = null;
+      const W3 = 220;
+      this.inlineEdit({
+        left: cx - W3 / 2,
+        top: cy - 18,
+        width: W3,
+        height: 32,
+        value: cur ? String(cur) : "",
+        multiLine: true,
+        allowEmpty: true,
+        // empty string clears the label (matches old <input> behaviour)
+        onCommit: (v4) => {
+          edge.setLabels(v4 ? [{ attrs: { body: EDGE_LABEL_BODY, label: { ...EDGE_LABEL_TEXT, text: v4 } } }] : []);
+          if (v4) this.applyEdgeTextAngle(edge);
+          this.onChange();
         }
       });
-      input.addEventListener("blur", commit);
-      this.root.appendChild(input);
-      this.labelInput = input;
-      setTimeout(() => {
-        input.focus();
-        input.select();
-      }, 10);
     }
     // ── Edge style (relationship type / weight / dash / color) ────────────────
     edgeStyle(edge) {
@@ -73998,6 +75333,55 @@
       const body = side === "start" ? `<g transform="translate(26,0) scale(-1,1)">${inner}</g>` : inner;
       return `<svg viewBox="0 0 26 16" width="26" height="16">${body}</svg>`;
     }
+    /** Debounced showEdgeBar — coalesces the continuous change:vertices /
+     *  change:source / change:target events of a drag into ONE rebuild after the
+     *  drag settles. Rebuilding the bar (innerHTML + ~10 SVG buttons +
+     *  getBoundingClientRect reflow) on every event froze segment AND endpoint
+     *  drags. */
+    scheduleEdgeBar(edge) {
+      if (!this.graph.getSelectedCells().some((c4) => c4.id === edge.id)) return;
+      this.startEdgeDragProfile();
+      if (this.edgeBarDebounce != null) window.clearTimeout(this.edgeBarDebounce);
+      this.edgeBarDebounce = window.setTimeout(() => {
+        this.edgeBarDebounce = null;
+        this.stopEdgeDragProfile();
+        if (this.graph.getSelectedCells().some((c4) => c4.id === edge.id)) this.showEdgeBar(edge);
+      }, 110);
+    }
+    /** TEMPORARY self-gating perf probe. Records per-frame times while an edge
+     *  reshape/endpoint drag is in progress (change:vertices/source/target fire
+     *  continuously, driving scheduleEdgeBar). Stays SILENT when smooth; only
+     *  console.warns if a frame exceeded 50ms — so we can confirm the freeze is
+     *  gone on the user's Electron without a screen recording. Remove once the
+     *  segment-drag jank is confirmed fixed. */
+    startEdgeDragProfile() {
+      if (this.edgeDragFrames != null) return;
+      this.edgeDragFrames = [];
+      let last = performance.now();
+      const tick = (now2) => {
+        if (this.edgeDragFrames == null) return;
+        this.edgeDragFrames.push(now2 - last);
+        last = now2;
+        this.edgeDragRaf = requestAnimationFrame(tick);
+      };
+      this.edgeDragRaf = requestAnimationFrame(tick);
+    }
+    stopEdgeDragProfile() {
+      const frames = this.edgeDragFrames;
+      this.edgeDragFrames = null;
+      if (this.edgeDragRaf != null) {
+        cancelAnimationFrame(this.edgeDragRaf);
+        this.edgeDragRaf = null;
+      }
+      const samples = (frames ?? []).slice(2);
+      if (samples.length < 3) return;
+      const max2 = Math.round(Math.max(...samples));
+      if (max2 <= 50) return;
+      const sorted = samples.slice().sort((a3, b2) => a3 - b2);
+      const med = Math.round(sorted[sorted.length >> 1]);
+      const janky = samples.filter((d2) => d2 > 33).length;
+      console.warn(`[omniboard-perf] edge drag janky: ${samples.length} frames \xB7 median ${med}ms \xB7 max ${max2}ms \xB7 ${janky} frame(s) >33ms`);
+    }
     showEdgeBar(edge) {
       const bar = this.edgeBar;
       if (!bar) return;
@@ -74035,6 +75419,13 @@
         (ev) => this.openEdgeColorPopup(edge, ev.currentTarget)
       ));
       bar.appendChild(el("div", "lk-cb-sep"));
+      const ft3 = st3.flowType ?? "sequence";
+      bar.appendChild(mkBtn(
+        `<span style="font-size:11px;font-weight:600">${FLOW_TYPE_LABEL[ft3] ?? "Sequence"}</span>` + caret,
+        "Lo\u1EA1i flow (BPMN)",
+        (ev) => this.openEdgeFlowTypePopup(edge, ev.currentTarget)
+      ));
+      bar.appendChild(el("div", "lk-cb-sep"));
       bar.appendChild(mkBtn(
         `<svg viewBox="0 0 24 14" width="24" height="14"><path d="M2 11 H10 V3 H22" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>` + caret,
         "Ki\u1EC3u \u0111\u01B0\u1EDDng",
@@ -74054,23 +75445,40 @@
         }
       ));
       bar.appendChild(el("div", "lk-cb-sep"));
-      bar.appendChild(mkBtn("\u{1F5D1}", "X\xF3a", () => {
+      const TRASH_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6m5 4v6m4-6v6"/></svg>`;
+      bar.appendChild(mkBtn(TRASH_ICON, "X\xF3a", () => {
         this.graph.removeCells([edge]);
         this.hideEdgeBar();
       }));
-      const bbox2 = edge.getBBox();
+      bar.style.display = "flex";
+      if (this.isMobile) {
+        this.dockBarAboveMbar(bar);
+        return;
+      }
       const s3 = this.graph.scale().sx;
       const t3 = this.graph.translate();
-      const cx = (bbox2.x + bbox2.width / 2) * s3 + t3.tx;
-      const cy = (bbox2.y + bbox2.height / 2) * s3 + t3.ty;
-      bar.style.display = "flex";
+      const view = this.graph.findViewByCell(edge);
+      const pathEl = view?.container?.querySelector?.("path.x6-edge-selection, path[joint-selector='line'], path");
+      const rootRect = this.root.getBoundingClientRect();
+      let cx, yTop, yBot;
+      if (pathEl?.getBoundingClientRect) {
+        const r2 = pathEl.getBoundingClientRect();
+        cx = r2.left - rootRect.left + r2.width / 2;
+        yTop = r2.top - rootRect.top;
+        yBot = r2.bottom - rootRect.top;
+      } else {
+        const bbox2 = edge.getBBox();
+        cx = (bbox2.x + bbox2.width / 2) * s3 + t3.tx;
+        yTop = bbox2.y * s3 + t3.ty;
+        yBot = (bbox2.y + bbox2.height) * s3 + t3.ty;
+      }
       const bw = bar.offsetWidth || 360;
       const bh = bar.offsetHeight || 46;
       const rw = this.root.clientWidth;
       const rh = this.root.clientHeight;
-      const gap = 34;
-      let top4 = cy - bh - gap;
-      if (top4 < 8) top4 = cy + gap;
+      const gap = 18;
+      let top4 = yTop - bh - gap;
+      if (top4 < 8) top4 = yBot + gap;
       top4 = Math.min(top4, rh - bh - 8);
       bar.style.left = Math.max(8, Math.min(cx - bw / 2, rw - bw - 8)) + "px";
       bar.style.top = Math.max(8, top4) + "px";
@@ -74092,6 +75500,21 @@
         grid.appendChild(cell);
       }
       this.showPopup(grid, anchor3);
+    }
+    /** BPMN flow-type popup — applies a preset (Sequence/Default/Message/Conditional/Association). Đợt C. */
+    openEdgeFlowTypePopup(edge, anchor3) {
+      const list = el("div", "lk-line-list");
+      const cur = this.edgeStyle(edge).flowType ?? "sequence";
+      for (const key of ["sequence", "default", "message", "conditional", "association"]) {
+        const row = el("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
+        row.onclick = () => {
+          this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
+          this.hidePopup();
+          this.showEdgeBar(edge);
+        };
+        list.appendChild(row);
+      }
+      this.showPopup(list, anchor3);
     }
     // Line popup: shape (orthogonal/elbow/straight/curved) + dash + weight.
     openEdgeLinePopup(edge, anchor3) {
@@ -74202,6 +75625,43 @@
       const k3 = c4.getData()?.kind;
       return !!k3 && SEQ_LIFELINE_KINDS.has(k3);
     }
+    // Edges with an orthogonal router emit polyline routePoints we can materialize
+    // as vertices so the X6 `segments` tool renders one handle per visible segment.
+    // Curved/straight routers (`normal`) don't produce meaningful bends here.
+    isOrthogonalEdge(edge) {
+      const r2 = edge.getRouter();
+      const name2 = typeof r2 === "string" ? r2 : r2?.name;
+      return name2 === "orth" || name2 === "manhattan" || name2 === "metro" || name2 === "er";
+    }
+    /**
+     * Build temporary bend vertices for a selected orthogonal edge with no saved
+     * vertices. X6's segment tool cannot drag an empty route; Lark/draw.io feel
+     * editable because dragging the line first creates a bend. We emulate that by
+     * seeding a center dogleg only while selected, then reverting it on unselect
+     * unless the user actually moved a handle.
+     */
+    materializeEditableBends(edge) {
+      const view = this.graph.findViewByCell(edge);
+      const route = view?.routePoints;
+      if (Array.isArray(route) && route.length > 2) {
+        return route.slice(1, -1).map((p4) => ({ x: p4.x, y: p4.y }));
+      }
+      const source = edge.getSourcePoint();
+      const target = edge.getTargetPoint();
+      if (!source || !target) return [];
+      const dx = target.x - source.x;
+      const dy = target.y - source.y;
+      const precision = 1;
+      if (Math.abs(dx) < precision || Math.abs(dy) < precision) {
+        return [];
+      }
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        const midX = source.x + dx / 2;
+        return [{ x: midX, y: source.y }, { x: midX, y: target.y }];
+      }
+      const midY = source.y + dy / 2;
+      return [{ x: source.x, y: midY }, { x: target.x, y: midY }];
+    }
     applySeqRoutingIfNeeded(edge) {
       const srcId = edge.getSourceCellId() ?? void 0;
       const tgtId = edge.getTargetCellId() ?? void 0;
@@ -74281,8 +75741,21 @@
       for (const n2 of model.nodes) {
         const a3 = n2.attrs ?? {};
         const style2 = a3.style ?? {};
-        const extra = { cols: a3.cols, fields: a3.fields, methods: a3.methods, who: a3.who, labelOffset: a3.labelOffset, lanes: a3.lanes };
-        this.addHtmlNode(n2.shape, n2.x, n2.y, n2.width, n2.height, n2.label, style2, n2.id, extra);
+        const extra = {
+          cols: a3.cols,
+          fields: a3.fields,
+          methods: a3.methods,
+          who: a3.who,
+          labelOffset: a3.labelOffset,
+          lanes: a3.lanes,
+          trigger: a3.trigger,
+          throwing: a3.throwing,
+          interrupting: a3.interrupting,
+          attachedTo: a3.attachedTo,
+          markers: a3.markers
+        };
+        const migrated = migrateBpmnEventKind(n2.shape, extra);
+        this.addHtmlNode(migrated.kind, n2.x, n2.y, n2.width, n2.height, n2.label, style2, n2.id, migrated.extra, a3.__source);
       }
       for (const e2 of model.edges) {
         const seq = this.isSeqLifeline(e2.source) && this.isSeqLifeline(e2.target);
@@ -74296,11 +75769,26 @@
           data2.ret = e2.ret || void 0;
         }
         if (e2.style) data2.style = e2.style;
+        const forcedRouter = e2.router === "normal" ? "normal" : e2.router === "orth" ? { name: "orth" } : null;
+        const sourceEnd = { cell: e2.source };
+        if (e2.sourceAnchor) {
+          sourceEnd.anchor = { name: "topLeft", args: { dx: e2.sourceAnchor.dx, dy: e2.sourceAnchor.dy } };
+          sourceEnd.connectionPoint = { name: "anchor" };
+        } else if (e2.sourcePort) {
+          sourceEnd.port = e2.sourcePort;
+        }
+        const targetEnd = { cell: e2.target };
+        if (e2.targetAnchor) {
+          targetEnd.anchor = { name: "topLeft", args: { dx: e2.targetAnchor.dx, dy: e2.targetAnchor.dy } };
+          targetEnd.connectionPoint = { name: "anchor" };
+        } else if (e2.targetPort) {
+          targetEnd.port = e2.targetPort;
+        }
         const created = this.graph.addEdge({
           id: e2.id,
-          source: { cell: e2.source, port: e2.sourcePort },
-          target: { cell: e2.target, port: e2.targetPort },
-          router: seq || mm ? "normal" : SMART_ROUTER,
+          source: sourceEnd,
+          target: targetEnd,
+          router: forcedRouter ?? (seq || mm ? "normal" : SMART_ROUTER),
           connector: seq ? "seq-msg" : mm ? "mm-edge" : CONNECTOR,
           attrs: edgeAttrs,
           labels: labelSpec,
@@ -74312,6 +75800,7 @@
         if (mm) this.applyMindmapRoutingIfNeeded(created);
       }
       this.graph.stopBatch("load");
+      this.resyncHtmlNodes();
       setTimeout(() => {
         this.graph.getNodes().forEach((n2) => {
           const k3 = this.nodeKind(n2);
@@ -74335,6 +75824,77 @@
       this.graph.zoomToFit({ padding: 40, maxScale: 1.2 });
       this.updateZoom();
     }
+    /**
+     * Merge an external CanvasModel into the current board. Imported nodes get
+     * fresh ids (to avoid colliding with existing ones), edge endpoints are
+     * rewired, and the whole cluster is offset so it lands near the viewport
+     * centre instead of overlapping existing content.
+     */
+    mergeModel(incoming) {
+      if (!incoming.nodes.length && !incoming.edges.length) return { added: 0 };
+      const xs = incoming.nodes.map((n2) => n2.x);
+      const ys = incoming.nodes.map((n2) => n2.y);
+      const minX = Math.min(...xs, 0);
+      const minY = Math.min(...ys, 0);
+      const rect2 = this.graphMount.getBoundingClientRect();
+      const sc = this.graph.scale().sx || 1;
+      const tr2 = this.graph.translate();
+      const viewCx = (rect2.width / 2 - tr2.tx) / sc;
+      const viewCy = (rect2.height / 2 - tr2.ty) / sc;
+      const w3 = Math.max(...incoming.nodes.map((n2) => n2.x + n2.width), 0) - minX;
+      const h3 = Math.max(...incoming.nodes.map((n2) => n2.y + n2.height), 0) - minY;
+      const dx = viewCx - w3 / 2 - minX;
+      const dy = viewCy - h3 / 2 - minY;
+      const current = this.getModel();
+      const stamp = Date.now().toString(36);
+      let seq = 0;
+      const existingIds = /* @__PURE__ */ new Set([
+        ...current.nodes.map((n2) => n2.id),
+        ...current.edges.map((e2) => e2.id)
+      ]);
+      const idMap = /* @__PURE__ */ new Map();
+      const idFor = (oldId) => {
+        let mapped = idMap.get(oldId);
+        if (!mapped) {
+          mapped = existingIds.has(oldId) ? `${oldId}_imp_${stamp}_${(++seq).toString(36)}` : oldId;
+          idMap.set(oldId, mapped);
+        }
+        return mapped;
+      };
+      const remapAttrs = (attrs) => {
+        if (!attrs) return attrs;
+        const src = attrs.__source;
+        if (!src?.sourceId) return attrs;
+        return {
+          ...attrs,
+          __source: { ...src, sourceId: idFor(src.sourceId) }
+        };
+      };
+      const merged = {
+        nodes: [
+          ...current.nodes,
+          ...incoming.nodes.map((n2) => ({
+            ...n2,
+            id: idFor(n2.id),
+            x: n2.x + dx,
+            y: n2.y + dy,
+            attrs: remapAttrs(n2.attrs)
+          }))
+        ],
+        edges: [
+          ...current.edges,
+          ...incoming.edges.map((e2) => ({
+            ...e2,
+            id: idFor(e2.id),
+            source: idFor(e2.source),
+            target: idFor(e2.target),
+            vertices: e2.vertices?.map((v4) => ({ x: v4.x + dx, y: v4.y + dy }))
+          }))
+        ]
+      };
+      this.loadModel(merged);
+      return { added: incoming.nodes.length };
+    }
     getModel() {
       const nodes = this.graph.getNodes().map((n2) => {
         const p4 = n2.getPosition();
@@ -74348,28 +75908,53 @@
           width: s3.width,
           height: s3.height,
           label: this.nodeLabel(n2),
-          attrs: { style: this.nodeStyle(n2), cols: ex.cols, fields: ex.fields, methods: ex.methods, who: ex.who, labelOffset: ex.labelOffset, lanes: ex.lanes }
+          attrs: {
+            style: this.nodeStyle(n2),
+            cols: ex.cols,
+            fields: ex.fields,
+            methods: ex.methods,
+            who: ex.who,
+            labelOffset: ex.labelOffset,
+            lanes: ex.lanes,
+            // BPMN extras (Đợt A)
+            trigger: ex.trigger,
+            throwing: ex.throwing,
+            interrupting: ex.interrupting,
+            attachedTo: ex.attachedTo,
+            markers: ex.markers,
+            __source: n2.getData()?.__source
+          }
         };
       });
       const edges = this.graph.getEdges().map((e2) => {
         const src = e2.getSource();
         const tgt = e2.getTarget();
+        const srcFull = e2.getSource();
+        const tgtFull = e2.getTarget();
         const d2 = e2.getData() ?? {};
         const verts = e2.getVertices();
         const lbl = e2.getLabels()?.[0];
         const labelPos = lbl?.position && (lbl.position.distance != null || lbl.position.offset != null) ? { distance: lbl.position.distance, offset: lbl.position.offset } : void 0;
+        const r2 = e2.getRouter();
+        const routerName = typeof r2 === "string" ? r2 : r2?.name;
+        const router2 = routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : void 0;
+        const srcAnchor = srcFull.anchor?.name === "topLeft" && typeof srcFull.anchor.args?.dx === "number" && typeof srcFull.anchor.args?.dy === "number" ? { dx: srcFull.anchor.args.dx, dy: srcFull.anchor.args.dy } : void 0;
+        const tgtAnchor = tgtFull.anchor?.name === "topLeft" && typeof tgtFull.anchor.args?.dx === "number" && typeof tgtFull.anchor.args?.dy === "number" ? { dx: tgtFull.anchor.args.dx, dy: tgtFull.anchor.args.dy } : void 0;
         return {
           id: e2.id,
           source: src.cell,
           sourcePort: src.port,
           target: tgt.cell,
           targetPort: tgt.port,
+          sourceAnchor: srcAnchor,
+          targetAnchor: tgtAnchor,
           label: lbl?.attrs?.label?.text,
           labelPos,
           y: typeof d2.y === "number" ? d2.y : void 0,
           ret: d2.ret ? true : void 0,
           style: d2.style && Object.keys(d2.style).length ? d2.style : void 0,
-          vertices: verts && verts.length ? verts.map((v4) => ({ x: v4.x, y: v4.y })) : void 0
+          vertices: verts && verts.length ? verts.map((v4) => ({ x: v4.x, y: v4.y })) : void 0,
+          router: router2
         };
       });
       return { nodes, edges };
@@ -74642,15 +76227,6926 @@
       this.cancelFlyoutClose();
       this.closeFlyoutNow();
       if (this.wheelPan) this.graphMount.removeEventListener("wheel", this.wheelPan);
+      for (const { type, fn: fn2 } of this.docListeners) document.removeEventListener(type, fn2, true);
+      this.docListeners = [];
+      if (this.edgeBarDebounce != null) {
+        window.clearTimeout(this.edgeBarDebounce);
+        this.edgeBarDebounce = null;
+      }
+      if (this.edgeDragRaf != null) {
+        cancelAnimationFrame(this.edgeDragRaf);
+        this.edgeDragRaf = null;
+      }
+      this.edgeDragFrames = null;
       this.graph.dispose();
     }
   };
 
+  // node_modules/min-dash/dist/index.js
+  var nativeToString = Object.prototype.toString;
+  var nativeHasOwnProperty = Object.prototype.hasOwnProperty;
+  function isUndefined(obj) {
+    return obj === void 0;
+  }
+  function isDefined(obj) {
+    return obj !== void 0;
+  }
+  function isNil(obj) {
+    return obj == null;
+  }
+  function isArray2(obj) {
+    return nativeToString.call(obj) === "[object Array]";
+  }
+  function isObject2(obj) {
+    return nativeToString.call(obj) === "[object Object]";
+  }
+  function isFunction2(obj) {
+    const tag = nativeToString.call(obj);
+    return tag === "[object Function]" || tag === "[object AsyncFunction]" || tag === "[object GeneratorFunction]" || tag === "[object AsyncGeneratorFunction]" || tag === "[object Proxy]";
+  }
+  function isString(obj) {
+    return nativeToString.call(obj) === "[object String]";
+  }
+  function has2(target, key) {
+    return !isNil(target) && nativeHasOwnProperty.call(target, key);
+  }
+  function find2(collection, matcher) {
+    const matchFn = toMatcher(matcher);
+    let match;
+    forEach(collection, function(val, key) {
+      if (matchFn(val, key)) {
+        match = val;
+        return false;
+      }
+    });
+    return match;
+  }
+  function findIndex(collection, matcher) {
+    const matchFn = toMatcher(matcher);
+    let idx = isArray2(collection) ? -1 : void 0;
+    forEach(collection, function(val, key) {
+      if (matchFn(val, key)) {
+        idx = key;
+        return false;
+      }
+    });
+    return idx;
+  }
+  function filter2(collection, matcher) {
+    const matchFn = toMatcher(matcher);
+    let result = [];
+    forEach(collection, function(val, key) {
+      if (matchFn(val, key)) {
+        result.push(val);
+      }
+    });
+    return result;
+  }
+  function forEach(collection, iterator) {
+    let val, result;
+    if (isUndefined(collection)) {
+      return;
+    }
+    const convertKey = isArray2(collection) ? toNum : identity2;
+    for (let key in collection) {
+      if (has2(collection, key)) {
+        val = collection[key];
+        result = iterator(val, convertKey(key));
+        if (result === false) {
+          return val;
+        }
+      }
+    }
+  }
+  function toMatcher(matcher) {
+    return isFunction2(matcher) ? matcher : (e2) => {
+      return e2 === matcher;
+    };
+  }
+  function identity2(arg) {
+    return arg;
+  }
+  function toNum(arg) {
+    return Number(arg);
+  }
+  function bind(fn2, target) {
+    return fn2.bind(target);
+  }
+  function assign2(target, ...others) {
+    return Object.assign(target, ...others);
+  }
+  function set(target, path2, value) {
+    let currentTarget = target;
+    forEach(path2, function(key, idx) {
+      if (typeof key !== "number" && typeof key !== "string") {
+        throw new Error("illegal key type: " + typeof key + ". Key should be of type number or string.");
+      }
+      if (key === "constructor") {
+        throw new Error("illegal key: constructor");
+      }
+      if (key === "__proto__") {
+        throw new Error("illegal key: __proto__");
+      }
+      let nextKey = path2[idx + 1];
+      let nextTarget = currentTarget[key];
+      if (isDefined(nextKey) && isNil(nextTarget)) {
+        nextTarget = currentTarget[key] = isNaN(+nextKey) ? {} : [];
+      }
+      if (isUndefined(nextKey)) {
+        if (isUndefined(value)) {
+          delete currentTarget[key];
+        } else {
+          currentTarget[key] = value;
+        }
+      } else {
+        currentTarget = nextTarget;
+      }
+    });
+    return target;
+  }
+  function pick2(target, properties) {
+    let result = {};
+    let obj = Object(target);
+    forEach(properties, function(prop2) {
+      if (prop2 in obj) {
+        result[prop2] = target[prop2];
+      }
+    });
+    return result;
+  }
+
+  // node_modules/moddle/dist/index.js
+  function Base3() {
+  }
+  Base3.prototype.get = function(name2) {
+    return this.$model.properties.get(this, name2);
+  };
+  Base3.prototype.set = function(name2, value) {
+    this.$model.properties.set(this, name2, value);
+  };
+  function Factory(model, properties) {
+    this.model = model;
+    this.properties = properties;
+  }
+  Factory.prototype.createType = function(descriptor) {
+    var model = this.model;
+    var props = this.properties, prototype = Object.create(Base3.prototype);
+    forEach(descriptor.properties, function(p4) {
+      if (!p4.isMany && p4.default !== void 0) {
+        prototype[p4.name] = p4.default;
+      }
+    });
+    props.defineModel(prototype, model);
+    props.defineDescriptor(prototype, descriptor);
+    var name2 = descriptor.ns.name;
+    function ModdleElement(attrs) {
+      props.define(this, "$type", { value: name2, enumerable: true });
+      props.define(this, "$attrs", { value: {} });
+      props.define(this, "$parent", { writable: true });
+      forEach(attrs, bind(function(val, key) {
+        this.set(key, val);
+      }, this));
+    }
+    ModdleElement.prototype = prototype;
+    ModdleElement.hasType = prototype.$instanceOf = this.model.hasType;
+    props.defineModel(ModdleElement, model);
+    props.defineDescriptor(ModdleElement, descriptor);
+    return ModdleElement;
+  };
+  var BUILTINS = {
+    String: true,
+    Boolean: true,
+    Integer: true,
+    Real: true,
+    Element: true
+  };
+  var TYPE_CONVERTERS = {
+    String: function(s3) {
+      return s3;
+    },
+    Boolean: function(s3) {
+      return s3 === "true";
+    },
+    Integer: function(s3) {
+      return parseInt(s3, 10);
+    },
+    Real: function(s3) {
+      return parseFloat(s3);
+    }
+  };
+  function coerceType(type, value) {
+    var converter = TYPE_CONVERTERS[type];
+    if (converter) {
+      return converter(value);
+    } else {
+      return value;
+    }
+  }
+  function isBuiltIn(type) {
+    return !!BUILTINS[type];
+  }
+  function isSimple(type) {
+    return !!TYPE_CONVERTERS[type];
+  }
+  function parseName(name2, defaultPrefix) {
+    var parts = name2.split(/:/), localName, prefix2;
+    if (parts.length === 1) {
+      localName = name2;
+      prefix2 = defaultPrefix;
+    } else if (parts.length === 2) {
+      localName = parts[1];
+      prefix2 = parts[0];
+    } else {
+      throw new Error("expected <prefix:localName> or <localName>, got " + name2);
+    }
+    name2 = (prefix2 ? prefix2 + ":" : "") + localName;
+    return {
+      name: name2,
+      prefix: prefix2,
+      localName
+    };
+  }
+  function DescriptorBuilder(nameNs) {
+    this.ns = nameNs;
+    this.name = nameNs.name;
+    this.allTypes = [];
+    this.allTypesByName = {};
+    this.properties = [];
+    this.propertiesByName = {};
+  }
+  DescriptorBuilder.prototype.build = function() {
+    return pick2(this, [
+      "ns",
+      "name",
+      "allTypes",
+      "allTypesByName",
+      "properties",
+      "propertiesByName",
+      "bodyProperty",
+      "idProperty"
+    ]);
+  };
+  DescriptorBuilder.prototype.addProperty = function(p4, idx, validate) {
+    if (typeof idx === "boolean") {
+      validate = idx;
+      idx = void 0;
+    }
+    this.addNamedProperty(p4, validate !== false);
+    var properties = this.properties;
+    if (idx !== void 0) {
+      properties.splice(idx, 0, p4);
+    } else {
+      properties.push(p4);
+    }
+  };
+  DescriptorBuilder.prototype.replaceProperty = function(oldProperty, newProperty, replace) {
+    var oldNameNs = oldProperty.ns;
+    var props = this.properties, propertiesByName = this.propertiesByName, rename = oldProperty.name !== newProperty.name;
+    if (oldProperty.isId) {
+      if (!newProperty.isId) {
+        throw new Error(
+          "property <" + newProperty.ns.name + "> must be id property to refine <" + oldProperty.ns.name + ">"
+        );
+      }
+      this.setIdProperty(newProperty, false);
+    }
+    if (oldProperty.isBody) {
+      if (!newProperty.isBody) {
+        throw new Error(
+          "property <" + newProperty.ns.name + "> must be body property to refine <" + oldProperty.ns.name + ">"
+        );
+      }
+      this.setBodyProperty(newProperty, false);
+    }
+    var idx = props.indexOf(oldProperty);
+    if (idx === -1) {
+      throw new Error("property <" + oldNameNs.name + "> not found in property list");
+    }
+    props.splice(idx, 1);
+    this.addProperty(newProperty, replace ? void 0 : idx, rename);
+    propertiesByName[oldNameNs.name] = propertiesByName[oldNameNs.localName] = newProperty;
+  };
+  DescriptorBuilder.prototype.redefineProperty = function(p4, targetPropertyName, replace) {
+    var nsPrefix = p4.ns.prefix;
+    var parts = targetPropertyName.split("#");
+    var name2 = parseName(parts[0], nsPrefix);
+    var attrName = parseName(parts[1], name2.prefix).name;
+    var redefinedProperty = this.propertiesByName[attrName];
+    if (!redefinedProperty) {
+      throw new Error("refined property <" + attrName + "> not found");
+    } else {
+      this.replaceProperty(redefinedProperty, p4, replace);
+    }
+    delete p4.redefines;
+  };
+  DescriptorBuilder.prototype.addNamedProperty = function(p4, validate) {
+    var ns2 = p4.ns, propsByName = this.propertiesByName;
+    if (validate) {
+      this.assertNotDefined(p4, ns2.name);
+      this.assertNotDefined(p4, ns2.localName);
+    }
+    propsByName[ns2.name] = propsByName[ns2.localName] = p4;
+  };
+  DescriptorBuilder.prototype.removeNamedProperty = function(p4) {
+    var ns2 = p4.ns, propsByName = this.propertiesByName;
+    delete propsByName[ns2.name];
+    delete propsByName[ns2.localName];
+  };
+  DescriptorBuilder.prototype.setBodyProperty = function(p4, validate) {
+    if (validate && this.bodyProperty) {
+      throw new Error(
+        "body property defined multiple times (<" + this.bodyProperty.ns.name + ">, <" + p4.ns.name + ">)"
+      );
+    }
+    this.bodyProperty = p4;
+  };
+  DescriptorBuilder.prototype.setIdProperty = function(p4, validate) {
+    if (validate && this.idProperty) {
+      throw new Error(
+        "id property defined multiple times (<" + this.idProperty.ns.name + ">, <" + p4.ns.name + ">)"
+      );
+    }
+    this.idProperty = p4;
+  };
+  DescriptorBuilder.prototype.assertNotTrait = function(typeDescriptor) {
+    const _extends = typeDescriptor.extends || [];
+    if (_extends.length) {
+      throw new Error(
+        `cannot create <${typeDescriptor.name}> extending <${typeDescriptor.extends}>`
+      );
+    }
+  };
+  DescriptorBuilder.prototype.assertNotDefined = function(p4, name2) {
+    var propertyName = p4.name, definedProperty = this.propertiesByName[propertyName];
+    if (definedProperty) {
+      throw new Error(
+        "property <" + propertyName + "> already defined; override of <" + definedProperty.definedBy.ns.name + "#" + definedProperty.ns.name + "> by <" + p4.definedBy.ns.name + "#" + p4.ns.name + "> not allowed without redefines"
+      );
+    }
+  };
+  DescriptorBuilder.prototype.hasProperty = function(name2) {
+    return this.propertiesByName[name2];
+  };
+  DescriptorBuilder.prototype.addTrait = function(t3, inherited) {
+    if (inherited) {
+      this.assertNotTrait(t3);
+    }
+    var typesByName = this.allTypesByName, types2 = this.allTypes;
+    var typeName = t3.name;
+    if (typeName in typesByName) {
+      return;
+    }
+    forEach(t3.properties, bind(function(p4) {
+      p4 = assign2({}, p4, {
+        name: p4.ns.localName,
+        inherited
+      });
+      Object.defineProperty(p4, "definedBy", {
+        value: t3
+      });
+      var replaces = p4.replaces, redefines = p4.redefines;
+      if (replaces || redefines) {
+        this.redefineProperty(p4, replaces || redefines, replaces);
+      } else {
+        if (p4.isBody) {
+          this.setBodyProperty(p4);
+        }
+        if (p4.isId) {
+          this.setIdProperty(p4);
+        }
+        this.addProperty(p4);
+      }
+    }, this));
+    types2.push(t3);
+    typesByName[typeName] = t3;
+  };
+  function Registry2(packages2, properties) {
+    this.packageMap = {};
+    this.typeMap = {};
+    this.packages = [];
+    this.properties = properties;
+    forEach(packages2, bind(this.registerPackage, this));
+  }
+  Registry2.prototype.getPackage = function(uriOrPrefix) {
+    return this.packageMap[uriOrPrefix];
+  };
+  Registry2.prototype.getPackages = function() {
+    return this.packages;
+  };
+  Registry2.prototype.registerPackage = function(pkg) {
+    pkg = assign2({}, pkg);
+    var pkgMap = this.packageMap;
+    ensureAvailable(pkgMap, pkg, "prefix");
+    ensureAvailable(pkgMap, pkg, "uri");
+    forEach(pkg.types, bind(function(descriptor) {
+      this.registerType(descriptor, pkg);
+    }, this));
+    pkgMap[pkg.uri] = pkgMap[pkg.prefix] = pkg;
+    this.packages.push(pkg);
+  };
+  Registry2.prototype.registerType = function(type, pkg) {
+    type = assign2({}, type, {
+      superClass: (type.superClass || []).slice(),
+      extends: (type.extends || []).slice(),
+      properties: (type.properties || []).slice(),
+      meta: assign2(type.meta || {})
+    });
+    var ns2 = parseName(type.name, pkg.prefix), name2 = ns2.name, propertiesByName = {};
+    forEach(type.properties, bind(function(p4) {
+      var propertyNs = parseName(p4.name, ns2.prefix), propertyName = propertyNs.name;
+      if (!isBuiltIn(p4.type)) {
+        p4.type = parseName(p4.type, propertyNs.prefix).name;
+      }
+      assign2(p4, {
+        ns: propertyNs,
+        name: propertyName
+      });
+      propertiesByName[propertyName] = p4;
+    }, this));
+    assign2(type, {
+      ns: ns2,
+      name: name2,
+      propertiesByName
+    });
+    forEach(type.extends, bind(function(extendsName) {
+      var extendsNameNs = parseName(extendsName, ns2.prefix);
+      var extended = this.typeMap[extendsNameNs.name];
+      extended.traits = extended.traits || [];
+      extended.traits.push(name2);
+    }, this));
+    this.definePackage(type, pkg);
+    this.typeMap[name2] = type;
+  };
+  Registry2.prototype.mapTypes = function(nsName2, iterator, trait) {
+    var type = isBuiltIn(nsName2.name) ? { name: nsName2.name } : this.typeMap[nsName2.name];
+    var self2 = this;
+    function traverse(cls, trait2) {
+      var parentNs = parseName(cls, isBuiltIn(cls) ? "" : nsName2.prefix);
+      self2.mapTypes(parentNs, iterator, trait2);
+    }
+    function traverseTrait(cls) {
+      return traverse(cls, true);
+    }
+    function traverseSuper(cls) {
+      return traverse(cls, false);
+    }
+    if (!type) {
+      throw new Error("unknown type <" + nsName2.name + ">");
+    }
+    forEach(type.superClass, trait ? traverseTrait : traverseSuper);
+    iterator(type, !trait);
+    forEach(type.traits, traverseTrait);
+  };
+  Registry2.prototype.getEffectiveDescriptor = function(name2) {
+    var nsName2 = parseName(name2);
+    var builder = new DescriptorBuilder(nsName2);
+    this.mapTypes(nsName2, function(type, inherited) {
+      builder.addTrait(type, inherited);
+    });
+    var descriptor = builder.build();
+    this.definePackage(descriptor, descriptor.allTypes[descriptor.allTypes.length - 1].$pkg);
+    return descriptor;
+  };
+  Registry2.prototype.definePackage = function(target, pkg) {
+    this.properties.define(target, "$pkg", { value: pkg });
+  };
+  function ensureAvailable(packageMap, pkg, identifierKey) {
+    var value = pkg[identifierKey];
+    if (value in packageMap) {
+      throw new Error("package with " + identifierKey + " <" + value + "> already defined");
+    }
+  }
+  function Properties(model) {
+    this.model = model;
+  }
+  Properties.prototype.set = function(target, name2, value) {
+    if (!isString(name2) || !name2.length) {
+      throw new TypeError("property name must be a non-empty string");
+    }
+    var property2 = this.getProperty(target, name2);
+    var propertyName = property2 && property2.name;
+    if (isUndefined2(value)) {
+      if (property2) {
+        delete target[propertyName];
+      } else {
+        delete target.$attrs[stripGlobal(name2)];
+      }
+    } else {
+      if (property2) {
+        if (propertyName in target) {
+          target[propertyName] = value;
+        } else {
+          defineProperty2(target, property2, value);
+        }
+      } else {
+        target.$attrs[stripGlobal(name2)] = value;
+      }
+    }
+  };
+  Properties.prototype.get = function(target, name2) {
+    var property2 = this.getProperty(target, name2);
+    if (!property2) {
+      return target.$attrs[stripGlobal(name2)];
+    }
+    var propertyName = property2.name;
+    if (!target[propertyName] && property2.isMany) {
+      defineProperty2(target, property2, []);
+    }
+    return target[propertyName];
+  };
+  Properties.prototype.define = function(target, name2, options) {
+    if (!options.writable) {
+      var value = options.value;
+      options = assign2({}, options, {
+        get: function() {
+          return value;
+        }
+      });
+      delete options.value;
+    }
+    Object.defineProperty(target, name2, options);
+  };
+  Properties.prototype.defineDescriptor = function(target, descriptor) {
+    this.define(target, "$descriptor", { value: descriptor });
+  };
+  Properties.prototype.defineModel = function(target, model) {
+    this.define(target, "$model", { value: model });
+  };
+  Properties.prototype.getProperty = function(target, name2) {
+    var model = this.model;
+    var property2 = model.getPropertyDescriptor(target, name2);
+    if (property2) {
+      return property2;
+    }
+    if (name2.includes(":")) {
+      return null;
+    }
+    const strict = model.config.strict;
+    if (typeof strict !== "undefined") {
+      const error3 = new TypeError(`unknown property <${name2}> on <${target.$type}>`);
+      if (strict) {
+        throw error3;
+      } else {
+        typeof console !== "undefined" && console.warn(error3);
+      }
+    }
+    return null;
+  };
+  function isUndefined2(val) {
+    return typeof val === "undefined";
+  }
+  function defineProperty2(target, property2, value) {
+    Object.defineProperty(target, property2.name, {
+      enumerable: !property2.isReference,
+      writable: true,
+      value,
+      configurable: true
+    });
+  }
+  function stripGlobal(name2) {
+    return name2.replace(/^:/, "");
+  }
+  function Moddle(packages2, config = {}) {
+    this.properties = new Properties(this);
+    this.factory = new Factory(this, this.properties);
+    this.registry = new Registry2(packages2, this.properties);
+    this.typeCache = {};
+    this.config = config;
+  }
+  Moddle.prototype.create = function(descriptor, attrs) {
+    var Type = this.getType(descriptor);
+    if (!Type) {
+      throw new Error("unknown type <" + descriptor + ">");
+    }
+    return new Type(attrs);
+  };
+  Moddle.prototype.getType = function(descriptor) {
+    var cache = this.typeCache;
+    var name2 = isString(descriptor) ? descriptor : descriptor.ns.name;
+    var type = cache[name2];
+    if (!type) {
+      descriptor = this.registry.getEffectiveDescriptor(name2);
+      type = cache[name2] = this.factory.createType(descriptor);
+    }
+    return type;
+  };
+  Moddle.prototype.createAny = function(name2, nsUri, properties) {
+    var nameNs = parseName(name2);
+    var element = {
+      $type: name2,
+      $instanceOf: function(type) {
+        return type === this.$type;
+      },
+      get: function(key) {
+        return this[key];
+      },
+      set: function(key, value) {
+        set(this, [key], value);
+      }
+    };
+    var descriptor = {
+      name: name2,
+      isGeneric: true,
+      ns: {
+        prefix: nameNs.prefix,
+        localName: nameNs.localName,
+        uri: nsUri
+      }
+    };
+    this.properties.defineDescriptor(element, descriptor);
+    this.properties.defineModel(element, this);
+    this.properties.define(element, "get", { enumerable: false, writable: true });
+    this.properties.define(element, "set", { enumerable: false, writable: true });
+    this.properties.define(element, "$parent", { enumerable: false, writable: true });
+    this.properties.define(element, "$instanceOf", { enumerable: false, writable: true });
+    forEach(properties, function(a3, key) {
+      if (isObject2(a3) && a3.value !== void 0) {
+        element[a3.name] = a3.value;
+      } else {
+        element[key] = a3;
+      }
+    });
+    return element;
+  };
+  Moddle.prototype.getPackage = function(uriOrPrefix) {
+    return this.registry.getPackage(uriOrPrefix);
+  };
+  Moddle.prototype.getPackages = function() {
+    return this.registry.getPackages();
+  };
+  Moddle.prototype.getElementDescriptor = function(element) {
+    return element.$descriptor;
+  };
+  Moddle.prototype.hasType = function(element, type) {
+    if (type === void 0) {
+      type = element;
+      element = this;
+    }
+    var descriptor = element.$model.getElementDescriptor(element);
+    return type in descriptor.allTypesByName;
+  };
+  Moddle.prototype.getPropertyDescriptor = function(element, property2) {
+    return this.getElementDescriptor(element).propertiesByName[property2];
+  };
+  Moddle.prototype.getTypeDescriptor = function(type) {
+    return this.registry.typeMap[type];
+  };
+
+  // node_modules/saxen/dist/index.js
+  var fromCharCode = String.fromCharCode;
+  var hasOwnProperty18 = Object.prototype.hasOwnProperty;
+  var ENTITY_PATTERN = /&#(\d+);|&#x([0-9a-f]+);|&(\w+);/ig;
+  var ENTITY_MAPPING = {
+    "amp": "&",
+    "apos": "'",
+    "gt": ">",
+    "lt": "<",
+    "quot": '"'
+  };
+  Object.keys(ENTITY_MAPPING).forEach(function(k3) {
+    ENTITY_MAPPING[k3.toUpperCase()] = ENTITY_MAPPING[k3];
+  });
+  function replaceEntities(_4, d2, x3, z3) {
+    if (z3) {
+      if (hasOwnProperty18.call(ENTITY_MAPPING, z3)) {
+        return ENTITY_MAPPING[z3];
+      } else {
+        return "&" + z3 + ";";
+      }
+    }
+    if (d2) {
+      return fromCharCode(d2);
+    }
+    return fromCharCode(parseInt(x3, 16));
+  }
+  function decodeEntities(s3) {
+    if (s3.length > 3 && s3.indexOf("&") !== -1) {
+      return s3.replace(ENTITY_PATTERN, replaceEntities);
+    }
+    return s3;
+  }
+  var NON_WHITESPACE_OUTSIDE_ROOT_NODE = "non-whitespace outside of root node";
+  function error(msg) {
+    return new Error(msg);
+  }
+  function missingNamespaceForPrefix(prefix2) {
+    return "missing namespace for prefix <" + prefix2 + ">";
+  }
+  function getter(getFn) {
+    return {
+      "get": getFn,
+      "enumerable": true
+    };
+  }
+  function cloneNsMatrix(nsMatrix) {
+    var clone3 = {}, key;
+    for (key in nsMatrix) {
+      clone3[key] = nsMatrix[key];
+    }
+    return clone3;
+  }
+  function uriPrefix(prefix2) {
+    return prefix2 + "$uri";
+  }
+  function buildNsMatrix(nsUriToPrefix) {
+    var nsMatrix = {}, uri2, prefix2;
+    for (uri2 in nsUriToPrefix) {
+      prefix2 = nsUriToPrefix[uri2];
+      nsMatrix[prefix2] = prefix2;
+      nsMatrix[uriPrefix(prefix2)] = uri2;
+    }
+    return nsMatrix;
+  }
+  function noopGetContext() {
+    return { line: 0, column: 0 };
+  }
+  function throwFunc(err2) {
+    throw err2;
+  }
+  function Parser2(options) {
+    if (!this) {
+      return new Parser2(options);
+    }
+    var proxy = options && options["proxy"];
+    var onText, onOpenTag, onCloseTag, onCDATA, onError = throwFunc, onWarning, onComment, onQuestion, onAttention;
+    var getContext = noopGetContext;
+    var maybeNS = false;
+    var isNamespace = false;
+    var returnError = null;
+    var parseStop = false;
+    var nsUriToPrefix;
+    function handleError(err2) {
+      if (!(err2 instanceof Error)) {
+        err2 = error(err2);
+      }
+      returnError = err2;
+      onError(err2, getContext);
+    }
+    function handleWarning(err2) {
+      if (!onWarning) {
+        return;
+      }
+      if (!(err2 instanceof Error)) {
+        err2 = error(err2);
+      }
+      onWarning(err2, getContext);
+    }
+    this["on"] = function(name2, cb) {
+      if (typeof cb !== "function") {
+        throw error("required args <name, cb>");
+      }
+      switch (name2) {
+        case "openTag":
+          onOpenTag = cb;
+          break;
+        case "text":
+          onText = cb;
+          break;
+        case "closeTag":
+          onCloseTag = cb;
+          break;
+        case "error":
+          onError = cb;
+          break;
+        case "warn":
+          onWarning = cb;
+          break;
+        case "cdata":
+          onCDATA = cb;
+          break;
+        case "attention":
+          onAttention = cb;
+          break;
+        case "question":
+          onQuestion = cb;
+          break;
+        case "comment":
+          onComment = cb;
+          break;
+        default:
+          throw error("unsupported event: " + name2);
+      }
+      return this;
+    };
+    this["ns"] = function(nsMap) {
+      if (typeof nsMap === "undefined") {
+        nsMap = {};
+      }
+      if (typeof nsMap !== "object") {
+        throw error("required args <nsMap={}>");
+      }
+      var _nsUriToPrefix = {}, k3;
+      for (k3 in nsMap) {
+        _nsUriToPrefix[k3] = nsMap[k3];
+      }
+      isNamespace = true;
+      nsUriToPrefix = _nsUriToPrefix;
+      return this;
+    };
+    this["parse"] = function(xml3) {
+      if (typeof xml3 !== "string") {
+        throw error("required args <xml=string>");
+      }
+      returnError = null;
+      parse2(xml3);
+      getContext = noopGetContext;
+      parseStop = false;
+      return returnError;
+    };
+    this["stop"] = function() {
+      parseStop = true;
+    };
+    function parse2(xml3) {
+      var nsMatrixStack = isNamespace ? [] : null, nsMatrix = isNamespace ? buildNsMatrix(nsUriToPrefix) : null, _nsMatrix, nodeStack = [], anonymousNsCount = 0, tagStart = false, tagEnd = false, i3 = 0, j3 = 0, x3, y3, q3, w3, v4, xmlns, elementName, _elementName, elementProxy;
+      var attrsString = "", attrsStart = 0, cachedAttrs;
+      function getAttrs() {
+        if (cachedAttrs !== null) {
+          return cachedAttrs;
+        }
+        var nsUri, nsUriPrefix, nsName2, defaultAlias = isNamespace && nsMatrix["xmlns"], attrList = isNamespace && maybeNS ? [] : null, i4 = attrsStart, s3 = attrsString, l3 = s3.length, hasNewMatrix, newalias, value, alias, name2, attrs = {}, seenAttrs = {}, skipAttr, w4, j4;
+        parseAttr:
+          for (; i4 < l3; i4++) {
+            skipAttr = false;
+            w4 = s3.charCodeAt(i4);
+            if (w4 === 32 || w4 < 14 && w4 > 8) {
+              continue;
+            }
+            if (w4 < 65 || w4 > 122 || w4 > 90 && w4 < 97) {
+              if (w4 !== 95 && w4 !== 58) {
+                handleWarning("illegal first char attribute name");
+                skipAttr = true;
+              }
+            }
+            for (j4 = i4 + 1; j4 < l3; j4++) {
+              w4 = s3.charCodeAt(j4);
+              if (w4 > 96 && w4 < 123 || w4 > 64 && w4 < 91 || w4 > 47 && w4 < 59 || w4 === 46 || // '.'
+              w4 === 45 || // '-'
+              w4 === 95) {
+                continue;
+              }
+              if (w4 === 32 || w4 < 14 && w4 > 8) {
+                handleWarning("missing attribute value");
+                i4 = j4;
+                continue parseAttr;
+              }
+              if (w4 === 61) {
+                break;
+              }
+              handleWarning("illegal attribute name char");
+              skipAttr = true;
+            }
+            name2 = s3.substring(i4, j4);
+            if (name2 === "xmlns:xmlns") {
+              handleWarning("illegal declaration of xmlns");
+              skipAttr = true;
+            }
+            w4 = s3.charCodeAt(j4 + 1);
+            if (w4 === 34) {
+              j4 = s3.indexOf('"', i4 = j4 + 2);
+              if (j4 === -1) {
+                j4 = s3.indexOf("'", i4);
+                if (j4 !== -1) {
+                  handleWarning("attribute value quote missmatch");
+                  skipAttr = true;
+                }
+              }
+            } else if (w4 === 39) {
+              j4 = s3.indexOf("'", i4 = j4 + 2);
+              if (j4 === -1) {
+                j4 = s3.indexOf('"', i4);
+                if (j4 !== -1) {
+                  handleWarning("attribute value quote missmatch");
+                  skipAttr = true;
+                }
+              }
+            } else {
+              handleWarning("missing attribute value quotes");
+              skipAttr = true;
+              for (j4 = j4 + 1; j4 < l3; j4++) {
+                w4 = s3.charCodeAt(j4 + 1);
+                if (w4 === 32 || w4 < 14 && w4 > 8) {
+                  break;
+                }
+              }
+            }
+            if (j4 === -1) {
+              handleWarning("missing closing quotes");
+              j4 = l3;
+              skipAttr = true;
+            }
+            if (!skipAttr) {
+              value = s3.substring(i4, j4);
+            }
+            i4 = j4;
+            for (; j4 + 1 < l3; j4++) {
+              w4 = s3.charCodeAt(j4 + 1);
+              if (w4 === 32 || w4 < 14 && w4 > 8) {
+                break;
+              }
+              if (i4 === j4) {
+                handleWarning("illegal character after attribute end");
+                skipAttr = true;
+              }
+            }
+            i4 = j4 + 1;
+            if (skipAttr) {
+              continue parseAttr;
+            }
+            if (name2 in seenAttrs) {
+              handleWarning("attribute <" + name2 + "> already defined");
+              continue;
+            }
+            seenAttrs[name2] = true;
+            if (!isNamespace) {
+              attrs[name2] = value;
+              continue;
+            }
+            if (maybeNS) {
+              newalias = name2 === "xmlns" ? "xmlns" : name2.charCodeAt(0) === 120 && name2.substr(0, 6) === "xmlns:" ? name2.substr(6) : null;
+              if (newalias !== null) {
+                nsUri = decodeEntities(value);
+                nsUriPrefix = uriPrefix(newalias);
+                alias = nsUriToPrefix[nsUri];
+                if (!alias) {
+                  if (newalias === "xmlns" || nsUriPrefix in nsMatrix && nsMatrix[nsUriPrefix] !== nsUri) {
+                    do {
+                      alias = "ns" + anonymousNsCount++;
+                    } while (typeof nsMatrix[alias] !== "undefined");
+                  } else {
+                    alias = newalias;
+                  }
+                  nsUriToPrefix[nsUri] = alias;
+                }
+                if (nsMatrix[newalias] !== alias) {
+                  if (!hasNewMatrix) {
+                    nsMatrix = cloneNsMatrix(nsMatrix);
+                    hasNewMatrix = true;
+                  }
+                  nsMatrix[newalias] = alias;
+                  if (newalias === "xmlns") {
+                    nsMatrix[uriPrefix(alias)] = nsUri;
+                    defaultAlias = alias;
+                  }
+                  nsMatrix[nsUriPrefix] = nsUri;
+                }
+                attrs[name2] = value;
+                continue;
+              }
+              attrList.push(name2, value);
+              continue;
+            }
+            w4 = name2.indexOf(":");
+            if (w4 === -1) {
+              attrs[name2] = value;
+              continue;
+            }
+            if (!(nsName2 = nsMatrix[name2.substring(0, w4)])) {
+              handleWarning(missingNamespaceForPrefix(name2.substring(0, w4)));
+              continue;
+            }
+            name2 = defaultAlias === nsName2 ? name2.substr(w4 + 1) : nsName2 + name2.substr(w4);
+            attrs[name2] = value;
+          }
+        if (maybeNS) {
+          for (i4 = 0, l3 = attrList.length; i4 < l3; i4++) {
+            name2 = attrList[i4++];
+            value = attrList[i4];
+            w4 = name2.indexOf(":");
+            if (w4 !== -1) {
+              if (!(nsName2 = nsMatrix[name2.substring(0, w4)])) {
+                handleWarning(missingNamespaceForPrefix(name2.substring(0, w4)));
+                continue;
+              }
+              name2 = defaultAlias === nsName2 ? name2.substr(w4 + 1) : nsName2 + name2.substr(w4);
+            }
+            attrs[name2] = value;
+          }
+        }
+        return cachedAttrs = attrs;
+      }
+      function getParseContext() {
+        var splitsRe = /(\r\n|\r|\n)/g;
+        var line2 = 0;
+        var column = 0;
+        var startOfLine = 0;
+        var endOfLine = j3;
+        var match;
+        var data2;
+        while (i3 >= startOfLine) {
+          match = splitsRe.exec(xml3);
+          if (!match) {
+            break;
+          }
+          endOfLine = match[0].length + match.index;
+          if (endOfLine > i3) {
+            break;
+          }
+          line2 += 1;
+          startOfLine = endOfLine;
+        }
+        if (i3 == -1) {
+          column = endOfLine;
+          data2 = xml3.substring(j3);
+        } else if (j3 === 0) {
+          data2 = xml3.substring(j3, i3);
+        } else {
+          column = i3 - startOfLine;
+          data2 = j3 == -1 ? xml3.substring(i3) : xml3.substring(i3, j3 + 1);
+        }
+        return {
+          "data": data2,
+          "line": line2,
+          "column": column
+        };
+      }
+      getContext = getParseContext;
+      if (proxy) {
+        elementProxy = Object.create({}, {
+          "name": getter(function() {
+            return elementName;
+          }),
+          "originalName": getter(function() {
+            return _elementName;
+          }),
+          "attrs": getter(getAttrs),
+          "ns": getter(function() {
+            return nsMatrix;
+          })
+        });
+      }
+      while (j3 !== -1) {
+        if (xml3.charCodeAt(j3) === 60) {
+          i3 = j3;
+        } else {
+          i3 = xml3.indexOf("<", j3);
+        }
+        if (i3 === -1) {
+          if (nodeStack.length) {
+            return handleError("unexpected end of file");
+          }
+          if (j3 === 0) {
+            return handleError("missing start tag");
+          }
+          if (j3 < xml3.length) {
+            if (xml3.substring(j3).trim()) {
+              handleWarning(NON_WHITESPACE_OUTSIDE_ROOT_NODE);
+            }
+          }
+          return;
+        }
+        if (j3 !== i3) {
+          if (nodeStack.length) {
+            if (onText) {
+              onText(xml3.substring(j3, i3), decodeEntities, getContext);
+              if (parseStop) {
+                return;
+              }
+            }
+          } else {
+            if (xml3.substring(j3, i3).trim()) {
+              handleWarning(NON_WHITESPACE_OUTSIDE_ROOT_NODE);
+              if (parseStop) {
+                return;
+              }
+            }
+          }
+        }
+        w3 = xml3.charCodeAt(i3 + 1);
+        if (w3 === 33) {
+          q3 = xml3.charCodeAt(i3 + 2);
+          if (q3 === 91 && xml3.substr(i3 + 3, 6) === "CDATA[") {
+            j3 = xml3.indexOf("]]>", i3);
+            if (j3 === -1) {
+              return handleError("unclosed cdata");
+            }
+            if (onCDATA) {
+              onCDATA(xml3.substring(i3 + 9, j3), getContext);
+              if (parseStop) {
+                return;
+              }
+            }
+            j3 += 3;
+            continue;
+          }
+          if (q3 === 45 && xml3.charCodeAt(i3 + 3) === 45) {
+            j3 = xml3.indexOf("-->", i3);
+            if (j3 === -1) {
+              return handleError("unclosed comment");
+            }
+            if (onComment) {
+              onComment(xml3.substring(i3 + 4, j3), decodeEntities, getContext);
+              if (parseStop) {
+                return;
+              }
+            }
+            j3 += 3;
+            continue;
+          }
+        }
+        if (w3 === 63) {
+          j3 = xml3.indexOf("?>", i3);
+          if (j3 === -1) {
+            return handleError("unclosed question");
+          }
+          if (onQuestion) {
+            onQuestion(xml3.substring(i3, j3 + 2), getContext);
+            if (parseStop) {
+              return;
+            }
+          }
+          j3 += 2;
+          continue;
+        }
+        for (x3 = i3 + 1; ; x3++) {
+          v4 = xml3.charCodeAt(x3);
+          if (isNaN(v4)) {
+            j3 = -1;
+            return handleError("unclosed tag");
+          }
+          if (v4 === 34) {
+            q3 = xml3.indexOf('"', x3 + 1);
+            x3 = q3 !== -1 ? q3 : x3;
+          } else if (v4 === 39) {
+            q3 = xml3.indexOf("'", x3 + 1);
+            x3 = q3 !== -1 ? q3 : x3;
+          } else if (v4 === 62) {
+            j3 = x3;
+            break;
+          }
+        }
+        if (w3 === 33) {
+          if (onAttention) {
+            onAttention(xml3.substring(i3, j3 + 1), decodeEntities, getContext);
+            if (parseStop) {
+              return;
+            }
+          }
+          j3 += 1;
+          continue;
+        }
+        cachedAttrs = {};
+        if (w3 === 47) {
+          tagStart = false;
+          tagEnd = true;
+          if (!nodeStack.length) {
+            return handleError("missing open tag");
+          }
+          x3 = elementName = nodeStack.pop();
+          q3 = i3 + 2 + x3.length;
+          if (xml3.substring(i3 + 2, q3) !== x3) {
+            return handleError("closing tag mismatch");
+          }
+          for (; q3 < j3; q3++) {
+            w3 = xml3.charCodeAt(q3);
+            if (w3 === 32 || w3 > 8 && w3 < 14) {
+              continue;
+            }
+            return handleError("close tag");
+          }
+        } else {
+          if (xml3.charCodeAt(j3 - 1) === 47) {
+            x3 = elementName = xml3.substring(i3 + 1, j3 - 1);
+            tagStart = true;
+            tagEnd = true;
+          } else {
+            x3 = elementName = xml3.substring(i3 + 1, j3);
+            tagStart = true;
+            tagEnd = false;
+          }
+          if (!(w3 > 96 && w3 < 123 || w3 > 64 && w3 < 91 || w3 === 95 || w3 === 58)) {
+            return handleError("illegal first char nodeName");
+          }
+          for (q3 = 1, y3 = x3.length; q3 < y3; q3++) {
+            w3 = x3.charCodeAt(q3);
+            if (w3 > 96 && w3 < 123 || w3 > 64 && w3 < 91 || w3 > 47 && w3 < 59 || w3 === 45 || w3 === 95 || w3 == 46) {
+              continue;
+            }
+            if (w3 === 32 || w3 < 14 && w3 > 8) {
+              elementName = x3.substring(0, q3);
+              cachedAttrs = null;
+              break;
+            }
+            return handleError("invalid nodeName");
+          }
+          if (!tagEnd) {
+            nodeStack.push(elementName);
+          }
+        }
+        if (isNamespace) {
+          _nsMatrix = nsMatrix;
+          if (tagStart) {
+            if (!tagEnd) {
+              nsMatrixStack.push(_nsMatrix);
+            }
+            if (cachedAttrs === null) {
+              if (maybeNS = x3.indexOf("xmlns", q3) !== -1) {
+                attrsStart = q3;
+                attrsString = x3;
+                getAttrs();
+                maybeNS = false;
+              }
+            }
+          }
+          _elementName = elementName;
+          w3 = elementName.indexOf(":");
+          if (w3 !== -1) {
+            xmlns = nsMatrix[elementName.substring(0, w3)];
+            if (!xmlns) {
+              return handleError("missing namespace on <" + _elementName + ">");
+            }
+            elementName = elementName.substr(w3 + 1);
+          } else {
+            xmlns = nsMatrix["xmlns"];
+          }
+          if (xmlns) {
+            elementName = xmlns + ":" + elementName;
+          }
+        }
+        if (tagStart) {
+          attrsStart = q3;
+          attrsString = x3;
+          if (onOpenTag) {
+            if (proxy) {
+              onOpenTag(elementProxy, decodeEntities, tagEnd, getContext);
+            } else {
+              onOpenTag(elementName, getAttrs, decodeEntities, tagEnd, getContext);
+            }
+            if (parseStop) {
+              return;
+            }
+          }
+        }
+        if (tagEnd) {
+          if (onCloseTag) {
+            onCloseTag(proxy ? elementProxy : elementName, decodeEntities, tagStart, getContext);
+            if (parseStop) {
+              return;
+            }
+          }
+          if (isNamespace) {
+            if (!tagStart) {
+              nsMatrix = nsMatrixStack.pop();
+            } else {
+              nsMatrix = _nsMatrix;
+            }
+          }
+        }
+        j3 += 1;
+      }
+    }
+  }
+
+  // node_modules/moddle-xml/dist/index.js
+  function hasLowerCaseAlias(pkg) {
+    return pkg.xml && pkg.xml.tagAlias === "lowerCase";
+  }
+  var DEFAULT_NS_MAP = {
+    "xsi": "http://www.w3.org/2001/XMLSchema-instance",
+    "xml": "http://www.w3.org/XML/1998/namespace"
+  };
+  var SERIALIZE_PROPERTY = "property";
+  function getSerialization(element) {
+    return element.xml && element.xml.serialize;
+  }
+  function getSerializationType(element) {
+    const type = getSerialization(element);
+    return type !== SERIALIZE_PROPERTY && (type || null);
+  }
+  function capitalize2(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+  function aliasToName(aliasNs, pkg) {
+    if (!hasLowerCaseAlias(pkg)) {
+      return aliasNs.name;
+    }
+    return aliasNs.prefix + ":" + capitalize2(aliasNs.localName);
+  }
+  function prefixedToName(nameNs, pkg) {
+    var name2 = nameNs.name, localName = nameNs.localName;
+    var typePrefix = pkg && pkg.xml && pkg.xml.typePrefix;
+    if (typePrefix && localName.indexOf(typePrefix) === 0) {
+      return nameNs.prefix + ":" + localName.slice(typePrefix.length);
+    } else {
+      return name2;
+    }
+  }
+  function normalizeTypeName(name2, nsMap, model) {
+    const nameNs = parseName(name2, nsMap.xmlns);
+    const normalizedName = `${nsMap[nameNs.prefix] || nameNs.prefix}:${nameNs.localName}`;
+    const normalizedNameNs = parseName(normalizedName);
+    var pkg = model.getPackage(normalizedNameNs.prefix);
+    return prefixedToName(normalizedNameNs, pkg);
+  }
+  function error2(message) {
+    return new Error(message);
+  }
+  function getModdleDescriptor(element) {
+    return element.$descriptor;
+  }
+  function Context(options) {
+    assign2(this, options);
+    this.elementsById = {};
+    this.references = [];
+    this.warnings = [];
+    this.addReference = function(reference) {
+      this.references.push(reference);
+    };
+    this.addElement = function(element) {
+      if (!element) {
+        throw error2("expected element");
+      }
+      var elementsById = this.elementsById;
+      var descriptor = getModdleDescriptor(element);
+      var idProperty = descriptor.idProperty, id;
+      if (idProperty) {
+        id = element.get(idProperty.name);
+        if (id) {
+          if (!/^([a-z][\w-.]*:)?[a-z_][\w-.]*$/i.test(id)) {
+            throw new Error("illegal ID <" + id + ">");
+          }
+          if (elementsById[id]) {
+            throw error2("duplicate ID <" + id + ">");
+          }
+          elementsById[id] = element;
+        }
+      }
+    };
+    this.addWarning = function(warning) {
+      this.warnings.push(warning);
+    };
+  }
+  function BaseHandler() {
+  }
+  BaseHandler.prototype.handleEnd = function() {
+  };
+  BaseHandler.prototype.handleText = function() {
+  };
+  BaseHandler.prototype.handleNode = function() {
+  };
+  function NoopHandler() {
+  }
+  NoopHandler.prototype = Object.create(BaseHandler.prototype);
+  NoopHandler.prototype.handleNode = function() {
+    return this;
+  };
+  function BodyHandler() {
+  }
+  BodyHandler.prototype = Object.create(BaseHandler.prototype);
+  BodyHandler.prototype.handleText = function(text4) {
+    this.body = (this.body || "") + text4;
+  };
+  function ReferenceHandler(property2, context) {
+    this.property = property2;
+    this.context = context;
+  }
+  ReferenceHandler.prototype = Object.create(BodyHandler.prototype);
+  ReferenceHandler.prototype.handleNode = function(node2) {
+    if (this.element) {
+      throw error2("expected no sub nodes");
+    } else {
+      this.element = this.createReference(node2);
+    }
+    return this;
+  };
+  ReferenceHandler.prototype.handleEnd = function() {
+    this.element.id = this.body;
+  };
+  ReferenceHandler.prototype.createReference = function(node2) {
+    return {
+      property: this.property.ns.name,
+      id: ""
+    };
+  };
+  function ValueHandler(propertyDesc, element) {
+    this.element = element;
+    this.propertyDesc = propertyDesc;
+  }
+  ValueHandler.prototype = Object.create(BodyHandler.prototype);
+  ValueHandler.prototype.handleEnd = function() {
+    var value = this.body || "", element = this.element, propertyDesc = this.propertyDesc;
+    value = coerceType(propertyDesc.type, value);
+    if (propertyDesc.isMany) {
+      element.get(propertyDesc.name).push(value);
+    } else {
+      element.set(propertyDesc.name, value);
+    }
+  };
+  function BaseElementHandler() {
+  }
+  BaseElementHandler.prototype = Object.create(BodyHandler.prototype);
+  BaseElementHandler.prototype.handleNode = function(node2) {
+    var parser = this, element = this.element;
+    if (!element) {
+      element = this.element = this.createElement(node2);
+      this.context.addElement(element);
+    } else {
+      parser = this.handleChild(node2);
+    }
+    return parser;
+  };
+  function ElementHandler(model, typeName, context) {
+    this.model = model;
+    this.type = model.getType(typeName);
+    this.context = context;
+  }
+  ElementHandler.prototype = Object.create(BaseElementHandler.prototype);
+  ElementHandler.prototype.addReference = function(reference) {
+    this.context.addReference(reference);
+  };
+  ElementHandler.prototype.handleText = function(text4) {
+    var element = this.element, descriptor = getModdleDescriptor(element), bodyProperty = descriptor.bodyProperty;
+    if (!bodyProperty) {
+      throw error2("unexpected body text <" + text4 + ">");
+    }
+    BodyHandler.prototype.handleText.call(this, text4);
+  };
+  ElementHandler.prototype.handleEnd = function() {
+    var value = this.body, element = this.element, descriptor = getModdleDescriptor(element), bodyProperty = descriptor.bodyProperty;
+    if (bodyProperty && value !== void 0) {
+      value = coerceType(bodyProperty.type, value);
+      element.set(bodyProperty.name, value);
+    }
+  };
+  ElementHandler.prototype.createElement = function(node2) {
+    var attributes = node2.attributes, Type = this.type, descriptor = getModdleDescriptor(Type), context = this.context, instance = new Type({}), model = this.model, propNameNs;
+    forEach(attributes, function(value, name2) {
+      var prop2 = descriptor.propertiesByName[name2], values;
+      if (prop2 && prop2.isReference) {
+        if (!prop2.isMany) {
+          context.addReference({
+            element: instance,
+            property: prop2.ns.name,
+            id: value
+          });
+        } else {
+          values = value.split(" ");
+          forEach(values, function(v4) {
+            context.addReference({
+              element: instance,
+              property: prop2.ns.name,
+              id: v4
+            });
+          });
+        }
+      } else {
+        if (prop2) {
+          value = coerceType(prop2.type, value);
+        } else if (name2 === "xmlns") {
+          name2 = ":" + name2;
+        } else {
+          propNameNs = parseName(name2, descriptor.ns.prefix);
+          if (model.getPackage(propNameNs.prefix)) {
+            context.addWarning({
+              message: "unknown attribute <" + name2 + ">",
+              element: instance,
+              property: name2,
+              value
+            });
+          }
+        }
+        instance.set(name2, value);
+      }
+    });
+    return instance;
+  };
+  ElementHandler.prototype.getPropertyForNode = function(node2) {
+    var name2 = node2.name;
+    var nameNs = parseName(name2);
+    var type = this.type, model = this.model, descriptor = getModdleDescriptor(type);
+    var propertyName = nameNs.name, property2 = descriptor.propertiesByName[propertyName];
+    if (property2 && !property2.isAttr) {
+      const serializationType = getSerializationType(property2);
+      if (serializationType) {
+        const elementTypeName = node2.attributes[serializationType];
+        if (elementTypeName) {
+          const normalizedTypeName = normalizeTypeName(elementTypeName, node2.ns, model);
+          const elementType = model.getType(normalizedTypeName);
+          return assign2({}, property2, {
+            effectiveType: getModdleDescriptor(elementType).name
+          });
+        }
+      }
+      return property2;
+    }
+    var pkg = model.getPackage(nameNs.prefix);
+    if (pkg) {
+      const elementTypeName = aliasToName(nameNs, pkg);
+      const elementType = model.getType(elementTypeName);
+      property2 = find2(descriptor.properties, function(p4) {
+        return !p4.isVirtual && !p4.isReference && !p4.isAttribute && elementType.hasType(p4.type);
+      });
+      if (property2) {
+        return assign2({}, property2, {
+          effectiveType: getModdleDescriptor(elementType).name
+        });
+      }
+    } else {
+      property2 = find2(descriptor.properties, function(p4) {
+        return !p4.isReference && !p4.isAttribute && p4.type === "Element";
+      });
+      if (property2) {
+        return property2;
+      }
+    }
+    throw error2("unrecognized element <" + nameNs.name + ">");
+  };
+  ElementHandler.prototype.toString = function() {
+    return "ElementDescriptor[" + getModdleDescriptor(this.type).name + "]";
+  };
+  ElementHandler.prototype.valueHandler = function(propertyDesc, element) {
+    return new ValueHandler(propertyDesc, element);
+  };
+  ElementHandler.prototype.referenceHandler = function(propertyDesc) {
+    return new ReferenceHandler(propertyDesc, this.context);
+  };
+  ElementHandler.prototype.handler = function(type) {
+    if (type === "Element") {
+      return new GenericElementHandler(this.model, type, this.context);
+    } else {
+      return new ElementHandler(this.model, type, this.context);
+    }
+  };
+  ElementHandler.prototype.handleChild = function(node2) {
+    var propertyDesc, type, element, childHandler;
+    propertyDesc = this.getPropertyForNode(node2);
+    element = this.element;
+    type = propertyDesc.effectiveType || propertyDesc.type;
+    if (isSimple(type)) {
+      return this.valueHandler(propertyDesc, element);
+    }
+    if (propertyDesc.isReference) {
+      childHandler = this.referenceHandler(propertyDesc).handleNode(node2);
+    } else {
+      childHandler = this.handler(type).handleNode(node2);
+    }
+    var newElement = childHandler.element;
+    if (newElement !== void 0) {
+      if (propertyDesc.isMany) {
+        element.get(propertyDesc.name).push(newElement);
+      } else {
+        element.set(propertyDesc.name, newElement);
+      }
+      if (propertyDesc.isReference) {
+        assign2(newElement, {
+          element
+        });
+        this.context.addReference(newElement);
+      } else {
+        newElement.$parent = element;
+      }
+    }
+    return childHandler;
+  };
+  function RootElementHandler(model, typeName, context) {
+    ElementHandler.call(this, model, typeName, context);
+  }
+  RootElementHandler.prototype = Object.create(ElementHandler.prototype);
+  RootElementHandler.prototype.createElement = function(node2) {
+    var name2 = node2.name, nameNs = parseName(name2), model = this.model, type = this.type, pkg = model.getPackage(nameNs.prefix), typeName = pkg && aliasToName(nameNs, pkg) || name2;
+    if (!type.hasType(typeName)) {
+      throw error2("unexpected element <" + node2.originalName + ">");
+    }
+    return ElementHandler.prototype.createElement.call(this, node2);
+  };
+  function GenericElementHandler(model, typeName, context) {
+    this.model = model;
+    this.context = context;
+  }
+  GenericElementHandler.prototype = Object.create(BaseElementHandler.prototype);
+  GenericElementHandler.prototype.createElement = function(node2) {
+    var name2 = node2.name, ns2 = parseName(name2), prefix2 = ns2.prefix, uri2 = node2.ns[prefix2 + "$uri"], attributes = node2.attributes;
+    return this.model.createAny(name2, uri2, attributes);
+  };
+  GenericElementHandler.prototype.handleChild = function(node2) {
+    var handler = new GenericElementHandler(this.model, "Element", this.context).handleNode(node2), element = this.element;
+    var newElement = handler.element, children2;
+    if (newElement !== void 0) {
+      children2 = element.$children = element.$children || [];
+      children2.push(newElement);
+      newElement.$parent = element;
+    }
+    return handler;
+  };
+  GenericElementHandler.prototype.handleEnd = function() {
+    if (this.body) {
+      this.element.$body = this.body;
+    }
+  };
+  function Reader(options) {
+    if (options instanceof Moddle) {
+      options = {
+        model: options
+      };
+    }
+    assign2(this, { lax: false }, options);
+  }
+  Reader.prototype.fromXML = function(xml3, options, done) {
+    var rootHandler = options.rootHandler;
+    if (options instanceof ElementHandler) {
+      rootHandler = options;
+      options = {};
+    } else {
+      if (typeof options === "string") {
+        rootHandler = this.handler(options);
+        options = {};
+      } else if (typeof rootHandler === "string") {
+        rootHandler = this.handler(rootHandler);
+      }
+    }
+    var model = this.model, lax = this.lax;
+    var context = new Context(assign2({}, options, { rootHandler })), parser = new Parser2({ proxy: true }), stack = createStack();
+    rootHandler.context = context;
+    stack.push(rootHandler);
+    function handleError(err2, getContext, lax2) {
+      var ctx = getContext();
+      var line2 = ctx.line, column = ctx.column, data2 = ctx.data;
+      if (data2.charAt(0) === "<" && data2.indexOf(" ") !== -1) {
+        data2 = data2.slice(0, data2.indexOf(" ")) + ">";
+      }
+      var message = "unparsable content " + (data2 ? data2 + " " : "") + "detected\n	line: " + line2 + "\n	column: " + column + "\n	nested error: " + err2.message;
+      if (lax2) {
+        context.addWarning({
+          message,
+          error: err2
+        });
+        return true;
+      } else {
+        throw error2(message);
+      }
+    }
+    function handleWarning(err2, getContext) {
+      return handleError(err2, getContext, true);
+    }
+    function resolveReferences() {
+      var elementsById = context.elementsById;
+      var references = context.references;
+      var i3, r2;
+      for (i3 = 0; r2 = references[i3]; i3++) {
+        var element = r2.element;
+        var reference = elementsById[r2.id];
+        var property2 = getModdleDescriptor(element).propertiesByName[r2.property];
+        if (!reference) {
+          context.addWarning({
+            message: "unresolved reference <" + r2.id + ">",
+            element: r2.element,
+            property: r2.property,
+            value: r2.id
+          });
+        }
+        if (property2.isMany) {
+          var collection = element.get(property2.name), idx = collection.indexOf(r2);
+          if (idx === -1) {
+            idx = collection.length;
+          }
+          if (!reference) {
+            collection.splice(idx, 1);
+          } else {
+            collection[idx] = reference;
+          }
+        } else {
+          element.set(property2.name, reference);
+        }
+      }
+    }
+    function handleClose() {
+      stack.pop().handleEnd();
+    }
+    var PREAMBLE_START_PATTERN = /^<\?xml /i;
+    var ENCODING_PATTERN = / encoding="([^"]+)"/i;
+    var UTF_8_PATTERN = /^utf-8$/i;
+    function handleQuestion(question) {
+      if (!PREAMBLE_START_PATTERN.test(question)) {
+        return;
+      }
+      var match = ENCODING_PATTERN.exec(question);
+      var encoding = match && match[1];
+      if (!encoding || UTF_8_PATTERN.test(encoding)) {
+        return;
+      }
+      context.addWarning({
+        message: "unsupported document encoding <" + encoding + ">, falling back to UTF-8"
+      });
+    }
+    function handleOpen(node2, getContext) {
+      var handler = stack.peek();
+      try {
+        stack.push(handler.handleNode(node2));
+      } catch (err2) {
+        if (handleError(err2, getContext, lax)) {
+          stack.push(new NoopHandler());
+        }
+      }
+    }
+    function handleCData(text4, getContext) {
+      try {
+        stack.peek().handleText(text4);
+      } catch (err2) {
+        handleWarning(err2, getContext);
+      }
+    }
+    function handleText(text4, getContext) {
+      if (!text4.trim()) {
+        return;
+      }
+      handleCData(text4, getContext);
+    }
+    var uriMap = model.getPackages().reduce(function(uriMap2, p4) {
+      uriMap2[p4.uri] = p4.prefix;
+      return uriMap2;
+    }, Object.entries(DEFAULT_NS_MAP).reduce(function(map, [prefix2, url]) {
+      map[url] = prefix2;
+      return map;
+    }, model.config && model.config.nsMap || {}));
+    parser.ns(uriMap).on("openTag", function(obj, decodeStr, selfClosing, getContext) {
+      var attrs = obj.attrs || {};
+      var decodedAttrs = Object.keys(attrs).reduce(function(d2, key) {
+        var value = decodeStr(attrs[key]);
+        d2[key] = value;
+        return d2;
+      }, {});
+      var node2 = {
+        name: obj.name,
+        originalName: obj.originalName,
+        attributes: decodedAttrs,
+        ns: obj.ns
+      };
+      handleOpen(node2, getContext);
+    }).on("question", handleQuestion).on("closeTag", handleClose).on("cdata", handleCData).on("text", function(text4, decodeEntities2, getContext) {
+      handleText(decodeEntities2(text4), getContext);
+    }).on("error", handleError).on("warn", handleWarning);
+    return new Promise(function(resolve3, reject) {
+      var err2;
+      try {
+        parser.parse(xml3);
+        resolveReferences();
+      } catch (e2) {
+        err2 = e2;
+      }
+      var rootElement = rootHandler.element;
+      if (!err2 && !rootElement) {
+        err2 = error2("failed to parse document as <" + rootHandler.type.$descriptor.name + ">");
+      }
+      var warnings = context.warnings;
+      var references = context.references;
+      var elementsById = context.elementsById;
+      if (err2) {
+        err2.warnings = warnings;
+        return reject(err2);
+      } else {
+        return resolve3({
+          rootElement,
+          elementsById,
+          references,
+          warnings
+        });
+      }
+    });
+  };
+  Reader.prototype.handler = function(name2) {
+    return new RootElementHandler(this.model, name2);
+  };
+  function createStack() {
+    var stack = [];
+    Object.defineProperty(stack, "peek", {
+      value: function() {
+        return this[this.length - 1];
+      }
+    });
+    return stack;
+  }
+  var XML_PREAMBLE = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  var ESCAPE_ATTR_CHARS = /<|>|'|"|&|\n\r|\n/g;
+  var ESCAPE_CHARS = /<|>|&/g;
+  function Namespaces(parent) {
+    this.prefixMap = {};
+    this.uriMap = {};
+    this.used = {};
+    this.wellknown = [];
+    this.custom = [];
+    this.parent = parent;
+    this.defaultPrefixMap = parent && parent.defaultPrefixMap || {};
+  }
+  Namespaces.prototype.mapDefaultPrefixes = function(defaultPrefixMap) {
+    this.defaultPrefixMap = defaultPrefixMap;
+  };
+  Namespaces.prototype.defaultUriByPrefix = function(prefix2) {
+    return this.defaultPrefixMap[prefix2];
+  };
+  Namespaces.prototype.byUri = function(uri2) {
+    return this.uriMap[uri2] || this.parent && this.parent.byUri(uri2);
+  };
+  Namespaces.prototype.add = function(ns2, isWellknown) {
+    this.uriMap[ns2.uri] = ns2;
+    if (isWellknown) {
+      this.wellknown.push(ns2);
+    } else {
+      this.custom.push(ns2);
+    }
+    this.mapPrefix(ns2.prefix, ns2.uri);
+  };
+  Namespaces.prototype.uriByPrefix = function(prefix2) {
+    return this.prefixMap[prefix2 || "xmlns"] || this.parent && this.parent.uriByPrefix(prefix2);
+  };
+  Namespaces.prototype.mapPrefix = function(prefix2, uri2) {
+    this.prefixMap[prefix2 || "xmlns"] = uri2;
+  };
+  Namespaces.prototype.getNSKey = function(ns2) {
+    return ns2.prefix !== void 0 ? ns2.uri + "|" + ns2.prefix : ns2.uri;
+  };
+  Namespaces.prototype.logUsed = function(ns2) {
+    var uri2 = ns2.uri;
+    var nsKey = this.getNSKey(ns2);
+    this.used[nsKey] = this.byUri(uri2);
+    if (this.parent) {
+      this.parent.logUsed(ns2);
+    }
+  };
+  Namespaces.prototype.getUsed = function(ns2) {
+    var allNs = [].concat(this.wellknown, this.custom);
+    return allNs.filter((ns3) => {
+      var nsKey = this.getNSKey(ns3);
+      return this.used[nsKey];
+    });
+  };
+  function lower(string) {
+    return string.charAt(0).toLowerCase() + string.slice(1);
+  }
+  function nameToAlias(name2, pkg) {
+    if (hasLowerCaseAlias(pkg)) {
+      return lower(name2);
+    } else {
+      return name2;
+    }
+  }
+  function inherits(ctor, superCtor) {
+    ctor.super_ = superCtor;
+    ctor.prototype = Object.create(superCtor.prototype, {
+      constructor: {
+        value: ctor,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+  }
+  function nsName(ns2) {
+    if (isString(ns2)) {
+      return ns2;
+    } else {
+      return (ns2.prefix ? ns2.prefix + ":" : "") + ns2.localName;
+    }
+  }
+  function getNsAttrs(namespaces) {
+    return namespaces.getUsed().filter(function(ns2) {
+      return ns2.prefix !== "xml";
+    }).map(function(ns2) {
+      var name2 = "xmlns" + (ns2.prefix ? ":" + ns2.prefix : "");
+      return { name: name2, value: ns2.uri };
+    });
+  }
+  function getElementNs(ns2, descriptor) {
+    if (descriptor.isGeneric) {
+      return assign2({ localName: descriptor.ns.localName }, ns2);
+    } else {
+      return assign2({ localName: nameToAlias(descriptor.ns.localName, descriptor.$pkg) }, ns2);
+    }
+  }
+  function getPropertyNs(ns2, descriptor) {
+    return assign2({ localName: descriptor.ns.localName }, ns2);
+  }
+  function getSerializableProperties(element) {
+    var descriptor = element.$descriptor;
+    return filter2(descriptor.properties, function(p4) {
+      var name2 = p4.name;
+      if (p4.isVirtual) {
+        return false;
+      }
+      if (!has2(element, name2)) {
+        return false;
+      }
+      var value = element[name2];
+      if (value === p4.default) {
+        return false;
+      }
+      if (value === null) {
+        return false;
+      }
+      return p4.isMany ? value.length : true;
+    });
+  }
+  var ESCAPE_ATTR_MAP = {
+    "\n": "#10",
+    "\n\r": "#10",
+    '"': "#34",
+    "'": "#39",
+    "<": "#60",
+    ">": "#62",
+    "&": "#38"
+  };
+  var ESCAPE_MAP = {
+    "<": "lt",
+    ">": "gt",
+    "&": "amp"
+  };
+  function escape(str, charPattern, replaceMap) {
+    str = isString(str) ? str : "" + str;
+    return str.replace(charPattern, function(s3) {
+      return "&" + replaceMap[s3] + ";";
+    });
+  }
+  function escapeAttr(str) {
+    return escape(str, ESCAPE_ATTR_CHARS, ESCAPE_ATTR_MAP);
+  }
+  function escapeBody(str) {
+    return escape(str, ESCAPE_CHARS, ESCAPE_MAP);
+  }
+  function filterAttributes(props) {
+    return filter2(props, function(p4) {
+      return p4.isAttr;
+    });
+  }
+  function filterContained(props) {
+    return filter2(props, function(p4) {
+      return !p4.isAttr;
+    });
+  }
+  function ReferenceSerializer(tagName2) {
+    this.tagName = tagName2;
+  }
+  ReferenceSerializer.prototype.build = function(element) {
+    this.element = element;
+    return this;
+  };
+  ReferenceSerializer.prototype.serializeTo = function(writer) {
+    writer.appendIndent().append("<" + this.tagName + ">" + this.element.id + "</" + this.tagName + ">").appendNewLine();
+  };
+  function BodySerializer() {
+  }
+  BodySerializer.prototype.serializeValue = BodySerializer.prototype.serializeTo = function(writer) {
+    writer.append(
+      this.escape ? escapeBody(this.value) : this.value
+    );
+  };
+  BodySerializer.prototype.build = function(prop2, value) {
+    this.value = value;
+    if (prop2.type === "String" && value.search(ESCAPE_CHARS) !== -1) {
+      this.escape = true;
+    }
+    return this;
+  };
+  function ValueSerializer(tagName2) {
+    this.tagName = tagName2;
+  }
+  inherits(ValueSerializer, BodySerializer);
+  ValueSerializer.prototype.serializeTo = function(writer) {
+    writer.appendIndent().append("<" + this.tagName + ">");
+    this.serializeValue(writer);
+    writer.append("</" + this.tagName + ">").appendNewLine();
+  };
+  function ElementSerializer(parent, propertyDescriptor) {
+    this.body = [];
+    this.attrs = [];
+    this.parent = parent;
+    this.propertyDescriptor = propertyDescriptor;
+  }
+  ElementSerializer.prototype.build = function(element) {
+    this.element = element;
+    var elementDescriptor = element.$descriptor, propertyDescriptor = this.propertyDescriptor;
+    var otherAttrs, properties;
+    var isGeneric = elementDescriptor.isGeneric;
+    if (isGeneric) {
+      otherAttrs = this.parseGenericNsAttributes(element);
+    } else {
+      otherAttrs = this.parseNsAttributes(element);
+    }
+    if (propertyDescriptor) {
+      this.ns = this.nsPropertyTagName(propertyDescriptor);
+    } else {
+      this.ns = this.nsTagName(elementDescriptor);
+    }
+    this.tagName = this.addTagName(this.ns);
+    if (isGeneric) {
+      this.parseGenericContainments(element);
+    } else {
+      properties = getSerializableProperties(element);
+      this.parseAttributes(filterAttributes(properties));
+      this.parseContainments(filterContained(properties));
+    }
+    this.parseGenericAttributes(element, otherAttrs);
+    return this;
+  };
+  ElementSerializer.prototype.nsTagName = function(descriptor) {
+    var effectiveNs = this.logNamespaceUsed(descriptor.ns);
+    return getElementNs(effectiveNs, descriptor);
+  };
+  ElementSerializer.prototype.nsPropertyTagName = function(descriptor) {
+    var effectiveNs = this.logNamespaceUsed(descriptor.ns);
+    return getPropertyNs(effectiveNs, descriptor);
+  };
+  ElementSerializer.prototype.isLocalNs = function(ns2) {
+    return ns2.uri === this.ns.uri;
+  };
+  ElementSerializer.prototype.nsAttributeName = function(element) {
+    var ns2;
+    if (isString(element)) {
+      ns2 = parseName(element);
+    } else {
+      ns2 = element.ns;
+    }
+    if (element.inherited) {
+      return { localName: ns2.localName };
+    }
+    var effectiveNs = this.logNamespaceUsed(ns2);
+    this.getNamespaces().logUsed(effectiveNs);
+    if (this.isLocalNs(effectiveNs)) {
+      return { localName: ns2.localName };
+    } else {
+      return assign2({ localName: ns2.localName }, effectiveNs);
+    }
+  };
+  ElementSerializer.prototype.parseGenericNsAttributes = function(element) {
+    return Object.entries(element).filter(
+      ([key, value]) => !key.startsWith("$") && this.parseNsAttribute(element, key, value)
+    ).map(
+      ([key, value]) => ({ name: key, value })
+    );
+  };
+  ElementSerializer.prototype.parseGenericContainments = function(element) {
+    var body = element.$body;
+    if (body) {
+      this.body.push(new BodySerializer().build({ type: "String" }, body));
+    }
+    var children2 = element.$children;
+    if (children2) {
+      forEach(children2, (child) => {
+        this.body.push(new ElementSerializer(this).build(child));
+      });
+    }
+  };
+  ElementSerializer.prototype.parseNsAttribute = function(element, name2, value) {
+    var model = element.$model;
+    var nameNs = parseName(name2);
+    var ns2;
+    if (nameNs.prefix === "xmlns") {
+      ns2 = { prefix: nameNs.localName, uri: value };
+    }
+    if (!nameNs.prefix && nameNs.localName === "xmlns") {
+      ns2 = { uri: value };
+    }
+    if (!ns2) {
+      return {
+        name: name2,
+        value
+      };
+    }
+    if (model && model.getPackage(value)) {
+      this.logNamespace(ns2, true, true);
+    } else {
+      var actualNs = this.logNamespaceUsed(ns2, true);
+      this.getNamespaces().logUsed(actualNs);
+    }
+  };
+  ElementSerializer.prototype.parseNsAttributes = function(element) {
+    var self2 = this;
+    var genericAttrs = element.$attrs;
+    var attributes = [];
+    forEach(genericAttrs, function(value, name2) {
+      var nonNsAttr = self2.parseNsAttribute(element, name2, value);
+      if (nonNsAttr) {
+        attributes.push(nonNsAttr);
+      }
+    });
+    return attributes;
+  };
+  ElementSerializer.prototype.parseGenericAttributes = function(element, attributes) {
+    var self2 = this;
+    forEach(attributes, function(attr2) {
+      try {
+        self2.addAttribute(self2.nsAttributeName(attr2.name), attr2.value);
+      } catch (e2) {
+        typeof console !== "undefined" && console.warn(
+          `missing namespace information for <${attr2.name}=${attr2.value}> on`,
+          element,
+          e2
+        );
+      }
+    });
+  };
+  ElementSerializer.prototype.parseContainments = function(properties) {
+    var self2 = this, body = this.body, element = this.element;
+    forEach(properties, function(p4) {
+      var value = element.get(p4.name), isReference = p4.isReference, isMany = p4.isMany;
+      if (!isMany) {
+        value = [value];
+      }
+      if (p4.isBody) {
+        body.push(new BodySerializer().build(p4, value[0]));
+      } else if (isSimple(p4.type)) {
+        forEach(value, function(v4) {
+          body.push(new ValueSerializer(self2.addTagName(self2.nsPropertyTagName(p4))).build(p4, v4));
+        });
+      } else if (isReference) {
+        forEach(value, function(v4) {
+          body.push(new ReferenceSerializer(self2.addTagName(self2.nsPropertyTagName(p4))).build(v4));
+        });
+      } else {
+        var serialization = getSerialization(p4);
+        forEach(value, function(v4) {
+          var serializer;
+          if (serialization) {
+            if (serialization === SERIALIZE_PROPERTY) {
+              serializer = new ElementSerializer(self2, p4);
+            } else {
+              serializer = new TypeSerializer(self2, p4, serialization);
+            }
+          } else {
+            serializer = new ElementSerializer(self2);
+          }
+          body.push(serializer.build(v4));
+        });
+      }
+    });
+  };
+  ElementSerializer.prototype.getNamespaces = function(local) {
+    var namespaces = this.namespaces, parent = this.parent, parentNamespaces;
+    if (!namespaces) {
+      parentNamespaces = parent && parent.getNamespaces();
+      if (local || !parentNamespaces) {
+        this.namespaces = namespaces = new Namespaces(parentNamespaces);
+      } else {
+        namespaces = parentNamespaces;
+      }
+    }
+    return namespaces;
+  };
+  ElementSerializer.prototype.logNamespace = function(ns2, wellknown, local) {
+    var namespaces = this.getNamespaces(local);
+    var nsUri = ns2.uri, nsPrefix = ns2.prefix;
+    var existing = namespaces.byUri(nsUri);
+    if (!existing || local) {
+      namespaces.add(ns2, wellknown);
+    }
+    namespaces.mapPrefix(nsPrefix, nsUri);
+    return ns2;
+  };
+  ElementSerializer.prototype.logNamespaceUsed = function(ns2, local) {
+    var namespaces = this.getNamespaces(local);
+    var prefix2 = ns2.prefix, uri2 = ns2.uri, newPrefix, idx, wellknownUri;
+    if (!prefix2 && !uri2) {
+      return { localName: ns2.localName };
+    }
+    wellknownUri = namespaces.defaultUriByPrefix(prefix2);
+    uri2 = uri2 || wellknownUri || namespaces.uriByPrefix(prefix2);
+    if (!uri2) {
+      throw new Error("no namespace uri given for prefix <" + prefix2 + ">");
+    }
+    ns2 = namespaces.byUri(uri2);
+    if (!ns2 && !prefix2) {
+      ns2 = this.logNamespace({ uri: uri2 }, wellknownUri === uri2, true);
+    }
+    if (!ns2) {
+      newPrefix = prefix2;
+      idx = 1;
+      while (namespaces.uriByPrefix(newPrefix)) {
+        newPrefix = prefix2 + "_" + idx++;
+      }
+      ns2 = this.logNamespace({ prefix: newPrefix, uri: uri2 }, wellknownUri === uri2);
+    }
+    if (prefix2) {
+      namespaces.mapPrefix(prefix2, uri2);
+    }
+    return ns2;
+  };
+  ElementSerializer.prototype.parseAttributes = function(properties) {
+    var self2 = this, element = this.element;
+    forEach(properties, function(p4) {
+      var value = element.get(p4.name);
+      if (p4.isReference) {
+        if (!p4.isMany) {
+          value = value.id;
+        } else {
+          var values = [];
+          forEach(value, function(v4) {
+            values.push(v4.id);
+          });
+          value = values.join(" ");
+        }
+      }
+      self2.addAttribute(self2.nsAttributeName(p4), value);
+    });
+  };
+  ElementSerializer.prototype.addTagName = function(nsTagName) {
+    var actualNs = this.logNamespaceUsed(nsTagName);
+    this.getNamespaces().logUsed(actualNs);
+    return nsName(nsTagName);
+  };
+  ElementSerializer.prototype.addAttribute = function(name2, value) {
+    var attrs = this.attrs;
+    if (isString(value)) {
+      value = escapeAttr(value);
+    }
+    var idx = findIndex(attrs, function(element) {
+      return element.name.localName === name2.localName && element.name.uri === name2.uri && element.name.prefix === name2.prefix;
+    });
+    var attr2 = { name: name2, value };
+    if (idx !== -1) {
+      attrs.splice(idx, 1, attr2);
+    } else {
+      attrs.push(attr2);
+    }
+  };
+  ElementSerializer.prototype.serializeAttributes = function(writer) {
+    var attrs = this.attrs, namespaces = this.namespaces;
+    if (namespaces) {
+      attrs = getNsAttrs(namespaces).concat(attrs);
+    }
+    forEach(attrs, function(a3) {
+      writer.append(" ").append(nsName(a3.name)).append('="').append(a3.value).append('"');
+    });
+  };
+  ElementSerializer.prototype.serializeTo = function(writer) {
+    var firstBody = this.body[0], indent = firstBody && firstBody.constructor !== BodySerializer;
+    writer.appendIndent().append("<" + this.tagName);
+    this.serializeAttributes(writer);
+    writer.append(firstBody ? ">" : " />");
+    if (firstBody) {
+      if (indent) {
+        writer.appendNewLine().indent();
+      }
+      forEach(this.body, function(b2) {
+        b2.serializeTo(writer);
+      });
+      if (indent) {
+        writer.unindent().appendIndent();
+      }
+      writer.append("</" + this.tagName + ">");
+    }
+    writer.appendNewLine();
+  };
+  function TypeSerializer(parent, propertyDescriptor, serialization) {
+    ElementSerializer.call(this, parent, propertyDescriptor);
+    this.serialization = serialization;
+  }
+  inherits(TypeSerializer, ElementSerializer);
+  TypeSerializer.prototype.parseNsAttributes = function(element) {
+    var attributes = ElementSerializer.prototype.parseNsAttributes.call(this, element).filter(
+      (attr2) => attr2.name !== this.serialization
+    );
+    var descriptor = element.$descriptor;
+    if (descriptor.name === this.propertyDescriptor.type) {
+      return attributes;
+    }
+    var typeNs = this.typeNs = this.nsTagName(descriptor);
+    this.getNamespaces().logUsed(this.typeNs);
+    var pkg = element.$model.getPackage(typeNs.uri), typePrefix = pkg.xml && pkg.xml.typePrefix || "";
+    this.addAttribute(
+      this.nsAttributeName(this.serialization),
+      (typeNs.prefix ? typeNs.prefix + ":" : "") + typePrefix + descriptor.ns.localName
+    );
+    return attributes;
+  };
+  TypeSerializer.prototype.isLocalNs = function(ns2) {
+    return ns2.uri === (this.typeNs || this.ns).uri;
+  };
+  function SavingWriter() {
+    this.value = "";
+    this.write = function(str) {
+      this.value += str;
+    };
+  }
+  function FormatingWriter(out, format) {
+    var indent = [""];
+    this.append = function(str) {
+      out.write(str);
+      return this;
+    };
+    this.appendNewLine = function() {
+      if (format) {
+        out.write("\n");
+      }
+      return this;
+    };
+    this.appendIndent = function() {
+      if (format) {
+        out.write(indent.join("  "));
+      }
+      return this;
+    };
+    this.indent = function() {
+      indent.push("");
+      return this;
+    };
+    this.unindent = function() {
+      indent.pop();
+      return this;
+    };
+  }
+  function Writer(options) {
+    options = assign2({ format: false, preamble: true }, options || {});
+    function toXML(tree, writer) {
+      var internalWriter = writer || new SavingWriter();
+      var formatingWriter = new FormatingWriter(internalWriter, options.format);
+      if (options.preamble) {
+        formatingWriter.append(XML_PREAMBLE);
+      }
+      var serializer = new ElementSerializer();
+      var model = tree.$model;
+      serializer.getNamespaces().mapDefaultPrefixes(getDefaultPrefixMappings(model));
+      serializer.build(tree).serializeTo(formatingWriter);
+      if (!writer) {
+        return internalWriter.value;
+      }
+    }
+    return {
+      toXML
+    };
+  }
+  function getDefaultPrefixMappings(model) {
+    const nsMap = model.config && model.config.nsMap || {};
+    const prefixMap = {};
+    for (const prefix2 in DEFAULT_NS_MAP) {
+      prefixMap[prefix2] = DEFAULT_NS_MAP[prefix2];
+    }
+    for (const uri2 in nsMap) {
+      const prefix2 = nsMap[uri2];
+      prefixMap[prefix2] = uri2;
+    }
+    for (const pkg of model.getPackages()) {
+      prefixMap[pkg.prefix] = pkg.uri;
+    }
+    return prefixMap;
+  }
+
+  // node_modules/bpmn-moddle/dist/index.js
+  function BpmnModdle(packages2, options) {
+    Moddle.call(this, packages2, options);
+  }
+  BpmnModdle.prototype = Object.create(Moddle.prototype);
+  BpmnModdle.prototype.fromXML = function(xmlStr, typeName, options) {
+    if (!isString(typeName)) {
+      options = typeName;
+      typeName = "bpmn:Definitions";
+    }
+    var reader = new Reader(assign2({ model: this, lax: true }, options));
+    var rootHandler = reader.handler(typeName);
+    return reader.fromXML(xmlStr, rootHandler);
+  };
+  BpmnModdle.prototype.toXML = function(element, options) {
+    var writer = new Writer(options);
+    return new Promise(function(resolve3, reject) {
+      try {
+        var result = writer.toXML(element);
+        return resolve3({
+          xml: result
+        });
+      } catch (err2) {
+        return reject(err2);
+      }
+    });
+  };
+  var name$5 = "BPMN20";
+  var uri$5 = "http://www.omg.org/spec/BPMN/20100524/MODEL";
+  var prefix$5 = "bpmn";
+  var associations$5 = [];
+  var types$5 = [
+    {
+      name: "Interface",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "operations",
+          type: "Operation",
+          isMany: true
+        },
+        {
+          name: "implementationRef",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "Operation",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "inMessageRef",
+          type: "Message",
+          isReference: true
+        },
+        {
+          name: "outMessageRef",
+          type: "Message",
+          isReference: true
+        },
+        {
+          name: "errorRef",
+          type: "Error",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "implementationRef",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "EndPoint",
+      superClass: [
+        "RootElement"
+      ]
+    },
+    {
+      name: "Auditing",
+      superClass: [
+        "BaseElement"
+      ]
+    },
+    {
+      name: "GlobalTask",
+      superClass: [
+        "CallableElement"
+      ],
+      properties: [
+        {
+          name: "resources",
+          type: "ResourceRole",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "Monitoring",
+      superClass: [
+        "BaseElement"
+      ]
+    },
+    {
+      name: "Performer",
+      superClass: [
+        "ResourceRole"
+      ]
+    },
+    {
+      name: "Process",
+      superClass: [
+        "FlowElementsContainer",
+        "CallableElement"
+      ],
+      properties: [
+        {
+          name: "processType",
+          type: "ProcessType",
+          isAttr: true
+        },
+        {
+          name: "isClosed",
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "auditing",
+          type: "Auditing"
+        },
+        {
+          name: "monitoring",
+          type: "Monitoring"
+        },
+        {
+          name: "properties",
+          type: "Property",
+          isMany: true
+        },
+        {
+          name: "laneSets",
+          isMany: true,
+          replaces: "FlowElementsContainer#laneSets",
+          type: "LaneSet"
+        },
+        {
+          name: "flowElements",
+          isMany: true,
+          replaces: "FlowElementsContainer#flowElements",
+          type: "FlowElement"
+        },
+        {
+          name: "artifacts",
+          type: "Artifact",
+          isMany: true
+        },
+        {
+          name: "resources",
+          type: "ResourceRole",
+          isMany: true
+        },
+        {
+          name: "correlationSubscriptions",
+          type: "CorrelationSubscription",
+          isMany: true
+        },
+        {
+          name: "supports",
+          type: "Process",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "definitionalCollaborationRef",
+          type: "Collaboration",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "isExecutable",
+          isAttr: true,
+          type: "Boolean"
+        }
+      ]
+    },
+    {
+      name: "LaneSet",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "lanes",
+          type: "Lane",
+          isMany: true
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "Lane",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "partitionElementRef",
+          type: "BaseElement",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "partitionElement",
+          type: "BaseElement"
+        },
+        {
+          name: "flowNodeRef",
+          type: "FlowNode",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "childLaneSet",
+          type: "LaneSet",
+          xml: {
+            serialize: "xsi:type"
+          }
+        }
+      ]
+    },
+    {
+      name: "GlobalManualTask",
+      superClass: [
+        "GlobalTask"
+      ]
+    },
+    {
+      name: "ManualTask",
+      superClass: [
+        "Task"
+      ]
+    },
+    {
+      name: "UserTask",
+      superClass: [
+        "Task"
+      ],
+      properties: [
+        {
+          name: "renderings",
+          type: "Rendering",
+          isMany: true
+        },
+        {
+          name: "implementation",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "Rendering",
+      superClass: [
+        "BaseElement"
+      ]
+    },
+    {
+      name: "HumanPerformer",
+      superClass: [
+        "Performer"
+      ]
+    },
+    {
+      name: "PotentialOwner",
+      superClass: [
+        "HumanPerformer"
+      ]
+    },
+    {
+      name: "GlobalUserTask",
+      superClass: [
+        "GlobalTask"
+      ],
+      properties: [
+        {
+          name: "implementation",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "renderings",
+          type: "Rendering",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "Gateway",
+      isAbstract: true,
+      superClass: [
+        "FlowNode"
+      ],
+      properties: [
+        {
+          name: "gatewayDirection",
+          type: "GatewayDirection",
+          "default": "Unspecified",
+          isAttr: true
+        }
+      ]
+    },
+    {
+      name: "EventBasedGateway",
+      superClass: [
+        "Gateway"
+      ],
+      properties: [
+        {
+          name: "instantiate",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "eventGatewayType",
+          type: "EventBasedGatewayType",
+          isAttr: true,
+          "default": "Exclusive"
+        }
+      ]
+    },
+    {
+      name: "ComplexGateway",
+      superClass: [
+        "Gateway"
+      ],
+      properties: [
+        {
+          name: "activationCondition",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        },
+        {
+          name: "default",
+          type: "SequenceFlow",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ExclusiveGateway",
+      superClass: [
+        "Gateway"
+      ],
+      properties: [
+        {
+          name: "default",
+          type: "SequenceFlow",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "InclusiveGateway",
+      superClass: [
+        "Gateway"
+      ],
+      properties: [
+        {
+          name: "default",
+          type: "SequenceFlow",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ParallelGateway",
+      superClass: [
+        "Gateway"
+      ]
+    },
+    {
+      name: "RootElement",
+      isAbstract: true,
+      superClass: [
+        "BaseElement"
+      ]
+    },
+    {
+      name: "Relationship",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "type",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "direction",
+          type: "RelationshipDirection",
+          isAttr: true
+        },
+        {
+          name: "source",
+          isMany: true,
+          isReference: true,
+          type: "Element"
+        },
+        {
+          name: "target",
+          isMany: true,
+          isReference: true,
+          type: "Element"
+        }
+      ]
+    },
+    {
+      name: "BaseElement",
+      isAbstract: true,
+      properties: [
+        {
+          name: "id",
+          isAttr: true,
+          type: "String",
+          isId: true
+        },
+        {
+          name: "documentation",
+          type: "Documentation",
+          isMany: true
+        },
+        {
+          name: "extensionDefinitions",
+          type: "ExtensionDefinition",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "extensionElements",
+          type: "ExtensionElements"
+        }
+      ]
+    },
+    {
+      name: "Extension",
+      properties: [
+        {
+          name: "mustUnderstand",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "definition",
+          type: "ExtensionDefinition",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ExtensionDefinition",
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "extensionAttributeDefinitions",
+          type: "ExtensionAttributeDefinition",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "ExtensionAttributeDefinition",
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "type",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "isReference",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "extensionDefinition",
+          type: "ExtensionDefinition",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ExtensionElements",
+      properties: [
+        {
+          name: "valueRef",
+          isAttr: true,
+          isReference: true,
+          type: "Element"
+        },
+        {
+          name: "values",
+          type: "Element",
+          isMany: true
+        },
+        {
+          name: "extensionAttributeDefinition",
+          type: "ExtensionAttributeDefinition",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Documentation",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "text",
+          type: "String",
+          isBody: true
+        },
+        {
+          name: "textFormat",
+          "default": "text/plain",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "Event",
+      isAbstract: true,
+      superClass: [
+        "FlowNode",
+        "InteractionNode"
+      ],
+      properties: [
+        {
+          name: "properties",
+          type: "Property",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "IntermediateCatchEvent",
+      superClass: [
+        "CatchEvent"
+      ]
+    },
+    {
+      name: "IntermediateThrowEvent",
+      superClass: [
+        "ThrowEvent"
+      ]
+    },
+    {
+      name: "EndEvent",
+      superClass: [
+        "ThrowEvent"
+      ]
+    },
+    {
+      name: "StartEvent",
+      superClass: [
+        "CatchEvent"
+      ],
+      properties: [
+        {
+          name: "isInterrupting",
+          "default": true,
+          isAttr: true,
+          type: "Boolean"
+        }
+      ]
+    },
+    {
+      name: "ThrowEvent",
+      isAbstract: true,
+      superClass: [
+        "Event"
+      ],
+      properties: [
+        {
+          name: "dataInputs",
+          type: "DataInput",
+          isMany: true
+        },
+        {
+          name: "dataInputAssociations",
+          type: "DataInputAssociation",
+          isMany: true
+        },
+        {
+          name: "inputSet",
+          type: "InputSet"
+        },
+        {
+          name: "eventDefinitions",
+          type: "EventDefinition",
+          isMany: true
+        },
+        {
+          name: "eventDefinitionRef",
+          type: "EventDefinition",
+          isMany: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "CatchEvent",
+      isAbstract: true,
+      superClass: [
+        "Event"
+      ],
+      properties: [
+        {
+          name: "parallelMultiple",
+          isAttr: true,
+          type: "Boolean",
+          "default": false
+        },
+        {
+          name: "dataOutputs",
+          type: "DataOutput",
+          isMany: true
+        },
+        {
+          name: "dataOutputAssociations",
+          type: "DataOutputAssociation",
+          isMany: true
+        },
+        {
+          name: "outputSet",
+          type: "OutputSet"
+        },
+        {
+          name: "eventDefinitions",
+          type: "EventDefinition",
+          isMany: true
+        },
+        {
+          name: "eventDefinitionRef",
+          type: "EventDefinition",
+          isMany: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "BoundaryEvent",
+      superClass: [
+        "CatchEvent"
+      ],
+      properties: [
+        {
+          name: "cancelActivity",
+          "default": true,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "attachedToRef",
+          type: "Activity",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "EventDefinition",
+      isAbstract: true,
+      superClass: [
+        "RootElement"
+      ]
+    },
+    {
+      name: "CancelEventDefinition",
+      superClass: [
+        "EventDefinition"
+      ]
+    },
+    {
+      name: "ErrorEventDefinition",
+      superClass: [
+        "EventDefinition"
+      ],
+      properties: [
+        {
+          name: "errorRef",
+          type: "Error",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "TerminateEventDefinition",
+      superClass: [
+        "EventDefinition"
+      ]
+    },
+    {
+      name: "EscalationEventDefinition",
+      superClass: [
+        "EventDefinition"
+      ],
+      properties: [
+        {
+          name: "escalationRef",
+          type: "Escalation",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Escalation",
+      properties: [
+        {
+          name: "structureRef",
+          type: "ItemDefinition",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "escalationCode",
+          isAttr: true,
+          type: "String"
+        }
+      ],
+      superClass: [
+        "RootElement"
+      ]
+    },
+    {
+      name: "CompensateEventDefinition",
+      superClass: [
+        "EventDefinition"
+      ],
+      properties: [
+        {
+          name: "waitForCompletion",
+          isAttr: true,
+          type: "Boolean",
+          "default": true
+        },
+        {
+          name: "activityRef",
+          type: "Activity",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "TimerEventDefinition",
+      superClass: [
+        "EventDefinition"
+      ],
+      properties: [
+        {
+          name: "timeDate",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        },
+        {
+          name: "timeCycle",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        },
+        {
+          name: "timeDuration",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        }
+      ]
+    },
+    {
+      name: "LinkEventDefinition",
+      superClass: [
+        "EventDefinition"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "target",
+          type: "LinkEventDefinition",
+          isReference: true
+        },
+        {
+          name: "source",
+          type: "LinkEventDefinition",
+          isMany: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "MessageEventDefinition",
+      superClass: [
+        "EventDefinition"
+      ],
+      properties: [
+        {
+          name: "messageRef",
+          type: "Message",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "operationRef",
+          type: "Operation",
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ConditionalEventDefinition",
+      superClass: [
+        "EventDefinition"
+      ],
+      properties: [
+        {
+          name: "condition",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        }
+      ]
+    },
+    {
+      name: "SignalEventDefinition",
+      superClass: [
+        "EventDefinition"
+      ],
+      properties: [
+        {
+          name: "signalRef",
+          type: "Signal",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Signal",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "structureRef",
+          type: "ItemDefinition",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "ImplicitThrowEvent",
+      superClass: [
+        "ThrowEvent"
+      ]
+    },
+    {
+      name: "DataState",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "ItemAwareElement",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "itemSubjectRef",
+          type: "ItemDefinition",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "dataState",
+          type: "DataState"
+        }
+      ]
+    },
+    {
+      name: "DataAssociation",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "sourceRef",
+          type: "ItemAwareElement",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "targetRef",
+          type: "ItemAwareElement",
+          isReference: true
+        },
+        {
+          name: "transformation",
+          type: "FormalExpression",
+          xml: {
+            serialize: "property"
+          }
+        },
+        {
+          name: "assignment",
+          type: "Assignment",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "DataInput",
+      superClass: [
+        "ItemAwareElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "isCollection",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "inputSetRef",
+          type: "InputSet",
+          isMany: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "inputSetWithOptional",
+          type: "InputSet",
+          isMany: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "inputSetWithWhileExecuting",
+          type: "InputSet",
+          isMany: true,
+          isVirtual: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "DataOutput",
+      superClass: [
+        "ItemAwareElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "isCollection",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "outputSetRef",
+          type: "OutputSet",
+          isMany: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "outputSetWithOptional",
+          type: "OutputSet",
+          isMany: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "outputSetWithWhileExecuting",
+          type: "OutputSet",
+          isMany: true,
+          isVirtual: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "InputSet",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "dataInputRefs",
+          type: "DataInput",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "optionalInputRefs",
+          type: "DataInput",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "whileExecutingInputRefs",
+          type: "DataInput",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "outputSetRefs",
+          type: "OutputSet",
+          isMany: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "OutputSet",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "dataOutputRefs",
+          type: "DataOutput",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "inputSetRefs",
+          type: "InputSet",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "optionalOutputRefs",
+          type: "DataOutput",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "whileExecutingOutputRefs",
+          type: "DataOutput",
+          isMany: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Property",
+      superClass: [
+        "ItemAwareElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "DataInputAssociation",
+      superClass: [
+        "DataAssociation"
+      ]
+    },
+    {
+      name: "DataOutputAssociation",
+      superClass: [
+        "DataAssociation"
+      ]
+    },
+    {
+      name: "InputOutputSpecification",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "dataInputs",
+          type: "DataInput",
+          isMany: true
+        },
+        {
+          name: "dataOutputs",
+          type: "DataOutput",
+          isMany: true
+        },
+        {
+          name: "inputSets",
+          type: "InputSet",
+          isMany: true
+        },
+        {
+          name: "outputSets",
+          type: "OutputSet",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "DataObject",
+      superClass: [
+        "FlowElement",
+        "ItemAwareElement"
+      ],
+      properties: [
+        {
+          name: "isCollection",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        }
+      ]
+    },
+    {
+      name: "InputOutputBinding",
+      properties: [
+        {
+          name: "inputDataRef",
+          type: "InputSet",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "outputDataRef",
+          type: "OutputSet",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "operationRef",
+          type: "Operation",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Assignment",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "from",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        },
+        {
+          name: "to",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        }
+      ]
+    },
+    {
+      name: "DataStore",
+      superClass: [
+        "RootElement",
+        "ItemAwareElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "capacity",
+          isAttr: true,
+          type: "Integer"
+        },
+        {
+          name: "isUnlimited",
+          "default": true,
+          isAttr: true,
+          type: "Boolean"
+        }
+      ]
+    },
+    {
+      name: "DataStoreReference",
+      superClass: [
+        "ItemAwareElement",
+        "FlowElement"
+      ],
+      properties: [
+        {
+          name: "dataStoreRef",
+          type: "DataStore",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "DataObjectReference",
+      superClass: [
+        "ItemAwareElement",
+        "FlowElement"
+      ],
+      properties: [
+        {
+          name: "dataObjectRef",
+          type: "DataObject",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ConversationLink",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "sourceRef",
+          type: "InteractionNode",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "targetRef",
+          type: "InteractionNode",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "ConversationAssociation",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "innerConversationNodeRef",
+          type: "ConversationNode",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "outerConversationNodeRef",
+          type: "ConversationNode",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "CallConversation",
+      superClass: [
+        "ConversationNode"
+      ],
+      properties: [
+        {
+          name: "calledCollaborationRef",
+          type: "Collaboration",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "participantAssociations",
+          type: "ParticipantAssociation",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "Conversation",
+      superClass: [
+        "ConversationNode"
+      ]
+    },
+    {
+      name: "SubConversation",
+      superClass: [
+        "ConversationNode"
+      ],
+      properties: [
+        {
+          name: "conversationNodes",
+          type: "ConversationNode",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "ConversationNode",
+      isAbstract: true,
+      superClass: [
+        "InteractionNode",
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "participantRef",
+          type: "Participant",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "messageFlowRefs",
+          type: "MessageFlow",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "correlationKeys",
+          type: "CorrelationKey",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "GlobalConversation",
+      superClass: [
+        "Collaboration"
+      ]
+    },
+    {
+      name: "PartnerEntity",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "participantRef",
+          type: "Participant",
+          isMany: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "PartnerRole",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "participantRef",
+          type: "Participant",
+          isMany: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "CorrelationProperty",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "correlationPropertyRetrievalExpression",
+          type: "CorrelationPropertyRetrievalExpression",
+          isMany: true
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "type",
+          type: "ItemDefinition",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Error",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "structureRef",
+          type: "ItemDefinition",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "errorCode",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "CorrelationKey",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "correlationPropertyRef",
+          type: "CorrelationProperty",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "Expression",
+      superClass: [
+        "BaseElement"
+      ],
+      isAbstract: false,
+      properties: [
+        {
+          name: "body",
+          isBody: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "FormalExpression",
+      superClass: [
+        "Expression"
+      ],
+      properties: [
+        {
+          name: "language",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "evaluatesToTypeRef",
+          type: "ItemDefinition",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Message",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "itemRef",
+          type: "ItemDefinition",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ItemDefinition",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "itemKind",
+          type: "ItemKind",
+          isAttr: true
+        },
+        {
+          name: "structureRef",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "isCollection",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "import",
+          type: "Import",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "FlowElement",
+      isAbstract: true,
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "auditing",
+          type: "Auditing"
+        },
+        {
+          name: "monitoring",
+          type: "Monitoring"
+        },
+        {
+          name: "categoryValueRef",
+          type: "CategoryValue",
+          isMany: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "SequenceFlow",
+      superClass: [
+        "FlowElement"
+      ],
+      properties: [
+        {
+          name: "isImmediate",
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "conditionExpression",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        },
+        {
+          name: "sourceRef",
+          type: "FlowNode",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "targetRef",
+          type: "FlowNode",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "FlowElementsContainer",
+      isAbstract: true,
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "laneSets",
+          type: "LaneSet",
+          isMany: true
+        },
+        {
+          name: "flowElements",
+          type: "FlowElement",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "CallableElement",
+      isAbstract: true,
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "ioSpecification",
+          type: "InputOutputSpecification",
+          xml: {
+            serialize: "property"
+          }
+        },
+        {
+          name: "supportedInterfaceRef",
+          type: "Interface",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "ioBinding",
+          type: "InputOutputBinding",
+          isMany: true,
+          xml: {
+            serialize: "property"
+          }
+        }
+      ]
+    },
+    {
+      name: "FlowNode",
+      isAbstract: true,
+      superClass: [
+        "FlowElement"
+      ],
+      properties: [
+        {
+          name: "incoming",
+          type: "SequenceFlow",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "outgoing",
+          type: "SequenceFlow",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "lanes",
+          type: "Lane",
+          isMany: true,
+          isVirtual: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "CorrelationPropertyRetrievalExpression",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "messagePath",
+          type: "FormalExpression"
+        },
+        {
+          name: "messageRef",
+          type: "Message",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "CorrelationPropertyBinding",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "dataPath",
+          type: "FormalExpression"
+        },
+        {
+          name: "correlationPropertyRef",
+          type: "CorrelationProperty",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Resource",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "resourceParameters",
+          type: "ResourceParameter",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "ResourceParameter",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "isRequired",
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "type",
+          type: "ItemDefinition",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "CorrelationSubscription",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "correlationKeyRef",
+          type: "CorrelationKey",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "correlationPropertyBinding",
+          type: "CorrelationPropertyBinding",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "MessageFlow",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "sourceRef",
+          type: "InteractionNode",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "targetRef",
+          type: "InteractionNode",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "messageRef",
+          type: "Message",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "MessageFlowAssociation",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "innerMessageFlowRef",
+          type: "MessageFlow",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "outerMessageFlowRef",
+          type: "MessageFlow",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "InteractionNode",
+      isAbstract: true,
+      properties: [
+        {
+          name: "incomingConversationLinks",
+          type: "ConversationLink",
+          isMany: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "outgoingConversationLinks",
+          type: "ConversationLink",
+          isMany: true,
+          isVirtual: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Participant",
+      superClass: [
+        "InteractionNode",
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "interfaceRef",
+          type: "Interface",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "participantMultiplicity",
+          type: "ParticipantMultiplicity"
+        },
+        {
+          name: "endPointRefs",
+          type: "EndPoint",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "processRef",
+          type: "Process",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ParticipantAssociation",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "innerParticipantRef",
+          type: "Participant",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "outerParticipantRef",
+          type: "Participant",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ParticipantMultiplicity",
+      properties: [
+        {
+          name: "minimum",
+          "default": 0,
+          isAttr: true,
+          type: "Integer"
+        },
+        {
+          name: "maximum",
+          "default": 1,
+          isAttr: true,
+          type: "Integer"
+        }
+      ],
+      superClass: [
+        "BaseElement"
+      ]
+    },
+    {
+      name: "Collaboration",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "isClosed",
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "participants",
+          type: "Participant",
+          isMany: true
+        },
+        {
+          name: "messageFlows",
+          type: "MessageFlow",
+          isMany: true
+        },
+        {
+          name: "artifacts",
+          type: "Artifact",
+          isMany: true
+        },
+        {
+          name: "conversations",
+          type: "ConversationNode",
+          isMany: true
+        },
+        {
+          name: "conversationAssociations",
+          type: "ConversationAssociation"
+        },
+        {
+          name: "participantAssociations",
+          type: "ParticipantAssociation",
+          isMany: true
+        },
+        {
+          name: "messageFlowAssociations",
+          type: "MessageFlowAssociation",
+          isMany: true
+        },
+        {
+          name: "correlationKeys",
+          type: "CorrelationKey",
+          isMany: true
+        },
+        {
+          name: "choreographyRef",
+          type: "Choreography",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "conversationLinks",
+          type: "ConversationLink",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "ChoreographyActivity",
+      isAbstract: true,
+      superClass: [
+        "FlowNode"
+      ],
+      properties: [
+        {
+          name: "participantRef",
+          type: "Participant",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "initiatingParticipantRef",
+          type: "Participant",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "correlationKeys",
+          type: "CorrelationKey",
+          isMany: true
+        },
+        {
+          name: "loopType",
+          type: "ChoreographyLoopType",
+          "default": "None",
+          isAttr: true
+        }
+      ]
+    },
+    {
+      name: "CallChoreography",
+      superClass: [
+        "ChoreographyActivity"
+      ],
+      properties: [
+        {
+          name: "calledChoreographyRef",
+          type: "Choreography",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "participantAssociations",
+          type: "ParticipantAssociation",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "SubChoreography",
+      superClass: [
+        "ChoreographyActivity",
+        "FlowElementsContainer"
+      ],
+      properties: [
+        {
+          name: "artifacts",
+          type: "Artifact",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "ChoreographyTask",
+      superClass: [
+        "ChoreographyActivity"
+      ],
+      properties: [
+        {
+          name: "messageFlowRef",
+          type: "MessageFlow",
+          isMany: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Choreography",
+      superClass: [
+        "Collaboration",
+        "FlowElementsContainer"
+      ]
+    },
+    {
+      name: "GlobalChoreographyTask",
+      superClass: [
+        "Choreography"
+      ],
+      properties: [
+        {
+          name: "initiatingParticipantRef",
+          type: "Participant",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "TextAnnotation",
+      superClass: [
+        "Artifact"
+      ],
+      properties: [
+        {
+          name: "text",
+          type: "String"
+        },
+        {
+          name: "textFormat",
+          "default": "text/plain",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "Group",
+      superClass: [
+        "Artifact"
+      ],
+      properties: [
+        {
+          name: "categoryValueRef",
+          type: "CategoryValue",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Association",
+      superClass: [
+        "Artifact"
+      ],
+      properties: [
+        {
+          name: "associationDirection",
+          type: "AssociationDirection",
+          isAttr: true
+        },
+        {
+          name: "sourceRef",
+          type: "BaseElement",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "targetRef",
+          type: "BaseElement",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "Category",
+      superClass: [
+        "RootElement"
+      ],
+      properties: [
+        {
+          name: "categoryValue",
+          type: "CategoryValue",
+          isMany: true
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "Artifact",
+      isAbstract: true,
+      superClass: [
+        "BaseElement"
+      ]
+    },
+    {
+      name: "CategoryValue",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "categorizedFlowElements",
+          type: "FlowElement",
+          isMany: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "value",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "Activity",
+      isAbstract: true,
+      superClass: [
+        "FlowNode"
+      ],
+      properties: [
+        {
+          name: "isForCompensation",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "default",
+          type: "SequenceFlow",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "ioSpecification",
+          type: "InputOutputSpecification",
+          xml: {
+            serialize: "property"
+          }
+        },
+        {
+          name: "boundaryEventRefs",
+          type: "BoundaryEvent",
+          isMany: true,
+          isReference: true
+        },
+        {
+          name: "properties",
+          type: "Property",
+          isMany: true
+        },
+        {
+          name: "dataInputAssociations",
+          type: "DataInputAssociation",
+          isMany: true
+        },
+        {
+          name: "dataOutputAssociations",
+          type: "DataOutputAssociation",
+          isMany: true
+        },
+        {
+          name: "startQuantity",
+          "default": 1,
+          isAttr: true,
+          type: "Integer"
+        },
+        {
+          name: "resources",
+          type: "ResourceRole",
+          isMany: true
+        },
+        {
+          name: "completionQuantity",
+          "default": 1,
+          isAttr: true,
+          type: "Integer"
+        },
+        {
+          name: "loopCharacteristics",
+          type: "LoopCharacteristics"
+        }
+      ]
+    },
+    {
+      name: "ServiceTask",
+      superClass: [
+        "Task"
+      ],
+      properties: [
+        {
+          name: "implementation",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "operationRef",
+          type: "Operation",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "SubProcess",
+      superClass: [
+        "Activity",
+        "FlowElementsContainer",
+        "InteractionNode"
+      ],
+      properties: [
+        {
+          name: "triggeredByEvent",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "artifacts",
+          type: "Artifact",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "LoopCharacteristics",
+      isAbstract: true,
+      superClass: [
+        "BaseElement"
+      ]
+    },
+    {
+      name: "MultiInstanceLoopCharacteristics",
+      superClass: [
+        "LoopCharacteristics"
+      ],
+      properties: [
+        {
+          name: "isSequential",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "behavior",
+          type: "MultiInstanceBehavior",
+          "default": "All",
+          isAttr: true
+        },
+        {
+          name: "loopCardinality",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        },
+        {
+          name: "loopDataInputRef",
+          type: "ItemAwareElement",
+          isReference: true
+        },
+        {
+          name: "loopDataOutputRef",
+          type: "ItemAwareElement",
+          isReference: true
+        },
+        {
+          name: "inputDataItem",
+          type: "DataInput",
+          xml: {
+            serialize: "property"
+          }
+        },
+        {
+          name: "outputDataItem",
+          type: "DataOutput",
+          xml: {
+            serialize: "property"
+          }
+        },
+        {
+          name: "complexBehaviorDefinition",
+          type: "ComplexBehaviorDefinition",
+          isMany: true
+        },
+        {
+          name: "completionCondition",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        },
+        {
+          name: "oneBehaviorEventRef",
+          type: "EventDefinition",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "noneBehaviorEventRef",
+          type: "EventDefinition",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "StandardLoopCharacteristics",
+      superClass: [
+        "LoopCharacteristics"
+      ],
+      properties: [
+        {
+          name: "testBefore",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "loopCondition",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        },
+        {
+          name: "loopMaximum",
+          type: "Integer",
+          isAttr: true
+        }
+      ]
+    },
+    {
+      name: "CallActivity",
+      superClass: [
+        "Activity",
+        "InteractionNode"
+      ],
+      properties: [
+        {
+          name: "calledElement",
+          type: "String",
+          isAttr: true
+        }
+      ]
+    },
+    {
+      name: "Task",
+      superClass: [
+        "Activity",
+        "InteractionNode"
+      ]
+    },
+    {
+      name: "SendTask",
+      superClass: [
+        "Task"
+      ],
+      properties: [
+        {
+          name: "implementation",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "operationRef",
+          type: "Operation",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "messageRef",
+          type: "Message",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ReceiveTask",
+      superClass: [
+        "Task"
+      ],
+      properties: [
+        {
+          name: "implementation",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "instantiate",
+          "default": false,
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "operationRef",
+          type: "Operation",
+          isAttr: true,
+          isReference: true
+        },
+        {
+          name: "messageRef",
+          type: "Message",
+          isAttr: true,
+          isReference: true
+        }
+      ]
+    },
+    {
+      name: "ScriptTask",
+      superClass: [
+        "Task"
+      ],
+      properties: [
+        {
+          name: "scriptFormat",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "script",
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "BusinessRuleTask",
+      superClass: [
+        "Task"
+      ],
+      properties: [
+        {
+          name: "implementation",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "AdHocSubProcess",
+      superClass: [
+        "SubProcess"
+      ],
+      properties: [
+        {
+          name: "completionCondition",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        },
+        {
+          name: "ordering",
+          type: "AdHocOrdering",
+          isAttr: true
+        },
+        {
+          name: "cancelRemainingInstances",
+          "default": true,
+          isAttr: true,
+          type: "Boolean"
+        }
+      ]
+    },
+    {
+      name: "Transaction",
+      superClass: [
+        "SubProcess"
+      ],
+      properties: [
+        {
+          name: "protocol",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "method",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "GlobalScriptTask",
+      superClass: [
+        "GlobalTask"
+      ],
+      properties: [
+        {
+          name: "scriptLanguage",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "script",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "GlobalBusinessRuleTask",
+      superClass: [
+        "GlobalTask"
+      ],
+      properties: [
+        {
+          name: "implementation",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "ComplexBehaviorDefinition",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "condition",
+          type: "FormalExpression"
+        },
+        {
+          name: "event",
+          type: "ImplicitThrowEvent"
+        }
+      ]
+    },
+    {
+      name: "ResourceRole",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "resourceRef",
+          type: "Resource",
+          isReference: true
+        },
+        {
+          name: "resourceParameterBindings",
+          type: "ResourceParameterBinding",
+          isMany: true
+        },
+        {
+          name: "resourceAssignmentExpression",
+          type: "ResourceAssignmentExpression"
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "ResourceParameterBinding",
+      properties: [
+        {
+          name: "expression",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        },
+        {
+          name: "parameterRef",
+          type: "ResourceParameter",
+          isAttr: true,
+          isReference: true
+        }
+      ],
+      superClass: [
+        "BaseElement"
+      ]
+    },
+    {
+      name: "ResourceAssignmentExpression",
+      properties: [
+        {
+          name: "expression",
+          type: "Expression",
+          xml: {
+            serialize: "xsi:type"
+          }
+        }
+      ],
+      superClass: [
+        "BaseElement"
+      ]
+    },
+    {
+      name: "Import",
+      properties: [
+        {
+          name: "importType",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "location",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "namespace",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "Definitions",
+      superClass: [
+        "BaseElement"
+      ],
+      properties: [
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "targetNamespace",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "expressionLanguage",
+          "default": "http://www.w3.org/1999/XPath",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "typeLanguage",
+          "default": "http://www.w3.org/2001/XMLSchema",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "imports",
+          type: "Import",
+          isMany: true
+        },
+        {
+          name: "extensions",
+          type: "Extension",
+          isMany: true
+        },
+        {
+          name: "rootElements",
+          type: "RootElement",
+          isMany: true
+        },
+        {
+          name: "diagrams",
+          isMany: true,
+          type: "bpmndi:BPMNDiagram"
+        },
+        {
+          name: "exporter",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "relationships",
+          type: "Relationship",
+          isMany: true
+        },
+        {
+          name: "exporterVersion",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    }
+  ];
+  var enumerations$3 = [
+    {
+      name: "ProcessType",
+      literalValues: [
+        {
+          name: "None"
+        },
+        {
+          name: "Public"
+        },
+        {
+          name: "Private"
+        }
+      ]
+    },
+    {
+      name: "GatewayDirection",
+      literalValues: [
+        {
+          name: "Unspecified"
+        },
+        {
+          name: "Converging"
+        },
+        {
+          name: "Diverging"
+        },
+        {
+          name: "Mixed"
+        }
+      ]
+    },
+    {
+      name: "EventBasedGatewayType",
+      literalValues: [
+        {
+          name: "Parallel"
+        },
+        {
+          name: "Exclusive"
+        }
+      ]
+    },
+    {
+      name: "RelationshipDirection",
+      literalValues: [
+        {
+          name: "None"
+        },
+        {
+          name: "Forward"
+        },
+        {
+          name: "Backward"
+        },
+        {
+          name: "Both"
+        }
+      ]
+    },
+    {
+      name: "ItemKind",
+      literalValues: [
+        {
+          name: "Physical"
+        },
+        {
+          name: "Information"
+        }
+      ]
+    },
+    {
+      name: "ChoreographyLoopType",
+      literalValues: [
+        {
+          name: "None"
+        },
+        {
+          name: "Standard"
+        },
+        {
+          name: "MultiInstanceSequential"
+        },
+        {
+          name: "MultiInstanceParallel"
+        }
+      ]
+    },
+    {
+      name: "AssociationDirection",
+      literalValues: [
+        {
+          name: "None"
+        },
+        {
+          name: "One"
+        },
+        {
+          name: "Both"
+        }
+      ]
+    },
+    {
+      name: "MultiInstanceBehavior",
+      literalValues: [
+        {
+          name: "None"
+        },
+        {
+          name: "One"
+        },
+        {
+          name: "All"
+        },
+        {
+          name: "Complex"
+        }
+      ]
+    },
+    {
+      name: "AdHocOrdering",
+      literalValues: [
+        {
+          name: "Parallel"
+        },
+        {
+          name: "Sequential"
+        }
+      ]
+    }
+  ];
+  var xml$1 = {
+    tagAlias: "lowerCase",
+    typePrefix: "t"
+  };
+  var BpmnPackage = {
+    name: name$5,
+    uri: uri$5,
+    prefix: prefix$5,
+    associations: associations$5,
+    types: types$5,
+    enumerations: enumerations$3,
+    xml: xml$1
+  };
+  var name$4 = "BPMNDI";
+  var uri$4 = "http://www.omg.org/spec/BPMN/20100524/DI";
+  var prefix$4 = "bpmndi";
+  var types$4 = [
+    {
+      name: "BPMNDiagram",
+      properties: [
+        {
+          name: "plane",
+          type: "BPMNPlane",
+          redefines: "di:Diagram#rootElement"
+        },
+        {
+          name: "labelStyle",
+          type: "BPMNLabelStyle",
+          isMany: true
+        }
+      ],
+      superClass: [
+        "di:Diagram"
+      ]
+    },
+    {
+      name: "BPMNPlane",
+      properties: [
+        {
+          name: "bpmnElement",
+          isAttr: true,
+          isReference: true,
+          type: "bpmn:BaseElement",
+          redefines: "di:DiagramElement#modelElement"
+        }
+      ],
+      superClass: [
+        "di:Plane"
+      ]
+    },
+    {
+      name: "BPMNShape",
+      properties: [
+        {
+          name: "bpmnElement",
+          isAttr: true,
+          isReference: true,
+          type: "bpmn:BaseElement",
+          redefines: "di:DiagramElement#modelElement"
+        },
+        {
+          name: "isHorizontal",
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "isExpanded",
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "isMarkerVisible",
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "label",
+          type: "BPMNLabel"
+        },
+        {
+          name: "isMessageVisible",
+          isAttr: true,
+          type: "Boolean"
+        },
+        {
+          name: "participantBandKind",
+          type: "ParticipantBandKind",
+          isAttr: true
+        },
+        {
+          name: "choreographyActivityShape",
+          type: "BPMNShape",
+          isAttr: true,
+          isReference: true
+        }
+      ],
+      superClass: [
+        "di:LabeledShape"
+      ]
+    },
+    {
+      name: "BPMNEdge",
+      properties: [
+        {
+          name: "label",
+          type: "BPMNLabel"
+        },
+        {
+          name: "bpmnElement",
+          isAttr: true,
+          isReference: true,
+          type: "bpmn:BaseElement",
+          redefines: "di:DiagramElement#modelElement"
+        },
+        {
+          name: "sourceElement",
+          isAttr: true,
+          isReference: true,
+          type: "di:DiagramElement",
+          redefines: "di:Edge#source"
+        },
+        {
+          name: "targetElement",
+          isAttr: true,
+          isReference: true,
+          type: "di:DiagramElement",
+          redefines: "di:Edge#target"
+        },
+        {
+          name: "messageVisibleKind",
+          type: "MessageVisibleKind",
+          isAttr: true,
+          "default": "initiating"
+        }
+      ],
+      superClass: [
+        "di:LabeledEdge"
+      ]
+    },
+    {
+      name: "BPMNLabel",
+      properties: [
+        {
+          name: "labelStyle",
+          type: "BPMNLabelStyle",
+          isAttr: true,
+          isReference: true,
+          redefines: "di:DiagramElement#style"
+        }
+      ],
+      superClass: [
+        "di:Label"
+      ]
+    },
+    {
+      name: "BPMNLabelStyle",
+      properties: [
+        {
+          name: "font",
+          type: "dc:Font"
+        }
+      ],
+      superClass: [
+        "di:Style"
+      ]
+    }
+  ];
+  var enumerations$2 = [
+    {
+      name: "ParticipantBandKind",
+      literalValues: [
+        {
+          name: "top_initiating"
+        },
+        {
+          name: "middle_initiating"
+        },
+        {
+          name: "bottom_initiating"
+        },
+        {
+          name: "top_non_initiating"
+        },
+        {
+          name: "middle_non_initiating"
+        },
+        {
+          name: "bottom_non_initiating"
+        }
+      ]
+    },
+    {
+      name: "MessageVisibleKind",
+      literalValues: [
+        {
+          name: "initiating"
+        },
+        {
+          name: "non_initiating"
+        }
+      ]
+    }
+  ];
+  var associations$4 = [];
+  var BpmnDiPackage = {
+    name: name$4,
+    uri: uri$4,
+    prefix: prefix$4,
+    types: types$4,
+    enumerations: enumerations$2,
+    associations: associations$4
+  };
+  var name$3 = "DC";
+  var uri$3 = "http://www.omg.org/spec/DD/20100524/DC";
+  var prefix$3 = "dc";
+  var types$3 = [
+    {
+      name: "Boolean"
+    },
+    {
+      name: "Integer"
+    },
+    {
+      name: "Real"
+    },
+    {
+      name: "String"
+    },
+    {
+      name: "Font",
+      properties: [
+        {
+          name: "name",
+          type: "String",
+          isAttr: true
+        },
+        {
+          name: "size",
+          type: "Real",
+          isAttr: true
+        },
+        {
+          name: "isBold",
+          type: "Boolean",
+          isAttr: true
+        },
+        {
+          name: "isItalic",
+          type: "Boolean",
+          isAttr: true
+        },
+        {
+          name: "isUnderline",
+          type: "Boolean",
+          isAttr: true
+        },
+        {
+          name: "isStrikeThrough",
+          type: "Boolean",
+          isAttr: true
+        }
+      ]
+    },
+    {
+      name: "Point",
+      properties: [
+        {
+          name: "x",
+          type: "Real",
+          "default": "0",
+          isAttr: true
+        },
+        {
+          name: "y",
+          type: "Real",
+          "default": "0",
+          isAttr: true
+        }
+      ]
+    },
+    {
+      name: "Bounds",
+      properties: [
+        {
+          name: "x",
+          type: "Real",
+          "default": "0",
+          isAttr: true
+        },
+        {
+          name: "y",
+          type: "Real",
+          "default": "0",
+          isAttr: true
+        },
+        {
+          name: "width",
+          type: "Real",
+          isAttr: true
+        },
+        {
+          name: "height",
+          type: "Real",
+          isAttr: true
+        }
+      ]
+    }
+  ];
+  var associations$3 = [];
+  var DcPackage = {
+    name: name$3,
+    uri: uri$3,
+    prefix: prefix$3,
+    types: types$3,
+    associations: associations$3
+  };
+  var name$2 = "DI";
+  var uri$2 = "http://www.omg.org/spec/DD/20100524/DI";
+  var prefix$2 = "di";
+  var types$2 = [
+    {
+      name: "DiagramElement",
+      isAbstract: true,
+      properties: [
+        {
+          name: "id",
+          isAttr: true,
+          isId: true,
+          type: "String"
+        },
+        {
+          name: "extension",
+          type: "Extension"
+        },
+        {
+          name: "owningDiagram",
+          type: "Diagram",
+          isReadOnly: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "owningElement",
+          type: "DiagramElement",
+          isReadOnly: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "modelElement",
+          isReadOnly: true,
+          isVirtual: true,
+          isReference: true,
+          type: "Element"
+        },
+        {
+          name: "style",
+          type: "Style",
+          isReadOnly: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "ownedElement",
+          type: "DiagramElement",
+          isReadOnly: true,
+          isMany: true,
+          isVirtual: true
+        }
+      ]
+    },
+    {
+      name: "Node",
+      isAbstract: true,
+      superClass: [
+        "DiagramElement"
+      ]
+    },
+    {
+      name: "Edge",
+      isAbstract: true,
+      superClass: [
+        "DiagramElement"
+      ],
+      properties: [
+        {
+          name: "source",
+          type: "DiagramElement",
+          isReadOnly: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "target",
+          type: "DiagramElement",
+          isReadOnly: true,
+          isVirtual: true,
+          isReference: true
+        },
+        {
+          name: "waypoint",
+          isUnique: false,
+          isMany: true,
+          type: "dc:Point",
+          xml: {
+            serialize: "xsi:type"
+          }
+        }
+      ]
+    },
+    {
+      name: "Diagram",
+      isAbstract: true,
+      properties: [
+        {
+          name: "id",
+          isAttr: true,
+          isId: true,
+          type: "String"
+        },
+        {
+          name: "rootElement",
+          type: "DiagramElement",
+          isReadOnly: true,
+          isVirtual: true
+        },
+        {
+          name: "name",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "documentation",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "resolution",
+          isAttr: true,
+          type: "Real"
+        },
+        {
+          name: "ownedStyle",
+          type: "Style",
+          isReadOnly: true,
+          isMany: true,
+          isVirtual: true
+        }
+      ]
+    },
+    {
+      name: "Shape",
+      isAbstract: true,
+      superClass: [
+        "Node"
+      ],
+      properties: [
+        {
+          name: "bounds",
+          type: "dc:Bounds"
+        }
+      ]
+    },
+    {
+      name: "Plane",
+      isAbstract: true,
+      superClass: [
+        "Node"
+      ],
+      properties: [
+        {
+          name: "planeElement",
+          type: "DiagramElement",
+          subsettedProperty: "DiagramElement-ownedElement",
+          isMany: true
+        }
+      ]
+    },
+    {
+      name: "LabeledEdge",
+      isAbstract: true,
+      superClass: [
+        "Edge"
+      ],
+      properties: [
+        {
+          name: "ownedLabel",
+          type: "Label",
+          isReadOnly: true,
+          subsettedProperty: "DiagramElement-ownedElement",
+          isMany: true,
+          isVirtual: true
+        }
+      ]
+    },
+    {
+      name: "LabeledShape",
+      isAbstract: true,
+      superClass: [
+        "Shape"
+      ],
+      properties: [
+        {
+          name: "ownedLabel",
+          type: "Label",
+          isReadOnly: true,
+          subsettedProperty: "DiagramElement-ownedElement",
+          isMany: true,
+          isVirtual: true
+        }
+      ]
+    },
+    {
+      name: "Label",
+      isAbstract: true,
+      superClass: [
+        "Node"
+      ],
+      properties: [
+        {
+          name: "bounds",
+          type: "dc:Bounds"
+        }
+      ]
+    },
+    {
+      name: "Style",
+      isAbstract: true,
+      properties: [
+        {
+          name: "id",
+          isAttr: true,
+          isId: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "Extension",
+      properties: [
+        {
+          name: "values",
+          isMany: true,
+          type: "Element"
+        }
+      ]
+    }
+  ];
+  var associations$2 = [];
+  var xml2 = {
+    tagAlias: "lowerCase"
+  };
+  var DiPackage = {
+    name: name$2,
+    uri: uri$2,
+    prefix: prefix$2,
+    types: types$2,
+    associations: associations$2,
+    xml: xml2
+  };
+  var name$1 = "bpmn.io colors for BPMN";
+  var uri$1 = "http://bpmn.io/schema/bpmn/biocolor/1.0";
+  var prefix$1 = "bioc";
+  var types$1 = [
+    {
+      name: "ColoredShape",
+      "extends": [
+        "bpmndi:BPMNShape"
+      ],
+      properties: [
+        {
+          name: "stroke",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "fill",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "ColoredEdge",
+      "extends": [
+        "bpmndi:BPMNEdge"
+      ],
+      properties: [
+        {
+          name: "stroke",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "fill",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    }
+  ];
+  var enumerations$1 = [];
+  var associations$1 = [];
+  var BiocPackage = {
+    name: name$1,
+    uri: uri$1,
+    prefix: prefix$1,
+    types: types$1,
+    enumerations: enumerations$1,
+    associations: associations$1
+  };
+  var name = "BPMN in Color";
+  var uri = "http://www.omg.org/spec/BPMN/non-normative/color/1.0";
+  var prefix = "color";
+  var types = [
+    {
+      name: "ColoredLabel",
+      "extends": [
+        "bpmndi:BPMNLabel"
+      ],
+      properties: [
+        {
+          name: "color",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "ColoredShape",
+      "extends": [
+        "bpmndi:BPMNShape"
+      ],
+      properties: [
+        {
+          name: "background-color",
+          isAttr: true,
+          type: "String"
+        },
+        {
+          name: "border-color",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    },
+    {
+      name: "ColoredEdge",
+      "extends": [
+        "bpmndi:BPMNEdge"
+      ],
+      properties: [
+        {
+          name: "border-color",
+          isAttr: true,
+          type: "String"
+        }
+      ]
+    }
+  ];
+  var enumerations = [];
+  var associations = [];
+  var BpmnInColorPackage = {
+    name,
+    uri,
+    prefix,
+    types,
+    enumerations,
+    associations
+  };
+  var packages = {
+    bpmn: BpmnPackage,
+    bpmndi: BpmnDiPackage,
+    dc: DcPackage,
+    di: DiPackage,
+    bioc: BiocPackage,
+    color: BpmnInColorPackage
+  };
+  function SimpleBpmnModdle(additionalPackages, options) {
+    const pks = assign2({}, packages, additionalPackages);
+    return new BpmnModdle(pks, options);
+  }
+
+  // node_modules/path-intersection/intersect.js
+  var math = Math;
+  var PI = math.PI;
+  var mmin = math.min;
+  var mmax = math.max;
+  var pow = math.pow;
+  var abs2 = math.abs;
+  var isArray3 = Array.isArray || function(o3) {
+    return o3 instanceof Array;
+  };
+
+  // node_modules/diagram-js/lib/layout/LayoutUtil.js
+  function asTRBL(bounds) {
+    return {
+      top: bounds.y,
+      right: bounds.x + (bounds.width || 0),
+      bottom: bounds.y + (bounds.height || 0),
+      left: bounds.x
+    };
+  }
+  function getOrientation(rect2, reference, padding) {
+    padding = padding || 0;
+    if (!isObject2(padding)) {
+      padding = { x: padding, y: padding };
+    }
+    var rectOrientation = asTRBL(rect2), referenceOrientation = asTRBL(reference);
+    var top4 = rectOrientation.bottom + padding.y <= referenceOrientation.top, right4 = rectOrientation.left - padding.x >= referenceOrientation.right, bottom4 = rectOrientation.top - padding.y >= referenceOrientation.bottom, left4 = rectOrientation.right + padding.x <= referenceOrientation.left;
+    var vertical = top4 ? "top" : bottom4 ? "bottom" : null, horizontal = left4 ? "left" : right4 ? "right" : null;
+    if (horizontal && vertical) {
+      return vertical + "-" + horizontal;
+    } else {
+      return horizontal || vertical || "intersect";
+    }
+  }
+
+  // src/io/bpmn/shapes.ts
+  var BPMN_TO_SHAPE = {
+    // Events — base position; importer overlays extra.trigger/throwing.
+    startEvent: "bpmn-event-start",
+    endEvent: "bpmn-event-end",
+    intermediateThrowEvent: "bpmn-event-intermediate",
+    intermediateCatchEvent: "bpmn-event-intermediate",
+    boundaryEvent: "bpmn-event-intermediate",
+    // Gateways
+    exclusiveGateway: "bpmn-gateway-x",
+    parallelGateway: "bpmn-gateway-parallel",
+    inclusiveGateway: "bpmn-gateway-inclusive",
+    eventBasedGateway: "bpmn-gateway-event",
+    complexGateway: "bpmn-gateway-complex",
+    // Tasks — subtype preserved
+    task: "bpmn-task",
+    userTask: "bpmn-task-user",
+    serviceTask: "bpmn-task-service",
+    scriptTask: "bpmn-task-script",
+    sendTask: "bpmn-task-send",
+    receiveTask: "bpmn-task-receive",
+    manualTask: "bpmn-task-manual",
+    businessRuleTask: "bpmn-task-rule",
+    // Activities — sibling types
+    callActivity: "bpmn-call-activity",
+    subProcess: "bpmn-subprocess",
+    transaction: "bpmn-transaction",
+    // Data artifacts
+    dataObjectReference: "bpmn-data-object",
+    dataStoreReference: "bpmn-data-store",
+    dataInput: "bpmn-data-input",
+    dataOutput: "bpmn-data-output",
+    // Misc
+    textAnnotation: "bpmn-annotation",
+    group: "bpmn-group",
+    participant: "bpmn-pool",
+    lane: "bpmn-lane"
+  };
+  var SHAPE_TO_BPMN = {
+    // Events — unified Đợt A kinds
+    "bpmn-event-start": "startEvent",
+    "bpmn-event-intermediate": "intermediateThrowEvent",
+    "bpmn-event-end": "endEvent",
+    // Legacy kinds — accepted if migration shim is bypassed
+    "bpmn-start": "startEvent",
+    "bpmn-start-message": "startEvent",
+    "bpmn-start-timer": "startEvent",
+    "bpmn-intermediate": "intermediateThrowEvent",
+    "bpmn-intermediate-message": "intermediateCatchEvent",
+    "bpmn-intermediate-timer": "intermediateCatchEvent",
+    "bpmn-end": "endEvent",
+    "bpmn-end-message": "endEvent",
+    "bpmn-end-terminate": "endEvent",
+    // Gateways
+    "bpmn-gateway-x": "exclusiveGateway",
+    "bpmn-gateway-parallel": "parallelGateway",
+    "bpmn-gateway-inclusive": "inclusiveGateway",
+    "bpmn-gateway-event": "eventBasedGateway",
+    "bpmn-gateway-complex": "complexGateway",
+    // Tasks
+    "bpmn-task": "task",
+    "bpmn-task-user": "userTask",
+    "bpmn-task-service": "serviceTask",
+    "bpmn-task-script": "scriptTask",
+    "bpmn-task-send": "sendTask",
+    "bpmn-task-receive": "receiveTask",
+    "bpmn-task-manual": "manualTask",
+    "bpmn-task-rule": "businessRuleTask",
+    // Activities
+    "bpmn-subprocess": "subProcess",
+    "bpmn-transaction": "transaction",
+    "bpmn-event-subprocess": "subProcess",
+    // export.ts sets triggeredByEvent=true
+    "bpmn-call-activity": "callActivity",
+    // Data artifacts
+    "bpmn-data-object": "dataObjectReference",
+    "bpmn-data-collection": "dataObjectReference",
+    // export.ts sets isCollection=true
+    "bpmn-data-input": "dataInput",
+    "bpmn-data-output": "dataOutput",
+    "bpmn-data-store": "dataStoreReference",
+    // Misc
+    "bpmn-annotation": "textAnnotation",
+    "bpmn-group": "group",
+    "bpmn-pool": "participant",
+    "bpmn-lane": "lane"
+  };
+  var EVENT_DEF_TO_TRIGGER = {
+    messageEventDefinition: "message",
+    timerEventDefinition: "timer",
+    signalEventDefinition: "signal",
+    errorEventDefinition: "error",
+    escalationEventDefinition: "escalation",
+    compensateEventDefinition: "compensation",
+    conditionalEventDefinition: "conditional",
+    linkEventDefinition: "link",
+    cancelEventDefinition: "cancel",
+    terminateEventDefinition: "terminate"
+  };
+  var TRIGGER_TO_EVENT_DEF = Object.fromEntries(
+    Object.entries(EVENT_DEF_TO_TRIGGER).map(([k3, v4]) => [v4, k3])
+  );
+
+  // src/io/bpmn/import.ts
+  function bpmnExtras(fn2, tagLc) {
+    const out = {};
+    const defRaw = fn2.eventDefinitions?.[0]?.$type?.replace(/^bpmn:/, "");
+    const defLc = defRaw ? defRaw.charAt(0).toLowerCase() + defRaw.slice(1) : void 0;
+    if (defLc && EVENT_DEF_TO_TRIGGER[defLc]) out.trigger = EVENT_DEF_TO_TRIGGER[defLc];
+    if (tagLc === "intermediateThrowEvent" || tagLc === "endEvent") out.throwing = true;
+    if (tagLc === "boundaryEvent") {
+      out.interrupting = fn2.cancelActivity !== false;
+      if (fn2.attachedToRef?.id) out.attachedTo = fn2.attachedToRef.id;
+    } else if (fn2.isInterrupting === false) {
+      out.interrupting = false;
+    }
+    const markers = [];
+    const loop3 = fn2.loopCharacteristics;
+    if (loop3) {
+      const lt3 = loop3.$type.replace(/^bpmn:/, "");
+      if (lt3 === "MultiInstanceLoopCharacteristics") markers.push(loop3.isSequential ? "mi-seq" : "mi-par");
+      else if (lt3 === "StandardLoopCharacteristics") markers.push("loop");
+    }
+    if (fn2.isForCompensation) markers.push("compensation");
+    if (markers.length > 0) out.markers = markers;
+    if (tagLc === "subProcess" && fn2.triggeredByEvent) out.kindOverride = "bpmn-event-subprocess";
+    return out;
+  }
+  var FLOW_NODE_TYPES = /* @__PURE__ */ new Set([
+    "bpmn:StartEvent",
+    "bpmn:EndEvent",
+    "bpmn:IntermediateThrowEvent",
+    "bpmn:IntermediateCatchEvent",
+    "bpmn:BoundaryEvent",
+    "bpmn:ExclusiveGateway",
+    "bpmn:ParallelGateway",
+    "bpmn:InclusiveGateway",
+    "bpmn:EventBasedGateway",
+    "bpmn:ComplexGateway",
+    "bpmn:Task",
+    "bpmn:UserTask",
+    "bpmn:ServiceTask",
+    "bpmn:ScriptTask",
+    "bpmn:SendTask",
+    "bpmn:ReceiveTask",
+    "bpmn:ManualTask",
+    "bpmn:BusinessRuleTask",
+    "bpmn:CallActivity",
+    "bpmn:SubProcess",
+    "bpmn:Transaction",
+    // Đợt F — data artifacts + annotations + groups round-trip through canvas
+    "bpmn:DataObjectReference",
+    "bpmn:DataStoreReference",
+    "bpmn:DataInput",
+    "bpmn:DataOutput",
+    "bpmn:TextAnnotation",
+    "bpmn:Group"
+  ]);
+  function portFor(wp, b2) {
+    const o3 = getOrientation({ x: wp.x, y: wp.y, width: 0, height: 0 }, b2, 0);
+    let side;
+    let pos;
+    if (o3.indexOf("top") === 0) {
+      side = "top";
+      pos = b2.width > 0 ? (wp.x - b2.x) / b2.width : 0.5;
+    } else if (o3.indexOf("bottom") === 0) {
+      side = "bottom";
+      pos = b2.width > 0 ? (wp.x - b2.x) / b2.width : 0.5;
+    } else if (o3 === "left") {
+      side = "left";
+      pos = b2.height > 0 ? (wp.y - b2.y) / b2.height : 0.5;
+    } else if (o3 === "right") {
+      side = "right";
+      pos = b2.height > 0 ? (wp.y - b2.y) / b2.height : 0.5;
+    } else {
+      const dT = Math.abs(wp.y - b2.y);
+      const dB = Math.abs(wp.y - (b2.y + b2.height));
+      const dL = Math.abs(wp.x - b2.x);
+      const dR = Math.abs(wp.x - (b2.x + b2.width));
+      const m4 = Math.min(dT, dB, dL, dR);
+      if (m4 === dT) {
+        side = "top";
+        pos = b2.width > 0 ? (wp.x - b2.x) / b2.width : 0.5;
+      } else if (m4 === dB) {
+        side = "bottom";
+        pos = b2.width > 0 ? (wp.x - b2.x) / b2.width : 0.5;
+      } else if (m4 === dL) {
+        side = "left";
+        pos = b2.height > 0 ? (wp.y - b2.y) / b2.height : 0.5;
+      } else {
+        side = "right";
+        pos = b2.height > 0 ? (wp.y - b2.y) / b2.height : 0.5;
+      }
+    }
+    if (pos < 0.375) return `${side}-1`;
+    if (pos > 0.625) return `${side}-2`;
+    return side;
+  }
+  function diColours(attrs) {
+    if (!attrs) return {};
+    const fill2 = attrs["color:background-color"] || attrs["background-color"] || attrs["bioc:fill"] || attrs["fill"];
+    const stroke3 = attrs["color:border-color"] || attrs["border-color"] || attrs["bioc:stroke"] || attrs["stroke"];
+    return { fill: fill2, stroke: stroke3 };
+  }
+  var moddleSingleton = null;
+  function moddle() {
+    if (!moddleSingleton) moddleSingleton = new SimpleBpmnModdle();
+    return moddleSingleton;
+  }
+  var MAX_BPMN_BYTES = 4 * 1024 * 1024;
+  async function importBpmn(raw2) {
+    if (raw2.length > MAX_BPMN_BYTES) {
+      throw new Error(`BPMN file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 4 MB.`);
+    }
+    const { rootElement: definitions, warnings: parserWarnings } = await moddle().fromXML(raw2, "bpmn:Definitions");
+    const warnings = parserWarnings.map(
+      (w3) => typeof w3 === "string" ? w3 : w3.message ?? String(w3)
+    );
+    const flowNodes = [];
+    const sequenceFlows = [];
+    const collectFlow = (parent) => {
+      for (const fe3 of parent.flowElements ?? []) {
+        if (FLOW_NODE_TYPES.has(fe3.$type)) flowNodes.push(fe3);
+        else if (fe3.$type === "bpmn:SequenceFlow") sequenceFlows.push(fe3);
+        if (fe3.flowElements) collectFlow(fe3);
+      }
+    };
+    for (const root2 of definitions.rootElements ?? []) collectFlow(root2);
+    const diShapes = /* @__PURE__ */ new Map();
+    const diEdges = /* @__PURE__ */ new Map();
+    for (const dia of definitions.diagrams ?? []) {
+      for (const pe3 of dia.plane.planeElement ?? []) {
+        const refId = pe3.bpmnElement?.id;
+        if (!refId) continue;
+        if (pe3.$type === "bpmndi:BPMNShape") diShapes.set(refId, pe3);
+        else if (pe3.$type === "bpmndi:BPMNEdge") diEdges.set(refId, pe3);
+      }
+    }
+    const model = { nodes: [], edges: [] };
+    for (const fn2 of flowNodes) {
+      const id = fn2.id;
+      const tag = fn2.$type.replace(/^bpmn:/, "");
+      const tagLc = tag.charAt(0).toLowerCase() + tag.slice(1);
+      const extras = bpmnExtras(fn2, tagLc);
+      const shape = extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
+      const di = diShapes.get(id);
+      const bounds = di?.bounds;
+      const x3 = bounds?.x ?? 100;
+      const y3 = bounds?.y ?? 100;
+      const width2 = bounds?.width ?? (tagLc.endsWith("Event") ? 36 : 100);
+      const height2 = bounds?.height ?? (tagLc.endsWith("Event") ? 36 : 60);
+      const { fill: fill2, stroke: stroke3 } = diColours(di?.$attrs);
+      const style2 = {};
+      if (fill2) style2.fill = fill2;
+      if (stroke3) style2.stroke = stroke3;
+      model.nodes.push({
+        id,
+        shape,
+        x: x3,
+        y: y3,
+        width: width2,
+        height: height2,
+        label: (fn2.name ?? "").replace(/&#10;/g, "\n"),
+        attrs: {
+          __source: { format: "bpmn", sourceId: id, tag: tagLc },
+          ...Object.keys(style2).length ? { style: style2 } : {},
+          // Đợt F — BPMN semantics preserved in NodeExtra for canvas + round-trip
+          ...extras.trigger ? { trigger: extras.trigger } : {},
+          ...extras.throwing !== void 0 ? { throwing: extras.throwing } : {},
+          ...extras.interrupting !== void 0 ? { interrupting: extras.interrupting } : {},
+          ...extras.attachedTo ? { attachedTo: extras.attachedTo } : {},
+          ...extras.markers ? { markers: extras.markers } : {}
+        }
+      });
+      if (!di) warnings.push(`BPMN flow node "${id}" thi\u1EBFu BPMNShape DI \u2014 \u0111\u1EB7t v\u1ECB tr\xED m\u1EB7c \u0111\u1ECBnh.`);
+    }
+    const nodeBox2 = /* @__PURE__ */ new Map();
+    for (const n2 of model.nodes) nodeBox2.set(n2.id, { x: n2.x, y: n2.y, width: n2.width, height: n2.height });
+    for (const sf of sequenceFlows) {
+      const id = sf.id;
+      const sourceId = sf.sourceRef?.id;
+      const targetId = sf.targetRef?.id;
+      if (!sourceId || !targetId) continue;
+      const di = diEdges.get(id);
+      const wps = di?.waypoint ?? [];
+      const vertices = wps.length > 2 ? wps.slice(1, -1).map((p4) => ({ x: p4.x, y: p4.y })) : void 0;
+      const srcBox = nodeBox2.get(sourceId);
+      const tgtBox = nodeBox2.get(targetId);
+      const sourceAnchor = wps.length >= 2 && srcBox ? { dx: wps[0].x - srcBox.x, dy: wps[0].y - srcBox.y } : void 0;
+      const targetAnchor = wps.length >= 2 && tgtBox ? { dx: wps[wps.length - 1].x - tgtBox.x, dy: wps[wps.length - 1].y - tgtBox.y } : void 0;
+      const sourcePort = sourceAnchor ? void 0 : wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : void 0;
+      const targetPort = targetAnchor ? void 0 : wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : void 0;
+      let labelPos;
+      const lb = di?.label?.bounds;
+      if (lb && wps.length >= 2) {
+        const labelCx = lb.x + lb.width / 2;
+        const labelCy = lb.y + lb.height / 2;
+        let totalLen = 0;
+        const segLens = [];
+        for (let i3 = 1; i3 < wps.length; i3++) {
+          const dx = wps[i3].x - wps[i3 - 1].x, dy = wps[i3].y - wps[i3 - 1].y;
+          const l3 = Math.sqrt(dx * dx + dy * dy);
+          segLens.push(l3);
+          totalLen += l3;
+        }
+        let cumLen = 0, midX = wps[0].x, midY = wps[0].y;
+        for (let i3 = 0; i3 < segLens.length; i3++) {
+          if (cumLen + segLens[i3] >= totalLen / 2) {
+            const t3 = totalLen > 0 ? (totalLen / 2 - cumLen) / segLens[i3] : 0;
+            midX = wps[i3].x + (wps[i3 + 1].x - wps[i3].x) * t3;
+            midY = wps[i3].y + (wps[i3 + 1].y - wps[i3].y) * t3;
+            break;
+          }
+          cumLen += segLens[i3];
+        }
+        labelPos = { distance: 0.5, offset: { x: labelCx - midX, y: labelCy - midY } };
+      }
+      model.edges.push({
+        id,
+        source: sourceId,
+        sourcePort,
+        sourceAnchor,
+        target: targetId,
+        targetPort,
+        targetAnchor,
+        label: (sf.name ?? "").replace(/&#10;/g, "\n") || void 0,
+        labelPos,
+        vertices,
+        router: "normal"
+      });
+    }
+    const defs = definitions;
+    const processById = /* @__PURE__ */ new Map();
+    for (const root2 of defs.rootElements ?? []) {
+      if (root2.$type === "bpmn:Process" && root2.id) processById.set(root2.id, root2);
+    }
+    const pools = [];
+    const HEADER = 30;
+    const LANE_HEAD = 24;
+    const PAD = 30;
+    for (const root2 of defs.rootElements ?? []) {
+      if (root2.$type !== "bpmn:Collaboration") continue;
+      for (const part of root2.participants ?? []) {
+        const proc = part.processRef?.id ? processById.get(part.processRef.id) : void 0;
+        const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
+        const laneAttrs = lanes.map((ln3) => ({ id: ln3.id ?? "", label: ln3.name ?? "" }));
+        let px2, py, pw, ph;
+        const partDi = part.id ? diShapes.get(part.id) : void 0;
+        if (partDi?.bounds) {
+          ({ x: px2, y: py, width: pw, height: ph } = partDi.bounds);
+        } else {
+          const members = model.nodes.filter((n2) => {
+            const sid = n2.attrs?.__source?.sourceId;
+            return sid && proc?.flowElements?.some((fe3) => fe3.id === sid);
+          });
+          const box = members.length ? members : model.nodes;
+          if (!box.length) continue;
+          const minX = Math.min(...box.map((n2) => n2.x));
+          const minY = Math.min(...box.map((n2) => n2.y));
+          const maxX = Math.max(...box.map((n2) => n2.x + n2.width));
+          const maxY = Math.max(...box.map((n2) => n2.y + n2.height));
+          px2 = minX - HEADER - LANE_HEAD - PAD;
+          py = minY - PAD;
+          pw = maxX - minX + HEADER + LANE_HEAD + PAD * 2;
+          ph = maxY - minY + PAD * 2;
+        }
+        pools.push({
+          id: part.id ?? `pool_${pools.length}`,
+          shape: "bpmn-pool",
+          x: px2,
+          y: py,
+          width: pw,
+          height: ph,
+          label: part.name ?? "",
+          attrs: {
+            lanes: laneAttrs.length ? laneAttrs : void 0,
+            __source: { format: "bpmn", sourceId: part.id, kind: "pool" }
+          }
+        });
+      }
+    }
+    if (pools.length) model.nodes.unshift(...pools);
+    const sourceMeta = { format: "bpmn", payload: { raw: raw2 } };
+    return { model, warnings, sourceMeta };
+  }
+
+  // src/io/bpmn/export.ts
+  var moddleSingleton2 = null;
+  function moddle2() {
+    if (!moddleSingleton2) moddleSingleton2 = new SimpleBpmnModdle();
+    return moddleSingleton2;
+  }
+  function shapeToBpmnType(shape, attrs) {
+    if (shape === "bpmn-event-intermediate" && attrs?.attachedTo) return "bpmn:BoundaryEvent";
+    const tag = SHAPE_TO_BPMN[shape] ?? "task";
+    return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
+  }
+  function applyBpmnExtras(m4, fe3, shape, attrs) {
+    if (attrs.trigger && TRIGGER_TO_EVENT_DEF[attrs.trigger]) {
+      const defName = TRIGGER_TO_EVENT_DEF[attrs.trigger];
+      const defType = "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1);
+      const def = m4.create(defType, {});
+      fe3.eventDefinitions = [def];
+    }
+    const markers = attrs.markers ?? [];
+    if (markers.includes("mi-par") || markers.includes("mi-seq")) {
+      const loop3 = m4.create("bpmn:MultiInstanceLoopCharacteristics", { isSequential: markers.includes("mi-seq") });
+      fe3.loopCharacteristics = loop3;
+    } else if (markers.includes("loop")) {
+      const loop3 = m4.create("bpmn:StandardLoopCharacteristics", {});
+      fe3.loopCharacteristics = loop3;
+    }
+    if (markers.includes("compensation")) {
+      fe3.isForCompensation = true;
+    }
+    if (attrs.interrupting === false) {
+      if (shape === "bpmn-event-start") {
+        fe3.isInterrupting = false;
+      } else {
+        fe3.cancelActivity = false;
+      }
+    }
+    if (attrs.attachedTo) {
+      fe3.attachedToRef = { id: attrs.attachedTo };
+    }
+    if (shape === "bpmn-event-subprocess") {
+      fe3.triggeredByEvent = true;
+    }
+    if (shape === "bpmn-data-collection") {
+      fe3.isCollection = true;
+    }
+  }
+  function findParticipant(defs, id) {
+    for (const root2 of defs.rootElements ?? []) {
+      if (root2.$type !== "bpmn:Collaboration") continue;
+      const found = (root2.participants ?? []).find((p4) => p4.id === id);
+      if (found) return found;
+    }
+    return void 0;
+  }
+  function findLane(process2, id) {
+    for (const ls of process2.laneSets ?? []) {
+      const found = (ls.lanes ?? []).find((l3) => l3.id === id);
+      if (found) return found;
+    }
+    return void 0;
+  }
+  var POOL_HEADER = 30;
+  var LANE_HEADER = 30;
+  var POOL_MARGIN = 40;
+  async function exportBpmn(model, meta) {
+    const m4 = moddle2();
+    if (meta?.format === "bpmn") {
+      const raw2 = String(meta.payload?.raw ?? "");
+      if (raw2) return patchExisting(raw2, model, m4);
+    }
+    return emitMinimal(model, m4);
+  }
+  async function patchExisting(raw2, model, m4) {
+    const { rootElement: defs } = await m4.fromXML(raw2, "bpmn:Definitions");
+    const definitions = defs;
+    const diShape = /* @__PURE__ */ new Map();
+    const diEdge = /* @__PURE__ */ new Map();
+    let mainPlane = null;
+    for (const dia of definitions.diagrams ?? []) {
+      if (!mainPlane) mainPlane = dia.plane;
+      for (const pe3 of dia.plane.planeElement ?? []) {
+        const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : pe3.bpmnElement?.id;
+        if (!refId) continue;
+        if (pe3.$type === "bpmndi:BPMNShape") diShape.set(refId, pe3);
+        else if (pe3.$type === "bpmndi:BPMNEdge") diEdge.set(refId, pe3);
+      }
+    }
+    if (!mainPlane) throw new Error("BPMN export: source document has no BPMNPlane.");
+    const process2 = (definitions.rootElements ?? []).find((r2) => r2.$type === "bpmn:Process") ?? null;
+    if (!process2) throw new Error("BPMN export: source document has no bpmn:Process.");
+    const flowById = /* @__PURE__ */ new Map();
+    const collect = (parent) => {
+      for (const fe3 of parent.flowElements ?? []) {
+        if (fe3.id) flowById.set(fe3.id, fe3);
+        if (fe3.flowElements) collect(fe3);
+      }
+    };
+    collect(process2);
+    const modelNodeIds = new Set(model.nodes.map((n2) => n2.id));
+    const modelEdgeIds = new Set(model.edges.map((e2) => e2.id));
+    for (const n2 of model.nodes) {
+      const srcKind = n2.attrs?.__source?.kind;
+      if (srcKind === "pool") continue;
+      let di = diShape.get(n2.id);
+      if (di?.bounds) {
+        di.bounds.x = n2.x;
+        di.bounds.y = n2.y;
+        di.bounds.width = n2.width;
+        di.bounds.height = n2.height;
+        di.label = void 0;
+      } else {
+        const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), { id: n2.id, name: n2.label ?? "" });
+        applyBpmnExtras(m4, fe3, n2.shape, n2.attrs ?? {});
+        (process2.flowElements ??= []).push(fe3);
+        di = m4.create("bpmndi:BPMNShape", {
+          bpmnElement: fe3,
+          bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height })
+        });
+        (mainPlane.planeElement ??= []).push(di);
+        diShape.set(n2.id, di);
+      }
+      const existing = flowById.get(n2.id);
+      if (existing) {
+        if (typeof n2.label === "string") existing.name = n2.label;
+        applyBpmnExtras(m4, existing, n2.shape, n2.attrs ?? {});
+      }
+    }
+    const refIdOf = (r2) => typeof r2 === "string" ? r2 : r2?.id;
+    const referenced = /* @__PURE__ */ new Set();
+    for (const fe3 of process2.flowElements ?? []) {
+      if (fe3.$type !== "bpmn:SequenceFlow") continue;
+      if (!modelEdgeIds.has(fe3.id)) continue;
+      const src = refIdOf(fe3.sourceRef);
+      const tgt = refIdOf(fe3.targetRef);
+      if (src) referenced.add(src);
+      if (tgt) referenced.add(tgt);
+    }
+    process2.flowElements = (process2.flowElements ?? []).filter((fe3) => {
+      if (fe3.$type === "bpmn:SequenceFlow") return modelEdgeIds.has(fe3.id);
+      return modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
+    });
+    const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
+    mainPlane.planeElement = (mainPlane.planeElement ?? []).filter((pe3) => {
+      const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : pe3.bpmnElement?.id;
+      if (!refId) return true;
+      if (pe3.$type === "bpmndi:BPMNEdge") return modelEdgeIds.has(refId);
+      if (pe3.$type === "bpmndi:BPMNShape") {
+        if (!flowNodeIdSet.has(refId)) return true;
+        return modelNodeIds.has(refId) || referenced.has(refId);
+      }
+      return true;
+    });
+    emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m4);
+    for (const e2 of model.edges) {
+      const srcNode = model.nodes.find((n2) => n2.id === e2.source);
+      const tgtNode = model.nodes.find((n2) => n2.id === e2.target);
+      if (!srcNode || !tgtNode) continue;
+      let de3 = diEdge.get(e2.id);
+      const wps = buildWaypoints(e2, srcNode, tgtNode, m4);
+      if (de3) {
+        de3.waypoint = wps;
+        de3.label = void 0;
+      } else {
+        let sf = flowById.get(e2.id);
+        if (!sf) {
+          const sourceFe = flowById.get(e2.source);
+          const targetFe = flowById.get(e2.target);
+          sf = m4.create("bpmn:SequenceFlow", {
+            id: e2.id,
+            name: e2.label ?? "",
+            sourceRef: sourceFe,
+            targetRef: targetFe
+          });
+          (process2.flowElements ??= []).push(sf);
+        } else if (typeof e2.label === "string") {
+          sf.name = e2.label;
+        }
+        de3 = m4.create("bpmndi:BPMNEdge", { bpmnElement: sf, waypoint: wps });
+        (mainPlane.planeElement ??= []).push(de3);
+        diEdge.set(e2.id, de3);
+      }
+    }
+    const { xml: xml3 } = await m4.toXML(definitions, { format: true });
+    return xml3;
+  }
+  function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m4) {
+    const pools = model.nodes.filter((n2) => n2.attrs?.__source?.kind === "pool");
+    if (!pools.length) return;
+    const flow = model.nodes.filter((n2) => n2.attrs?.__source?.kind !== "pool");
+    if (!flow.length) return;
+    const minX = Math.min(...flow.map((n2) => n2.x));
+    const minY = Math.min(...flow.map((n2) => n2.y));
+    const maxX = Math.max(...flow.map((n2) => n2.x + n2.width));
+    const maxY = Math.max(...flow.map((n2) => n2.y + n2.height));
+    const poolX = minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN;
+    const poolY = minY - POOL_MARGIN;
+    const poolW = maxX - minX + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2;
+    const poolH = maxY - minY + POOL_MARGIN * 2;
+    for (const pool of pools) {
+      const prefix2 = [];
+      let pdi = diShape.get(pool.id);
+      if (pdi?.bounds) {
+        pdi.bounds.x = poolX;
+        pdi.bounds.y = poolY;
+        pdi.bounds.width = poolW;
+        pdi.bounds.height = poolH;
+      } else {
+        const part = findParticipant(definitions, pool.id);
+        pdi = m4.create("bpmndi:BPMNShape", {
+          bpmnElement: part ?? m4.create("bpmn:Participant", { id: pool.id }),
+          bounds: m4.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
+        });
+        pdi.isHorizontal = true;
+        diShape.set(pool.id, pdi);
+        prefix2.push(pdi);
+      }
+      const lanes = pool.attrs?.lanes ?? [];
+      const laneX = poolX + POOL_HEADER;
+      const laneW = poolW - POOL_HEADER;
+      if (lanes.length) {
+        const bands = laneBands(lanes, process2, model, poolY, poolH);
+        lanes.forEach((ln3, i3) => {
+          if (!ln3.id) return;
+          const band = bands[i3];
+          let ldi = diShape.get(ln3.id);
+          if (ldi?.bounds) {
+            ldi.bounds.x = laneX;
+            ldi.bounds.y = band.y;
+            ldi.bounds.width = laneW;
+            ldi.bounds.height = band.h;
+          } else {
+            const laneEl = findLane(process2, ln3.id);
+            ldi = m4.create("bpmndi:BPMNShape", {
+              bpmnElement: laneEl ?? m4.create("bpmn:Lane", { id: ln3.id }),
+              bounds: m4.create("dc:Bounds", { x: laneX, y: band.y, width: laneW, height: band.h })
+            });
+            ldi.isHorizontal = true;
+            diShape.set(ln3.id, ldi);
+            prefix2.push(ldi);
+          }
+        });
+      }
+      if (prefix2.length) (mainPlane.planeElement ??= []).unshift(...prefix2);
+    }
+  }
+  function laneBands(lanes, process2, model, poolY, poolH) {
+    if (lanes.length <= 1) return [{ y: poolY, h: poolH }];
+    const nodeY = new Map(model.nodes.map((n2) => [n2.id, { top: n2.y, bot: n2.y + n2.height }]));
+    const mids = lanes.map((ln3) => {
+      const lane = findLane(process2, ln3.id);
+      const refs = lane?.flowNodeRef ?? [];
+      const ys = refs.map((r2) => nodeY.get(typeof r2 === "string" ? r2 : r2.id ?? "")).filter(Boolean);
+      if (!ys.length) return NaN;
+      return ys.reduce((s3, v4) => s3 + (v4.top + v4.bot) / 2, 0) / ys.length;
+    });
+    if (mids.some((v4) => Number.isNaN(v4))) {
+      const each = poolH / lanes.length;
+      return lanes.map((_4, i3) => ({ y: poolY + i3 * each, h: each }));
+    }
+    const order = lanes.map((_4, i3) => i3).sort((a3, b2) => mids[a3] - mids[b2]);
+    const bounds = [poolY];
+    for (let i3 = 0; i3 < order.length - 1; i3++) {
+      bounds.push((mids[order[i3]] + mids[order[i3 + 1]]) / 2);
+    }
+    bounds.push(poolY + poolH);
+    const bands = new Array(lanes.length);
+    order.forEach((laneIdx, k3) => {
+      bands[laneIdx] = { y: bounds[k3], h: bounds[k3 + 1] - bounds[k3] };
+    });
+    return bands;
+  }
+  function buildWaypoints(e2, src, tgt, m4) {
+    const point = (x3, y3) => m4.create("dc:Point", { x: x3, y: y3 });
+    const start = e2.sourceAnchor ? point(src.x + e2.sourceAnchor.dx, src.y + e2.sourceAnchor.dy) : point(src.x + src.width / 2, src.y + src.height / 2);
+    const end = e2.targetAnchor ? point(tgt.x + e2.targetAnchor.dx, tgt.y + e2.targetAnchor.dy) : point(tgt.x + tgt.width / 2, tgt.y + tgt.height / 2);
+    const mid = (e2.vertices ?? []).map((v4) => point(v4.x, v4.y));
+    return [start, ...mid, end];
+  }
+  async function emitMinimal(model, m4) {
+    const defs = m4.create("bpmn:Definitions", {
+      id: "Definitions_Export",
+      targetNamespace: "http://omniboard.local/bpmn"
+    });
+    const process2 = m4.create("bpmn:Process", {
+      id: "Process_Export",
+      isExecutable: false
+    });
+    (defs.rootElements ??= []).push(process2);
+    const feById = /* @__PURE__ */ new Map();
+    process2.flowElements = [];
+    for (const n2 of model.nodes) {
+      const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), { id: n2.id, name: n2.label ?? "" });
+      applyBpmnExtras(m4, fe3, n2.shape, n2.attrs ?? {});
+      process2.flowElements.push(fe3);
+      feById.set(n2.id, fe3);
+    }
+    const sfById = /* @__PURE__ */ new Map();
+    for (const e2 of model.edges) {
+      const sf = m4.create("bpmn:SequenceFlow", {
+        id: e2.id,
+        name: e2.label ?? "",
+        sourceRef: feById.get(e2.source),
+        targetRef: feById.get(e2.target)
+      });
+      process2.flowElements.push(sf);
+      sfById.set(e2.id, sf);
+    }
+    const plane = m4.create("bpmndi:BPMNPlane", {
+      id: "Plane_Export",
+      bpmnElement: process2,
+      planeElement: []
+    });
+    for (const n2 of model.nodes) {
+      plane.planeElement.push(m4.create("bpmndi:BPMNShape", {
+        id: n2.id + "_di",
+        bpmnElement: feById.get(n2.id),
+        bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height })
+      }));
+    }
+    for (const e2 of model.edges) {
+      const src = model.nodes.find((n2) => n2.id === e2.source);
+      const tgt = model.nodes.find((n2) => n2.id === e2.target);
+      const sf = sfById.get(e2.id);
+      if (!src || !tgt || !sf) continue;
+      plane.planeElement.push(m4.create("bpmndi:BPMNEdge", {
+        id: e2.id + "_di",
+        bpmnElement: sf,
+        waypoint: buildWaypoints(e2, src, tgt, m4)
+      }));
+    }
+    const dia = m4.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
+    (defs.diagrams ??= []).push(dia);
+    const { xml: xml3 } = await m4.toXML(defs, { format: true });
+    return xml3;
+  }
+
+  // src/io/dbml/import.ts
+  var TABLE_RE = /Table\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:as\s+\w+\s*)?\{([\s\S]*?)\n\}/g;
+  var COLUMN_RE = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+([^\s\[\n]+)(?:\s*\[([^\]]*)\])?\s*$/;
+  var INLINE_REF_RE = /ref:\s*([<>]+|<>)\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)/i;
+  var REF_RE = /Ref(?:\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*([<>]+|<>)\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)/g;
+  function stripComments(src) {
+    let out = "";
+    let i3 = 0;
+    while (i3 < src.length) {
+      if (src[i3] === "/" && src[i3 + 1] === "*") {
+        const end = src.indexOf("*/", i3 + 2);
+        const span = end < 0 ? src.length : end + 2;
+        out += src.slice(i3, span).replace(/[^\n]/g, " ");
+        i3 = span;
+      } else if (src[i3] === "/" && src[i3 + 1] === "/") {
+        const end = src.indexOf("\n", i3);
+        const span = end < 0 ? src.length : end;
+        out += src.slice(i3, span).replace(/[^\n]/g, " ");
+        i3 = span;
+      } else {
+        out += src[i3++];
+      }
+    }
+    return out;
+  }
+  var MAX_DBML_BYTES = 2 * 1024 * 1024;
+  function importDbml(raw2) {
+    if (raw2.length > MAX_DBML_BYTES) {
+      throw new Error(`DBML file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 2 MB.`);
+    }
+    const stripped = stripComments(raw2);
+    const tables = [];
+    const refs = [];
+    const warnings = [];
+    let refSeq = 0;
+    TABLE_RE.lastIndex = 0;
+    let m4;
+    while ((m4 = TABLE_RE.exec(stripped)) !== null) {
+      const name2 = m4[1];
+      const body = m4[2];
+      const cols = [];
+      for (const line2 of body.split(/\r?\n/)) {
+        const cm = COLUMN_RE.exec(line2);
+        if (cm) {
+          cols.push({ name: cm[1], type: cm[2], flags: (cm[3] || "").trim() });
+          const ir2 = INLINE_REF_RE.exec(cm[3] || "");
+          if (ir2) {
+            refs.push({
+              id: `__ref_${++refSeq}`,
+              src: `${name2}.${cm[1]}`,
+              tgt: `${ir2[2]}.${ir2[3]}`,
+              kind: ir2[1]
+            });
+          }
+        }
+      }
+      tables.push({ name: name2, columns: cols, rawBody: body });
+    }
+    REF_RE.lastIndex = 0;
+    while ((m4 = REF_RE.exec(stripped)) !== null) {
+      refs.push({
+        id: m4[1] || `__ref_${++refSeq}`,
+        src: `${m4[2]}.${m4[3]}`,
+        tgt: `${m4[5]}.${m4[6]}`,
+        kind: m4[4]
+      });
+    }
+    if (tables.length === 0) warnings.push("Kh\xF4ng t\xECm th\u1EA5y table n\xE0o trong DBML.");
+    const model = { nodes: [], edges: [] };
+    const TABLE_W = 220;
+    const ROW_H = 22;
+    const HEAD_H = 36;
+    const idByTable = /* @__PURE__ */ new Map();
+    for (const t3 of tables) {
+      const id = t3.name;
+      idByTable.set(t3.name, id);
+      const erdCols = t3.columns.map((c4) => {
+        const flags = c4.flags.toLowerCase();
+        const isPk = /\bpk\b|\bprimary\s+key\b/.test(flags);
+        const isFk = /\bref\s*:/.test(flags);
+        return { k: isPk ? "PK" : isFk ? "FK" : "", name: c4.name, type: c4.type };
+      });
+      const height2 = HEAD_H + Math.max(1, erdCols.length) * ROW_H + 12;
+      model.nodes.push({
+        id,
+        shape: "erd-entity",
+        x: 0,
+        y: 0,
+        width: TABLE_W,
+        height: height2,
+        label: t3.name,
+        attrs: {
+          cols: erdCols,
+          __source: { format: "dbml", sourceId: t3.name, kind: "table", columns: t3.columns }
+        }
+      });
+    }
+    const seenPairs = /* @__PURE__ */ new Set();
+    for (const r2 of refs) {
+      const [sTab] = r2.src.split(".");
+      const [tTab] = r2.tgt.split(".");
+      if (!idByTable.has(sTab) || !idByTable.has(tTab)) continue;
+      const key = `${sTab}->${tTab}`;
+      if (seenPairs.has(key)) continue;
+      seenPairs.add(key);
+      model.edges.push({
+        id: r2.id,
+        source: sTab,
+        target: tTab,
+        label: r2.kind,
+        style: { stroke: "#7a8aa6", width: 1 }
+      });
+    }
+    if (model.nodes.length) {
+      const g2 = new To.graphlib.Graph();
+      g2.setGraph({ rankdir: "LR", nodesep: 40, ranksep: 80, marginx: 60, marginy: 60 });
+      g2.setDefaultEdgeLabel(() => ({}));
+      for (const n2 of model.nodes) g2.setNode(n2.id, { width: n2.width, height: n2.height });
+      for (const e2 of model.edges) g2.setEdge(e2.source, e2.target);
+      To.layout(g2);
+      for (const n2 of model.nodes) {
+        const dn2 = g2.node(n2.id);
+        if (dn2) {
+          n2.x = dn2.x - n2.width / 2;
+          n2.y = dn2.y - n2.height / 2;
+        }
+      }
+    }
+    const sourceMeta = { format: "dbml", payload: { raw: raw2 } };
+    return { model, warnings, sourceMeta };
+  }
+
   // harness/harness.ts
   registerAllShapes();
   var host = document.getElementById("host");
-  var canvas = new LarkCanvas(host, SHAPE_CATEGORIES, () => {
+  var canvas = new OmniboardCanvas(host, SHAPE_CATEGORIES, () => {
   });
+  window.__import = {
+    bpmn: async (raw2) => {
+      const r2 = await importBpmn(raw2);
+      canvas.loadModel(r2.model);
+      return { nodes: r2.model.nodes.length, edges: r2.model.edges.length, warnings: r2.warnings };
+    },
+    dbml: (raw2) => {
+      const r2 = importDbml(raw2);
+      canvas.loadModel(r2.model);
+      return { nodes: r2.model.nodes.length, edges: r2.model.edges.length, warnings: r2.warnings };
+    }
+  };
+  window.__export = {
+    bpmn: async (model) => exportBpmn(model)
+  };
   canvas.loadModel({ nodes: [
     { id: "p", shape: "fc-process", x: 50, y: 120, width: 130, height: 56, label: "X\u1EED l\xFD" },
     {
@@ -74693,8 +83189,8 @@
     { id: "e1", source: "p", sourcePort: "right", target: "user", targetPort: "left" },
     { id: "e2", source: "user", sourcePort: "right", target: "cls", targetPort: "left", label: "uses" }
   ] });
-  window.__lk = canvas;
-  window.__LK = LarkCanvas;
+  window.__ob = canvas;
+  window.__OB = OmniboardCanvas;
   window.__cats = SHAPE_CATEGORIES;
   window.__render = renderModelToSvg;
   window.__css = collectPluginCss;

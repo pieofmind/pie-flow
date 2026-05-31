@@ -69962,6 +69962,51 @@ var BP_ICON = {
   cyl: svg(`<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/>`)
 };
 var ACTOR = svg(`<circle cx="12" cy="6" r="3"/><path d="M12 9v7M7 12h10M12 16l-4 5M12 16l4 5"/>`);
+var TRIG_OUT = {
+  message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5"/></svg>`,
+  timer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><path d="M12 7v5l3 2"/><path d="M12 5v1M12 18v1M5 12h1M18 12h1" stroke-width="1.2"/></svg>`,
+  signal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 21 19H3Z"/></svg>`,
+  error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18 10 8l3 6 3-4 4 10"/></svg>`,
+  escalation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+  compensation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+  conditional: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14"/><path d="M7 9h10M7 12h10M7 15h6"/></svg>`,
+  link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h11l-3-3M15 12l-3 3"/></svg>`,
+  cancel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg>`,
+  terminate: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`,
+  multiple: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+  "parallel-multiple": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>`
+};
+var TRIG_FILL = {
+  message: `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`,
+  signal: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 21 19H3Z"/></svg>`,
+  error: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 10 8l3 6 3-4 4 10Z"/></svg>`,
+  escalation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+  compensation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+  link: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h11l-3-3M15 12l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 10h11v4H4z"/></svg>`,
+  multiple: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+  cancel: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 6 6 6-6 2 2-6 6 6 6-2 2-6-6-6 6-2-2 6-6-6-6Z"/></svg>`
+};
+function trigIcon(trigger, filled) {
+  var _a3;
+  if (!trigger) return "";
+  const t5 = trigger;
+  if (t5 === "terminate") return TRIG_OUT.terminate;
+  if (filled && TRIG_FILL[t5]) return TRIG_FILL[t5];
+  return (_a3 = TRIG_OUT[t5]) != null ? _a3 : "";
+}
+var MARKER_ICON = {
+  loop: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9a4 4 0 1 0 1-3M5 5V3M5 5H3"/></svg>`,
+  "mi-par": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="2.4" height="10"/><rect x="6.8" y="3" width="2.4" height="10"/><rect x="10.6" y="3" width="2.4" height="10"/></svg>`,
+  "mi-seq": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="2.4"/><rect x="3" y="6.8" width="10" height="2.4"/><rect x="3" y="10.6" width="10" height="2.4"/></svg>`,
+  adhoc: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10c2-4 4-4 6 0s4 4 6 0"/></svg>`,
+  compensation: `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M9 3 3 8l6 5ZM15 3 9 8l6 5Z"/></svg>`,
+  subprocess: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10"/><path d="M8 5.5v5M5.5 8h5"/></svg>`
+};
+function renderMarkers(markers) {
+  if (!markers || markers.length === 0) return "";
+  const items = markers.map((m6) => MARKER_ICON[m6] ? `<span class="bp-mk-ic">${MARKER_ICON[m6]}</span>` : "").join("");
+  return items ? `<div class="bp-markers">${items}</div>` : "";
+}
 function nodeHtml(kind, label, ov, extra) {
   return withStyle(nodeHtmlBase(kind, label, extra), styleStr(ov));
 }
@@ -70091,24 +70136,30 @@ function nodeHtmlBase(kind, label, extra) {
       return seqFrag("loop", L4, false);
     case "sq-frag-par":
       return seqFrag("par", L4, true);
+    case "bpmn-event-start":
+      return bpEvent("start", L4, void 0, extra);
+    case "bpmn-event-intermediate":
+      return bpEvent("inter", L4, void 0, extra);
+    case "bpmn-event-end":
+      return bpEvent("end", L4, void 0, extra);
     case "bpmn-start":
       return bpEvent("start", L4, void 0, extra);
     case "bpmn-start-message":
-      return bpEvent("start", L4, BP_ICON.msg, extra);
+      return bpEvent("start", L4, void 0, { ...extra, trigger: "message" });
     case "bpmn-start-timer":
-      return bpEvent("start", L4, BP_ICON.clock, extra);
+      return bpEvent("start", L4, void 0, { ...extra, trigger: "timer" });
     case "bpmn-intermediate":
       return bpEvent("inter", L4, void 0, extra);
     case "bpmn-intermediate-message":
-      return bpEvent("inter", L4, BP_ICON.msg, extra);
+      return bpEvent("inter", L4, void 0, { ...extra, trigger: "message" });
     case "bpmn-intermediate-timer":
-      return bpEvent("inter", L4, BP_ICON.clock, extra);
+      return bpEvent("inter", L4, void 0, { ...extra, trigger: "timer" });
     case "bpmn-end":
       return bpEvent("end", L4, void 0, extra);
     case "bpmn-end-message":
-      return bpEvent("end", L4, BP_ICON.send, extra);
+      return bpEvent("end", L4, void 0, { ...extra, trigger: "message", throwing: true });
     case "bpmn-end-terminate":
-      return bpEvent("end", L4, `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="currentColor"/></svg>`, extra);
+      return bpEvent("end", L4, void 0, { ...extra, trigger: "terminate" });
     case "bpmn-gateway-x":
       return bpGateway("\u2715", L4, extra);
     case "bpmn-gateway-parallel":
@@ -70120,29 +70171,43 @@ function nodeHtmlBase(kind, label, extra) {
     case "bpmn-gateway-complex":
       return bpGateway(`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16M6 6l12 12M18 6 6 18"/></svg>`, L4, extra);
     case "bpmn-task":
-      return bpTask(L4);
+      return bpTask(L4, void 0, extra);
     case "bpmn-task-user":
-      return bpTask(L4, "user");
+      return bpTask(L4, "user", extra);
     case "bpmn-task-service":
-      return bpTask(L4, "gear");
+      return bpTask(L4, "gear", extra);
     case "bpmn-task-script":
-      return bpTask(L4, "script");
+      return bpTask(L4, "script", extra);
     case "bpmn-task-manual":
-      return bpTask(L4, "hand");
+      return bpTask(L4, "hand", extra);
     case "bpmn-task-send":
-      return bpTask(L4, "send");
+      return bpTask(L4, "send", extra);
     case "bpmn-task-receive":
-      return bpTask(L4, "msg");
+      return bpTask(L4, "msg", extra);
     case "bpmn-task-rule":
-      return bpTask(L4, "rule");
+      return bpTask(L4, "rule", extra);
     case "bpmn-subprocess":
-      return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L4 || "Sub-process"}</span><span class="bp-plus">+</span></div>`;
+      return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L4 || "Sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
+    case "bpmn-transaction":
+      return `<div class="bp-frame bp-sub is-transaction"><span class="bp-frame-lbl">${L4 || "Transaction"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
+    case "bpmn-event-subprocess":
+      return `<div class="bp-frame bp-sub is-event-sub"><span class="bp-frame-lbl">${L4 || "Event sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
+    case "bpmn-call-activity":
+      return `<div class="bp-task is-call">${nl(L4) || "Call activity"}${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
     case "bpmn-data-object":
       return `<div class="bp-dataobj"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L4}</span></div>`;
+    case "bpmn-data-collection":
+      return `<div class="bp-dataobj is-collection"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L4}</span><span class="bp-coll-bars"></span></div>`;
+    case "bpmn-data-input":
+      return `<div class="bp-dataobj is-input"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L4 || "Input"}</span><span class="bp-data-arr"></span></div>`;
+    case "bpmn-data-output":
+      return `<div class="bp-dataobj is-output"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L4 || "Output"}</span><span class="bp-data-arr"></span></div>`;
     case "bpmn-data-store":
       return `<div class="bp-datastore"><span class="ic">${BP_ICON.cyl}</span><span class="lbl">${L4}</span></div>`;
     case "bpmn-annotation":
       return `<div class="bp-anno">${L4 || "Annotation"}</div>`;
+    case "bpmn-group":
+      return `<div class="bp-group">${L4 ? `<span class="bp-group-lbl">${L4}</span>` : ""}</div>`;
     case "bpmn-lane":
       return `<div class="bp-lane"><span>${L4}</span></div>`;
     case "bpmn-pool":
@@ -70167,12 +70232,17 @@ function lblStyle(extra) {
   return ` style="margin:${px(o5.y)}px 0 0 ${px(o5.x)}px"`;
 }
 function bpEvent(kind, label, icon, extra) {
-  const inner = icon != null ? icon : kind === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`);
-  return `<div class="bp-event ${kind}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
+  var _a3;
+  const pos = kind;
+  const filledByPos = pos === "end" || (extra == null ? void 0 : extra.throwing) === true;
+  const trigIc = (extra == null ? void 0 : extra.trigger) ? trigIcon(extra.trigger, filledByPos) : null;
+  const inner = (_a3 = trigIc != null ? trigIc : icon) != null ? _a3 : pos === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`);
+  const interrupt = (extra == null ? void 0 : extra.interrupting) === false ? " is-non-interrupting" : "";
+  return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
 }
-function bpTask(label, iconKey) {
+function bpTask(label, iconKey, extra) {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
-  return `<div class="bp-task">${icon}${nl(label)}</div>`;
+  return `<div class="bp-task">${icon}${nl(label)}${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
 }
 function bpGateway(mark, label, extra) {
   return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : ""}</div>`;
@@ -70275,34 +70345,71 @@ var SHAPE_CATEGORIES = [
   {
     title: "BPMN",
     items: [
-      { shape: "bpmn-start", label: "Start", w: 40, h: 40 },
-      { shape: "bpmn-start-message", label: "Start message", w: 40, h: 40 },
-      { shape: "bpmn-start-timer", label: "Start timer", w: 40, h: 40 },
-      { shape: "bpmn-intermediate", label: "Intermediate", w: 40, h: 40 },
-      { shape: "bpmn-intermediate-message", label: "Inter. message", w: 40, h: 40 },
-      { shape: "bpmn-intermediate-timer", label: "Inter. timer", w: 40, h: 40 },
-      { shape: "bpmn-end", label: "End", w: 40, h: 40 },
-      { shape: "bpmn-end-message", label: "End message", w: 40, h: 40 },
-      { shape: "bpmn-end-terminate", label: "Terminate", w: 40, h: 40 },
+      // Events — unified Đợt A. Palette lists the 3 base kinds + the common
+      // OMG triggers per position. Each trigger entry seeds extra.trigger so the
+      // dropped node renders the correct icon immediately.
+      // ── 18 common shapes shown by default ──
+      // Events (9)
+      { shape: "bpmn-event-start", label: "Start", w: 40, h: 40 },
+      { shape: "bpmn-event-start", label: "Start msg", w: 40, h: 40, seed: { trigger: "message" } },
+      { shape: "bpmn-event-start", label: "Start timer", w: 40, h: 40, seed: { trigger: "timer" } },
+      { shape: "bpmn-event-intermediate", label: "Intermediate", w: 40, h: 40 },
+      { shape: "bpmn-event-intermediate", label: "Inter. msg", w: 40, h: 40, seed: { trigger: "message" } },
+      { shape: "bpmn-event-intermediate", label: "Inter. timer", w: 40, h: 40, seed: { trigger: "timer" } },
+      { shape: "bpmn-event-end", label: "End", w: 40, h: 40 },
+      { shape: "bpmn-event-end", label: "End msg", w: 40, h: 40, seed: { trigger: "message" } },
+      { shape: "bpmn-event-end", label: "Terminate", w: 40, h: 40, seed: { trigger: "terminate" } },
+      // Gateways (3)
       { shape: "bpmn-gateway-x", label: "Exclusive GW", w: 50, h: 50 },
       { shape: "bpmn-gateway-parallel", label: "Parallel GW", w: 50, h: 50 },
       { shape: "bpmn-gateway-inclusive", label: "Inclusive GW", w: 50, h: 50 },
-      { shape: "bpmn-gateway-event", label: "Event GW", w: 50, h: 50 },
-      { shape: "bpmn-gateway-complex", label: "Complex GW", w: 50, h: 50 },
+      // Tasks (3)
       { shape: "bpmn-task", label: "Task", w: 120, h: 60 },
       { shape: "bpmn-task-user", label: "User task", w: 120, h: 60 },
       { shape: "bpmn-task-service", label: "Service task", w: 120, h: 60 },
-      { shape: "bpmn-task-script", label: "Script task", w: 120, h: 60 },
-      { shape: "bpmn-task-manual", label: "Manual task", w: 120, h: 60 },
-      { shape: "bpmn-task-send", label: "Send task", w: 120, h: 60 },
-      { shape: "bpmn-task-receive", label: "Receive task", w: 120, h: 60 },
-      { shape: "bpmn-task-rule", label: "Rule task", w: 120, h: 60 },
+      // Activities + swimlanes (3)
       { shape: "bpmn-subprocess", label: "Sub-process", w: 200, h: 120 },
-      { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76 },
-      { shape: "bpmn-data-store", label: "Data store", w: 70, h: 64 },
-      { shape: "bpmn-annotation", label: "Annotation", w: 150, h: 56 },
       { shape: "bpmn-lane", label: "Lane", w: 480, h: 140 },
-      { shape: "bpmn-pool", label: "Pool", w: 560, h: 200 }
+      { shape: "bpmn-pool", label: "Pool", w: 560, h: 200 },
+      // ── Load more (hidden by default) ──
+      // Remaining event triggers
+      { shape: "bpmn-event-start", label: "Start signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
+      { shape: "bpmn-event-start", label: "Start cond.", w: 40, h: 40, seed: { trigger: "conditional" }, advanced: true },
+      { shape: "bpmn-event-start", label: "Start multi", w: 40, h: 40, seed: { trigger: "multiple" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. error", w: 40, h: 40, seed: { trigger: "error" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. escal.", w: 40, h: 40, seed: { trigger: "escalation" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. comp.", w: 40, h: 40, seed: { trigger: "compensation" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. cond.", w: 40, h: 40, seed: { trigger: "conditional" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. link", w: 40, h: 40, seed: { trigger: "link" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. cancel", w: 40, h: 40, seed: { trigger: "cancel" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End error", w: 40, h: 40, seed: { trigger: "error" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End escal.", w: 40, h: 40, seed: { trigger: "escalation" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End comp.", w: 40, h: 40, seed: { trigger: "compensation" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End cancel", w: 40, h: 40, seed: { trigger: "cancel" }, advanced: true },
+      // Remaining gateways
+      { shape: "bpmn-gateway-event", label: "Event GW", w: 50, h: 50, advanced: true },
+      { shape: "bpmn-gateway-complex", label: "Complex GW", w: 50, h: 50, advanced: true },
+      // Remaining tasks
+      { shape: "bpmn-task-script", label: "Script task", w: 120, h: 60, advanced: true },
+      { shape: "bpmn-task-manual", label: "Manual task", w: 120, h: 60, advanced: true },
+      { shape: "bpmn-task-send", label: "Send task", w: 120, h: 60, advanced: true },
+      { shape: "bpmn-task-receive", label: "Receive task", w: 120, h: 60, advanced: true },
+      { shape: "bpmn-task-rule", label: "Rule task", w: 120, h: 60, advanced: true },
+      // Remaining activities
+      { shape: "bpmn-transaction", label: "Transaction", w: 200, h: 120, advanced: true },
+      { shape: "bpmn-event-subprocess", label: "Event sub-process", w: 200, h: 120, advanced: true },
+      { shape: "bpmn-call-activity", label: "Call activity", w: 120, h: 60, advanced: true },
+      // Data artifacts
+      { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
+      { shape: "bpmn-data-collection", label: "Data collection", w: 60, h: 76, advanced: true },
+      { shape: "bpmn-data-input", label: "Data input", w: 60, h: 76, advanced: true },
+      { shape: "bpmn-data-output", label: "Data output", w: 60, h: 76, advanced: true },
+      { shape: "bpmn-data-store", label: "Data store", w: 70, h: 64, advanced: true },
+      // Misc
+      { shape: "bpmn-annotation", label: "Annotation", w: 150, h: 56, advanced: true },
+      { shape: "bpmn-group", label: "Group", w: 200, h: 120, advanced: true }
     ]
   }
 ];
@@ -70383,14 +70490,71 @@ var ICONS = {
   "bpmn-task-receive": I(`<rect x="5" y="10" width="22" height="12" rx="4" fill="#e3f2fd" stroke="#1565c0" stroke-width="2"/><rect x="9" y="13" width="9" height="6" fill="none" stroke="#1565c0" stroke-width="1.2"/><path d="m9 13 4.5 3 4.5-3" stroke="#1565c0" stroke-width="1.2" fill="none"/>`),
   "bpmn-task-rule": I(`<rect x="5" y="10" width="22" height="12" rx="4" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="8" y="12" width="8" height="8" fill="none" stroke="#1565c0" stroke-width="1.1"/><path d="M8 15h8M12 12v8" stroke="#1565c0" stroke-width="1.1"/>`),
   "bpmn-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="13" y="18" width="6" height="4" fill="none" stroke="#1565c0" stroke-width="1.2"/><path d="M16 18.6v2.8M14.6 20h2.8" stroke="#1565c0" stroke-width="1"/>`),
+  // Đợt A unified events (3 base — trigger overlay picked from extra)
+  "bpmn-event-start": I(`<circle cx="16" cy="16" r="9" fill="#e7f9ed" stroke="#2e7d32" stroke-width="2"/>`),
+  "bpmn-event-intermediate": I(`<circle cx="16" cy="16" r="9" fill="#fff8e1" stroke="#f57f17" stroke-width="2"/><circle cx="16" cy="16" r="6" fill="none" stroke="#f57f17" stroke-width="1.5"/>`),
+  "bpmn-event-end": I(`<circle cx="16" cy="16" r="9" fill="#fde8e8" stroke="#c62828" stroke-width="3"/>`),
+  // Đợt B — Activities
+  "bpmn-transaction": I(`<rect x="3" y="8" width="26" height="16" rx="4" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="5.5" y="10.5" width="21" height="11" rx="2.5" fill="none" stroke="#1565c0" stroke-width="1.2"/>`),
+  "bpmn-event-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M16 12v8M12 16h8" stroke="#1565c0" stroke-width="1.2"/>`),
+  "bpmn-call-activity": I(`<rect x="4" y="10" width="24" height="12" rx="3" fill="#fff" stroke="#1565c0" stroke-width="3"/>`),
+  // Đợt B — Data artifacts
+  "bpmn-data-collection": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/><path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`),
+  "bpmn-data-input": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="none" stroke="#607d8b" stroke-width="1.3"/>`),
+  "bpmn-data-output": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="#607d8b"/>`),
+  // Đợt B — Group
+  "bpmn-group": I(`<rect x="4" y="8" width="24" height="16" rx="4" fill="none" stroke="#5e7a99" stroke-width="1.8" stroke-dasharray="4 2"/>`),
   "bpmn-data-object": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/>`),
   "bpmn-data-store": I(`<ellipse cx="16" cy="9" rx="9" ry="3" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M7 9v14c0 1.6 4 3 9 3s9-1.4 9-3V9" fill="none" stroke="#607d8b" stroke-width="2"/>`),
   "bpmn-annotation": I(`<path d="M11 6H26V26H11" fill="none" stroke="#90a4ae" stroke-width="2"/><path d="M11 6V26" stroke="#607d8b" stroke-width="2.5"/>`),
   "bpmn-lane": I(`<rect x="4" y="9" width="24" height="14" fill="none" stroke="#546e7a" stroke-width="2"/><rect x="4" y="9" width="6" height="14" fill="#eceff1" stroke="#546e7a" stroke-width="2"/>`)
 };
-function shapeIcon(shape) {
-  var _a3;
-  return (_a3 = ICONS[shape]) != null ? _a3 : I(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
+function shapeIcon(shape, seed) {
+  var _a3, _b2, _c, _d, _e3;
+  if (seed == null ? void 0 : seed.trigger) {
+    const map = {
+      "bpmn-event-start": {
+        message: "bpmn-start-message",
+        timer: "bpmn-start-timer"
+      },
+      "bpmn-event-intermediate": {
+        message: "bpmn-intermediate-message",
+        timer: "bpmn-intermediate-timer"
+      },
+      "bpmn-event-end": {
+        message: "bpmn-end-message",
+        terminate: "bpmn-end-terminate"
+      }
+    };
+    const alias = (_a3 = map[shape]) == null ? void 0 : _a3[seed.trigger];
+    if (alias && ICONS[alias]) return ICONS[alias];
+    const borderByPos = {
+      "bpmn-event-start": `<circle cx="16" cy="16" r="9" fill="#e7f9ed" stroke="#2e7d32" stroke-width="2"/>`,
+      "bpmn-event-intermediate": `<circle cx="16" cy="16" r="9" fill="#fff8e1" stroke="#f57f17" stroke-width="2"/><circle cx="16" cy="16" r="6.5" fill="none" stroke="#f57f17" stroke-width="1.2"/>`,
+      "bpmn-event-end": `<circle cx="16" cy="16" r="9" fill="#fde8e8" stroke="#c62828" stroke-width="3"/>`
+    };
+    const color = {
+      "bpmn-event-start": "#2e7d32",
+      "bpmn-event-intermediate": "#f57f17",
+      "bpmn-event-end": "#c62828"
+    };
+    const c6 = (_b2 = color[shape]) != null ? _b2 : "#666";
+    const glyph = {
+      signal: `<path d="M16 11 22 21 10 21Z" fill="none" stroke="${c6}" stroke-width="1.4"/>`,
+      error: `<path d="M9 21 13 13l3 4 3-4 3 8" fill="none" stroke="${c6}" stroke-width="1.5"/>`,
+      escalation: `<path d="M16 11 21 21 16 18 11 21Z" fill="none" stroke="${c6}" stroke-width="1.4"/>`,
+      compensation: `<path d="M17 12 12 16 17 20ZM22 12 17 16 22 20Z" fill="none" stroke="${c6}" stroke-width="1.3"/>`,
+      conditional: `<rect x="11" y="11" width="10" height="10" fill="none" stroke="${c6}" stroke-width="1.3"/><path d="M13 14h6M13 16h6M13 18h4" stroke="${c6}" stroke-width="1"/>`,
+      link: `<path d="M11 16h8l-2-2M19 16l-2 2" fill="none" stroke="${c6}" stroke-width="1.6"/>`,
+      cancel: `<path d="m12 12 8 8M20 12l-8 8" stroke="${c6}" stroke-width="1.8"/>`,
+      multiple: `<path d="M16 11 21 14.5 19 21h-6L11 14.5Z" fill="none" stroke="${c6}" stroke-width="1.4"/>`,
+      "parallel-multiple": `<path d="M16 11v10M11 16h10" stroke="${c6}" stroke-width="1.8"/>`,
+      terminate: `<circle cx="16" cy="16" r="5" fill="${c6}"/>`
+    };
+    const g3 = (_c = glyph[seed.trigger]) != null ? _c : "";
+    return `<svg viewBox="0 0 32 32" fill="none">${(_d = borderByPos[shape]) != null ? _d : ""}${g3}</svg>`;
+  }
+  return (_e3 = ICONS[shape]) != null ? _e3 : I(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
 }
 
 // src/canvas/staticRender.ts
@@ -72260,6 +72424,20 @@ var ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 var EDGE_ATTRS = { line: { stroke: EDGE_STROKE2, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
 var EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" };
 var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle" };
+var FLOW_TYPE_PRESETS = {
+  sequence: { dash: "solid", start: "none", end: "arrow" },
+  default: { dash: "solid", start: "def-slash", end: "arrow" },
+  message: { dash: "dashed", start: "circle", end: "triangle" },
+  conditional: { dash: "solid", start: "diamond-o", end: "arrow" },
+  association: { dash: "dotted", start: "none", end: "arrow-open" }
+};
+var FLOW_TYPE_LABEL = {
+  sequence: "Sequence",
+  default: "Default",
+  message: "Message",
+  conditional: "Conditional",
+  association: "Association"
+};
 var EDGE_DASHES = { solid: "", dashed: "6 4", dotted: "2 4" };
 var ACT_WIDTH = 12;
 var FRAME_KINDS = /* @__PURE__ */ new Set([
@@ -72268,9 +72446,12 @@ var FRAME_KINDS = /* @__PURE__ */ new Set([
   "sq-frag-loop",
   "sq-frag-par",
   "bpmn-subprocess",
+  "bpmn-transaction",
+  "bpmn-event-subprocess",
   "bpmn-lane",
   "bpmn-pool",
-  "bpmn-annotation"
+  "bpmn-annotation",
+  "bpmn-group"
 ]);
 var CONTAINER_KINDS = /* @__PURE__ */ new Set([
   "sq-frag-alt",
@@ -72278,9 +72459,80 @@ var CONTAINER_KINDS = /* @__PURE__ */ new Set([
   "sq-frag-loop",
   "sq-frag-par",
   "bpmn-subprocess",
+  "bpmn-transaction",
+  "bpmn-event-subprocess",
   "bpmn-lane",
-  "bpmn-pool"
+  "bpmn-pool",
+  "bpmn-group"
 ]);
+var BPMN_TRIGGERS = [
+  "none",
+  "message",
+  "timer",
+  "signal",
+  "error",
+  "escalation",
+  "compensation",
+  "conditional",
+  "link",
+  "cancel",
+  "terminate",
+  "multiple",
+  "parallel-multiple"
+];
+var BPMN_TRIGGER_LABEL = {
+  none: "Kh\xF4ng",
+  message: "Message",
+  timer: "Timer",
+  signal: "Signal",
+  error: "Error",
+  escalation: "Escalation",
+  compensation: "Compensation",
+  conditional: "Conditional",
+  link: "Link",
+  cancel: "Cancel",
+  terminate: "Terminate",
+  multiple: "Multiple",
+  "parallel-multiple": "Parallel Multiple"
+};
+var BPMN_ACTIVITY_KINDS = /* @__PURE__ */ new Set([
+  "bpmn-task",
+  "bpmn-task-user",
+  "bpmn-task-service",
+  "bpmn-task-script",
+  "bpmn-task-manual",
+  "bpmn-task-send",
+  "bpmn-task-receive",
+  "bpmn-task-rule",
+  "bpmn-subprocess",
+  "bpmn-transaction",
+  "bpmn-event-subprocess",
+  "bpmn-call-activity"
+]);
+var BPMN_MARKERS = ["loop", "mi-par", "mi-seq", "adhoc", "compensation"];
+var BPMN_MARKER_LABEL = {
+  loop: "Loop",
+  "mi-par": "Multi-Instance Parallel",
+  "mi-seq": "Multi-Instance Sequential",
+  adhoc: "Ad-Hoc",
+  compensation: "Compensation"
+};
+function migrateBpmnEventKind(shape, extra) {
+  const M3 = {
+    "bpmn-start": { kind: "bpmn-event-start", patch: {} },
+    "bpmn-start-message": { kind: "bpmn-event-start", patch: { trigger: "message" } },
+    "bpmn-start-timer": { kind: "bpmn-event-start", patch: { trigger: "timer" } },
+    "bpmn-intermediate": { kind: "bpmn-event-intermediate", patch: {} },
+    "bpmn-intermediate-message": { kind: "bpmn-event-intermediate", patch: { trigger: "message" } },
+    "bpmn-intermediate-timer": { kind: "bpmn-event-intermediate", patch: { trigger: "timer" } },
+    "bpmn-end": { kind: "bpmn-event-end", patch: {} },
+    "bpmn-end-message": { kind: "bpmn-event-end", patch: { trigger: "message", throwing: true } },
+    "bpmn-end-terminate": { kind: "bpmn-event-end", patch: { trigger: "terminate" } }
+  };
+  const hit = M3[shape];
+  if (!hit) return { kind: shape, extra };
+  return { kind: hit.kind, extra: { ...extra, ...hit.patch } };
+}
 function buildMarker(kind, color) {
   switch (kind) {
     case "arrow":
@@ -72307,6 +72559,8 @@ function buildMarker(kind, color) {
       return { name: "path", d: "M16 -8 2 0 16 8 M16 0 2 0 M14 -8 14 8", fill: "none", stroke: color, "stroke-width": 1.5 };
     case "bar-bar":
       return { name: "path", d: "M5 -8 5 8 M10 -8 10 8", fill: "none", stroke: color, "stroke-width": 1.5 };
+    case "def-slash":
+      return { name: "path", d: "M2 -6 10 6", fill: "none", stroke: color, "stroke-width": 1.8 };
     case "none":
     default:
       return null;
@@ -72867,7 +73121,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (onlyCats && !onlyCats.includes(cat.title)) continue;
       for (const item of cat.items) {
         if (item.shape.startsWith("mm-")) continue;
-        const cell = el("div", "lk-shape-cell", shapeIcon(item.shape));
+        const cell = el("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
         cell.title = item.label;
         cell.onclick = () => onPick(item);
         grid.appendChild(cell);
@@ -72974,7 +73228,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       } else if (srcPort === "top" || srcPort === "bottom") {
         nx = sb.x + sb.width / 2 - item.w / 2;
       }
-      const created = this.addHtmlNode(item.shape, nx, ny, item.w, item.h, "");
+      const created = this.addHtmlNode(item.shape, nx, ny, item.w, item.h, "", void 0, void 0, item.seed);
       edge.setTarget({ cell: created.id });
       edge.setData({ ...edge.getData() });
       this.applyMindmapRoutingIfNeeded(edge);
@@ -73023,7 +73277,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (horiz) y5 += item.h + 20;
       else x4 += item.w + 20;
     }
-    const created = this.addHtmlNode(item.shape, x4, y5, item.w, item.h, "");
+    const created = this.addHtmlNode(item.shape, x4, y5, item.w, item.h, "", void 0, void 0, item.seed);
     const opp = { top: "bottom", bottom: "top", left: "right", right: "left" };
     this.graph.addEdge({
       source: { cell: source.id, port: dir },
@@ -73400,13 +73654,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       edge.__selVertsSnapshot = originalVerts;
       edge.__selVertsUserChanged = false;
       if (this.isOrthogonalEdge(edge) && originalVerts.length === 0) {
-        const view = this.graph.findViewByCell(edge);
-        const route = view == null ? void 0 : view.routePoints;
-        if (Array.isArray(route) && route.length > 2) {
-          const bends = route.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y }));
-          if (bends.length > 0) {
-            edge.setVertices(bends, { ui: false, toolId: "auto-segments" });
-          }
+        const bends = this.materializeEditableBends(edge);
+        if (bends.length > 0) {
+          edge.setVertices(bends, { ui: false, toolId: "auto-segments" });
         }
       }
       const dot2 = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
@@ -73468,6 +73718,21 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.refreshProps();
       this.refreshMindmapFabs();
       this.refreshContextPad();
+    });
+    this.graph.on("node:change:position", ({ node: node2, current, previous, options }) => {
+      var _a3;
+      if (options == null ? void 0 : options["__boundary_follow"]) return;
+      if (!current || !previous) return;
+      const dx = current.x - previous.x;
+      const dy = current.y - previous.y;
+      if (dx === 0 && dy === 0) return;
+      const movedId = node2.id;
+      for (const child of this.graph.getNodes()) {
+        if (child.id === movedId) continue;
+        if (((_a3 = child.getData()) == null ? void 0 : _a3.attachedTo) !== movedId) continue;
+        const p6 = child.getPosition();
+        child.setPosition(p6.x + dx, p6.y + dy, { "__boundary_follow": true });
+      }
     });
     this.graph.on("node:resized", () => {
       this.refreshContextBar();
@@ -73841,14 +74106,29 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const fly = el("div", "lk-flyout");
     fly.appendChild(el("div", "lk-flyout-title", cat.title));
     const grid = el("div", "lk-flyout-grid");
-    for (const item of cat.items) {
-      const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape)}<span class="lbl">${item.label}</span>`);
+    const mkCell = (item) => {
+      const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape, item.seed)}<span class="lbl">${item.label}</span>`);
       cell.title = `K\xE9o "${item.label}" v\xE0o canvas`;
       cell.addEventListener("pointerdown", (e4) => {
         if (e4.pointerType === "mouse") this.startDrag(e4, item, cell);
       });
       cell.addEventListener("touchstart", (e4) => this.startTouchDrag(e4, item, cell), { passive: false });
-      grid.appendChild(cell);
+      return cell;
+    };
+    const common2 = cat.items.filter((i6) => !i6.advanced);
+    const advanced = cat.items.filter((i6) => i6.advanced);
+    for (const item of common2) grid.appendChild(mkCell(item));
+    if (advanced.length > 0) {
+      const more = el("button", "lk-flyout-more", `Load more (${advanced.length})`);
+      more.onclick = () => {
+        var _a3;
+        const frag = document.createDocumentFragment();
+        for (const it3 of advanced) frag.appendChild(mkCell(it3));
+        (_a3 = more.parentElement) == null ? void 0 : _a3.insertBefore(frag, more);
+        more.remove();
+        this.positionFlyout(fly, anchor3);
+      };
+      grid.appendChild(more);
     }
     fly.appendChild(grid);
     fly.onmouseenter = () => this.cancelFlyoutClose();
@@ -73861,6 +74141,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   positionFlyout(fly, anchor3) {
     const ir2 = anchor3.getBoundingClientRect();
     const rr2 = this.root.getBoundingClientRect();
+    fly.style.maxHeight = Math.max(160, rr2.height - 24) + "px";
     if (this.isMobile) {
       const w5 = fly.offsetWidth;
       const left4 = Math.min(Math.max(8, ir2.left - rr2.left + ir2.width / 2 - w5 / 2), Math.max(8, rr2.width - w5 - 8));
@@ -73898,7 +74179,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    */
   startDrag(e4, item, source) {
     e4.preventDefault();
-    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape));
+    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape, item.seed));
     document.body.appendChild(ghost);
     let moved = false;
     const move = (ev) => {
@@ -73925,7 +74206,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.closeFlyoutNow();
       if (moved && onCanvas && !onFlyout) {
         const p6 = this.graph.clientToLocal(ev.clientX, ev.clientY);
-        const node2 = this.addHtmlNode(item.shape, p6.x - item.w / 2, p6.y - item.h / 2, item.w, item.h, item.label);
+        const node2 = this.addHtmlNode(item.shape, p6.x - item.w / 2, p6.y - item.h / 2, item.w, item.h, item.label, void 0, void 0, item.seed);
         this.graph.resetSelection([node2]);
         this.onChange();
       } else {
@@ -73946,7 +74227,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (e4.touches.length !== 1) return;
     e4.preventDefault();
     const t0 = e4.touches[0];
-    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape));
+    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape, item.seed));
     document.body.appendChild(ghost);
     const place = (x4, y5) => {
       ghost.style.left = x4 + 8 + "px";
@@ -73972,7 +74253,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.closeFlyoutNow();
       if (moved && onCanvas && !onFlyout && t5) {
         const p6 = this.graph.clientToLocal(t5.clientX, t5.clientY);
-        const node2 = this.addHtmlNode(item.shape, p6.x - item.w / 2, p6.y - item.h / 2, item.w, item.h, item.label);
+        const node2 = this.addHtmlNode(item.shape, p6.x - item.w / 2, p6.y - item.h / 2, item.w, item.h, item.label, void 0, void 0, item.seed);
         this.graph.resetSelection([node2]);
         this.onChange();
       } else {
@@ -74329,6 +74610,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   // ── Contextual toolbar above selected node ──────────────────────────────
   refreshContextBar() {
+    var _a3, _b2;
     const nodes = this.graph.getSelectedCells().filter((c6) => c6.isNode());
     if (nodes.length !== 1) {
       this.contextBar.style.display = "none";
@@ -74362,6 +74644,38 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const r4 = ev.currentTarget.getBoundingClientRect();
       this.showContextMenu(r4.left, r4.bottom + 4);
     }));
+    const kindNow = this.nodeKind(node2);
+    if (kindNow === "bpmn-event-start" || kindNow === "bpmn-event-intermediate" || kindNow === "bpmn-event-end") {
+      this.contextBar.appendChild(el("div", "lk-cb-sep"));
+      const cur = (_a3 = this.nodeExtra(node2).trigger) != null ? _a3 : "none";
+      this.contextBar.appendChild(mkBtn(
+        `<span style="font-size:11px;font-weight:600">${(_b2 = BPMN_TRIGGER_LABEL[cur]) != null ? _b2 : "Trigger"}</span><span class="lk-cb-caret">\u25BE</span>`,
+        "Trigger s\u1EF1 ki\u1EC7n",
+        (ev) => this.openBpmnTriggerPopup(node2, ev.currentTarget)
+      ));
+      const interr = this.nodeExtra(node2).interrupting !== false;
+      this.contextBar.appendChild(mkBtn(
+        `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7" stroke-dasharray="${interr ? "" : "3 2"}"/></svg>`,
+        interr ? "\u0110ang: Interrupting (click \u0111\u1EC3 Non-Interrupting)" : "\u0110ang: Non-Interrupting (click \u0111\u1EC3 Interrupting)",
+        () => this.toggleEventInterrupting(node2)
+      ));
+      if (kindNow === "bpmn-event-intermediate") {
+        const isBoundary = !!this.nodeExtra(node2).attachedTo;
+        this.contextBar.appendChild(mkBtn(
+          `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="11" height="8"/><circle cx="15" cy="14" r="3" fill="${isBoundary ? "currentColor" : "none"}"/></svg>`,
+          isBoundary ? "B\u1ECF \u0111\xEDnh kh\u1ECFi activity" : "\u0110\xEDnh v\xE0o activity g\u1EA7n nh\u1EA5t (boundary)",
+          () => this.toggleBoundaryAttach(node2)
+        ));
+      }
+    }
+    if (BPMN_ACTIVITY_KINDS.has(kindNow)) {
+      this.contextBar.appendChild(el("div", "lk-cb-sep"));
+      this.contextBar.appendChild(mkBtn(
+        `<svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor"><rect x="3" y="8" width="3" height="3"/><rect x="8.5" y="8" width="3" height="3"/><rect x="14" y="8" width="3" height="3"/></svg><span class="lk-cb-caret">\u25BE</span>`,
+        "Activity markers (loop / MI / ad-hoc / compensation)",
+        (ev) => this.openBpmnMarkerPopup(node2, ev.currentTarget)
+      ));
+    }
     if (this.nodeKind(node2) === "bpmn-pool") {
       this.contextBar.appendChild(el("div", "lk-cb-sep"));
       const ic = (svg3) => `<svg viewBox="0 0 20 20" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">${svg3}</svg>`;
@@ -74747,6 +75061,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if ((data2 == null ? void 0 : data2.who) !== void 0) out.who = data2.who;
     if (data2 == null ? void 0 : data2.labelOffset) out.labelOffset = data2.labelOffset;
     if ((data2 == null ? void 0 : data2.lanes) && data2.lanes.length > 0) out.lanes = data2.lanes;
+    if (data2 == null ? void 0 : data2.trigger) out.trigger = data2.trigger;
+    if ((data2 == null ? void 0 : data2.throwing) !== void 0) out.throwing = data2.throwing;
+    if ((data2 == null ? void 0 : data2.interrupting) !== void 0) out.interrupting = data2.interrupting;
+    if (data2 == null ? void 0 : data2.attachedTo) out.attachedTo = data2.attachedTo;
+    if ((data2 == null ? void 0 : data2.markers) && data2.markers.length > 0) out.markers = data2.markers;
     return out;
   }
   nodeKind(n3) {
@@ -74764,7 +75083,19 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   nodeExtra(n3) {
     var _a3;
     const d4 = (_a3 = n3.getData()) != null ? _a3 : {};
-    return { cols: d4.cols, fields: d4.fields, methods: d4.methods, who: d4.who, labelOffset: d4.labelOffset, lanes: d4.lanes };
+    return {
+      cols: d4.cols,
+      fields: d4.fields,
+      methods: d4.methods,
+      who: d4.who,
+      labelOffset: d4.labelOffset,
+      lanes: d4.lanes,
+      trigger: d4.trigger,
+      throwing: d4.throwing,
+      interrupting: d4.interrupting,
+      attachedTo: d4.attachedTo,
+      markers: d4.markers
+    };
   }
   rerender(n3) {
     n3.attr("content/html", nodeHtml(this.nodeKind(n3), this.nodeLabel(n3), this.nodeStyle(n3), this.nodeExtra(n3)));
@@ -74869,6 +75200,115 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.rerender(node2);
     this.autoHeight(node2);
     this.onChange();
+  }
+  // ── BPMN Đợt D — Trigger / Marker / Interrupting pickers ────────────────
+  /** Open the trigger picker for an event node (popup grid of 12 OMG triggers). */
+  openBpmnTriggerPopup(node2, anchor3) {
+    var _a3;
+    const list = el("div", "lk-line-list");
+    const cur = (_a3 = this.nodeExtra(node2).trigger) != null ? _a3 : "none";
+    for (const t5 of BPMN_TRIGGERS) {
+      const row = el("button", "lk-line-row" + (t5 === cur ? " on" : ""), `<span>${BPMN_TRIGGER_LABEL[t5]}</span>`);
+      row.onclick = () => {
+        var _a4;
+        const data2 = (_a4 = node2.getData()) != null ? _a4 : {};
+        const nextTrigger = t5 === "none" ? void 0 : t5;
+        node2.setData({ ...data2, trigger: nextTrigger });
+        this.rerender(node2);
+        this.onChange();
+        this.hidePopup();
+        this.refreshContextBar();
+      };
+      list.appendChild(row);
+    }
+    this.showPopup(list, anchor3);
+  }
+  /** Toggle Interrupting ↔ Non-Interrupting on event nodes (boundary / event-subprocess start). */
+  toggleEventInterrupting(node2) {
+    var _a3;
+    const data2 = (_a3 = node2.getData()) != null ? _a3 : {};
+    const cur = data2.interrupting !== false;
+    node2.setData({ ...data2, interrupting: !cur ? void 0 : false });
+    this.rerender(node2);
+    this.onChange();
+    this.refreshContextBar();
+  }
+  /** Đợt E — Toggle boundary attachment. Picks the nearest BPMN activity bbox
+   *  (Manhattan distance from event center to nearest bbox edge ≤ 60px) and
+   *  sets extra.attachedTo. Snaps the event onto the activity's right edge by
+   *  default so it visually overlaps per OMG. */
+  toggleBoundaryAttach(node2) {
+    var _a3;
+    const data2 = (_a3 = node2.getData()) != null ? _a3 : {};
+    if (data2.attachedTo) {
+      node2.setData({ ...data2, attachedTo: void 0 });
+      this.rerender(node2);
+      this.onChange();
+      this.refreshContextBar();
+      return;
+    }
+    const p6 = node2.getPosition();
+    const s5 = node2.getSize();
+    const cx = p6.x + s5.width / 2;
+    const cy = p6.y + s5.height / 2;
+    let bestId = null;
+    let bestDist = Infinity;
+    let bestParent = null;
+    for (const cand of this.graph.getNodes()) {
+      if (cand.id === node2.id) continue;
+      if (!BPMN_ACTIVITY_KINDS.has(this.nodeKind(cand))) continue;
+      const cp = cand.getPosition();
+      const cs = cand.getSize();
+      const dx = Math.max(cp.x - cx, 0, cx - (cp.x + cs.width));
+      const dy = Math.max(cp.y - cy, 0, cy - (cp.y + cs.height));
+      const d4 = dx + dy;
+      if (d4 < bestDist) {
+        bestDist = d4;
+        bestId = cand.id;
+        bestParent = { x: cp.x, y: cp.y, w: cs.width, h: cs.height };
+      }
+    }
+    if (!bestId || !bestParent || bestDist > 80) {
+      return;
+    }
+    const snapX = bestParent.x + bestParent.w - s5.width / 2;
+    const snapY = bestParent.y + bestParent.h - s5.height / 2;
+    node2.setPosition(snapX, snapY);
+    node2.setData({ ...data2, attachedTo: bestId });
+    this.rerender(node2);
+    this.onChange();
+    this.refreshContextBar();
+  }
+  /** Open the activity-marker picker (multi-select: loop / MI-par / MI-seq / ad-hoc / compensation). */
+  openBpmnMarkerPopup(node2, anchor3) {
+    var _a3;
+    const list = el("div", "lk-line-list");
+    const cur = new Set((_a3 = this.nodeExtra(node2).markers) != null ? _a3 : []);
+    for (const mk of BPMN_MARKERS) {
+      const on2 = cur.has(mk);
+      const row = el("button", "lk-line-row" + (on2 ? " on" : ""), `<span>${on2 ? "\u2611" : "\u2610"} ${BPMN_MARKER_LABEL[mk]}</span>`);
+      row.onclick = () => {
+        var _a4, _b2;
+        const data2 = (_a4 = node2.getData()) != null ? _a4 : {};
+        const next = new Set((_b2 = data2.markers) != null ? _b2 : []);
+        if (on2) next.delete(mk);
+        else next.add(mk);
+        if (mk === "mi-par" && !on2) next.delete("mi-seq");
+        if (mk === "mi-seq" && !on2) next.delete("mi-par");
+        if ((mk === "mi-par" || mk === "mi-seq") && !on2) next.delete("loop");
+        if (mk === "loop" && !on2) {
+          next.delete("mi-par");
+          next.delete("mi-seq");
+        }
+        const arr = Array.from(next);
+        node2.setData({ ...data2, markers: arr.length ? arr : void 0 });
+        this.rerender(node2);
+        this.onChange();
+        this.openBpmnMarkerPopup(node2, anchor3);
+      };
+      list.appendChild(row);
+    }
+    this.showPopup(list, anchor3);
   }
   // ── BPMN Pool lane operations ───────────────────────────────────────────
   newLaneId() {
@@ -75214,7 +75654,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     console.warn(`[omniboard-perf] edge drag janky: ${samples.length} frames \xB7 median ${med}ms \xB7 max ${max2}ms \xB7 ${janky} frame(s) >33ms`);
   }
   showEdgeBar(edge) {
-    var _a3, _b2, _c, _d;
+    var _a3, _b2, _c, _d, _e3, _f;
     const bar = this.edgeBar;
     if (!bar) return;
     bar.innerHTML = "";
@@ -75251,6 +75691,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       (ev) => this.openEdgeColorPopup(edge, ev.currentTarget)
     ));
     bar.appendChild(el("div", "lk-cb-sep"));
+    const ft3 = (_c = st3.flowType) != null ? _c : "sequence";
+    bar.appendChild(mkBtn(
+      `<span style="font-size:11px;font-weight:600">${(_d = FLOW_TYPE_LABEL[ft3]) != null ? _d : "Sequence"}</span>` + caret,
+      "Lo\u1EA1i flow (BPMN)",
+      (ev) => this.openEdgeFlowTypePopup(edge, ev.currentTarget)
+    ));
+    bar.appendChild(el("div", "lk-cb-sep"));
     bar.appendChild(mkBtn(
       `<svg viewBox="0 0 24 14" width="24" height="14"><path d="M2 11 H10 V3 H22" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>` + caret,
       "Ki\u1EC3u \u0111\u01B0\u1EDDng",
@@ -75283,7 +75730,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const s5 = this.graph.scale().sx;
     const t5 = this.graph.translate();
     const view = this.graph.findViewByCell(edge);
-    const pathEl = (_d = (_c = view == null ? void 0 : view.container) == null ? void 0 : _c.querySelector) == null ? void 0 : _d.call(_c, "path.x6-edge-selection, path[joint-selector='line'], path");
+    const pathEl = (_f = (_e3 = view == null ? void 0 : view.container) == null ? void 0 : _e3.querySelector) == null ? void 0 : _f.call(_e3, "path.x6-edge-selection, path[joint-selector='line'], path");
     const rootRect = this.root.getBoundingClientRect();
     let cx, yTop, yBot;
     if (pathEl == null ? void 0 : pathEl.getBoundingClientRect) {
@@ -75326,6 +75773,22 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       grid.appendChild(cell);
     }
     this.showPopup(grid, anchor3);
+  }
+  /** BPMN flow-type popup — applies a preset (Sequence/Default/Message/Conditional/Association). Đợt C. */
+  openEdgeFlowTypePopup(edge, anchor3) {
+    var _a3;
+    const list = el("div", "lk-line-list");
+    const cur = (_a3 = this.edgeStyle(edge).flowType) != null ? _a3 : "sequence";
+    for (const key of ["sequence", "default", "message", "conditional", "association"]) {
+      const row = el("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
+      row.onclick = () => {
+        this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
+        this.hidePopup();
+        this.showEdgeBar(edge);
+      };
+      list.appendChild(row);
+    }
+    this.showPopup(list, anchor3);
   }
   // Line popup: shape (orthogonal/elbow/straight/curved) + dash + weight.
   openEdgeLinePopup(edge, anchor3) {
@@ -75448,6 +75911,25 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const name2 = typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.name;
     return name2 === "orth" || name2 === "manhattan" || name2 === "metro" || name2 === "er";
   }
+  materializeEditableBends(edge) {
+    const view = this.graph.findViewByCell(edge);
+    const route = view == null ? void 0 : view.routePoints;
+    if (Array.isArray(route) && route.length > 2) {
+      return route.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y }));
+    }
+    const source = edge.getSourcePoint();
+    const target = edge.getTargetPoint();
+    if (!source || !target) return [];
+    const dx = target.x - source.x;
+    const dy = target.y - source.y;
+    if (Math.abs(dx) < 1 || Math.abs(dy) < 1) return [];
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      const midX = source.x + dx / 2;
+      return [{ x: midX, y: source.y }, { x: midX, y: target.y }];
+    }
+    const midY = source.y + dy / 2;
+    return [{ x: source.x, y: midY }, { x: target.x, y: midY }];
+  }
   applySeqRoutingIfNeeded(edge) {
     var _a3, _b2, _c, _d, _e3, _f;
     const srcId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
@@ -75533,8 +76015,21 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     for (const n3 of model.nodes) {
       const a5 = (_a3 = n3.attrs) != null ? _a3 : {};
       const style2 = (_b2 = a5.style) != null ? _b2 : {};
-      const extra = { cols: a5.cols, fields: a5.fields, methods: a5.methods, who: a5.who, labelOffset: a5.labelOffset, lanes: a5.lanes };
-      this.addHtmlNode(n3.shape, n3.x, n3.y, n3.width, n3.height, n3.label, style2, n3.id, extra, a5.__source);
+      const extra = {
+        cols: a5.cols,
+        fields: a5.fields,
+        methods: a5.methods,
+        who: a5.who,
+        labelOffset: a5.labelOffset,
+        lanes: a5.lanes,
+        trigger: a5.trigger,
+        throwing: a5.throwing,
+        interrupting: a5.interrupting,
+        attachedTo: a5.attachedTo,
+        markers: a5.markers
+      };
+      const migrated = migrateBpmnEventKind(n3.shape, extra);
+      this.addHtmlNode(migrated.kind, n3.x, n3.y, n3.width, n3.height, n3.label, style2, n3.id, migrated.extra, a5.__source);
     }
     for (const e4 of model.edges) {
       const seq = this.isSeqLifeline(e4.source) && this.isSeqLifeline(e4.target);
@@ -75691,7 +76186,22 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         width: s5.width,
         height: s5.height,
         label: this.nodeLabel(n3),
-        attrs: { style: this.nodeStyle(n3), cols: ex.cols, fields: ex.fields, methods: ex.methods, who: ex.who, labelOffset: ex.labelOffset, lanes: ex.lanes, __source: (_a3 = n3.getData()) == null ? void 0 : _a3.__source }
+        attrs: {
+          style: this.nodeStyle(n3),
+          cols: ex.cols,
+          fields: ex.fields,
+          methods: ex.methods,
+          who: ex.who,
+          labelOffset: ex.labelOffset,
+          lanes: ex.lanes,
+          // BPMN extras (Đợt A)
+          trigger: ex.trigger,
+          throwing: ex.throwing,
+          interrupting: ex.interrupting,
+          attachedTo: ex.attachedTo,
+          markers: ex.markers,
+          __source: (_a3 = n3.getData()) == null ? void 0 : _a3.__source
+        }
       };
     });
     const edges = this.graph.getEdges().map((e4) => {
@@ -82063,38 +82573,133 @@ function getOrientation(rect2, reference, padding) {
 
 // src/io/bpmn/shapes.ts
 var BPMN_TO_SHAPE = {
-  startEvent: "bpmn-start",
-  endEvent: "bpmn-end",
-  intermediateThrowEvent: "bpmn-intermediate",
-  intermediateCatchEvent: "bpmn-intermediate",
-  boundaryEvent: "bpmn-intermediate",
+  // Events — base position; importer overlays extra.trigger/throwing.
+  startEvent: "bpmn-event-start",
+  endEvent: "bpmn-event-end",
+  intermediateThrowEvent: "bpmn-event-intermediate",
+  intermediateCatchEvent: "bpmn-event-intermediate",
+  boundaryEvent: "bpmn-event-intermediate",
+  // Gateways
   exclusiveGateway: "bpmn-gateway-x",
   parallelGateway: "bpmn-gateway-parallel",
-  inclusiveGateway: "bpmn-gateway-x",
-  eventBasedGateway: "bpmn-gateway-x",
+  inclusiveGateway: "bpmn-gateway-inclusive",
+  eventBasedGateway: "bpmn-gateway-event",
+  complexGateway: "bpmn-gateway-complex",
+  // Tasks — subtype preserved
   task: "bpmn-task",
   userTask: "bpmn-task-user",
   serviceTask: "bpmn-task-service",
-  scriptTask: "bpmn-task-service",
-  sendTask: "bpmn-task-service",
-  receiveTask: "bpmn-task-service",
-  manualTask: "bpmn-task",
-  businessRuleTask: "bpmn-task-service",
-  callActivity: "bpmn-task",
-  subProcess: "bpmn-task"
+  scriptTask: "bpmn-task-script",
+  sendTask: "bpmn-task-send",
+  receiveTask: "bpmn-task-receive",
+  manualTask: "bpmn-task-manual",
+  businessRuleTask: "bpmn-task-rule",
+  // Activities — sibling types
+  callActivity: "bpmn-call-activity",
+  subProcess: "bpmn-subprocess",
+  transaction: "bpmn-transaction",
+  // Data artifacts
+  dataObjectReference: "bpmn-data-object",
+  dataStoreReference: "bpmn-data-store",
+  dataInput: "bpmn-data-input",
+  dataOutput: "bpmn-data-output",
+  // Misc
+  textAnnotation: "bpmn-annotation",
+  group: "bpmn-group",
+  participant: "bpmn-pool",
+  lane: "bpmn-lane"
 };
 var SHAPE_TO_BPMN = {
+  // Events — unified Đợt A kinds
+  "bpmn-event-start": "startEvent",
+  "bpmn-event-intermediate": "intermediateThrowEvent",
+  "bpmn-event-end": "endEvent",
+  // Legacy kinds — accepted if migration shim is bypassed
   "bpmn-start": "startEvent",
-  "bpmn-end": "endEvent",
+  "bpmn-start-message": "startEvent",
+  "bpmn-start-timer": "startEvent",
   "bpmn-intermediate": "intermediateThrowEvent",
+  "bpmn-intermediate-message": "intermediateCatchEvent",
+  "bpmn-intermediate-timer": "intermediateCatchEvent",
+  "bpmn-end": "endEvent",
+  "bpmn-end-message": "endEvent",
+  "bpmn-end-terminate": "endEvent",
+  // Gateways
   "bpmn-gateway-x": "exclusiveGateway",
   "bpmn-gateway-parallel": "parallelGateway",
+  "bpmn-gateway-inclusive": "inclusiveGateway",
+  "bpmn-gateway-event": "eventBasedGateway",
+  "bpmn-gateway-complex": "complexGateway",
+  // Tasks
   "bpmn-task": "task",
   "bpmn-task-user": "userTask",
-  "bpmn-task-service": "serviceTask"
+  "bpmn-task-service": "serviceTask",
+  "bpmn-task-script": "scriptTask",
+  "bpmn-task-send": "sendTask",
+  "bpmn-task-receive": "receiveTask",
+  "bpmn-task-manual": "manualTask",
+  "bpmn-task-rule": "businessRuleTask",
+  // Activities
+  "bpmn-subprocess": "subProcess",
+  "bpmn-transaction": "transaction",
+  "bpmn-event-subprocess": "subProcess",
+  // export.ts sets triggeredByEvent=true
+  "bpmn-call-activity": "callActivity",
+  // Data artifacts
+  "bpmn-data-object": "dataObjectReference",
+  "bpmn-data-collection": "dataObjectReference",
+  // export.ts sets isCollection=true
+  "bpmn-data-input": "dataInput",
+  "bpmn-data-output": "dataOutput",
+  "bpmn-data-store": "dataStoreReference",
+  // Misc
+  "bpmn-annotation": "textAnnotation",
+  "bpmn-group": "group",
+  "bpmn-pool": "participant",
+  "bpmn-lane": "lane"
 };
+var EVENT_DEF_TO_TRIGGER = {
+  messageEventDefinition: "message",
+  timerEventDefinition: "timer",
+  signalEventDefinition: "signal",
+  errorEventDefinition: "error",
+  escalationEventDefinition: "escalation",
+  compensateEventDefinition: "compensation",
+  conditionalEventDefinition: "conditional",
+  linkEventDefinition: "link",
+  cancelEventDefinition: "cancel",
+  terminateEventDefinition: "terminate"
+};
+var TRIGGER_TO_EVENT_DEF = Object.fromEntries(
+  Object.entries(EVENT_DEF_TO_TRIGGER).map(([k5, v6]) => [v6, k5])
+);
 
 // src/io/bpmn/import.ts
+function bpmnExtras(fn2, tagLc) {
+  var _a3, _b2, _c, _d;
+  const out = {};
+  const defRaw = (_c = (_b2 = (_a3 = fn2.eventDefinitions) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.$type) == null ? void 0 : _c.replace(/^bpmn:/, "");
+  const defLc = defRaw ? defRaw.charAt(0).toLowerCase() + defRaw.slice(1) : void 0;
+  if (defLc && EVENT_DEF_TO_TRIGGER[defLc]) out.trigger = EVENT_DEF_TO_TRIGGER[defLc];
+  if (tagLc === "intermediateThrowEvent" || tagLc === "endEvent") out.throwing = true;
+  if (tagLc === "boundaryEvent") {
+    out.interrupting = fn2.cancelActivity !== false;
+    if ((_d = fn2.attachedToRef) == null ? void 0 : _d.id) out.attachedTo = fn2.attachedToRef.id;
+  } else if (fn2.isInterrupting === false) {
+    out.interrupting = false;
+  }
+  const markers = [];
+  const loop3 = fn2.loopCharacteristics;
+  if (loop3) {
+    const lt3 = loop3.$type.replace(/^bpmn:/, "");
+    if (lt3 === "MultiInstanceLoopCharacteristics") markers.push(loop3.isSequential ? "mi-seq" : "mi-par");
+    else if (lt3 === "StandardLoopCharacteristics") markers.push("loop");
+  }
+  if (fn2.isForCompensation) markers.push("compensation");
+  if (markers.length > 0) out.markers = markers;
+  if (tagLc === "subProcess" && fn2.triggeredByEvent) out.kindOverride = "bpmn-event-subprocess";
+  return out;
+}
 var FLOW_NODE_TYPES = /* @__PURE__ */ new Set([
   "bpmn:StartEvent",
   "bpmn:EndEvent",
@@ -82105,6 +82710,7 @@ var FLOW_NODE_TYPES = /* @__PURE__ */ new Set([
   "bpmn:ParallelGateway",
   "bpmn:InclusiveGateway",
   "bpmn:EventBasedGateway",
+  "bpmn:ComplexGateway",
   "bpmn:Task",
   "bpmn:UserTask",
   "bpmn:ServiceTask",
@@ -82114,7 +82720,15 @@ var FLOW_NODE_TYPES = /* @__PURE__ */ new Set([
   "bpmn:ManualTask",
   "bpmn:BusinessRuleTask",
   "bpmn:CallActivity",
-  "bpmn:SubProcess"
+  "bpmn:SubProcess",
+  "bpmn:Transaction",
+  // Đợt F — data artifacts + annotations + groups round-trip through canvas
+  "bpmn:DataObjectReference",
+  "bpmn:DataStoreReference",
+  "bpmn:DataInput",
+  "bpmn:DataOutput",
+  "bpmn:TextAnnotation",
+  "bpmn:Group"
 ]);
 function portFor(wp, b3) {
   const o5 = getOrientation({ x: wp.x, y: wp.y, width: 0, height: 0 }, b3, 0);
@@ -82169,7 +82783,7 @@ function moddle() {
 }
 var MAX_BPMN_BYTES = 4 * 1024 * 1024;
 async function importBpmn(raw2) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w;
   if (raw2.length > MAX_BPMN_BYTES) {
     throw new Error(`BPMN file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 4 MB.`);
   }
@@ -82206,13 +82820,14 @@ async function importBpmn(raw2) {
     const id = fn2.id;
     const tag = fn2.$type.replace(/^bpmn:/, "");
     const tagLc = tag.charAt(0).toLowerCase() + tag.slice(1);
-    const shape = (_e3 = BPMN_TO_SHAPE[tagLc]) != null ? _e3 : "bpmn-task";
+    const extras = bpmnExtras(fn2, tagLc);
+    const shape = (_f = (_e3 = extras.kindOverride) != null ? _e3 : BPMN_TO_SHAPE[tagLc]) != null ? _f : "bpmn-task";
     const di = diShapes.get(id);
     const bounds = di == null ? void 0 : di.bounds;
-    const x4 = (_f = bounds == null ? void 0 : bounds.x) != null ? _f : 100;
-    const y5 = (_g = bounds == null ? void 0 : bounds.y) != null ? _g : 100;
-    const width2 = (_h = bounds == null ? void 0 : bounds.width) != null ? _h : tagLc.endsWith("Event") ? 36 : 100;
-    const height2 = (_i = bounds == null ? void 0 : bounds.height) != null ? _i : tagLc.endsWith("Event") ? 36 : 60;
+    const x4 = (_g = bounds == null ? void 0 : bounds.x) != null ? _g : 100;
+    const y5 = (_h = bounds == null ? void 0 : bounds.y) != null ? _h : 100;
+    const width2 = (_i = bounds == null ? void 0 : bounds.width) != null ? _i : tagLc.endsWith("Event") ? 36 : 100;
+    const height2 = (_j = bounds == null ? void 0 : bounds.height) != null ? _j : tagLc.endsWith("Event") ? 36 : 60;
     const { fill: fill2, stroke: stroke3 } = diColours(di == null ? void 0 : di.$attrs);
     const style2 = {};
     if (fill2) style2.fill = fill2;
@@ -82224,10 +82839,16 @@ async function importBpmn(raw2) {
       y: y5,
       width: width2,
       height: height2,
-      label: ((_j = fn2.name) != null ? _j : "").replace(/&#10;/g, "\n"),
+      label: ((_k = fn2.name) != null ? _k : "").replace(/&#10;/g, "\n"),
       attrs: {
         __source: { format: "bpmn", sourceId: id, tag: tagLc },
-        ...Object.keys(style2).length ? { style: style2 } : {}
+        ...Object.keys(style2).length ? { style: style2 } : {},
+        // Đợt F — BPMN semantics preserved in NodeExtra for canvas + round-trip
+        ...extras.trigger ? { trigger: extras.trigger } : {},
+        ...extras.throwing !== void 0 ? { throwing: extras.throwing } : {},
+        ...extras.interrupting !== void 0 ? { interrupting: extras.interrupting } : {},
+        ...extras.attachedTo ? { attachedTo: extras.attachedTo } : {},
+        ...extras.markers ? { markers: extras.markers } : {}
       }
     });
     if (!di) warnings.push(`BPMN flow node "${id}" thi\u1EBFu BPMNShape DI \u2014 \u0111\u1EB7t v\u1ECB tr\xED m\u1EB7c \u0111\u1ECBnh.`);
@@ -82236,11 +82857,11 @@ async function importBpmn(raw2) {
   for (const n3 of model.nodes) nodeBox2.set(n3.id, { x: n3.x, y: n3.y, width: n3.width, height: n3.height });
   for (const sf of sequenceFlows) {
     const id = sf.id;
-    const sourceId = (_k = sf.sourceRef) == null ? void 0 : _k.id;
-    const targetId = (_l = sf.targetRef) == null ? void 0 : _l.id;
+    const sourceId = (_l = sf.sourceRef) == null ? void 0 : _l.id;
+    const targetId = (_m = sf.targetRef) == null ? void 0 : _m.id;
     if (!sourceId || !targetId) continue;
     const di = diEdges.get(id);
-    const wps = (_m = di == null ? void 0 : di.waypoint) != null ? _m : [];
+    const wps = (_n2 = di == null ? void 0 : di.waypoint) != null ? _n2 : [];
     const vertices = wps.length > 2 ? wps.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y })) : void 0;
     const srcBox = nodeBox2.get(sourceId);
     const tgtBox = nodeBox2.get(targetId);
@@ -82249,7 +82870,7 @@ async function importBpmn(raw2) {
     const sourcePort = sourceAnchor ? void 0 : wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : void 0;
     const targetPort = targetAnchor ? void 0 : wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : void 0;
     let labelPos;
-    const lb = (_n2 = di == null ? void 0 : di.label) == null ? void 0 : _n2.bounds;
+    const lb = (_o = di == null ? void 0 : di.label) == null ? void 0 : _o.bounds;
     if (lb && wps.length >= 2) {
       const labelCx = lb.x + lb.width / 2;
       const labelCy = lb.y + lb.height / 2;
@@ -82281,7 +82902,7 @@ async function importBpmn(raw2) {
       target: targetId,
       targetPort,
       targetAnchor,
-      label: ((_o = sf.name) != null ? _o : "").replace(/&#10;/g, "\n") || void 0,
+      label: ((_p = sf.name) != null ? _p : "").replace(/&#10;/g, "\n") || void 0,
       labelPos,
       vertices,
       router: "normal"
@@ -82289,18 +82910,18 @@ async function importBpmn(raw2) {
   }
   const defs = definitions;
   const processById = /* @__PURE__ */ new Map();
-  for (const root2 of (_p = defs.rootElements) != null ? _p : []) {
+  for (const root2 of (_q = defs.rootElements) != null ? _q : []) {
     if (root2.$type === "bpmn:Process" && root2.id) processById.set(root2.id, root2);
   }
   const pools = [];
   const HEADER = 30;
   const LANE_HEAD = 24;
   const PAD = 30;
-  for (const root2 of (_q = defs.rootElements) != null ? _q : []) {
+  for (const root2 of (_r = defs.rootElements) != null ? _r : []) {
     if (root2.$type !== "bpmn:Collaboration") continue;
-    for (const part of (_r = root2.participants) != null ? _r : []) {
-      const proc = ((_s = part.processRef) == null ? void 0 : _s.id) ? processById.get(part.processRef.id) : void 0;
-      const lanes = ((_t3 = proc == null ? void 0 : proc.laneSets) != null ? _t3 : []).flatMap((ls) => {
+    for (const part of (_s = root2.participants) != null ? _s : []) {
+      const proc = ((_t3 = part.processRef) == null ? void 0 : _t3.id) ? processById.get(part.processRef.id) : void 0;
+      const lanes = ((_u = proc == null ? void 0 : proc.laneSets) != null ? _u : []).flatMap((ls) => {
         var _a4;
         return (_a4 = ls.lanes) != null ? _a4 : [];
       });
@@ -82330,13 +82951,13 @@ async function importBpmn(raw2) {
         ph = maxY - minY + PAD * 2;
       }
       pools.push({
-        id: (_u = part.id) != null ? _u : `pool_${pools.length}`,
+        id: (_v = part.id) != null ? _v : `pool_${pools.length}`,
         shape: "bpmn-pool",
         x: px2,
         y: py,
         width: pw,
         height: ph,
-        label: (_v = part.name) != null ? _v : "",
+        label: (_w = part.name) != null ? _w : "",
         attrs: {
           lanes: laneAttrs.length ? laneAttrs : void 0,
           __source: { format: "bpmn", sourceId: part.id, kind: "pool" }
@@ -82355,10 +82976,47 @@ function moddle2() {
   if (!moddleSingleton2) moddleSingleton2 = new SimpleBpmnModdle();
   return moddleSingleton2;
 }
-function shapeToBpmnType(shape) {
+function shapeToBpmnType(shape, attrs) {
   var _a3;
+  if (shape === "bpmn-event-intermediate" && (attrs == null ? void 0 : attrs.attachedTo)) return "bpmn:BoundaryEvent";
   const tag = (_a3 = SHAPE_TO_BPMN[shape]) != null ? _a3 : "task";
   return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
+}
+function applyBpmnExtras(m6, fe3, shape, attrs) {
+  var _a3;
+  if (attrs.trigger && TRIGGER_TO_EVENT_DEF[attrs.trigger]) {
+    const defName = TRIGGER_TO_EVENT_DEF[attrs.trigger];
+    const defType = "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1);
+    const def = m6.create(defType, {});
+    fe3.eventDefinitions = [def];
+  }
+  const markers = (_a3 = attrs.markers) != null ? _a3 : [];
+  if (markers.includes("mi-par") || markers.includes("mi-seq")) {
+    const loop3 = m6.create("bpmn:MultiInstanceLoopCharacteristics", { isSequential: markers.includes("mi-seq") });
+    fe3.loopCharacteristics = loop3;
+  } else if (markers.includes("loop")) {
+    const loop3 = m6.create("bpmn:StandardLoopCharacteristics", {});
+    fe3.loopCharacteristics = loop3;
+  }
+  if (markers.includes("compensation")) {
+    fe3.isForCompensation = true;
+  }
+  if (attrs.interrupting === false) {
+    if (shape === "bpmn-event-start") {
+      fe3.isInterrupting = false;
+    } else {
+      fe3.cancelActivity = false;
+    }
+  }
+  if (attrs.attachedTo) {
+    fe3.attachedToRef = { id: attrs.attachedTo };
+  }
+  if (shape === "bpmn-event-subprocess") {
+    fe3.triggeredByEvent = true;
+  }
+  if (shape === "bpmn-data-collection") {
+    fe3.isCollection = true;
+  }
 }
 function findParticipant(defs, id) {
   var _a3, _b2;
@@ -82390,7 +83048,7 @@ async function exportBpmn(model, meta) {
   return emitMinimal(model, m6);
 }
 async function patchExisting(raw2, model, m6) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r;
   const { rootElement: defs } = await m6.fromXML(raw2, "bpmn:Definitions");
   const definitions = defs;
   const diShape = /* @__PURE__ */ new Map();
@@ -82430,21 +83088,25 @@ async function patchExisting(raw2, model, m6) {
       di.bounds.height = n3.height;
       di.label = void 0;
     } else {
-      const fe3 = m6.create(shapeToBpmnType(n3.shape), { id: n3.id, name: (_h = n3.label) != null ? _h : "" });
-      ((_i = process2.flowElements) != null ? _i : process2.flowElements = []).push(fe3);
+      const fe3 = m6.create(shapeToBpmnType(n3.shape, n3.attrs), { id: n3.id, name: (_h = n3.label) != null ? _h : "" });
+      applyBpmnExtras(m6, fe3, n3.shape, (_i = n3.attrs) != null ? _i : {});
+      ((_j = process2.flowElements) != null ? _j : process2.flowElements = []).push(fe3);
       di = m6.create("bpmndi:BPMNShape", {
         bpmnElement: fe3,
         bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height })
       });
-      ((_j = mainPlane.planeElement) != null ? _j : mainPlane.planeElement = []).push(di);
+      ((_k = mainPlane.planeElement) != null ? _k : mainPlane.planeElement = []).push(di);
       diShape.set(n3.id, di);
     }
     const existing = flowById.get(n3.id);
-    if (existing && typeof n3.label === "string") existing.name = n3.label;
+    if (existing) {
+      if (typeof n3.label === "string") existing.name = n3.label;
+      applyBpmnExtras(m6, existing, n3.shape, (_l = n3.attrs) != null ? _l : {});
+    }
   }
   const refIdOf = (r4) => typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.id;
   const referenced = /* @__PURE__ */ new Set();
-  for (const fe3 of (_k = process2.flowElements) != null ? _k : []) {
+  for (const fe3 of (_m = process2.flowElements) != null ? _m : []) {
     if (fe3.$type !== "bpmn:SequenceFlow") continue;
     if (!modelEdgeIds.has(fe3.id)) continue;
     const src = refIdOf(fe3.sourceRef);
@@ -82452,12 +83114,12 @@ async function patchExisting(raw2, model, m6) {
     if (src) referenced.add(src);
     if (tgt) referenced.add(tgt);
   }
-  process2.flowElements = ((_l = process2.flowElements) != null ? _l : []).filter((fe3) => {
+  process2.flowElements = ((_n2 = process2.flowElements) != null ? _n2 : []).filter((fe3) => {
     if (fe3.$type === "bpmn:SequenceFlow") return modelEdgeIds.has(fe3.id);
     return modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
   });
   const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
-  mainPlane.planeElement = ((_m = mainPlane.planeElement) != null ? _m : []).filter((pe3) => {
+  mainPlane.planeElement = ((_o = mainPlane.planeElement) != null ? _o : []).filter((pe3) => {
     var _a4;
     const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
     if (!refId) return true;
@@ -82485,16 +83147,16 @@ async function patchExisting(raw2, model, m6) {
         const targetFe = flowById.get(e4.target);
         sf = m6.create("bpmn:SequenceFlow", {
           id: e4.id,
-          name: (_n2 = e4.label) != null ? _n2 : "",
+          name: (_p = e4.label) != null ? _p : "",
           sourceRef: sourceFe,
           targetRef: targetFe
         });
-        ((_o = process2.flowElements) != null ? _o : process2.flowElements = []).push(sf);
+        ((_q = process2.flowElements) != null ? _q : process2.flowElements = []).push(sf);
       } else if (typeof e4.label === "string") {
         sf.name = e4.label;
       }
       de3 = m6.create("bpmndi:BPMNEdge", { bpmnElement: sf, waypoint: wps });
-      ((_p = mainPlane.planeElement) != null ? _p : mainPlane.planeElement = []).push(de3);
+      ((_r = mainPlane.planeElement) != null ? _r : mainPlane.planeElement = []).push(de3);
       diEdge.set(e4.id, de3);
     }
   }
@@ -82607,7 +83269,7 @@ function buildWaypoints(e4, src, tgt, m6) {
   return [start, ...mid, end];
 }
 async function emitMinimal(model, m6) {
-  var _a3, _b2, _c, _d;
+  var _a3, _b2, _c, _d, _e3;
   const defs = m6.create("bpmn:Definitions", {
     id: "Definitions_Export",
     targetNamespace: "http://omniboard.local/bpmn"
@@ -82620,7 +83282,8 @@ async function emitMinimal(model, m6) {
   const feById = /* @__PURE__ */ new Map();
   process2.flowElements = [];
   for (const n3 of model.nodes) {
-    const fe3 = m6.create(shapeToBpmnType(n3.shape), { id: n3.id, name: (_b2 = n3.label) != null ? _b2 : "" });
+    const fe3 = m6.create(shapeToBpmnType(n3.shape, n3.attrs), { id: n3.id, name: (_b2 = n3.label) != null ? _b2 : "" });
+    applyBpmnExtras(m6, fe3, n3.shape, (_c = n3.attrs) != null ? _c : {});
     process2.flowElements.push(fe3);
     feById.set(n3.id, fe3);
   }
@@ -82628,7 +83291,7 @@ async function emitMinimal(model, m6) {
   for (const e4 of model.edges) {
     const sf = m6.create("bpmn:SequenceFlow", {
       id: e4.id,
-      name: (_c = e4.label) != null ? _c : "",
+      name: (_d = e4.label) != null ? _d : "",
       sourceRef: feById.get(e4.source),
       targetRef: feById.get(e4.target)
     });
@@ -82659,7 +83322,7 @@ async function emitMinimal(model, m6) {
     }));
   }
   const dia = m6.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-  ((_d = defs.diagrams) != null ? _d : defs.diagrams = []).push(dia);
+  ((_e3 = defs.diagrams) != null ? _e3 : defs.diagrams = []).push(dia);
   const { xml: xml3 } = await m6.toXML(defs, { format: true });
   return xml3;
 }

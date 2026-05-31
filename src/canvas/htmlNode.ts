@@ -63,12 +63,32 @@ export interface NodeStyle {
 
 /** One row of an ERD entity table. */
 export interface ErdCol { k: "" | "PK" | "FK"; name: string; type: string; }
-/** Editable per-node payload for data-driven shapes (ERD/UML). */
+/** Editable per-node payload for data-driven shapes (ERD/UML/BPMN). */
 export interface NodeExtra {
   cols?: ErdCol[]; fields?: string[]; methods?: string[]; who?: string;
   labelOffset?: { x: number; y: number };
   lanes?: Array<{ id: string; label: string }>;  // BPMN pool lanes (top→bottom)
+  // ── BPMN 2.0 extras (Đợt A, 2026-06-01) ──
+  /** Event trigger type (OMG): message, timer, signal, error, escalation, compensation,
+   *  conditional, link, cancel, terminate, multiple, parallel-multiple. Empty = "none/plain". */
+  trigger?: BpmnTrigger;
+  /** Intermediate event only: true = throwing (filled icon), false/undefined = catching (outline). */
+  throwing?: boolean;
+  /** Event interrupting flag (for boundary + event-subprocess start events).
+   *  Default true; false renders dashed border per OMG. */
+  interrupting?: boolean;
+  /** Boundary event: id of the activity this event is attached to. */
+  attachedTo?: string;
+  /** Activity markers stacked at the bottom of a task/sub-process (multi-select):
+   *  "loop" | "mi-par" | "mi-seq" | "adhoc" | "compensation" | "subprocess". */
+  markers?: BpmnMarker[];
 }
+
+export type BpmnTrigger =
+  | "message" | "timer" | "signal" | "error" | "escalation" | "compensation"
+  | "conditional" | "link" | "cancel" | "terminate" | "multiple" | "parallel-multiple";
+export type BpmnMarker =
+  | "loop" | "mi-par" | "mi-seq" | "adhoc" | "compensation" | "subprocess";
 
 export function defaultErdCols(): ErdCol[] {
   return [
@@ -121,6 +141,57 @@ const BP_ICON: Record<string, string> = {
   cyl: svg(`<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/>`),
 };
 const ACTOR = svg(`<circle cx="12" cy="6" r="3"/><path d="M12 9v7M7 12h10M12 16l-4 5M12 16l4 5"/>`);
+
+// ── BPMN 2.0 event trigger icons (OMG-faithful, fits inside event circle, viewBox 0 0 24 24) ──
+// Two variants per trigger: outline (catching/start) + filled (throwing/end).
+// `bpEvent` picks the variant from `throwing` + the event position.
+const TRIG_OUT: Record<string, string> = {
+  message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5"/></svg>`,
+  timer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><path d="M12 7v5l3 2"/><path d="M12 5v1M12 18v1M5 12h1M18 12h1" stroke-width="1.2"/></svg>`,
+  signal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 21 19H3Z"/></svg>`,
+  error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18 10 8l3 6 3-4 4 10"/></svg>`,
+  escalation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+  compensation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+  conditional: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14"/><path d="M7 9h10M7 12h10M7 15h6"/></svg>`,
+  link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h11l-3-3M15 12l-3 3"/></svg>`,
+  cancel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg>`,
+  terminate: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`,
+  multiple: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+  "parallel-multiple": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>`,
+};
+const TRIG_FILL: Record<string, string> = {
+  message: `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`,
+  signal: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 21 19H3Z"/></svg>`,
+  error: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 10 8l3 6 3-4 4 10Z"/></svg>`,
+  escalation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+  compensation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+  link: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h11l-3-3M15 12l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 10h11v4H4z"/></svg>`,
+  multiple: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+  cancel: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 6 6 6-6 2 2-6 6 6 6-2 2-6-6-6 6-2-2 6-6-6-6Z"/></svg>`,
+};
+function trigIcon(trigger: BpmnTrigger | undefined, filled: boolean): string {
+  if (!trigger) return "";
+  const t = trigger;
+  // terminate is always filled; parallel-multiple, timer, conditional have no filled variant
+  if (t === "terminate") return TRIG_OUT.terminate;
+  if (filled && TRIG_FILL[t]) return TRIG_FILL[t];
+  return TRIG_OUT[t] ?? "";
+}
+
+// ── Activity marker icons (rendered at the bottom of a task/sub-process) ──
+const MARKER_ICON: Record<BpmnMarker, string> = {
+  loop: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9a4 4 0 1 0 1-3M5 5V3M5 5H3"/></svg>`,
+  "mi-par": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="2.4" height="10"/><rect x="6.8" y="3" width="2.4" height="10"/><rect x="10.6" y="3" width="2.4" height="10"/></svg>`,
+  "mi-seq": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="2.4"/><rect x="3" y="6.8" width="10" height="2.4"/><rect x="3" y="10.6" width="10" height="2.4"/></svg>`,
+  adhoc: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10c2-4 4-4 6 0s4 4 6 0"/></svg>`,
+  compensation: `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M9 3 3 8l6 5ZM15 3 9 8l6 5Z"/></svg>`,
+  subprocess: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10"/><path d="M8 5.5v5M5.5 8h5"/></svg>`,
+};
+function renderMarkers(markers?: BpmnMarker[]): string {
+  if (!markers || markers.length === 0) return "";
+  const items = markers.map((m) => MARKER_ICON[m] ? `<span class="bp-mk-ic">${MARKER_ICON[m]}</span>` : "").join("");
+  return items ? `<div class="bp-markers">${items}</div>` : "";
+}
 
 /** Returns the design HTML for a given shape kind + label, with optional style overrides. */
 export function nodeHtml(kind: string, label: string, ov?: NodeStyle, extra?: NodeExtra): string {
@@ -231,16 +302,22 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
     case "sq-frag-par": return seqFrag("par", L, true);
 
     // ── BPMN (bpmn.io look, warm) ──
-    // Events (start green / intermediate amber-double / end red); optional trigger icon
+    // Events — unified kinds (Đợt A, 2026-06-01). Trigger + throwing + interrupting come from `extra`.
+    case "bpmn-event-start": return bpEvent("start", L, undefined, extra);
+    case "bpmn-event-intermediate": return bpEvent("inter", L, undefined, extra);
+    case "bpmn-event-end": return bpEvent("end", L, undefined, extra);
+    // Legacy event kinds (pre-Đợt-A) — kept for back-compat when a board file
+    // skips the migration shim in OmniboardCanvas.loadModel for any reason.
+    // Render path matches the unified output so visuals stay identical.
     case "bpmn-start": return bpEvent("start", L, undefined, extra);
-    case "bpmn-start-message": return bpEvent("start", L, BP_ICON.msg, extra);
-    case "bpmn-start-timer": return bpEvent("start", L, BP_ICON.clock, extra);
+    case "bpmn-start-message": return bpEvent("start", L, undefined, { ...extra, trigger: "message" });
+    case "bpmn-start-timer": return bpEvent("start", L, undefined, { ...extra, trigger: "timer" });
     case "bpmn-intermediate": return bpEvent("inter", L, undefined, extra);
-    case "bpmn-intermediate-message": return bpEvent("inter", L, BP_ICON.msg, extra);
-    case "bpmn-intermediate-timer": return bpEvent("inter", L, BP_ICON.clock, extra);
+    case "bpmn-intermediate-message": return bpEvent("inter", L, undefined, { ...extra, trigger: "message" });
+    case "bpmn-intermediate-timer": return bpEvent("inter", L, undefined, { ...extra, trigger: "timer" });
     case "bpmn-end": return bpEvent("end", L, undefined, extra);
-    case "bpmn-end-message": return bpEvent("end", L, BP_ICON.send, extra);
-    case "bpmn-end-terminate": return bpEvent("end", L, `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" fill="currentColor"/></svg>`, extra);
+    case "bpmn-end-message": return bpEvent("end", L, undefined, { ...extra, trigger: "message", throwing: true });
+    case "bpmn-end-terminate": return bpEvent("end", L, undefined, { ...extra, trigger: "terminate" });
     // Gateways
     case "bpmn-gateway-x": return bpGateway("✕", L, extra);
     case "bpmn-gateway-parallel": return bpGateway("+", L, extra);
@@ -250,20 +327,28 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
       return bpGateway(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4 20 10 17 19 7 19 4 10Z"/></svg>`, L, extra);
     case "bpmn-gateway-complex":
       return bpGateway(`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16M6 6l12 12M18 6 6 18"/></svg>`, L, extra);
-    // Tasks
-    case "bpmn-task": return bpTask(L);
-    case "bpmn-task-user": return bpTask(L, "user");
-    case "bpmn-task-service": return bpTask(L, "gear");
-    case "bpmn-task-script": return bpTask(L, "script");
-    case "bpmn-task-manual": return bpTask(L, "hand");
-    case "bpmn-task-send": return bpTask(L, "send");
-    case "bpmn-task-receive": return bpTask(L, "msg");
-    case "bpmn-task-rule": return bpTask(L, "rule");
-    case "bpmn-subprocess": return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L || "Sub-process"}</span><span class="bp-plus">+</span></div>`;
-    // Data
+    // Tasks (extra.markers renders the marker row at the bottom)
+    case "bpmn-task": return bpTask(L, undefined, extra);
+    case "bpmn-task-user": return bpTask(L, "user", extra);
+    case "bpmn-task-service": return bpTask(L, "gear", extra);
+    case "bpmn-task-script": return bpTask(L, "script", extra);
+    case "bpmn-task-manual": return bpTask(L, "hand", extra);
+    case "bpmn-task-send": return bpTask(L, "send", extra);
+    case "bpmn-task-receive": return bpTask(L, "msg", extra);
+    case "bpmn-task-rule": return bpTask(L, "rule", extra);
+    // Sub-process & sibling Activity types (Đợt A — Transaction / Event-Sub / Call)
+    case "bpmn-subprocess": return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L || "Sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
+    case "bpmn-transaction": return `<div class="bp-frame bp-sub is-transaction"><span class="bp-frame-lbl">${L || "Transaction"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
+    case "bpmn-event-subprocess": return `<div class="bp-frame bp-sub is-event-sub"><span class="bp-frame-lbl">${L || "Event sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
+    case "bpmn-call-activity": return `<div class="bp-task is-call">${nl(L) || "Call activity"}${renderMarkers(extra?.markers)}</div>`;
+    // Data artifacts (Đợt A — Collection/Input/Output)
     case "bpmn-data-object": return `<div class="bp-dataobj"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L}</span></div>`;
+    case "bpmn-data-collection": return `<div class="bp-dataobj is-collection"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L}</span><span class="bp-coll-bars"></span></div>`;
+    case "bpmn-data-input": return `<div class="bp-dataobj is-input"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L || "Input"}</span><span class="bp-data-arr"></span></div>`;
+    case "bpmn-data-output": return `<div class="bp-dataobj is-output"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L || "Output"}</span><span class="bp-data-arr"></span></div>`;
     case "bpmn-data-store": return `<div class="bp-datastore"><span class="ic">${BP_ICON.cyl}</span><span class="lbl">${L}</span></div>`;
     case "bpmn-annotation": return `<div class="bp-anno">${L || "Annotation"}</div>`;
+    case "bpmn-group": return `<div class="bp-group">${L ? `<span class="bp-group-lbl">${L}</span>` : ""}</div>`;
     case "bpmn-lane": return `<div class="bp-lane"><span>${L}</span></div>`;
     case "bpmn-pool": return bpPool(L, extra);
 
@@ -300,12 +385,18 @@ function lblStyle(extra?: NodeExtra): string {
 // We do still convert `\n` → `<br>` so multi-line labels render on the task
 // surface (CSS `place-items: center` collapses raw newlines).
 function bpEvent(kind: string, label: string, icon?: string, extra?: NodeExtra): string {
-  const inner = icon ?? (kind === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`));
-  return `<div class="bp-event ${kind}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
+  // Trigger from extra (Đợt A unified path) takes precedence over the legacy
+  // hard-coded `icon` argument used by `bpmn-start-message` etc.
+  const pos = kind; // "start" | "inter" | "end"
+  const filledByPos = pos === "end" || extra?.throwing === true;
+  const trigIc = extra?.trigger ? trigIcon(extra.trigger, filledByPos) : null;
+  const inner = trigIc ?? icon ?? (pos === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`));
+  const interrupt = extra?.interrupting === false ? " is-non-interrupting" : "";
+  return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
 }
-function bpTask(label: string, iconKey?: string): string {
+function bpTask(label: string, iconKey?: string, extra?: NodeExtra): string {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
-  return `<div class="bp-task">${icon}${nl(label)}</div>`;
+  return `<div class="bp-task">${icon}${nl(label)}${renderMarkers(extra?.markers)}</div>`;
 }
 function bpGateway(mark: string, label: string, extra?: NodeExtra): string {
   return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : ""}</div>`;

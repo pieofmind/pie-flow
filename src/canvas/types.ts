@@ -1,4 +1,15 @@
-export interface PaletteItem { shape: string; label: string; w: number; h: number; }
+export interface PaletteItem {
+  shape: string; label: string; w: number; h: number;
+  /** Optional seed for `NodeExtra` baked into the palette entry. Lets us list
+   *  every BPMN event-trigger variant (message/timer/signal/…) without minting
+   *  one shape kind per variant — the canvas spawns `bpmn-event-{start,inter,end}`
+   *  + this seed copied onto the node's extras (e.g. `{ trigger: "message" }`). */
+  seed?: { trigger?: string; throwing?: boolean; interrupting?: boolean };
+  /** Hidden behind "Hiện thêm" in the flyout. Used for the rarer BPMN event
+   *  triggers (signal/error/escalation/compensation/conditional/link/cancel/
+   *  multiple/parallel-multiple) so the flyout doesn't run off-screen. */
+  advanced?: boolean;
+}
 export interface ShapeCategory { title: string; items: PaletteItem[]; }
 
 export interface CanvasModel {

@@ -2,7 +2,55 @@ import { BpmnModdle } from "bpmn-moddle";
 import { getOrientation } from "diagram-js/lib/layout/LayoutUtil";
 import type { CanvasModel } from "../../canvas/types";
 import type { ImportResult, SourceMeta } from "../types";
-import { BPMN_TO_SHAPE } from "./shapes";
+import { BPMN_TO_SHAPE, EVENT_DEF_TO_TRIGGER } from "./shapes";
+
+/** BPMN extra attrs Đợt F — populated from moddle tree (eventDefinitions,
+ *  loopCharacteristics, isInterrupting, attachedToRef, triggeredByEvent). */
+interface BpmnElementShape {
+  $type: string;
+  id?: string;
+  eventDefinitions?: Array<{ $type: string }>;
+  loopCharacteristics?: { $type: string; isSequential?: boolean };
+  isInterrupting?: boolean;
+  cancelActivity?: boolean;
+  attachedToRef?: { id: string };
+  triggeredByEvent?: boolean;
+  isForCompensation?: boolean;
+}
+/** Derive Đợt A BPMN extras from a flow node's moddle attrs. Pure — no side effects. */
+function bpmnExtras(fn: BpmnElementShape, tagLc: string): {
+  trigger?: string; throwing?: boolean; interrupting?: boolean;
+  attachedTo?: string; markers?: string[]; kindOverride?: string;
+} {
+  const out: ReturnType<typeof bpmnExtras> = {};
+  // Event trigger from eventDefinitions[0] — moddle $type is "bpmn:MessageEventDefinition",
+  // lowercase the first char after the prefix so it matches the map keys.
+  const defRaw = fn.eventDefinitions?.[0]?.$type?.replace(/^bpmn:/, "");
+  const defLc = defRaw ? defRaw.charAt(0).toLowerCase() + defRaw.slice(1) : undefined;
+  if (defLc && EVENT_DEF_TO_TRIGGER[defLc]) out.trigger = EVENT_DEF_TO_TRIGGER[defLc];
+  // Throwing: only intermediate-throw + end events fire the icon as filled.
+  if (tagLc === "intermediateThrowEvent" || tagLc === "endEvent") out.throwing = true;
+  // Interrupting flag (boundary + event-subprocess start). Default true per OMG.
+  if (tagLc === "boundaryEvent") {
+    out.interrupting = fn.cancelActivity !== false;
+    if (fn.attachedToRef?.id) out.attachedTo = fn.attachedToRef.id;
+  } else if (fn.isInterrupting === false) {
+    out.interrupting = false;
+  }
+  // Activity markers from loopCharacteristics + isForCompensation
+  const markers: string[] = [];
+  const loop = fn.loopCharacteristics;
+  if (loop) {
+    const lt = loop.$type.replace(/^bpmn:/, "");
+    if (lt === "MultiInstanceLoopCharacteristics") markers.push(loop.isSequential ? "mi-seq" : "mi-par");
+    else if (lt === "StandardLoopCharacteristics") markers.push("loop");
+  }
+  if (fn.isForCompensation) markers.push("compensation");
+  if (markers.length > 0) out.markers = markers;
+  // Event sub-process: subProcess with triggeredByEvent=true → override kind
+  if (tagLc === "subProcess" && fn.triggeredByEvent) out.kindOverride = "bpmn-event-subprocess";
+  return out;
+}
 
 /**
  * BPMN 2.0 importer — uses `bpmn-moddle` for XML parsing (same as bpmn.io) and
@@ -21,10 +69,15 @@ import { BPMN_TO_SHAPE } from "./shapes";
 const FLOW_NODE_TYPES = new Set([
   "bpmn:StartEvent", "bpmn:EndEvent",
   "bpmn:IntermediateThrowEvent", "bpmn:IntermediateCatchEvent", "bpmn:BoundaryEvent",
-  "bpmn:ExclusiveGateway", "bpmn:ParallelGateway", "bpmn:InclusiveGateway", "bpmn:EventBasedGateway",
+  "bpmn:ExclusiveGateway", "bpmn:ParallelGateway", "bpmn:InclusiveGateway",
+  "bpmn:EventBasedGateway", "bpmn:ComplexGateway",
   "bpmn:Task", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:ScriptTask",
   "bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:ManualTask", "bpmn:BusinessRuleTask",
-  "bpmn:CallActivity", "bpmn:SubProcess",
+  "bpmn:CallActivity", "bpmn:SubProcess", "bpmn:Transaction",
+  // Đợt F — data artifacts + annotations + groups round-trip through canvas
+  "bpmn:DataObjectReference", "bpmn:DataStoreReference",
+  "bpmn:DataInput", "bpmn:DataOutput",
+  "bpmn:TextAnnotation", "bpmn:Group",
 ]);
 
 interface ModdlePoint { x: number; y: number; }
@@ -151,7 +204,8 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
     const id = fn.id!;
     const tag = fn.$type.replace(/^bpmn:/, "");
     const tagLc = tag.charAt(0).toLowerCase() + tag.slice(1);
-    const shape = BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
+    const extras = bpmnExtras(fn as unknown as BpmnElementShape, tagLc);
+    const shape = extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
     const di = diShapes.get(id);
     const bounds = di?.bounds;
     const x = bounds?.x ?? 100;
@@ -170,6 +224,12 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
       attrs: {
         __source: { format: "bpmn", sourceId: id, tag: tagLc },
         ...(Object.keys(style).length ? { style } : {}),
+        // Đợt F — BPMN semantics preserved in NodeExtra for canvas + round-trip
+        ...(extras.trigger ? { trigger: extras.trigger } : {}),
+        ...(extras.throwing !== undefined ? { throwing: extras.throwing } : {}),
+        ...(extras.interrupting !== undefined ? { interrupting: extras.interrupting } : {}),
+        ...(extras.attachedTo ? { attachedTo: extras.attachedTo } : {}),
+        ...(extras.markers ? { markers: extras.markers } : {}),
       },
     });
     if (!di) warnings.push(`BPMN flow node "${id}" thiếu BPMNShape DI — đặt vị trí mặc định.`);

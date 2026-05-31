@@ -131,21 +131,82 @@ const EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", re
 const EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle" } as const;
 
 // ── Edge styling (relationship types) ──
-export interface EdgeStyle { stroke?: string; width?: number; dash?: string; start?: string; end?: string; shape?: string; textAngle?: number; jump?: string }
+export interface EdgeStyle { stroke?: string; width?: number; dash?: string; start?: string; end?: string; shape?: string; textAngle?: number; jump?: string;
+  /** BPMN flow type (Đợt C). Picking one in the edge bar applies a preset of
+   *  dash/start/end + a custom source marker; sequence resets to default. */
+  flowType?: "sequence" | "default" | "message" | "conditional" | "association";
+}
+
+/** BPMN flow-type presets — pure style patches applied via setEdgeStyle. Đợt C. */
+const FLOW_TYPE_PRESETS: Record<string, EdgeStyle> = {
+  sequence:    { dash: "solid",  start: "none",      end: "arrow" },
+  default:     { dash: "solid",  start: "def-slash", end: "arrow" },
+  message:     { dash: "dashed", start: "circle",    end: "triangle" },
+  conditional: { dash: "solid",  start: "diamond-o", end: "arrow" },
+  association: { dash: "dotted", start: "none",      end: "arrow-open" },
+};
+const FLOW_TYPE_LABEL: Record<string, string> = {
+  sequence: "Sequence", default: "Default", message: "Message", conditional: "Conditional", association: "Association",
+};
 const EDGE_DASHES: Record<string, string> = { solid: "", dashed: "6 4", dotted: "2 4" };
 type SpawnDir = "top" | "right" | "bottom" | "left";
 const ACT_WIDTH = 12; // fixed width of the sequence activation bar
 // Container/frame shapes that should render behind regular nodes.
 const FRAME_KINDS = new Set<string>([
   "sq-frag-alt", "sq-frag-opt", "sq-frag-loop", "sq-frag-par",
-  "bpmn-subprocess", "bpmn-lane", "bpmn-pool", "bpmn-annotation",
+  "bpmn-subprocess", "bpmn-transaction", "bpmn-event-subprocess",
+  "bpmn-lane", "bpmn-pool", "bpmn-annotation", "bpmn-group",
 ]);
 // Container shapes whose bbox should hug their children after auto-layout.
 // (annotation = sticky note, NOT a container — stays as a normal node.)
 const CONTAINER_KINDS = new Set<string>([
   "sq-frag-alt", "sq-frag-opt", "sq-frag-loop", "sq-frag-par",
-  "bpmn-subprocess", "bpmn-lane", "bpmn-pool",
+  "bpmn-subprocess", "bpmn-transaction", "bpmn-event-subprocess",
+  "bpmn-lane", "bpmn-pool", "bpmn-group",
 ]);
+
+// BPMN Đợt D — context-bar pickers
+const BPMN_TRIGGERS = [
+  "none", "message", "timer", "signal", "error", "escalation", "compensation",
+  "conditional", "link", "cancel", "terminate", "multiple", "parallel-multiple",
+] as const;
+const BPMN_TRIGGER_LABEL: Record<string, string> = {
+  none: "Không", message: "Message", timer: "Timer", signal: "Signal", error: "Error",
+  escalation: "Escalation", compensation: "Compensation", conditional: "Conditional",
+  link: "Link", cancel: "Cancel", terminate: "Terminate", multiple: "Multiple",
+  "parallel-multiple": "Parallel Multiple",
+};
+const BPMN_ACTIVITY_KINDS = new Set<string>([
+  "bpmn-task", "bpmn-task-user", "bpmn-task-service", "bpmn-task-script",
+  "bpmn-task-manual", "bpmn-task-send", "bpmn-task-receive", "bpmn-task-rule",
+  "bpmn-subprocess", "bpmn-transaction", "bpmn-event-subprocess", "bpmn-call-activity",
+]);
+const BPMN_MARKERS = ["loop", "mi-par", "mi-seq", "adhoc", "compensation"] as const;
+const BPMN_MARKER_LABEL: Record<string, string> = {
+  loop: "Loop", "mi-par": "Multi-Instance Parallel", "mi-seq": "Multi-Instance Sequential",
+  adhoc: "Ad-Hoc", compensation: "Compensation",
+};
+
+/** Migrate legacy BPMN event kinds (e.g. `bpmn-start-message`, `bpmn-end-terminate`)
+ *  to the unified Đợt A schema: 3 kinds (bpmn-event-start/intermediate/end) +
+ *  trigger/throwing in NodeExtra. Identity for already-unified or non-event kinds. */
+function migrateBpmnEventKind(shape: string, extra: NodeExtra): { kind: string; extra: NodeExtra } {
+  // Map (legacyKind) → (unifiedKind, triggerPatch)
+  const M: Record<string, { kind: string; patch: Partial<NodeExtra> }> = {
+    "bpmn-start": { kind: "bpmn-event-start", patch: {} },
+    "bpmn-start-message": { kind: "bpmn-event-start", patch: { trigger: "message" } },
+    "bpmn-start-timer": { kind: "bpmn-event-start", patch: { trigger: "timer" } },
+    "bpmn-intermediate": { kind: "bpmn-event-intermediate", patch: {} },
+    "bpmn-intermediate-message": { kind: "bpmn-event-intermediate", patch: { trigger: "message" } },
+    "bpmn-intermediate-timer": { kind: "bpmn-event-intermediate", patch: { trigger: "timer" } },
+    "bpmn-end": { kind: "bpmn-event-end", patch: {} },
+    "bpmn-end-message": { kind: "bpmn-event-end", patch: { trigger: "message", throwing: true } },
+    "bpmn-end-terminate": { kind: "bpmn-event-end", patch: { trigger: "terminate" } },
+  };
+  const hit = M[shape];
+  if (!hit) return { kind: shape, extra };
+  return { kind: hit.kind, extra: { ...extra, ...hit.patch } };
+}
 // Full arrowhead set for BOTH ends (flowchart + UML/ERD relationships).
 function buildMarker(kind: string | undefined, color: string): Record<string, unknown> | null {
   switch (kind) {
@@ -162,6 +223,8 @@ function buildMarker(kind: string | undefined, color: string): Record<string, un
     case "bar": return { name: "path", d: "M6 -8 6 8", fill: "none", stroke: color, "stroke-width": 1.5 };                         // one (1)
     case "crow-bar": return { name: "path", d: "M16 -8 2 0 16 8 M16 0 2 0 M14 -8 14 8", fill: "none", stroke: color, "stroke-width": 1.5 }; // one-or-many (1..n)
     case "bar-bar": return { name: "path", d: "M5 -8 5 8 M10 -8 10 8", fill: "none", stroke: color, "stroke-width": 1.5 };          // exactly one (1,1)
+    // BPMN Default Flow marker — diagonal slash at source end (Đợt C).
+    case "def-slash": return { name: "path", d: "M2 -6 10 6", fill: "none", stroke: color, "stroke-width": 1.8 };
     case "none": default: return null;
   }
 }
@@ -598,7 +661,7 @@ export class OmniboardCanvas {
       if (onlyCats && !onlyCats.includes(cat.title)) continue;
       for (const item of cat.items) {
         if (item.shape.startsWith("mm-")) continue; // mindmap has its own flow
-        const cell = el("div", "lk-shape-cell", shapeIcon(item.shape));
+        const cell = el("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
         cell.title = item.label;
         cell.onclick = () => onPick(item);
         grid.appendChild(cell);
@@ -723,7 +786,7 @@ export class OmniboardCanvas {
       } else if (srcPort === "top" || srcPort === "bottom") {
         nx = sb.x + sb.width / 2 - item.w / 2;    // vertical flow → align X
       }
-      const created = this.addHtmlNode(item.shape, nx, ny, item.w, item.h, "");
+      const created = this.addHtmlNode(item.shape, nx, ny, item.w, item.h, "", undefined, undefined, item.seed as NodeExtra);
       edge.setTarget({ cell: created.id });
       edge.setData({ ...(edge.getData() as object) });
       this.applyMindmapRoutingIfNeeded(edge); this.applySeqRoutingIfNeeded(edge);
@@ -762,7 +825,7 @@ export class OmniboardCanvas {
     while (this.overlapsAny(x, y, item.w, item.h, source.id) && guard++ < 50) {
       if (horiz) y += item.h + 20; else x += item.w + 20;
     }
-    const created = this.addHtmlNode(item.shape, x, y, item.w, item.h, "");
+    const created = this.addHtmlNode(item.shape, x, y, item.w, item.h, "", undefined, undefined, item.seed as NodeExtra);
     const opp: Record<SpawnDir, SpawnDir> = { top: "bottom", bottom: "top", left: "right", right: "left" };
     this.graph.addEdge({
       source: { cell: source.id, port: dir }, target: { cell: created.id, port: opp[dir] },
@@ -1116,13 +1179,9 @@ export class OmniboardCanvas {
       // as vertices so the `segments` tool renders one handle per visible
       // segment instead of nothing. Reverted on unselect if user didn't drag.
       if (this.isOrthogonalEdge(edge) && originalVerts.length === 0) {
-        const view = this.graph.findViewByCell(edge) as any;
-        const route = view?.routePoints;
-        if (Array.isArray(route) && route.length > 2) {
-          const bends = route.slice(1, -1).map((p: any) => ({ x: p.x, y: p.y }));
-          if (bends.length > 0) {
-            edge.setVertices(bends, { ui: false, toolId: "auto-segments" } as any);
-          }
+        const bends = this.materializeEditableBends(edge);
+        if (bends.length > 0) {
+          edge.setVertices(bends, { ui: false, toolId: "auto-segments" } as any);
         }
       }
       // Reshape tools:
@@ -1192,6 +1251,25 @@ export class OmniboardCanvas {
       // re-dock automatically via the edge's anchor=center + boundary crop. No
       // per-edge fixup needed.
       this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad();
+    });
+    // Đợt E — Boundary event follow-on-move. When an activity moves, drag any
+    // event nodes whose extra.attachedTo points at it by the same (dx, dy).
+    // We hook the granular position-change event (fires per drag tick) and use
+    // X6's `previous` arg to read the delta exactly once per change.
+    this.graph.on("node:change:position", ({ node, current, previous, options }) => {
+      // Skip our own re-positioning calls (re-entry guard) and X6's silent moves.
+      if (options?.["__boundary_follow"]) return;
+      if (!current || !previous) return;
+      const dx = current.x - previous.x;
+      const dy = current.y - previous.y;
+      if (dx === 0 && dy === 0) return;
+      const movedId = node.id;
+      for (const child of this.graph.getNodes()) {
+        if (child.id === movedId) continue;
+        if (child.getData()?.attachedTo !== movedId) continue;
+        const p = child.getPosition();
+        child.setPosition(p.x + dx, p.y + dy, { "__boundary_follow": true } as Record<string, unknown>);
+      }
     });
     this.graph.on("node:resized", () => { this.refreshContextBar(); this.refreshContextPad(); });
     // Sequence activation bar is a thin vertical lifeline overlay: pin its width
@@ -1678,16 +1756,27 @@ export class OmniboardCanvas {
     const fly = el("div", "lk-flyout");
     fly.appendChild(el("div", "lk-flyout-title", cat.title));
     const grid = el("div", "lk-flyout-grid");
-    for (const item of cat.items) {
-      const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape)}<span class="lbl">${item.label}</span>`);
+    const mkCell = (item: PaletteItem) => {
+      const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape, item.seed)}<span class="lbl">${item.label}</span>`);
       cell.title = `Kéo "${item.label}" vào canvas`;
-      // Mouse uses Pointer Events; touch uses Touch Events (iOS WebKit doesn't fire
-      // pointermove reliably once the finger leaves the cell, so a touch "drag" was
-      // never detected and always fell back to tap-to-place). touchmove/touchend
-      // always dispatch to the touchstart target → a real drag is detected.
       cell.addEventListener("pointerdown", (e) => { if (e.pointerType === "mouse") this.startDrag(e, item, cell); });
       cell.addEventListener("touchstart", (e) => this.startTouchDrag(e, item, cell), { passive: false });
-      grid.appendChild(cell);
+      return cell;
+    };
+    const common = cat.items.filter((i) => !i.advanced);
+    const advanced = cat.items.filter((i) => i.advanced);
+    for (const item of common) grid.appendChild(mkCell(item));
+    if (advanced.length > 0) {
+      const more = el("button", "lk-flyout-more", `Load more (${advanced.length})`);
+      more.onclick = () => {
+        const frag = document.createDocumentFragment();
+        for (const it of advanced) frag.appendChild(mkCell(it));
+        more.parentElement?.insertBefore(frag, more);
+        more.remove();
+        // Re-position so the now-taller flyout still fits in the board view.
+        this.positionFlyout(fly, anchor);
+      };
+      grid.appendChild(more);
     }
     fly.appendChild(grid);
     fly.onmouseenter = () => this.cancelFlyoutClose();
@@ -1700,6 +1789,10 @@ export class OmniboardCanvas {
   private positionFlyout(fly: HTMLElement, anchor: HTMLElement) {
     const ir = anchor.getBoundingClientRect();
     const rr = this.root.getBoundingClientRect();
+    // Cap the flyout height to the actual board-view height so it never extends
+    // past the visible area (root.height ≠ 100vh inside Obsidian's leaf layout).
+    // Set BEFORE reading offsetHeight so the read reflects the post-clamp size.
+    fly.style.maxHeight = Math.max(160, rr.height - 24) + "px";
     if (this.isMobile) {
       // Bottom bar → open the flyout ABOVE the anchor, centered and clamped.
       const w = fly.offsetWidth;
@@ -1730,7 +1823,7 @@ export class OmniboardCanvas {
    */
   private startDrag(e: PointerEvent, item: PaletteItem, source: HTMLElement) {
     e.preventDefault();
-    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape));
+    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape, item.seed));
     document.body.appendChild(ghost);
     let moved = false;
     const move = (ev: PointerEvent) => {
@@ -1755,7 +1848,7 @@ export class OmniboardCanvas {
       // tap positions it. This avoids the old "node lands at top-left" jitter bug.
       if (moved && onCanvas && !onFlyout) {
         const p = this.graph.clientToLocal(ev.clientX, ev.clientY);
-        const node = this.addHtmlNode(item.shape, p.x - item.w / 2, p.y - item.h / 2, item.w, item.h, item.label);
+        const node = this.addHtmlNode(item.shape, p.x - item.w / 2, p.y - item.h / 2, item.w, item.h, item.label, undefined, undefined, item.seed as NodeExtra);
         this.graph.resetSelection([node]);
         this.onChange();
       } else {
@@ -1777,7 +1870,7 @@ export class OmniboardCanvas {
     if (e.touches.length !== 1) return;
     e.preventDefault();
     const t0 = e.touches[0];
-    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape));
+    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape, item.seed));
     document.body.appendChild(ghost);
     const place = (x: number, y: number) => { ghost.style.left = x + 8 + "px"; ghost.style.top = y + 8 + "px"; };
     place(t0.clientX, t0.clientY);
@@ -1799,7 +1892,7 @@ export class OmniboardCanvas {
       this.closeFlyoutNow();
       if (moved && onCanvas && !onFlyout && t) {
         const p = this.graph.clientToLocal(t.clientX, t.clientY);
-        const node = this.addHtmlNode(item.shape, p.x - item.w / 2, p.y - item.h / 2, item.w, item.h, item.label);
+        const node = this.addHtmlNode(item.shape, p.x - item.w / 2, p.y - item.h / 2, item.w, item.h, item.label, undefined, undefined, item.seed as NodeExtra);
         this.graph.resetSelection([node]);
         this.onChange();
       } else {
@@ -2113,6 +2206,38 @@ export class OmniboardCanvas {
     this.contextBar.appendChild(mkBtn(TRASH_ICON, "Xóa", () => { this.graph.removeCells(this.graph.getSelectedCells()); }));
     this.contextBar.appendChild(mkBtn("⋯", "Thêm", (ev) => { const r = (ev.currentTarget as HTMLElement).getBoundingClientRect(); this.showContextMenu(r.left, r.bottom + 4); }));
 
+    // BPMN Event — trigger picker + interrupting toggle (Đợt D, 2026-06-01).
+    const kindNow = this.nodeKind(node);
+    if (kindNow === "bpmn-event-start" || kindNow === "bpmn-event-intermediate" || kindNow === "bpmn-event-end") {
+      this.contextBar.appendChild(el("div", "lk-cb-sep"));
+      const cur = this.nodeExtra(node).trigger ?? "none";
+      this.contextBar.appendChild(mkBtn(
+        `<span style="font-size:11px;font-weight:600">${BPMN_TRIGGER_LABEL[cur] ?? "Trigger"}</span><span class="lk-cb-caret">▾</span>`,
+        "Trigger sự kiện", (ev) => this.openBpmnTriggerPopup(node, ev.currentTarget as HTMLElement)));
+      // Interrupting toggle (only meaningful for start events in event-subprocess or boundary)
+      const interr = this.nodeExtra(node).interrupting !== false;
+      this.contextBar.appendChild(mkBtn(
+        `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="7" stroke-dasharray="${interr ? "" : "3 2"}"/></svg>`,
+        interr ? "Đang: Interrupting (click để Non-Interrupting)" : "Đang: Non-Interrupting (click để Interrupting)",
+        () => this.toggleEventInterrupting(node)));
+      // Đợt E — Boundary attachment (intermediate events only — start/end can't be boundary)
+      if (kindNow === "bpmn-event-intermediate") {
+        const isBoundary = !!this.nodeExtra(node).attachedTo;
+        this.contextBar.appendChild(mkBtn(
+          `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="11" height="8"/><circle cx="15" cy="14" r="3" fill="${isBoundary ? "currentColor" : "none"}"/></svg>`,
+          isBoundary ? "Bỏ đính khỏi activity" : "Đính vào activity gần nhất (boundary)",
+          () => this.toggleBoundaryAttach(node)));
+      }
+    }
+    // BPMN Task / Sub-process / Transaction / Call activity / Event sub-process — markers (Đợt D).
+    if (BPMN_ACTIVITY_KINDS.has(kindNow)) {
+      this.contextBar.appendChild(el("div", "lk-cb-sep"));
+      this.contextBar.appendChild(mkBtn(
+        `<svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor"><rect x="3" y="8" width="3" height="3"/><rect x="8.5" y="8" width="3" height="3"/><rect x="14" y="8" width="3" height="3"/></svg><span class="lk-cb-caret">▾</span>`,
+        "Activity markers (loop / MI / ad-hoc / compensation)",
+        (ev) => this.openBpmnMarkerPopup(node, ev.currentTarget as HTMLElement)));
+    }
+
     // BPMN Pool — quick-action buttons (bpmn.io UX).
     if (this.nodeKind(node) === "bpmn-pool") {
       this.contextBar.appendChild(el("div", "lk-cb-sep"));
@@ -2424,12 +2549,26 @@ export class OmniboardCanvas {
     if (data?.who !== undefined) out.who = data.who;
     if (data?.labelOffset) out.labelOffset = data.labelOffset;
     if (data?.lanes && data.lanes.length > 0) out.lanes = data.lanes;  // empty array falls back to seed default
+    // BPMN extras (Đợt A)
+    if (data?.trigger) out.trigger = data.trigger;
+    if (data?.throwing !== undefined) out.throwing = data.throwing;
+    if (data?.interrupting !== undefined) out.interrupting = data.interrupting;
+    if (data?.attachedTo) out.attachedTo = data.attachedTo;
+    if (data?.markers && data.markers.length > 0) out.markers = data.markers;
     return out;
   }
   private nodeKind(n: Node): string { return (n.getData()?.kind as string) ?? "bs-rect"; }
   private nodeLabel(n: Node): string { return (n.getData()?.label as string) ?? ""; }
   private nodeStyle(n: Node): NodeStyle { return (n.getData()?.style as NodeStyle) ?? {}; }
-  private nodeExtra(n: Node): NodeExtra { const d = n.getData() ?? {}; return { cols: d.cols, fields: d.fields, methods: d.methods, who: d.who, labelOffset: d.labelOffset, lanes: d.lanes }; }
+  private nodeExtra(n: Node): NodeExtra {
+    const d = n.getData() ?? {};
+    return {
+      cols: d.cols, fields: d.fields, methods: d.methods, who: d.who,
+      labelOffset: d.labelOffset, lanes: d.lanes,
+      trigger: d.trigger, throwing: d.throwing, interrupting: d.interrupting,
+      attachedTo: d.attachedTo, markers: d.markers,
+    };
+  }
   private rerender(n: Node) {
     n.attr("content/html", nodeHtml(this.nodeKind(n), this.nodeLabel(n), this.nodeStyle(n), this.nodeExtra(n)));
     // Mindmap nodes wrap text — re-measure on the next paint so the bbox grows
@@ -2520,6 +2659,104 @@ export class OmniboardCanvas {
     this.rerender(node);
     this.autoHeight(node);
     this.onChange();
+  }
+
+  // ── BPMN Đợt D — Trigger / Marker / Interrupting pickers ────────────────
+  /** Open the trigger picker for an event node (popup grid of 12 OMG triggers). */
+  private openBpmnTriggerPopup(node: Node, anchor: HTMLElement): void {
+    const list = el("div", "lk-line-list");
+    const cur = this.nodeExtra(node).trigger ?? "none";
+    for (const t of BPMN_TRIGGERS) {
+      const row = el("button", "lk-line-row" + (t === cur ? " on" : ""), `<span>${BPMN_TRIGGER_LABEL[t]}</span>`);
+      row.onclick = () => {
+        const data = node.getData() ?? {};
+        const nextTrigger = t === "none" ? undefined : t;
+        node.setData({ ...data, trigger: nextTrigger });
+        this.rerender(node);
+        this.onChange();
+        this.hidePopup();
+        this.refreshContextBar();
+      };
+      list.appendChild(row);
+    }
+    this.showPopup(list, anchor);
+  }
+  /** Toggle Interrupting ↔ Non-Interrupting on event nodes (boundary / event-subprocess start). */
+  private toggleEventInterrupting(node: Node): void {
+    const data = node.getData() ?? {};
+    const cur = data.interrupting !== false;
+    node.setData({ ...data, interrupting: !cur ? undefined : false });
+    this.rerender(node);
+    this.onChange();
+    this.refreshContextBar();
+  }
+  /** Đợt E — Toggle boundary attachment. Picks the nearest BPMN activity bbox
+   *  (Manhattan distance from event center to nearest bbox edge ≤ 60px) and
+   *  sets extra.attachedTo. Snaps the event onto the activity's right edge by
+   *  default so it visually overlaps per OMG. */
+  private toggleBoundaryAttach(node: Node): void {
+    const data = node.getData() ?? {};
+    if (data.attachedTo) {
+      // Detach
+      node.setData({ ...data, attachedTo: undefined });
+      this.rerender(node);
+      this.onChange();
+      this.refreshContextBar();
+      return;
+    }
+    // Find nearest activity
+    const p = node.getPosition(); const s = node.getSize();
+    const cx = p.x + s.width / 2; const cy = p.y + s.height / 2;
+    let bestId: string | null = null; let bestDist = Infinity;
+    let bestParent: { x: number; y: number; w: number; h: number } | null = null;
+    for (const cand of this.graph.getNodes()) {
+      if (cand.id === node.id) continue;
+      if (!BPMN_ACTIVITY_KINDS.has(this.nodeKind(cand))) continue;
+      const cp = cand.getPosition(); const cs = cand.getSize();
+      // Manhattan distance from event center to bbox (0 if inside)
+      const dx = Math.max(cp.x - cx, 0, cx - (cp.x + cs.width));
+      const dy = Math.max(cp.y - cy, 0, cy - (cp.y + cs.height));
+      const d = dx + dy;
+      if (d < bestDist) { bestDist = d; bestId = cand.id; bestParent = { x: cp.x, y: cp.y, w: cs.width, h: cs.height }; }
+    }
+    if (!bestId || !bestParent || bestDist > 80) {
+      // Too far / no candidate — user feedback via title only (no toast infra here)
+      return;
+    }
+    // Snap event onto the bottom-right of the parent (overlapping the edge per OMG)
+    const snapX = bestParent.x + bestParent.w - s.width / 2;
+    const snapY = bestParent.y + bestParent.h - s.height / 2;
+    node.setPosition(snapX, snapY);
+    node.setData({ ...data, attachedTo: bestId });
+    this.rerender(node);
+    this.onChange();
+    this.refreshContextBar();
+  }
+  /** Open the activity-marker picker (multi-select: loop / MI-par / MI-seq / ad-hoc / compensation). */
+  private openBpmnMarkerPopup(node: Node, anchor: HTMLElement): void {
+    const list = el("div", "lk-line-list");
+    const cur = new Set(this.nodeExtra(node).markers ?? []);
+    for (const mk of BPMN_MARKERS) {
+      const on = cur.has(mk);
+      const row = el("button", "lk-line-row" + (on ? " on" : ""), `<span>${on ? "☑" : "☐"} ${BPMN_MARKER_LABEL[mk]}</span>`);
+      row.onclick = () => {
+        const data = node.getData() ?? {};
+        const next = new Set<string>(data.markers ?? []);
+        if (on) next.delete(mk); else next.add(mk);
+        // MI-par and MI-seq are mutually exclusive (BPMN spec: one loopCharacteristics per activity)
+        if (mk === "mi-par" && !on) next.delete("mi-seq");
+        if (mk === "mi-seq" && !on) next.delete("mi-par");
+        if ((mk === "mi-par" || mk === "mi-seq") && !on) next.delete("loop");
+        if (mk === "loop" && !on) { next.delete("mi-par"); next.delete("mi-seq"); }
+        const arr = Array.from(next);
+        node.setData({ ...data, markers: arr.length ? arr : undefined });
+        this.rerender(node);
+        this.onChange();
+        this.openBpmnMarkerPopup(node, anchor); // re-render popup with the new state
+      };
+      list.appendChild(row);
+    }
+    this.showPopup(list, anchor);
   }
 
   // ── BPMN Pool lane operations ───────────────────────────────────────────
@@ -2858,6 +3095,12 @@ export class OmniboardCanvas {
     bar.appendChild(mkBtn(`<span class="lk-color-dot" style="background:${st.stroke || EDGE_STROKE}"></span>`, "Màu mũi tên",
       (ev) => this.openEdgeColorPopup(edge, ev.currentTarget as HTMLElement)));
     bar.appendChild(el("div", "lk-cb-sep"));
+    // 4.5) BPMN flow type ▾ (Đợt C — Sequence/Default/Message/Conditional/Association)
+    const ft = st.flowType ?? "sequence";
+    bar.appendChild(mkBtn(
+      `<span style="font-size:11px;font-weight:600">${FLOW_TYPE_LABEL[ft] ?? "Sequence"}</span>` + caret,
+      "Loại flow (BPMN)", (ev) => this.openEdgeFlowTypePopup(edge, ev.currentTarget as HTMLElement)));
+    bar.appendChild(el("div", "lk-cb-sep"));
     // 5) line style (shape + dash + weight) ▾
     bar.appendChild(mkBtn(
       `<svg viewBox="0 0 24 14" width="24" height="14"><path d="M2 11 H10 V3 H22" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>` + caret,
@@ -2919,6 +3162,21 @@ export class OmniboardCanvas {
       grid.appendChild(cell);
     }
     this.showPopup(grid, anchor);
+  }
+  /** BPMN flow-type popup — applies a preset (Sequence/Default/Message/Conditional/Association). Đợt C. */
+  private openEdgeFlowTypePopup(edge: Edge, anchor: HTMLElement) {
+    const list = el("div", "lk-line-list");
+    const cur = this.edgeStyle(edge).flowType ?? "sequence";
+    for (const key of ["sequence", "default", "message", "conditional", "association"] as const) {
+      const row = el("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
+      row.onclick = () => {
+        this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
+        this.hidePopup();
+        this.showEdgeBar(edge);
+      };
+      list.appendChild(row);
+    }
+    this.showPopup(list, anchor);
   }
   // Line popup: shape (orthogonal/elbow/straight/curved) + dash + weight.
   private openEdgeLinePopup(edge: Edge, anchor: HTMLElement) {
@@ -3005,6 +3263,28 @@ export class OmniboardCanvas {
     const r = edge.getRouter() as any;
     const name = typeof r === "string" ? r : r?.name;
     return name === "orth" || name === "manhattan" || name === "metro" || name === "er";
+  }
+
+  private materializeEditableBends(edge: Edge): Array<{ x: number; y: number }> {
+    const view = this.graph.findViewByCell(edge) as any;
+    const route = view?.routePoints;
+    if (Array.isArray(route) && route.length > 2) {
+      return route.slice(1, -1).map((p: any) => ({ x: p.x, y: p.y }));
+    }
+
+    const source = edge.getSourcePoint();
+    const target = edge.getTargetPoint();
+    if (!source || !target) return [];
+    const dx = target.x - source.x;
+    const dy = target.y - source.y;
+    if (Math.abs(dx) < 1 || Math.abs(dy) < 1) return [];
+
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      const midX = source.x + dx / 2;
+      return [{ x: midX, y: source.y }, { x: midX, y: target.y }];
+    }
+    const midY = source.y + dy / 2;
+    return [{ x: source.x, y: midY }, { x: target.x, y: midY }];
   }
 
   private applySeqRoutingIfNeeded(edge: Edge): void {
@@ -3095,8 +3375,24 @@ export class OmniboardCanvas {
     for (const n of model.nodes) {
       const a = n.attrs ?? {};
       const style = (a.style as NodeStyle) ?? {};
-      const extra: NodeExtra = { cols: a.cols as ErdCol[] | undefined, fields: a.fields as string[] | undefined, methods: a.methods as string[] | undefined, who: a.who as string | undefined, labelOffset: a.labelOffset as { x: number; y: number } | undefined, lanes: a.lanes as Array<{ id: string; label: string }> | undefined };
-      this.addHtmlNode(n.shape, n.x, n.y, n.width, n.height, n.label, style, n.id, extra, a.__source);
+      const extra: NodeExtra = {
+        cols: a.cols as ErdCol[] | undefined,
+        fields: a.fields as string[] | undefined,
+        methods: a.methods as string[] | undefined,
+        who: a.who as string | undefined,
+        labelOffset: a.labelOffset as { x: number; y: number } | undefined,
+        lanes: a.lanes as Array<{ id: string; label: string }> | undefined,
+        trigger: a.trigger as NodeExtra["trigger"],
+        throwing: a.throwing as boolean | undefined,
+        interrupting: a.interrupting as boolean | undefined,
+        attachedTo: a.attachedTo as string | undefined,
+        markers: a.markers as NodeExtra["markers"],
+      };
+      // Migration shim (Đợt A, 2026-06-01): collapse legacy event kinds to the
+      // unified bpmn-event-{start,intermediate,end} + trigger/throwing in extra.
+      // Keeps old .board files rendering identically while consolidating the schema.
+      const migrated = migrateBpmnEventKind(n.shape, extra);
+      this.addHtmlNode(migrated.kind, n.x, n.y, n.width, n.height, n.label, style, n.id, migrated.extra, a.__source);
     }
     for (const e of model.edges) {
       const seq = this.isSeqLifeline(e.source) && this.isSeqLifeline(e.target);
@@ -3282,7 +3578,15 @@ export class OmniboardCanvas {
       return {
         id: n.id, shape: this.nodeKind(n), x: p.x, y: p.y, width: s.width, height: s.height,
         label: this.nodeLabel(n),
-        attrs: { style: this.nodeStyle(n), cols: ex.cols, fields: ex.fields, methods: ex.methods, who: ex.who, labelOffset: ex.labelOffset, lanes: ex.lanes, __source: n.getData()?.__source },
+        attrs: {
+          style: this.nodeStyle(n),
+          cols: ex.cols, fields: ex.fields, methods: ex.methods, who: ex.who,
+          labelOffset: ex.labelOffset, lanes: ex.lanes,
+          // BPMN extras (Đợt A)
+          trigger: ex.trigger, throwing: ex.throwing, interrupting: ex.interrupting,
+          attachedTo: ex.attachedTo, markers: ex.markers,
+          __source: n.getData()?.__source,
+        },
       };
     });
     const edges = this.graph.getEdges().map((e) => {

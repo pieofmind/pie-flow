@@ -1046,8 +1046,15 @@ export class OmniboardCanvas {
   private togglePorts(node: Node, visible: boolean) {
     const view = this.graph.findViewByCell(node);
     if (!view) return;
+    // Show only the 4 cardinal ports (top/right/bottom/left mid-side). The 8
+    // quarter ports (top-1/top-2/left-1/…) stay invisible to keep the hover UI
+    // uncluttered — they remain in the port definitions so any saved board
+    // referencing them still resolves, but the user doesn't see/target them.
+    // X6 writes the port id onto the <circle> element (port-attr), not the <g>.
     (view.container as Element).querySelectorAll<SVGElement>(".x6-port circle").forEach((c) => {
-      c.style.visibility = visible ? "visible" : "hidden";
+      const id = c.getAttribute("port") ?? "";
+      const isCardinal = id === "top" || id === "right" || id === "bottom" || id === "left";
+      c.style.visibility = visible && isCardinal ? "visible" : "hidden";
     });
   }
 

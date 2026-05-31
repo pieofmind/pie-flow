@@ -75454,7 +75454,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const view = this.graph.findViewByCell(node2);
     if (!view) return;
     view.container.querySelectorAll(".x6-port circle").forEach((c6) => {
-      c6.style.visibility = visible ? "visible" : "hidden";
+      var _a3;
+      const id = (_a3 = c6.getAttribute("port")) != null ? _a3 : "";
+      const isCardinal = id === "top" || id === "right" || id === "bottom" || id === "left";
+      c6.style.visibility = visible && isCardinal ? "visible" : "hidden";
     });
   }
   // ── Left tool dock (design "PHẦN TỬ" — labeled vertical list) ─────────────

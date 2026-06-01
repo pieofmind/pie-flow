@@ -17,9 +17,31 @@ export function registerHtmlNode(): void {
       },
     ],
     attrs: {
+<<<<<<< HEAD
+      // `magnet: 'passive'` lets X6 treat the body as a valid DROP target during
+       // an arrow-drag (so the user can drop anywhere on the node and pinDropAnchor
+       // pins to that exact pixel) WITHOUT making body clicks initiate a connect
+       // drag — that would break selection (we tried `magnet: true` earlier, it
+       // hijacked the click; commit add07d8 reverted it).
+      // `pointerEvents: 'all'` so transparent fill still catches mouse events
+      // across the full bbox (SVG default `visiblePainted` ignores transparent
+      // areas — corner drops would fall through the hit rect onto the SVG
+      // background and the connecting tool would see no magnet under the cursor).
+      // Body magnet enables bpmn.io-style drop-anywhere: any mousedown on the
+      // body during an arrow-drag (started elsewhere) becomes a valid drop
+      // target → pinDropAnchor pins the endpoint to the cursor pixel.
+      // Selection isn't broken (the add07d8 regression) because `validateMagnet`
+      // in the connecting config rejects the body as a drag SOURCE — clicks on
+      // the body fall through to normal selection.
+      // `pointerEvents: 'all'` keeps the transparent fill catching mouse events
+      // across the full bbox (SVG default `visiblePainted` ignores transparent
+      // areas — corner drops would otherwise fall through onto the SVG canvas).
+      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", magnet: false, pointerEvents: "all" },
+=======
       // The transparent hit rect owns selection/edit pointer events only. Edges
       // connect through the 12 fixed ports supplied by makePorts().
       hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", pointerEvents: "all" },
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
       fo: { refWidth: "100%", refHeight: "100%" },
       content: { html: "", class: "hn" },
     },

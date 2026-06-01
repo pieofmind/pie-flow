@@ -169,6 +169,7 @@
    port circles. X6 would otherwise light up every node's magnets as drop
    targets, flooding the view with blue dots. The class is toggled on/off by
    the node:magnet:mousedown listener in OmniboardCanvas. */
+<<<<<<< HEAD
 /* `display: none` (not visibility:hidden) so the rule wins over any inline
    style X6 sets when highlighting magnets — display can't be overridden by
    inline visibility, and removing the element from layout also stops it from
@@ -181,6 +182,11 @@
   display: block !important;
   visibility: visible !important;
 }
+=======
+/* Keep magnets in the DOM during drag so X6 can snap reliably, but dim them so
+   the canvas doesn't turn into a wall of target dots. */
+.lk-root.lk-dragging-edge .x6-port circle { opacity: 0.35; }
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
 .lk-root .x6-widget-selection-box {
   border: 1.5px solid var(--pg-accent) !important; border-radius: 6px;
   box-shadow: 0 0 0 3px var(--pg-accent-soft); background: transparent !important;

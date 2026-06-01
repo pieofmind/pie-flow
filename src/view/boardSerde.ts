@@ -125,6 +125,9 @@ export function deserializeSourceMeta(raw: string): unknown {
   return parseMaybeCompressedJson(m[1]);
 }
 
+<<<<<<< HEAD
+export function serializeBoard(model: CanvasModel, previousRaw = "", sourceMeta?: unknown, compress = true): string {
+=======
 export function serializeBoard(
   model: CanvasModel,
   previousRaw = "",
@@ -132,6 +135,7 @@ export function serializeBoard(
   opts?: { compressDrawingData?: boolean },
 ): string {
   const useCompression = opts?.compressDrawingData !== false;
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
   const fm = parseFrontmatter(previousRaw);
   // If caller didn't pass meta, preserve the previous meta block.
   const meta = sourceMeta ?? deserializeSourceMeta(previousRaw);
@@ -167,14 +171,24 @@ export function serializeBoard(
   parts.push("%%");
   parts.push("## Drawing");
   parts.push("```" + DATA_LANG);
-  parts.push(useCompression ? compressFn(json) : json);
+<<<<<<< HEAD
+  // When compress=false store plain JSON (Excalidraw "Decompress" mode).
+  // AI agents can then read and write the file without a Gzip step.
+  parts.push(compress ? compressFn(json) : json);
+=======
+  parts.push(useCompression ? compress(json) : json);
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
   parts.push("```");
   if (meta) {
     parts.push("");
     parts.push("## Source Meta");
     parts.push("```" + META_LANG);
+<<<<<<< HEAD
+    parts.push(compress ? compressFn(JSON.stringify(meta)) : JSON.stringify(meta));
+=======
     const metaJson = JSON.stringify(meta);
-    parts.push(useCompression ? compressFn(metaJson) : metaJson);
+    parts.push(useCompression ? compress(metaJson) : metaJson);
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
     parts.push("```");
   }
   parts.push("%%");
@@ -196,8 +210,35 @@ export function deserializeBoard(raw: string): CanvasModel | null {
   if (!raw.trim()) return { nodes: [], edges: [] };
   const m = DRAWING_RE.exec(raw);
   if (!m) return null;
+<<<<<<< HEAD
+
+  // ── Path 1: Gzip + Base64 (standard compressed format) ──────────────────
+  const json = decompress(m[1]);
+  if (json !== null) {
+    try {
+      const model = JSON.parse(json) as CanvasModel;
+      if (Array.isArray(model.nodes) && Array.isArray(model.edges)) return model;
+    } catch {
+      /* fall through to plain-JSON path */
+    }
+  }
+
+  // ── Path 2: Plain JSON fallback (AI-agent authored files) ────────────────
+  // If decompression failed the block may already be a raw JSON string.
+  // Accept it so agents can write uncompressed data; the plugin will compress
+  // on the next save.
+  try {
+    const candidate = m[1].trim();
+    const model = JSON.parse(candidate) as CanvasModel;
+    if (Array.isArray(model.nodes) && Array.isArray(model.edges)) return model;
+  } catch {
+    /* fall through */
+  }
+
+=======
   const parsed = parseMaybeCompressedJson(m[1]) as CanvasModel | null;
   if (parsed && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) return parsed;
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
   return null;
 }
 

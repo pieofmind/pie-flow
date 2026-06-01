@@ -523,6 +523,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       label: (fe.name ?? "").replace(/&#10;/g, "\n") || undefined,
       labelPos,
       vertices,
+      router: "normal",
       ...(kind !== "sequence" ? { kind } : {}),
       ...(Object.keys(edgeAttrs).length ? { attrs: edgeAttrs } : {}),
     };

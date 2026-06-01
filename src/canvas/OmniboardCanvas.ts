@@ -457,15 +457,9 @@ export class OmniboardCanvas {
       grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
-<<<<<<< HEAD
         // Tight 8px snap radius for port circle highlighting, while intelligent
         // center-alignment at drop time handles straight-line snapping beautifully.
         snap: { radius: 8 },
-=======
-        // Fixed-port mode: keep the magnetic catch area only slightly larger
-        // than the visible port so drops feel precise.
-        snap: { radius: 4 },
->>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
         allowBlank: true,             // drop on empty canvas → "pick shape" picker
         allowLoop: false,             // no self-loops
         allowNode: false,             // endpoints must resolve to one of the 12 ports
@@ -476,20 +470,7 @@ export class OmniboardCanvas {
         // port-based endpoint to a nearby bbox/ellipse intersection, which made
         // BPMN circle ports appear to snap off-centre.
         anchor: "center",
-<<<<<<< HEAD
-        connectionPoint(line: any, view: any, magnet: any, options: any) {
-          // If the magnet is a port, connect to its center (node boundary) directly
-          if (magnet && (magnet as Element).classList?.contains("x6-port-body")) {
-            return line.end;
-          }
-          // Otherwise, crop at the bounding box of the node
-          const bbox = view.cell.getBBox();
-          const intersections = line.intersectsWithRect(bbox);
-          return intersections && intersections.length > 0 ? intersections[0] : line.end;
-        },
-=======
         connectionPoint: "anchor",
->>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
         router: SMART_ROUTER, connector: CONNECTOR,
         createEdge() { return this.createEdge({ attrs: EDGE_ATTRS }); },
         // Accept drops on fixed node ports, plus empty-canvas drops so allowBlank
@@ -787,100 +768,7 @@ export class OmniboardCanvas {
     ), anchor);
   }
 
-<<<<<<< HEAD
-  /** bpmn.io-style drop-anywhere — after the user finishes a connect drag, pin the
-   *  endpoint(s) that landed on a node BODY (no explicit port) to the exact pixel
-   *  position they dropped on. Each endpoint stored as `{ anchor: { topLeft +
-   *  dx/dy }, connectionPoint: boundary }` — unlimited positioning, no 12-port
-   *  grid snap. setSource/setTarget runs ONCE per connect; we never mutate the
-   *  spec again afterwards (the recursive-relayout freeze came from doing this
-   *  inside change:* / node:moved handlers, not from the mutation itself). */
-  private pinDropAnchor(edge: Edge, which: "source" | "target"): void {
-    (edge as any).__selVertsUserChanged = true; // Mark edge as modified so it won't revert on unselect!
-    const sId = edge.getSourceCellId() ?? undefined;
-    const tId = edge.getTargetCellId() ?? undefined;
-    if (this.isSeqLifeline(sId) || this.isSeqLifeline(tId)) return;
-    if (this.isMindmapNode(sId) || this.isMindmapNode(tId)) return;
-    const id = which === "source" ? sId : tId;
-    if (!id) return;
-    const node = this.graph.getCellById(id);
-    if (!node?.isNode?.()) return;
 
-    // Preserve the cardinal port connection if the user explicitly dropped on a port.
-    // Overriding it with exact cursor coordinates would break straight-line alignment and cause stair-step jogs.
-    const terminal = which === "source" ? edge.getSource() : edge.getTarget();
-    if (terminal && typeof terminal === "object" && "port" in terminal && !!(terminal as any).port) {
-      return;
-    }
-
-    // Use the LIVE cursor position (graph coords), NOT edge.getTargetPoint():
-    // X6 reports the snapped port / centre-anchored boundary point, which makes
-    // every drop on the same side collapse to one spot. The real pointer gives
-    // bpmn.io-style unlimited positioning — distinct anchor per drop. Overrides
-    // any port X6 snapped to (the 4 cardinal circles are just aim hints now).
-    const c = this.lastPointerClient;
-    if (!c) return;
-    const p = this.graph.clientToLocal(c.x, c.y); // convert once, at drop time
-    const endSpec = this.dockAnchorSpec(id, node as Node, p) as never;
-    if (which === "source") edge.setSource(endSpec);
-    else edge.setTarget(endSpec);
-  }
-
-  /**
-   * Build an endpoint spec that docks to the node EDGE nearest the given point.
-   * An arrow endpoint must sit on the boundary anyway; snapping to the nearest
-   * *edge* (not an independent x/y clamp) means a drop in a diagonal/corner
-   * region docks to whichever SIDE is closer instead of the corner — the free
-   * coordinate along that side is preserved so multiple arrows on the same side
-   * still land at distinct points (bpmn.io docking). Removes the "endpoint jumps
-   * to the top-right corner, then I must add a bend to fix the route" problem.
-   * Shared by pinDropAnchor (magnet drop) and handleDragToBlank (geometric drop).
-   */
-   private dockAnchorSpec(cellId: string, node: Node, pt: { x: number; y: number }) {
-    const b = node.getBBox();
-    let dx = Math.max(0, Math.min(b.width, pt.x - b.x));
-    let dy = Math.max(0, Math.min(b.height, pt.y - b.y));
-    const dLeft = dx, dRight = b.width - dx, dTop = dy, dBottom = b.height - dy;
-    const m = Math.min(dLeft, dRight, dTop, dBottom);
-
-    const snapTol = 16; // 16px snap zone to the center of the side (bpmn.io style)
-
-    // Offset matching the port circle visual boundary (set to 0 so that arrows touch the node border directly)
-    const offset = 0;
-
-    if (m === dTop) {
-      if (Math.abs(dx - b.width / 2) < snapTol) {
-        return { cell: cellId, port: "top" };
-      }
-      dy = -offset;
-    } else if (m === dBottom) {
-      if (Math.abs(dx - b.width / 2) < snapTol) {
-        return { cell: cellId, port: "bottom" };
-      }
-      dy = b.height + offset;
-    } else if (m === dLeft) {
-      if (Math.abs(dy - b.height / 2) < snapTol) {
-        return { cell: cellId, port: "left" };
-      }
-      dx = -offset;
-    } else {
-      if (Math.abs(dy - b.height / 2) < snapTol) {
-        return { cell: cellId, port: "right" };
-      }
-      dx = b.width + offset;
-    }
-
-    // connectionPoint "anchor" (NOT "boundary"): the anchor already sits exactly
-    // on the chosen edge, so use it verbatim. "boundary" re-cropped the endpoint
-    // to wherever the route first hit the bbox — for an edge approaching from
-    // above, that's the TOP edge, which collapsed every left-edge anchor onto the
-    // top-left corner (ignoring dy → arrows stacked above the node). "anchor"
-    // keeps the endpoint at exactly (dx, dy) so dy is respected.
-    return { cell: cellId, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "anchor" } };
-  }
-
-=======
->>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
   private handleDragToBlank(edge: Edge): "removed" | "connected" | "pending" {
     const srcId = edge.getSourceCellId();
@@ -1344,17 +1232,6 @@ export class OmniboardCanvas {
       delete (edge as any).__selVertsUserChanged;
       delete (edge as any).__selVertsChangeSaved;
     });
-<<<<<<< HEAD
-    // Endpoint drag (source-arrowhead / target-arrowhead) → wipe stale vertices
-    // so the route re-computes cleanly to whichever side the user dropped on.
-    // Endpoint spec (port vs body-floating) is left as the user dropped it.
-    const onEndpointMoved = ({ edge }: { edge: Edge }) => {
-      (edge as any).__selVertsUserChanged = true;
-      if (this.isSeqLifeline(edge.getSourceCellId() ?? undefined) ||
-        this.isSeqLifeline(edge.getTargetCellId() ?? undefined)) return;
-      if (this.isMindmapNode(edge.getSourceCellId() ?? undefined) ||
-        this.isMindmapNode(edge.getTargetCellId() ?? undefined)) return;
-=======
     const canResetEdgeVertices = (edge: Edge) => {
       if (this.isSeqLifeline(edge.getSourceCellId() ?? undefined) ||
           this.isSeqLifeline(edge.getTargetCellId() ?? undefined)) return false;
@@ -1364,7 +1241,6 @@ export class OmniboardCanvas {
     };
     const resetEdgeVertices = (edge: Edge) => {
       if (!canResetEdgeVertices(edge)) return;
->>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
       if (edge.getVertices().length) edge.setVertices([]);
     };
     const finalizeConnectedEdge = (edge: Edge, connected?: ConnectedEndpointEvent) => {
@@ -1474,23 +1350,6 @@ export class OmniboardCanvas {
 
     // Sequence messages: when both endpoints are sequence lifelines, swap the
     // edge's connector to "seq-msg" so the arrow stays horizontal at source Y.
-<<<<<<< HEAD
-    this.graph.on("edge:connected", ({ edge, isNew, type }) => {
-      (edge as any).__selVertsUserChanged = true; // Mark as modified so it won't revert on unselect!
-      // Dropped on empty canvas → show shape picker at the drop point (Omniboard).
-      if (isNew && !edge.getTargetCellId()) { this.handleDragToBlank(edge); return; }
-      this.applySeqRoutingIfNeeded(edge);
-      this.applyMindmapRoutingIfNeeded(edge);
-      // bpmn.io-style drop-anywhere: pin the END THAT WAS JUST DROPPED to the
-      // exact cursor pixel (unlimited positioning, distinct per drop). `type` is
-      // 'source'|'target' — the terminal X6 just connected. New edges always
-      // drop the target. Mutation runs ONCE here per connect, never in
-      // node:moved / change:* handlers, so the recursive-relayout freeze stays
-      // gone.
-      const dropped: "source" | "target" = type === "source" ? "source" : "target";
-      this.pinDropAnchor(edge, dropped);
-      this.onChange();
-=======
     this.graph.on("edge:connected", ({ edge, isNew, type, currentCell, currentPort }) => {
       // Dropped on empty canvas → show shape picker at the drop point (Omniboard).
       if (isNew && !edge.getTargetCellId()) {
@@ -1512,7 +1371,6 @@ export class OmniboardCanvas {
         currentCell: (currentCell as { id?: string } | null | undefined) ?? null,
         currentPort: currentPort ?? null,
       });
->>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
     });
     // Robust fallback: some X6 builds don't emit edge:connected for a blank drop.
     // After any mouseup, scan for a freshly dangling edge (source cell, target point)
@@ -3897,9 +3755,10 @@ export class OmniboardCanvas {
       if (e.sourceAnchor) {
         sourceEnd.anchor = { name: "topLeft", args: { dx: e.sourceAnchor.dx, dy: e.sourceAnchor.dy } };
         sourceEnd.connectionPoint = { name: "anchor" };
-<<<<<<< HEAD
-      } else if (e.sourcePort) {
         sourceEnd.port = e.sourcePort;
+      } else if (sourcePort) {
+        sourceEnd.port = sourcePort;
+        sourceEnd.connectionPoint = PORT_CONNECTION_POINT;
       } else if (!seq && !mm) {
         // Auto-infer port from center-to-center direction so the orth router
         // produces clean straight segments instead of S-curves.
@@ -3927,19 +3786,15 @@ export class OmniboardCanvas {
             sourceEnd.port = dy >= 0 ? "bottom" : "top";
           }
         }
-=======
-      } else if (sourcePort) {
-        sourceEnd.port = sourcePort;
-        sourceEnd.connectionPoint = PORT_CONNECTION_POINT;
->>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
       }
       const targetEnd: Record<string, unknown> = { cell: e.target };
       if (e.targetAnchor) {
         targetEnd.anchor = { name: "topLeft", args: { dx: e.targetAnchor.dx, dy: e.targetAnchor.dy } };
         targetEnd.connectionPoint = { name: "anchor" };
-<<<<<<< HEAD
-      } else if (e.targetPort) {
         targetEnd.port = e.targetPort;
+      } else if (targetPort) {
+        targetEnd.port = targetPort;
+        targetEnd.connectionPoint = PORT_CONNECTION_POINT;
       } else if (!seq && !mm) {
         const sc = nodeCenterMap.get(e.source);
         const tc = nodeCenterMap.get(e.target);
@@ -3957,11 +3812,6 @@ export class OmniboardCanvas {
             targetEnd.port = dy >= 0 ? "top" : "bottom";
           }
         }
-=======
-      } else if (targetPort) {
-        targetEnd.port = targetPort;
-        targetEnd.connectionPoint = PORT_CONNECTION_POINT;
->>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
       }
       const created = this.graph.addEdge({
         id: e.id,

@@ -4,11 +4,8 @@ import type DiagramsPlugin from "./main";
 export interface DiagramsSettings {
   defaultLayout: "LR" | "TB";
   validateBpmnBeforeExport: boolean;
-<<<<<<< HEAD
   /** When true (default), drawing data is Gzip+Base64 compressed.
    *  When false, plain JSON is stored — readable by AI agents and humans. */
-=======
->>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
   compressDrawingData: boolean;
 }
 
@@ -58,16 +55,8 @@ export class DiagramsSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-<<<<<<< HEAD
       .setName("Compress drawing data (Gzip + Base64)")
-      .setDesc(
-        "When ON (default): drawing data is compressed — smaller file size but unreadable by AI agents. " +
-        "When OFF: plain JSON is stored — AI agents can read and write board files directly."
-      )
-=======
-      .setName("Compress drawing data")
       .setDesc("Use Gzip + Base64 for drawing/source-meta blocks. Turn off to store raw JSON for easier AI/agent editing.")
->>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
       .addToggle((t) =>
         t
           .setValue(this.plugin.settings.compressDrawingData)

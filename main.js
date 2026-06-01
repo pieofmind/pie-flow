@@ -33647,7 +33647,7 @@ function emitFrontmatter(fm) {
   lines.push("---");
   return lines.join("\n");
 }
-function compress(json) {
+function compressFn(json) {
   const deflated = pako.deflate(new TextEncoder().encode(json));
   let bin = "";
   const CHUNK = 32768;
@@ -33680,7 +33680,7 @@ function deserializeSourceMeta(raw2) {
     return null;
   }
 }
-function serializeBoard(model, previousRaw = "", sourceMeta) {
+function serializeBoard(model, previousRaw = "", sourceMeta, compress = true) {
   const fm = parseFrontmatter(previousRaw);
   const meta = sourceMeta != null ? sourceMeta : deserializeSourceMeta(previousRaw);
   const parts = [];
@@ -33712,13 +33712,13 @@ function serializeBoard(model, previousRaw = "", sourceMeta) {
   parts.push("%%");
   parts.push("## Drawing");
   parts.push("```" + DATA_LANG);
-  parts.push(compress(json));
+  parts.push(compress ? compressFn(json) : json);
   parts.push("```");
   if (meta) {
     parts.push("");
     parts.push("## Source Meta");
     parts.push("```" + META_LANG);
-    parts.push(compress(JSON.stringify(meta)));
+    parts.push(compress ? compressFn(JSON.stringify(meta)) : JSON.stringify(meta));
     parts.push("```");
   }
   parts.push("%%");
@@ -33730,9 +33730,16 @@ function deserializeBoard(raw2) {
   const m6 = DRAWING_RE.exec(raw2);
   if (!m6) return null;
   const json = decompress(m6[1]);
-  if (json === null) return null;
+  if (json !== null) {
+    try {
+      const model = JSON.parse(json);
+      if (Array.isArray(model.nodes) && Array.isArray(model.edges)) return model;
+    } catch (e4) {
+    }
+  }
   try {
-    const model = JSON.parse(json);
+    const candidate = m6[1].trim();
+    const model = JSON.parse(candidate);
     if (Array.isArray(model.nodes) && Array.isArray(model.edges)) return model;
   } catch (e4) {
   }
@@ -40201,10 +40208,23 @@ async function importBpmn(raw2, options) {
     const y5 = (_q = bounds == null ? void 0 : bounds.y) != null ? _q : 100;
     const width2 = (_r = bounds == null ? void 0 : bounds.width) != null ? _r : tagLc.endsWith("Event") ? 36 : 100;
     const height2 = (_s = bounds == null ? void 0 : bounds.height) != null ? _s : tagLc.endsWith("Event") ? 36 : 60;
-    const nodeLabelOffset = ((_t3 = di == null ? void 0 : di.label) == null ? void 0 : _t3.bounds) ? {
-      x: di.label.bounds.x + di.label.bounds.width / 2 - (x4 + width2 / 2),
-      y: di.label.bounds.y + di.label.bounds.height / 2 - (y5 + height2 / 2)
-    } : void 0;
+    const isGw = shape.includes("gateway");
+    const labelBounds = (_t3 = di == null ? void 0 : di.label) == null ? void 0 : _t3.bounds;
+    let nodeLabelOffset;
+    if (labelBounds) {
+      const labelCenterY = labelBounds.y + labelBounds.height / 2;
+      const nodeCenterY = y5 + height2 / 2;
+      const isTop = labelCenterY < nodeCenterY;
+      const defaultY = isGw ? 37 : 36;
+      const defaultOffset = { x: 0, y: isTop ? -defaultY : defaultY };
+      const rawOffset = {
+        x: labelBounds.x + labelBounds.width / 2 - (x4 + width2 / 2) - defaultOffset.x,
+        y: labelCenterY - nodeCenterY - defaultOffset.y
+      };
+      if (Math.abs(rawOffset.x) >= 2.5 || Math.abs(rawOffset.y) >= 2.5) {
+        nodeLabelOffset = rawOffset;
+      }
+    }
     const { fill: fill2, stroke: stroke3 } = diColours(di);
     const style2 = {};
     if (fill2) style2.fill = fill2;
@@ -76589,7 +76609,7 @@ function registerHtmlNode() {
       // `pointerEvents: 'all'` keeps the transparent fill catching mouse events
       // across the full bbox (SVG default `visiblePainted` ignores transparent
       // areas — corner drops would otherwise fall through onto the SVG canvas).
-      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", magnet: true, pointerEvents: "all" },
+      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", magnet: false, pointerEvents: "all" },
       fo: { refWidth: "100%", refHeight: "100%" },
       content: { html: "", class: "hn" }
     },
@@ -79118,7 +79138,7 @@ var HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 var ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 var EDGE_ATTRS = { line: { stroke: EDGE_STROKE2, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
 var EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" };
-var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle" };
+var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle", textWrap: { width: 150, breakWord: true, ellipsis: false } };
 var FLOW_TYPE_PRESETS = {
   sequence: { dash: "solid", start: "none", end: "arrow" },
   default: { dash: "solid", start: "def-slash", end: "arrow" },
@@ -79521,12 +79541,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
-        // Small radius so only drops that LAND on (or right next to) a port
-        // circle snap to that port. Everything else falls through to body-drop
-        // → pinDropAnchor / handleDragToBlank pins the endpoint at the exact
-        // cursor pixel (bpmn.io-style unlimited positioning). With the old 30px
-        // radius almost every drop on a 120×80 node was within range of *some*
-        // port and the user couldn't drop anywhere they actually wanted.
+        // Tight 8px snap radius for port circle highlighting, while intelligent
+        // center-alignment at drop time handles straight-line snapping beautifully.
         snap: { radius: 8 },
         allowBlank: true,
         // drop on empty canvas → "pick shape" picker
@@ -79541,7 +79557,15 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         // endpoint stores a raw {x, y} which breaks routing the moment the node
         // moves. The visual connection stops at the node BOUNDARY (no piercing).
         anchor: "center",
-        connectionPoint: "boundary",
+        connectionPoint(line2, view, magnet, options) {
+          var _a3;
+          if (magnet && ((_a3 = magnet.classList) == null ? void 0 : _a3.contains("x6-port-body"))) {
+            return line2.end;
+          }
+          const bbox2 = view.cell.getBBox();
+          const intersections = line2.intersectsWithRect(bbox2);
+          return intersections && intersections.length > 0 ? intersections[0] : line2.end;
+        },
         router: SMART_ROUTER,
         connector: CONNECTOR,
         createEdge() {
@@ -79876,6 +79900,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    *  inside change:* / node:moved handlers, not from the mutation itself). */
   pinDropAnchor(edge, which) {
     var _a3, _b2, _c;
+    edge.__selVertsUserChanged = true;
     const sId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
     const tId = (_b2 = edge.getTargetCellId()) != null ? _b2 : void 0;
     if (this.isSeqLifeline(sId) || this.isSeqLifeline(tId)) return;
@@ -79884,6 +79909,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (!id) return;
     const node2 = this.graph.getCellById(id);
     if (!((_c = node2 == null ? void 0 : node2.isNode) == null ? void 0 : _c.call(node2))) return;
+    const terminal = which === "source" ? edge.getSource() : edge.getTarget();
+    if (terminal && typeof terminal === "object" && "port" in terminal && !!terminal.port) {
+      return;
+    }
     const c6 = this.lastPointerClient;
     if (!c6) return;
     const p6 = this.graph.clientToLocal(c6.x, c6.y);
@@ -79907,10 +79936,29 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     let dy = Math.max(0, Math.min(b3.height, pt2.y - b3.y));
     const dLeft = dx, dRight = b3.width - dx, dTop = dy, dBottom = b3.height - dy;
     const m6 = Math.min(dLeft, dRight, dTop, dBottom);
-    if (m6 === dTop) dy = 0;
-    else if (m6 === dBottom) dy = b3.height;
-    else if (m6 === dLeft) dx = 0;
-    else dx = b3.width;
+    const snapTol = 16;
+    const offset3 = 0;
+    if (m6 === dTop) {
+      if (Math.abs(dx - b3.width / 2) < snapTol) {
+        return { cell: cellId, port: "top" };
+      }
+      dy = -offset3;
+    } else if (m6 === dBottom) {
+      if (Math.abs(dx - b3.width / 2) < snapTol) {
+        return { cell: cellId, port: "bottom" };
+      }
+      dy = b3.height + offset3;
+    } else if (m6 === dLeft) {
+      if (Math.abs(dy - b3.height / 2) < snapTol) {
+        return { cell: cellId, port: "left" };
+      }
+      dx = -offset3;
+    } else {
+      if (Math.abs(dy - b3.height / 2) < snapTol) {
+        return { cell: cellId, port: "right" };
+      }
+      dx = b3.width + offset3;
+    }
     return { cell: cellId, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "anchor" } };
   }
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
@@ -80350,7 +80398,20 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       document.addEventListener(type, fn2, true);
       this.docListeners.push({ type, fn: fn2 });
     };
-    const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
+    const clearDrag = () => {
+      this.root.classList.remove("lk-dragging-edge");
+      let changedAny = false;
+      this.graph.getEdges().forEach((edge) => {
+        const e4 = edge;
+        if (e4.__selVertsUserChanged && !e4.__selVertsChangeSaved) {
+          e4.__selVertsChangeSaved = true;
+          changedAny = true;
+        }
+      });
+      if (changedAny) {
+        this.onChange();
+      }
+    };
     addDoc("mouseup", clearDrag);
     addDoc("touchend", clearDrag);
     addDoc("touchcancel", clearDrag);
@@ -80371,6 +80432,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const originalVerts = edge.getVertices().map((p6) => ({ x: p6.x, y: p6.y }));
       edge.__selVertsSnapshot = originalVerts;
       edge.__selVertsUserChanged = false;
+      edge.__selVertsChangeSaved = false;
       if (this.isOrthogonalEdge(edge) && originalVerts.length === 0) {
         const bends = this.materializeEditableBends(edge);
         if (bends.length > 0) {
@@ -80378,12 +80440,17 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         }
       }
       const dot2 = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
-      edge.addTools([
-        { name: "segments", args: { threshold: 8 } },
-        { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } },
+      const isOrth = this.isOrthogonalEdge(edge);
+      const tools = [
         { name: "source-arrowhead", args: dot2 },
         { name: "target-arrowhead", args: dot2 }
-      ]);
+      ];
+      if (isOrth) {
+        tools.push({ name: "segments", args: { threshold: 8 } });
+      } else {
+        tools.push({ name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } });
+      }
+      edge.addTools(tools);
       this.showEdgeBar(edge);
       if (this.padLayer) this.padLayer.style.display = "none";
     });
@@ -80398,9 +80465,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
       delete edge.__selVertsSnapshot;
       delete edge.__selVertsUserChanged;
+      delete edge.__selVertsChangeSaved;
     });
     const onEndpointMoved = ({ edge }) => {
       var _a3, _b2, _c, _d;
+      edge.__selVertsUserChanged = true;
       if (this.isSeqLifeline((_a3 = edge.getSourceCellId()) != null ? _a3 : void 0) || this.isSeqLifeline((_b2 = edge.getTargetCellId()) != null ? _b2 : void 0)) return;
       if (this.isMindmapNode((_c = edge.getSourceCellId()) != null ? _c : void 0) || this.isMindmapNode((_d = edge.getTargetCellId()) != null ? _d : void 0)) return;
       if (edge.getVertices().length) edge.setVertices([]);
@@ -80498,6 +80567,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     });
     this.graph.on("blank:mousedown", () => this.hidePopup());
     this.graph.on("edge:connected", ({ edge, isNew, type }) => {
+      edge.__selVertsUserChanged = true;
       if (isNew && !edge.getTargetCellId()) {
         this.handleDragToBlank(edge);
         return;
@@ -80506,6 +80576,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.applyMindmapRoutingIfNeeded(edge);
       const dropped = type === "source" ? "source" : "target";
       this.pinDropAnchor(edge, dropped);
+      this.onChange();
     });
     this.graphMount.addEventListener("mouseup", () => {
       window.setTimeout(() => {
@@ -82995,6 +83066,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (a5.bpmnProps) phaseD.bpmnProps = a5.bpmnProps;
       if (Object.keys(phaseD).length) node2.setData({ ...node2.getData(), ...phaseD });
     }
+    const nodeCenterMap = /* @__PURE__ */ new Map();
+    for (const n3 of model.nodes) {
+      nodeCenterMap.set(n3.id, { cx: n3.x + n3.width / 2, cy: n3.y + n3.height / 2 });
+    }
     for (const e4 of model.edges) {
       const seq = this.isSeqLifeline(e4.source) && this.isSeqLifeline(e4.target);
       const mm = !seq && this.isMindmapNode(e4.source) && this.isMindmapNode(e4.target);
@@ -83022,6 +83097,20 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         sourceEnd.connectionPoint = { name: "anchor" };
       } else if (e4.sourcePort) {
         sourceEnd.port = e4.sourcePort;
+      } else if (!seq && !mm) {
+        const sc = nodeCenterMap.get(e4.source);
+        const tc = nodeCenterMap.get(e4.target);
+        if (sc && tc) {
+          const dx = tc.cx - sc.cx;
+          const dy = tc.cy - sc.cy;
+          if (dx < 0) {
+            sourceEnd.port = "bottom";
+          } else if (Math.abs(dy) < Math.abs(dx) * 0.5) {
+            sourceEnd.port = "right";
+          } else {
+            sourceEnd.port = dy >= 0 ? "bottom" : "top";
+          }
+        }
       }
       const targetEnd = { cell: e4.target };
       if (e4.targetAnchor) {
@@ -83029,6 +83118,20 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         targetEnd.connectionPoint = { name: "anchor" };
       } else if (e4.targetPort) {
         targetEnd.port = e4.targetPort;
+      } else if (!seq && !mm) {
+        const sc = nodeCenterMap.get(e4.source);
+        const tc = nodeCenterMap.get(e4.target);
+        if (sc && tc) {
+          const dx = tc.cx - sc.cx;
+          const dy = tc.cy - sc.cy;
+          if (dx < 0) {
+            targetEnd.port = "bottom";
+          } else if (Math.abs(dy) < Math.abs(dx) * 0.5) {
+            targetEnd.port = "left";
+          } else {
+            targetEnd.port = dy >= 0 ? "top" : "bottom";
+          }
+        }
       }
       const created = this.graph.addEdge({
         id: e4.id,
@@ -83780,7 +83883,13 @@ async function exportBpmn(model, meta) {
   if ((meta == null ? void 0 : meta.format) === "bpmn") {
     const raw2 = String((_b2 = (_a3 = meta.payload) == null ? void 0 : _a3.raw) != null ? _b2 : "");
     const diagramIndex = Number((_d = (_c = meta.payload) == null ? void 0 : _c.diagramIndex) != null ? _d : 0);
-    if (raw2) return patchExisting(raw2, model, m6, Number.isFinite(diagramIndex) ? diagramIndex : 0);
+    if (raw2) {
+      try {
+        return await patchExisting(raw2, model, m6, Number.isFinite(diagramIndex) ? diagramIndex : 0);
+      } catch (err2) {
+        console.warn("[omniboard:bpmn] patchExisting failed; falling back to minimal export", err2);
+      }
+    }
   }
   return emitMinimal(model, m6);
 }
@@ -83849,7 +83958,7 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
       di.bounds.width = n3.width;
       di.bounds.height = n3.height;
       const nLabel = nodeLabelBoundsFromModel(m6, n3);
-      di.label = nLabel ? { bounds: nLabel } : void 0;
+      di.label = nLabel ? m6.create("bpmndi:BPMNLabel", { bounds: nLabel }) : void 0;
       const collapsed = ((_i = n3.attrs) == null ? void 0 : _i.collapsed) === true;
       di.isExpanded = !collapsed;
       const bpmnFill = (_j = n3.attrs) == null ? void 0 : _j.bpmnFill;
@@ -84179,14 +84288,21 @@ function edgeLabelBoundsFromModel(m6, edge, wps) {
   });
 }
 function nodeLabelBoundsFromModel(m6, node2) {
-  var _a3, _b2, _c, _d;
-  const off = (_a3 = node2.attrs) == null ? void 0 : _a3.labelOffset;
-  if (!off || !off.x && !off.y) return void 0;
-  const textLen = ((_b2 = node2.label) != null ? _b2 : "").length;
+  var _a3, _b2, _c, _d, _e3, _f;
+  const isEvent = node2.shape.includes("event") || node2.shape.includes("bpmn-start") || node2.shape.includes("bpmn-intermediate") || node2.shape.includes("bpmn-end");
+  const isGw = node2.shape.includes("gateway");
+  if (!isEvent && !isGw) return void 0;
+  const textLen = ((_a3 = node2.label) != null ? _a3 : "").length;
+  if (!textLen) return void 0;
+  const off = (_c = (_b2 = node2.attrs) == null ? void 0 : _b2.labelOffset) != null ? _c : { x: 0, y: 0 };
   const width2 = Math.max(30, Math.min(320, textLen * 7 + 18));
   const height2 = 20;
-  const cx = node2.x + node2.width / 2 + ((_c = off.x) != null ? _c : 0);
-  const cy = node2.y + node2.height / 2 + ((_d = off.y) != null ? _d : 0);
+  const isTop = ((_d = off.y) != null ? _d : 0) < -10;
+  const defaultY = isGw ? 37 : 36;
+  const dy = (isTop ? -defaultY : defaultY) + ((_e3 = off.y) != null ? _e3 : 0);
+  const dx = (_f = off.x) != null ? _f : 0;
+  const cx = node2.x + node2.width / 2 + dx;
+  const cy = node2.y + node2.height / 2 + dy;
   return m6.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
 }
 async function emitMinimal(model, m6) {
@@ -85231,10 +85347,11 @@ var BoardView = class extends import_obsidian3.TextFileView {
   }
   // view → Obsidian (on save)
   getViewData() {
-    var _a3;
+    var _a3, _b2, _c, _d;
     if (this.invalidFormat) return this.rawData;
     if (this.canvas) this.model = this.canvas.getModel();
-    return serializeBoard(this.model, this.rawData, (_a3 = this.pendingSourceMeta) != null ? _a3 : void 0);
+    const compress = (_c = (_b2 = (_a3 = this.plugin) == null ? void 0 : _a3.settings) == null ? void 0 : _b2.compressDrawingData) != null ? _c : true;
+    return serializeBoard(this.model, this.rawData, (_d = this.pendingSourceMeta) != null ? _d : void 0, compress);
   }
   clear() {
     this.model = EMPTY_MODEL;
@@ -85726,7 +85843,8 @@ function DiagramCard({ adapter, source, theme, onEdit }) {
 var import_obsidian5 = require("obsidian");
 var DEFAULT_SETTINGS = {
   defaultLayout: "LR",
-  validateBpmnBeforeExport: true
+  validateBpmnBeforeExport: true,
+  compressDrawingData: true
 };
 var DiagramsSettingTab = class extends import_obsidian5.PluginSettingTab {
   constructor(app, plugin) {
@@ -85746,6 +85864,14 @@ var DiagramsSettingTab = class extends import_obsidian5.PluginSettingTab {
     new import_obsidian5.Setting(containerEl).setName("Validate BPMN before export").setDesc("Run semantic BPMN checks and block BPMN export when errors are present.").addToggle(
       (t5) => t5.setValue(this.plugin.settings.validateBpmnBeforeExport).onChange(async (v6) => {
         this.plugin.settings.validateBpmnBeforeExport = v6;
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian5.Setting(containerEl).setName("Compress drawing data (Gzip + Base64)").setDesc(
+      "When ON (default): drawing data is compressed \u2014 smaller file size but unreadable by AI agents. When OFF: plain JSON is stored \u2014 AI agents can read and write board files directly."
+    ).addToggle(
+      (t5) => t5.setValue(this.plugin.settings.compressDrawingData).onChange(async (v6) => {
+        this.plugin.settings.compressDrawingData = v6;
         await this.plugin.saveSettings();
       })
     );
@@ -86372,7 +86498,7 @@ var DiagramsPlugin = class extends import_obsidian6.Plugin {
     const pad = (n3) => String(n3).padStart(2, "0");
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
     const path2 = (0, import_obsidian6.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
-    const content5 = serializeBoard({ nodes: [], edges: [] });
+    const content5 = serializeBoard({ nodes: [], edges: [] }, "", void 0, this.settings.compressDrawingData);
     try {
       return await this.app.vault.create(path2, content5);
     } catch (e4) {

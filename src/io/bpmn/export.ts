@@ -296,7 +296,16 @@ export async function exportBpmn(model: CanvasModel, meta?: SourceMeta | null): 
   if (meta?.format === "bpmn") {
     const raw = String((meta.payload as { raw?: string })?.raw ?? "");
     const diagramIndex = Number((meta.payload as { diagramIndex?: number } | undefined)?.diagramIndex ?? 0);
-    if (raw) return patchExisting(raw, model, m, Number.isFinite(diagramIndex) ? diagramIndex : 0);
+    if (raw) {
+      try {
+        return await patchExisting(raw, model, m, Number.isFinite(diagramIndex) ? diagramIndex : 0);
+      } catch (err) {
+        // Safety net: malformed/partial raw XML (or unsupported legacy DI bits)
+        // should not block export entirely. Fall back to minimal emit so users
+        // still get a valid BPMN document instead of a hard crash.
+        console.warn("[omniboard:bpmn] patchExisting failed; falling back to minimal export", err);
+      }
+    }
   }
   return emitMinimal(model, m);
 }
@@ -386,7 +395,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     if (di?.bounds) {
       di.bounds.x = n.x; di.bounds.y = n.y; di.bounds.width = n.width; di.bounds.height = n.height;
       const nLabel = nodeLabelBoundsFromModel(m, n);
-      di.label = nLabel ? ({ bounds: nLabel } as unknown as { bounds?: { x: number; y: number; width: number; height: number } }) : undefined;
+      di.label = nLabel ? (m.create("bpmndi:BPMNLabel", { bounds: nLabel }) as never) : undefined;
       // Phase C — write isExpanded back from model.attrs.collapsed.
       const collapsed = (n.attrs as { collapsed?: boolean } | undefined)?.collapsed === true;
       (di as ModdleElement & { isExpanded?: boolean }).isExpanded = !collapsed;
@@ -802,13 +811,26 @@ function nodeLabelBoundsFromModel(
   m: BpmnModdle,
   node: CanvasModel["nodes"][number],
 ): ModdleElement | undefined {
-  const off = node.attrs?.labelOffset as { x?: number; y?: number } | undefined;
-  if (!off || (!off.x && !off.y)) return undefined;
+  // Only export label bounds for events and gateways (which have labels outside the shape)
+  const isEvent = node.shape.includes("event") || node.shape.includes("bpmn-start") || node.shape.includes("bpmn-intermediate") || node.shape.includes("bpmn-end");
+  const isGw = node.shape.includes("gateway");
+  if (!isEvent && !isGw) return undefined;
+
   const textLen = (node.label ?? "").length;
+  if (!textLen) return undefined;
+
+  const off = (node.attrs?.labelOffset as { x?: number; y?: number } | undefined) ?? { x: 0, y: 0 };
   const width = Math.max(30, Math.min(320, textLen * 7 + 18));
   const height = 20;
-  const cx = node.x + node.width / 2 + (off.x ?? 0);
-  const cy = node.y + node.height / 2 + (off.y ?? 0);
+
+  // Detect if the label is positioned on top (e.g., negative offset or if flipped)
+  const isTop = (off.y ?? 0) < -10;
+  const defaultY = isGw ? 37 : 36;
+  const dy = (isTop ? -defaultY : defaultY) + (off.y ?? 0);
+  const dx = (off.x ?? 0);
+
+  const cx = node.x + node.width / 2 + dx;
+  const cy = node.y + node.height / 2 + dy;
   return m.create("dc:Bounds", { x: cx - width / 2, y: cy - height / 2, width, height }) as ModdleElement;
 }
 

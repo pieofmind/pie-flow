@@ -4,11 +4,15 @@ import type DiagramsPlugin from "./main";
 export interface DiagramsSettings {
   defaultLayout: "LR" | "TB";
   validateBpmnBeforeExport: boolean;
+  /** When true (default), drawing data is Gzip+Base64 compressed.
+   *  When false, plain JSON is stored — readable by AI agents and humans. */
+  compressDrawingData: boolean;
 }
 
 export const DEFAULT_SETTINGS: DiagramsSettings = {
   defaultLayout: "LR",
   validateBpmnBeforeExport: true,
+  compressDrawingData: true,
 };
 
 export class DiagramsSettingTab extends PluginSettingTab {
@@ -46,6 +50,21 @@ export class DiagramsSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.validateBpmnBeforeExport)
           .onChange(async (v) => {
             this.plugin.settings.validateBpmnBeforeExport = v;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Compress drawing data (Gzip + Base64)")
+      .setDesc(
+        "When ON (default): drawing data is compressed — smaller file size but unreadable by AI agents. " +
+        "When OFF: plain JSON is stored — AI agents can read and write board files directly."
+      )
+      .addToggle((t) =>
+        t
+          .setValue(this.plugin.settings.compressDrawingData)
+          .onChange(async (v) => {
+            this.plugin.settings.compressDrawingData = v;
             await this.plugin.saveSettings();
           })
       );

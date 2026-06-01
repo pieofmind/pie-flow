@@ -920,4 +920,19 @@ describe("BPMN edge kinds — import + export round-trip", () => {
     const off = rt.model.edges[0].labelPos?.offset as { x: number; y: number };
     expect(off.y).toBeLessThan(0);
   });
+
+  it("falls back to minimal export when raw BPMN patching fails", async () => {
+    const model: CanvasModel = {
+      nodes: [
+        { id: "a", shape: "bpmn-task", x: 0, y: 0, width: 120, height: 60, label: "A" },
+        { id: "b", shape: "bpmn-task", x: 240, y: 0, width: 120, height: 60, label: "B" },
+      ],
+      edges: [{ id: "f1", source: "a", target: "b", label: "ok" }],
+    };
+    const badMeta = { format: "bpmn", payload: { raw: "<bpmn:definitions>" } } as SourceMeta;
+    const xml = await exportBpmn(model, badMeta);
+    expect(xml).toMatch(/<bpmn:definitions/);
+    expect(xml).toMatch(/id="a"/);
+    expect(xml).toMatch(/id="f1"/);
+  });
 });

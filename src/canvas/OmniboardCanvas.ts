@@ -64,7 +64,7 @@ function hsvToRgb(h: number, s: number, v: number): { r: number; g: number; b: n
   else if (h < 180) [r, g, b] = [0, c, x];
   else if (h < 240) [r, g, b] = [0, x, c];
   else if (h < 300) [r, g, b] = [x, 0, c];
-  else [r, g, b] = [c, 0, x];
+  else[r, g, b] = [c, 0, x];
   return { r: (r + m) * 255, g: (g + m) * 255, b: (b + m) * 255 };
 }
 
@@ -134,14 +134,14 @@ const EDGE_ATTRS = { line: { stroke: EDGE_STROKE, strokeWidth: 1.8, targetMarker
 // for the user to grab and drag); also wipes the line behind the text.
 const EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" } as const;
 // X6's native `text` attribute hook splits text by '\n' into <tspan> elements
-// automatically — no `textWrap` config needed (textWrap requires a refBBox we
-// don't have on edge labels and silently renders "-" when it can't compute one).
-// Long single lines therefore don't auto-wrap; the user picks line breaks with
-// Shift+Enter in the inline editor.
-const EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle" } as const;
+// automatically. We also apply a positive absolute `textWrap.width` of 150px
+// (matching bpmn.io) so that long single lines auto-wrap dynamically without
+// needing a reference bounding box (which would render "-" on edge labels).
+const EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle", textWrap: { width: 150, breakWord: true, ellipsis: false } } as const;
 
 // ── Edge styling (relationship types) ──
-export interface EdgeStyle { stroke?: string; width?: number; dash?: string; start?: string; end?: string; shape?: string; textAngle?: number; jump?: string;
+export interface EdgeStyle {
+  stroke?: string; width?: number; dash?: string; start?: string; end?: string; shape?: string; textAngle?: number; jump?: string;
   /** BPMN flow type (Đợt C). Picking one in the edge bar applies a preset of
    *  dash/start/end + a custom source marker; sequence resets to default. */
   flowType?: "sequence" | "default" | "message" | "conditional" | "association";
@@ -149,11 +149,11 @@ export interface EdgeStyle { stroke?: string; width?: number; dash?: string; sta
 
 /** BPMN flow-type presets — pure style patches applied via setEdgeStyle. Đợt C. */
 const FLOW_TYPE_PRESETS: Record<string, EdgeStyle> = {
-  sequence:    { dash: "solid",  start: "none",      end: "arrow" },
-  default:     { dash: "solid",  start: "def-slash", end: "arrow" },
-  message:     { dash: "dashed", start: "circle",    end: "triangle" },
-  conditional: { dash: "solid",  start: "diamond-o", end: "arrow" },
-  association: { dash: "dotted", start: "none",      end: "arrow-open" },
+  sequence: { dash: "solid", start: "none", end: "arrow" },
+  default: { dash: "solid", start: "def-slash", end: "arrow" },
+  message: { dash: "dashed", start: "circle", end: "triangle" },
+  conditional: { dash: "solid", start: "diamond-o", end: "arrow" },
+  association: { dash: "dotted", start: "none", end: "arrow-open" },
 };
 const FLOW_TYPE_LABEL: Record<string, string> = {
   sequence: "Sequence", default: "Default", message: "Message", conditional: "Conditional", association: "Association",
@@ -259,17 +259,17 @@ const EDGE_JUMPS: Record<string, "none" | "arc" | "gap" | "cubic"> = { none: "no
 // Picking one drops a standalone straight arrow on the canvas; drag its ends onto
 // two lifelines to make a message (the seq-msg connector then takes over).
 const ARROW_TYPES: Array<{ key: string; label: string; style: EdgeStyle }> = [
-  { key: "sync",  label: "Đồng bộ",     style: { end: "arrow",      dash: "solid",  shape: "straight" } },
-  { key: "async", label: "Bất đồng bộ", style: { end: "arrow-open", dash: "solid",  shape: "straight" } },
-  { key: "reply", label: "Phản hồi",    style: { end: "arrow-open", dash: "dashed", shape: "straight" } },
-  { key: "line",  label: "Đường thẳng", style: { end: "none",        dash: "solid",  shape: "straight" } },
+  { key: "sync", label: "Đồng bộ", style: { end: "arrow", dash: "solid", shape: "straight" } },
+  { key: "async", label: "Bất đồng bộ", style: { end: "arrow-open", dash: "solid", shape: "straight" } },
+  { key: "reply", label: "Phản hồi", style: { end: "arrow-open", dash: "dashed", shape: "straight" } },
+  { key: "line", label: "Đường thẳng", style: { end: "none", dash: "solid", shape: "straight" } },
 ];
 /** Small horizontal-arrow preview for an arrow flyout cell. */
 function arrowPreview(style: EdgeStyle): string {
   const dash = style.dash === "dashed" ? ` stroke-dasharray="3 3"` : style.dash === "dotted" ? ` stroke-dasharray="1 3"` : "";
   const head = style.end === "none" ? ""
     : style.end === "arrow-open" ? `<path d="M20 4 27 9 20 14" fill="none" stroke="currentColor" stroke-width="1.8"/>`
-    : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
+      : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
   return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
 }
 
@@ -399,12 +399,8 @@ export class OmniboardCanvas {
       grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
-        // Small radius so only drops that LAND on (or right next to) a port
-        // circle snap to that port. Everything else falls through to body-drop
-        // → pinDropAnchor / handleDragToBlank pins the endpoint at the exact
-        // cursor pixel (bpmn.io-style unlimited positioning). With the old 30px
-        // radius almost every drop on a 120×80 node was within range of *some*
-        // port and the user couldn't drop anywhere they actually wanted.
+        // Tight 8px snap radius for port circle highlighting, while intelligent
+        // center-alignment at drop time handles straight-line snapping beautifully.
         snap: { radius: 8 },
         allowBlank: true,             // drop on empty canvas → "pick shape" picker
         allowLoop: false,             // no self-loops
@@ -416,7 +412,16 @@ export class OmniboardCanvas {
         // endpoint stores a raw {x, y} which breaks routing the moment the node
         // moves. The visual connection stops at the node BOUNDARY (no piercing).
         anchor: "center",
-        connectionPoint: "boundary",
+        connectionPoint(line: any, view: any, magnet: any, options: any) {
+          // If the magnet is a port, connect to its center (node boundary) directly
+          if (magnet && (magnet as Element).classList?.contains("x6-port-body")) {
+            return line.end;
+          }
+          // Otherwise, crop at the bounding box of the node
+          const bbox = view.cell.getBBox();
+          const intersections = line.intersectsWithRect(bbox);
+          return intersections && intersections.length > 0 ? intersections[0] : line.end;
+        },
         router: SMART_ROUTER, connector: CONNECTOR,
         createEdge() { return this.createEdge({ attrs: EDGE_ATTRS }); },
         // Accept a drop on any other node — body magnet handles snap; this also
@@ -515,7 +520,7 @@ export class OmniboardCanvas {
 
   /** Defaults for a new mindmap node by its kind. */
   private mindmapDefaults(kind: "mm-root" | "mm-branch" | "mm-leaf"): { w: number; h: number; label: string } {
-    if (kind === "mm-root")   return { w: 180, h: 50, label: "Trung tâm" };
+    if (kind === "mm-root") return { w: 180, h: 50, label: "Trung tâm" };
     if (kind === "mm-branch") return { w: 150, h: 42, label: "Nhánh" };
     return { w: 130, h: 36, label: "Lá" };
   }
@@ -705,10 +710,10 @@ export class OmniboardCanvas {
   private categoriesFor(node: Node): string[] {
     const k = this.nodeKind(node);
     if (k.startsWith("bpmn-")) return ["Cơ bản", "BPMN"];
-    if (k.startsWith("erd-"))  return ["Cơ bản", "ERD"];
-    if (k.startsWith("uml-"))  return ["Cơ bản", "UML"];
-    if (k.startsWith("st-"))   return ["Cơ bản", "State"];
-    if (k.startsWith("sq-"))   return ["Cơ bản", "Sequence"];
+    if (k.startsWith("erd-")) return ["Cơ bản", "ERD"];
+    if (k.startsWith("uml-")) return ["Cơ bản", "UML"];
+    if (k.startsWith("st-")) return ["Cơ bản", "State"];
+    if (k.startsWith("sq-")) return ["Cơ bản", "Sequence"];
     // Flowchart and basic shapes default to Basic + Flowchart.
     return ["Cơ bản", "Flowchart"];
   }
@@ -728,6 +733,7 @@ export class OmniboardCanvas {
    *  spec again afterwards (the recursive-relayout freeze came from doing this
    *  inside change:* / node:moved handlers, not from the mutation itself). */
   private pinDropAnchor(edge: Edge, which: "source" | "target"): void {
+    (edge as any).__selVertsUserChanged = true; // Mark edge as modified so it won't revert on unselect!
     const sId = edge.getSourceCellId() ?? undefined;
     const tId = edge.getTargetCellId() ?? undefined;
     if (this.isSeqLifeline(sId) || this.isSeqLifeline(tId)) return;
@@ -736,6 +742,14 @@ export class OmniboardCanvas {
     if (!id) return;
     const node = this.graph.getCellById(id);
     if (!node?.isNode?.()) return;
+
+    // Preserve the cardinal port connection if the user explicitly dropped on a port.
+    // Overriding it with exact cursor coordinates would break straight-line alignment and cause stair-step jogs.
+    const terminal = which === "source" ? edge.getSource() : edge.getTarget();
+    if (terminal && typeof terminal === "object" && "port" in terminal && !!(terminal as any).port) {
+      return;
+    }
+
     // Use the LIVE cursor position (graph coords), NOT edge.getTargetPoint():
     // X6 reports the snapped port / centre-anchored boundary point, which makes
     // every drop on the same side collapse to one spot. The real pointer gives
@@ -759,16 +773,40 @@ export class OmniboardCanvas {
    * to the top-right corner, then I must add a bend to fix the route" problem.
    * Shared by pinDropAnchor (magnet drop) and handleDragToBlank (geometric drop).
    */
-  private dockAnchorSpec(cellId: string, node: Node, pt: { x: number; y: number }) {
+   private dockAnchorSpec(cellId: string, node: Node, pt: { x: number; y: number }) {
     const b = node.getBBox();
     let dx = Math.max(0, Math.min(b.width, pt.x - b.x));
     let dy = Math.max(0, Math.min(b.height, pt.y - b.y));
     const dLeft = dx, dRight = b.width - dx, dTop = dy, dBottom = b.height - dy;
     const m = Math.min(dLeft, dRight, dTop, dBottom);
-    if (m === dTop) dy = 0;
-    else if (m === dBottom) dy = b.height;
-    else if (m === dLeft) dx = 0;
-    else dx = b.width;
+
+    const snapTol = 16; // 16px snap zone to the center of the side (bpmn.io style)
+
+    // Offset matching the port circle visual boundary (set to 0 so that arrows touch the node border directly)
+    const offset = 0;
+
+    if (m === dTop) {
+      if (Math.abs(dx - b.width / 2) < snapTol) {
+        return { cell: cellId, port: "top" };
+      }
+      dy = -offset;
+    } else if (m === dBottom) {
+      if (Math.abs(dx - b.width / 2) < snapTol) {
+        return { cell: cellId, port: "bottom" };
+      }
+      dy = b.height + offset;
+    } else if (m === dLeft) {
+      if (Math.abs(dy - b.height / 2) < snapTol) {
+        return { cell: cellId, port: "left" };
+      }
+      dx = -offset;
+    } else {
+      if (Math.abs(dy - b.height / 2) < snapTol) {
+        return { cell: cellId, port: "right" };
+      }
+      dx = b.width + offset;
+    }
+
     // connectionPoint "anchor" (NOT "boundary"): the anchor already sits exactly
     // on the chosen edge, so use it verbatim. "boundary" re-cropped the endpoint
     // to wherever the route first hit the bbox — for an edge approaching from
@@ -1135,7 +1173,7 @@ export class OmniboardCanvas {
   private bindEvents() {
     const changed = () => this.onChange();
     ["node:added", "node:removed", "node:moved", "node:resized", "node:change:attrs",
-     "edge:added", "edge:removed", "edge:connected"].forEach((ev) => this.graph.on(ev, changed));
+      "edge:added", "edge:removed", "edge:connected"].forEach((ev) => this.graph.on(ev, changed));
 
     this.graph.on("node:mouseenter", ({ node }) => this.togglePorts(node, true));
     this.graph.on("node:mouseleave", ({ node }) => this.togglePorts(node, false));
@@ -1164,7 +1202,20 @@ export class OmniboardCanvas {
     // keeps firing (and references a disposed graph), compounding into jank.
     const addDoc = (type: string, fn: EventListener) => { document.addEventListener(type, fn, true); this.docListeners.push({ type, fn }); };
 
-    const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
+    const clearDrag = () => {
+      this.root.classList.remove("lk-dragging-edge");
+      let changedAny = false;
+      this.graph.getEdges().forEach((edge) => {
+        const e = edge as any;
+        if (e.__selVertsUserChanged && !e.__selVertsChangeSaved) {
+          e.__selVertsChangeSaved = true;
+          changedAny = true;
+        }
+      });
+      if (changedAny) {
+        this.onChange();
+      }
+    };
     addDoc("mouseup", clearDrag);
     addDoc("touchend", clearDrag);
     addDoc("touchcancel", clearDrag);
@@ -1204,6 +1255,7 @@ export class OmniboardCanvas {
       const originalVerts = edge.getVertices().map((p) => ({ x: p.x, y: p.y }));
       (edge as any).__selVertsSnapshot = originalVerts;
       (edge as any).__selVertsUserChanged = false;
+      (edge as any).__selVertsChangeSaved = false;
       // Lark-style per-segment handles: if the edge uses an orthogonal router
       // and has no explicit vertices, materialize the router-generated bends
       // as vertices so the `segments` tool renders one handle per visible
@@ -1225,12 +1277,17 @@ export class OmniboardCanvas {
       // document listeners, both fixed earlier — debounced scheduleEdgeBar +
       // destroy() cleanup; a temporary perf probe confirms it stays smooth.)
       const dot = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
-      edge.addTools([
-        { name: "segments", args: { threshold: 8 } },
-        { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } },
+      const isOrth = this.isOrthogonalEdge(edge);
+      const tools: any[] = [
         { name: "source-arrowhead", args: dot },
         { name: "target-arrowhead", args: dot },
-      ]);
+      ];
+      if (isOrth) {
+        tools.push({ name: "segments", args: { threshold: 8 } });
+      } else {
+        tools.push({ name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } });
+      }
+      edge.addTools(tools);
       this.showEdgeBar(edge);
       if (this.padLayer) this.padLayer.style.display = "none";
     });
@@ -1245,15 +1302,17 @@ export class OmniboardCanvas {
       }
       delete (edge as any).__selVertsSnapshot;
       delete (edge as any).__selVertsUserChanged;
+      delete (edge as any).__selVertsChangeSaved;
     });
     // Endpoint drag (source-arrowhead / target-arrowhead) → wipe stale vertices
     // so the route re-computes cleanly to whichever side the user dropped on.
     // Endpoint spec (port vs body-floating) is left as the user dropped it.
     const onEndpointMoved = ({ edge }: { edge: Edge }) => {
+      (edge as any).__selVertsUserChanged = true;
       if (this.isSeqLifeline(edge.getSourceCellId() ?? undefined) ||
-          this.isSeqLifeline(edge.getTargetCellId() ?? undefined)) return;
+        this.isSeqLifeline(edge.getTargetCellId() ?? undefined)) return;
       if (this.isMindmapNode(edge.getSourceCellId() ?? undefined) ||
-          this.isMindmapNode(edge.getTargetCellId() ?? undefined)) return;
+        this.isMindmapNode(edge.getTargetCellId() ?? undefined)) return;
       if (edge.getVertices().length) edge.setVertices([]);
       this.scheduleEdgeBar(edge);   // debounced — change:source/target fires continuously during an arrowhead drag
     };
@@ -1345,6 +1404,7 @@ export class OmniboardCanvas {
     // Sequence messages: when both endpoints are sequence lifelines, swap the
     // edge's connector to "seq-msg" so the arrow stays horizontal at source Y.
     this.graph.on("edge:connected", ({ edge, isNew, type }) => {
+      (edge as any).__selVertsUserChanged = true; // Mark as modified so it won't revert on unselect!
       // Dropped on empty canvas → show shape picker at the drop point (Omniboard).
       if (isNew && !edge.getTargetCellId()) { this.handleDragToBlank(edge); return; }
       this.applySeqRoutingIfNeeded(edge);
@@ -1357,6 +1417,7 @@ export class OmniboardCanvas {
       // gone.
       const dropped: "source" | "target" = type === "source" ? "source" : "target";
       this.pinDropAnchor(edge, dropped);
+      this.onChange();
     });
     // Robust fallback: some X6 builds don't emit edge:connected for a blank drop.
     // After any mouseup, scan for a freshly dangling edge (source cell, target point)
@@ -1472,7 +1533,7 @@ export class OmniboardCanvas {
     this.railSelect = btn(CURSOR_ICON, "Chọn", () => this.setTool("select"));
     this.railSelect.classList.add("is-active");
     this.railHand = btn(HAND_ICON, "Kéo board", () => this.setTool(this.tool === "pan" ? "select" : "pan"));
-    const arrow = btn(ARROW_ICON, "Mũi tên", () => {});
+    const arrow = btn(ARROW_ICON, "Mũi tên", () => { });
     arrow.onclick = () => this.openArrowFlyout(arrow);
 
     sep();
@@ -1480,10 +1541,10 @@ export class OmniboardCanvas {
     const byTitle = (t: string) => this.categories.find((c) => c.title === t);
     for (const title of OmniboardCanvas.QUICK_CATS) {
       const cat = byTitle(title); if (!cat) continue;
-      const b = btn(shapeIcon(OmniboardCanvas.CAT_REP[title] ?? cat.items[0].shape), title, () => {});
+      const b = btn(shapeIcon(OmniboardCanvas.CAT_REP[title] ?? cat.items[0].shape), title, () => { });
       b.onclick = () => this.openFlyout(cat, b);
     }
-    const more = btn(MORE, "Sơ đồ khác", () => {});
+    const more = btn(MORE, "Sơ đồ khác", () => { });
     more.onclick = () => this.openMoreSheet(more);
 
     sep();
@@ -1948,8 +2009,8 @@ export class OmniboardCanvas {
     const SVG = (path: string) =>
       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;
     const ICON_MINUS = SVG(`<path d="M5 12h14"/>`);
-    const ICON_PLUS  = SVG(`<path d="M12 5v14M5 12h14"/>`);
-    const ICON_FIT   = SVG(`<path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>`);
+    const ICON_PLUS = SVG(`<path d="M12 5v14M5 12h14"/>`);
+    const ICON_FIT = SVG(`<path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>`);
 
     const wrap = el("div", "lk-zoomctl");
     const mk = (icon: string, title: string, fn: () => void) => {
@@ -2304,7 +2365,7 @@ export class OmniboardCanvas {
         inp.value = camunda[key] ?? ""; inp.placeholder = label;
         inp.oninput = () => {
           const updated = { ...camunda, [key]: inp.value.trim() || undefined };
-          save({ camunda: Object.fromEntries(Object.entries(updated).filter(([,v]) => v !== undefined)) });
+          save({ camunda: Object.fromEntries(Object.entries(updated).filter(([, v]) => v !== undefined)) });
         };
         field(sCam, label, inp);
       }
@@ -2649,9 +2710,9 @@ export class OmniboardCanvas {
     // icons in a fixed-width cell).
     const alRow = el("div", "lk-line-row");
     const ALIGN_SVG = {
-      left:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>`,
+      left: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>`,
       center: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
-      right:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>`,
+      right: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>`,
     };
     ([["left", "Trái"], ["center", "Giữa"], ["right", "Phải"]] as Array<["left" | "center" | "right", string]>).forEach(([al, title]) => {
       const b = el("div", "lk-line-cell" + ((st.align ?? "center") === al ? " on" : ""), ALIGN_SVG[al]);
@@ -2703,7 +2764,7 @@ export class OmniboardCanvas {
     add("Copy style", "", () => this.copyStyle());
     add("Paste style", "", () => this.pasteStyle());
     sep();
-    add("Lật ngang", "", () => {});
+    add("Lật ngang", "", () => { });
     add("Đưa lên trước", "", () => this.graph.getSelectedCells().forEach((c) => c.toFront()));
     add("Đưa ra sau", "", () => this.graph.getSelectedCells().forEach((c) => c.toBack()));
     sep();
@@ -3642,6 +3703,12 @@ export class OmniboardCanvas {
       if (a.bpmnProps) phaseD.bpmnProps = a.bpmnProps;
       if (Object.keys(phaseD).length) node.setData({ ...node.getData(), ...phaseD });
     }
+    // Build a center-point index for auto port inference (used below).
+    const nodeCenterMap = new Map<string, { cx: number; cy: number }>();
+    for (const n of model.nodes) {
+      nodeCenterMap.set(n.id, { cx: n.x + n.width / 2, cy: n.y + n.height / 2 });
+    }
+
     for (const e of model.edges) {
       const seq = this.isSeqLifeline(e.source) && this.isSeqLifeline(e.target);
       const mm = !seq && this.isMindmapNode(e.source) && this.isMindmapNode(e.target);
@@ -3651,10 +3718,10 @@ export class OmniboardCanvas {
       const lblAttrs = { body: EDGE_LABEL_BODY, label: { ...EDGE_LABEL_TEXT, text: e.label } };
       const labelSpec = e.label
         ? [e.labelPos
-            ? { attrs: lblAttrs, position: e.labelPos }
-            : seq
-              ? { attrs: lblAttrs, position: { distance: 0.5, offset: -10 } }
-              : { attrs: lblAttrs }]
+          ? { attrs: lblAttrs, position: e.labelPos }
+          : seq
+            ? { attrs: lblAttrs, position: { distance: 0.5, offset: -10 } }
+            : { attrs: lblAttrs }]
         : [];
       // Return messages (response arrows) render as a dashed line per design.
       const edgeAttrs = seq && e.ret
@@ -3672,10 +3739,10 @@ export class OmniboardCanvas {
         // Derive visual flowType from semantic kind + attrs.
         const ft: EdgeStyle["flowType"] | undefined =
           e.kind === "message" ? "message" :
-          e.kind === "association" ? "association" :
-          e.attrs?.isDefault ? "default" :
-          e.attrs?.condition ? "conditional" :
-          undefined;
+            e.kind === "association" ? "association" :
+              e.attrs?.isDefault ? "default" :
+                e.attrs?.condition ? "conditional" :
+                  undefined;
         if (ft) {
           data.style = { ...(data.style ?? {}), flowType: ft, ...FLOW_TYPE_PRESETS[ft] };
         }
@@ -3698,6 +3765,33 @@ export class OmniboardCanvas {
         sourceEnd.connectionPoint = { name: "anchor" };
       } else if (e.sourcePort) {
         sourceEnd.port = e.sourcePort;
+      } else if (!seq && !mm) {
+        // Auto-infer port from center-to-center direction so the orth router
+        // produces clean straight segments instead of S-curves.
+        //
+        // Three cases:
+        //  • Loop-back  (target is to the LEFT, dx < 0)
+        //      → exit from BOTTOM, enter from BOTTOM — routes cleanly below both nodes.
+        //  • Clearly horizontal (|dy| < 0.5 * |dx|, angle < ~27° from horizontal)
+        //      → right → left
+        //  • Diagonal / vertical (significant vertical component)
+        //      → bottom → top  (or top → bottom for upward arrows)
+        const sc = nodeCenterMap.get(e.source);
+        const tc = nodeCenterMap.get(e.target);
+        if (sc && tc) {
+          const dx = tc.cx - sc.cx;
+          const dy = tc.cy - sc.cy;
+          if (dx < 0) {
+            // Loop-back: route under the diagram
+            sourceEnd.port = "bottom";
+          } else if (Math.abs(dy) < Math.abs(dx) * 0.5) {
+            // Primarily horizontal (forward)
+            sourceEnd.port = "right";
+          } else {
+            // Primarily vertical
+            sourceEnd.port = dy >= 0 ? "bottom" : "top";
+          }
+        }
       }
       const targetEnd: Record<string, unknown> = { cell: e.target };
       if (e.targetAnchor) {
@@ -3705,6 +3799,23 @@ export class OmniboardCanvas {
         targetEnd.connectionPoint = { name: "anchor" };
       } else if (e.targetPort) {
         targetEnd.port = e.targetPort;
+      } else if (!seq && !mm) {
+        const sc = nodeCenterMap.get(e.source);
+        const tc = nodeCenterMap.get(e.target);
+        if (sc && tc) {
+          const dx = tc.cx - sc.cx;
+          const dy = tc.cy - sc.cy;
+          if (dx < 0) {
+            // Loop-back: both ends attach to bottom port
+            targetEnd.port = "bottom";
+          } else if (Math.abs(dy) < Math.abs(dx) * 0.5) {
+            // Primarily horizontal
+            targetEnd.port = "left";
+          } else {
+            // Primarily vertical
+            targetEnd.port = dy >= 0 ? "top" : "bottom";
+          }
+        }
       }
       const created = this.graph.addEdge({
         id: e.id,

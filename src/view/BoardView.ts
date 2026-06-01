@@ -363,7 +363,8 @@ export class BoardView extends TextFileView {
   getViewData(): string {
     if (this.invalidFormat) return this.rawData; // never clobber an unparseable file
     if (this.canvas) this.model = this.canvas.getModel();
-    return serializeBoard(this.model, this.rawData, this.pendingSourceMeta ?? undefined);
+    const compress = this.plugin?.settings?.compressDrawingData ?? true;
+    return serializeBoard(this.model, this.rawData, this.pendingSourceMeta ?? undefined, compress);
   }
 
   clear(): void { this.model = EMPTY_MODEL; }

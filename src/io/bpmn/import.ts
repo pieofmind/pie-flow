@@ -377,12 +377,24 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     const y = bounds?.y ?? 100;
     const width = bounds?.width ?? (tagLc.endsWith("Event") ? 36 : 100);
     const height = bounds?.height ?? (tagLc.endsWith("Event") ? 36 : 60);
-    const nodeLabelOffset = di?.label?.bounds
-      ? {
-          x: (di.label.bounds.x + di.label.bounds.width / 2) - (x + width / 2),
-          y: (di.label.bounds.y + di.label.bounds.height / 2) - (y + height / 2),
-        }
-      : undefined;
+    const isGw = shape.includes("gateway");
+    const labelBounds = di?.label?.bounds;
+    let nodeLabelOffset: { x: number; y: number } | undefined;
+    if (labelBounds) {
+      const labelCenterY = labelBounds.y + labelBounds.height / 2;
+      const nodeCenterY = y + height / 2;
+      const isTop = labelCenterY < nodeCenterY;
+      const defaultY = isGw ? 37 : 36;
+      const defaultOffset = { x: 0, y: isTop ? -defaultY : defaultY };
+      const rawOffset = {
+        x: (labelBounds.x + labelBounds.width / 2) - (x + width / 2) - defaultOffset.x,
+        y: labelCenterY - nodeCenterY - defaultOffset.y,
+      };
+      // Snapping threshold: if offset is tiny, ignore it to keep HTML output clean
+      if (Math.abs(rawOffset.x) >= 2.5 || Math.abs(rawOffset.y) >= 2.5) {
+        nodeLabelOffset = rawOffset;
+      }
+    }
     const { fill, stroke } = diColours(di);
     const style: Record<string, string> = {};
     if (fill) style.fill = fill;

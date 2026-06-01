@@ -76,7 +76,7 @@ function emitFrontmatter(fm: ParsedFrontmatter): string {
   return lines.join("\n");
 }
 
-function compress(json: string): string {
+function compressFn(json: string): string {
   const deflated = pako.deflate(new TextEncoder().encode(json));
   // btoa accepts a binary string; convert in chunks to avoid call-stack blow up.
   let bin = "";
@@ -117,7 +117,7 @@ export function deserializeSourceMeta(raw: string): unknown {
   try { return JSON.parse(json); } catch { return null; }
 }
 
-export function serializeBoard(model: CanvasModel, previousRaw = "", sourceMeta?: unknown): string {
+export function serializeBoard(model: CanvasModel, previousRaw = "", sourceMeta?: unknown, compress = true): string {
   const fm = parseFrontmatter(previousRaw);
   // If caller didn't pass meta, preserve the previous meta block.
   const meta = sourceMeta ?? deserializeSourceMeta(previousRaw);
@@ -153,13 +153,15 @@ export function serializeBoard(model: CanvasModel, previousRaw = "", sourceMeta?
   parts.push("%%");
   parts.push("## Drawing");
   parts.push("```" + DATA_LANG);
-  parts.push(compress(json));
+  // When compress=false store plain JSON (Excalidraw "Decompress" mode).
+  // AI agents can then read and write the file without a Gzip step.
+  parts.push(compress ? compressFn(json) : json);
   parts.push("```");
   if (meta) {
     parts.push("");
     parts.push("## Source Meta");
     parts.push("```" + META_LANG);
-    parts.push(compress(JSON.stringify(meta)));
+    parts.push(compress ? compressFn(JSON.stringify(meta)) : JSON.stringify(meta));
     parts.push("```");
   }
   parts.push("%%");
@@ -171,19 +173,40 @@ export function serializeBoard(model: CanvasModel, previousRaw = "", sourceMeta?
  * Parse a `.omniboard.md` document back to a CanvasModel. Returns null if the
  * drawing block is missing or corrupt (caller should preserve the raw data and
  * surface an error rather than overwriting).
+ *
+ * Supports two formats for the omniboard-data block:
+ *  1. Gzip + Base64 (normal plugin output) — decompressed via `decompress()`.
+ *  2. Plain JSON — written directly by AI agents that cannot Gzip. The plugin
+ *     will re-compress on the next save automatically.
  */
 export function deserializeBoard(raw: string): CanvasModel | null {
   if (!raw.trim()) return { nodes: [], edges: [] };
   const m = DRAWING_RE.exec(raw);
   if (!m) return null;
+
+  // ── Path 1: Gzip + Base64 (standard compressed format) ──────────────────
   const json = decompress(m[1]);
-  if (json === null) return null;
+  if (json !== null) {
+    try {
+      const model = JSON.parse(json) as CanvasModel;
+      if (Array.isArray(model.nodes) && Array.isArray(model.edges)) return model;
+    } catch {
+      /* fall through to plain-JSON path */
+    }
+  }
+
+  // ── Path 2: Plain JSON fallback (AI-agent authored files) ────────────────
+  // If decompression failed the block may already be a raw JSON string.
+  // Accept it so agents can write uncompressed data; the plugin will compress
+  // on the next save.
   try {
-    const model = JSON.parse(json) as CanvasModel;
+    const candidate = m[1].trim();
+    const model = JSON.parse(candidate) as CanvasModel;
     if (Array.isArray(model.nodes) && Array.isArray(model.edges)) return model;
   } catch {
     /* fall through */
   }
+
   return null;
 }
 

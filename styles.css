@@ -182,6 +182,13 @@
    inline visibility, and removing the element from layout also stops it from
    catching pointer events that could distract the drag. */
 .lk-root.lk-dragging-edge .x6-port circle { display: none !important; }
+.lk-root.lk-dragging-edge .x6-port circle[port="top"],
+.lk-root.lk-dragging-edge .x6-port circle[port="bottom"],
+.lk-root.lk-dragging-edge .x6-port circle[port="left"],
+.lk-root.lk-dragging-edge .x6-port circle[port="right"] {
+  display: block !important;
+  visibility: visible !important;
+}
 .lk-root .x6-widget-selection-box {
   border: 1.5px solid var(--pg-accent) !important; border-radius: 6px;
   box-shadow: 0 0 0 3px var(--pg-accent-soft); background: transparent !important;
@@ -709,7 +716,20 @@
 /* Center with translateX(-50%) — reliable on every engine (mobile renders the label
    in the real-div overlay, desktop is Blink; both honor the transform). left:0;right:0
    + text-align relied on WebKit centering the nowrap overflow, which it doesn't. */
-.lk-root .bp-elabel { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--pg-text-muted); white-space: nowrap; font-weight: 600; }
+.lk-root .bp-elabel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--pg-text-muted);
+  font-weight: 600;
+  white-space: pre-wrap;
+  text-align: center;
+  width: max-content;
+  max-width: 120px;
+  line-height: 1.3;
+}
 /* Auto-flip label to the opposite side of the incoming/outgoing edge (bpmn.io behaviour). */
 .lk-root .bp-event.label-top .bp-elabel { top: auto; bottom: calc(100% + 6px); }
 /* Allow user to drag node labels (BPMN event/gateway) when auto-flip isn't enough. */

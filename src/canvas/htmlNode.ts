@@ -35,7 +35,7 @@ export function registerHtmlNode(): void {
       // `pointerEvents: 'all'` keeps the transparent fill catching mouse events
       // across the full bbox (SVG default `visiblePainted` ignores transparent
       // areas — corner drops would otherwise fall through onto the SVG canvas).
-      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", magnet: true, pointerEvents: "all" },
+      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", magnet: false, pointerEvents: "all" },
       fo: { refWidth: "100%", refHeight: "100%" },
       content: { html: "", class: "hn" },
     },

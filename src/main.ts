@@ -166,7 +166,7 @@ export default class DiagramsPlugin extends Plugin {
     const pad = (n: number) => String(n).padStart(2, "0");
     const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
     const path = normalizePath(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
-    const content = serializeBoard({ nodes: [], edges: [] });
+    const content = serializeBoard({ nodes: [], edges: [] }, "", undefined, this.settings.compressDrawingData);
     try {
       return await this.app.vault.create(path, content);
     } catch {

@@ -166,13 +166,9 @@ export default class DiagramsPlugin extends Plugin {
     const pad = (n: number) => String(n).padStart(2, "0");
     const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
     const path = normalizePath(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
-<<<<<<< HEAD
-    const content = serializeBoard({ nodes: [], edges: [] }, "", undefined, this.settings.compressDrawingData);
-=======
     const content = serializeBoard({ nodes: [], edges: [] }, "", undefined, {
       compressDrawingData: this.settings.compressDrawingData,
     });
->>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
     try {
       return await this.app.vault.create(path, content);
     } catch {

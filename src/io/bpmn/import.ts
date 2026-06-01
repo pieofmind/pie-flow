@@ -457,10 +457,10 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     const wpEnd = wps.length >= 2 ? wps[wps.length - 1] : undefined;
     let sourcePort = wpStart && srcBox ? portFor(wpStart, srcBox) : undefined;
     let targetPort = wpEnd && tgtBox ? portFor(wpEnd, tgtBox) : undefined;
-    const sourceAnchor = (!sourcePort && wpStart && srcBox)
+    const sourceAnchor = (wpStart && srcBox)
       ? { dx: wpStart.x - srcBox.x, dy: wpStart.y - srcBox.y }
       : undefined;
-    const targetAnchor = (!targetPort && wpEnd && tgtBox)
+    const targetAnchor = (wpEnd && tgtBox)
       ? { dx: wpEnd.x - tgtBox.x, dy: wpEnd.y - tgtBox.y }
       : undefined;
     // Fallback when DI waypoints are sparse/odd: infer side ports from center-to-center

@@ -30,25 +30,32 @@ function nodeBox(n: ModelNode): { x: number; y: number; w: number; h: number } {
   return { x: n.x, y: n.y, w: n.width, h: n.height };
 }
 
-// Anchor point on a node for a given port id (top/right/bottom/left); center if unknown.
+// Anchor point on a node for a fixed port id (3 per side); center if unknown.
 function anchor(n: ModelNode, port?: string): Pt {
   const b = nodeBox(n);
   switch (port) {
+    case "top-1": return { x: b.x + b.w * 0.25, y: b.y };
     case "top": return { x: b.x + b.w / 2, y: b.y };
+    case "top-2": return { x: b.x + b.w * 0.75, y: b.y };
+    case "bottom-1": return { x: b.x + b.w * 0.25, y: b.y + b.h };
     case "bottom": return { x: b.x + b.w / 2, y: b.y + b.h };
+    case "bottom-2": return { x: b.x + b.w * 0.75, y: b.y + b.h };
+    case "left-1": return { x: b.x, y: b.y + b.h * 0.25 };
     case "left": return { x: b.x, y: b.y + b.h / 2 };
+    case "left-2": return { x: b.x, y: b.y + b.h * 0.75 };
+    case "right-1": return { x: b.x + b.w, y: b.y + b.h * 0.25 };
     case "right": return { x: b.x + b.w, y: b.y + b.h / 2 };
+    case "right-2": return { x: b.x + b.w, y: b.y + b.h * 0.75 };
     default: return { x: b.x + b.w / 2, y: b.y + b.h / 2 };
   }
 }
 function normal(port?: string): Pt {
-  switch (port) {
-    case "top": return { x: 0, y: -1 };
-    case "bottom": return { x: 0, y: 1 };
-    case "left": return { x: -1, y: 0 };
-    case "right": return { x: 1, y: 0 };
-    default: return { x: 0, y: 0 };
-  }
+  const side = port?.split("-")[0];
+  if (side === "top") return { x: 0, y: -1 };
+  if (side === "bottom") return { x: 0, y: 1 };
+  if (side === "left") return { x: -1, y: 0 };
+  if (side === "right") return { x: 1, y: 0 };
+  return { x: 0, y: 0 };
 }
 
 // A simple orthogonal route: leave each endpoint along its side normal, bend once.

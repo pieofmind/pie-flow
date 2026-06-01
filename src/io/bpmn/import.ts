@@ -453,14 +453,33 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     const vertices = wps.length > 2 ? wps.slice(1, -1).map((p) => ({ x: p.x, y: p.y })) : undefined;
     const srcBox = nodeBox.get(sourceId);
     const tgtBox = nodeBox.get(targetId);
-    const sourceAnchor = wps.length >= 2 && srcBox
-      ? { dx: wps[0].x - srcBox.x, dy: wps[0].y - srcBox.y }
+    const wpStart = wps.length >= 2 ? wps[0] : undefined;
+    const wpEnd = wps.length >= 2 ? wps[wps.length - 1] : undefined;
+    let sourcePort = wpStart && srcBox ? portFor(wpStart, srcBox) : undefined;
+    let targetPort = wpEnd && tgtBox ? portFor(wpEnd, tgtBox) : undefined;
+    const sourceAnchor = (!sourcePort && wpStart && srcBox)
+      ? { dx: wpStart.x - srcBox.x, dy: wpStart.y - srcBox.y }
       : undefined;
-    const targetAnchor = wps.length >= 2 && tgtBox
-      ? { dx: wps[wps.length - 1].x - tgtBox.x, dy: wps[wps.length - 1].y - tgtBox.y }
+    const targetAnchor = (!targetPort && wpEnd && tgtBox)
+      ? { dx: wpEnd.x - tgtBox.x, dy: wpEnd.y - tgtBox.y }
       : undefined;
-    const sourcePort = sourceAnchor ? undefined : (wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : undefined);
-    const targetPort = targetAnchor ? undefined : (wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : undefined);
+    // Fallback when DI waypoints are sparse/odd: infer side ports from center-to-center
+    // direction to keep imported orthogonal routes stable (avoid S-curves/diagonals).
+    if (!sourceAnchor && !targetAnchor && srcBox && tgtBox && (!sourcePort || !targetPort)) {
+      const scx = srcBox.x + srcBox.width / 2;
+      const scy = srcBox.y + srcBox.height / 2;
+      const tcx = tgtBox.x + tgtBox.width / 2;
+      const tcy = tgtBox.y + tgtBox.height / 2;
+      const dx = tcx - scx;
+      const dy = tcy - scy;
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        sourcePort ??= dx >= 0 ? "right" : "left";
+        targetPort ??= dx >= 0 ? "left" : "right";
+      } else {
+        sourcePort ??= dy >= 0 ? "bottom" : "top";
+        targetPort ??= dy >= 0 ? "top" : "bottom";
+      }
+    }
     let labelPos: { distance?: number; offset?: { x: number; y: number } } | undefined;
     const lb = di?.label?.bounds;
     if (lb && wps.length >= 2) {

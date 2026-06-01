@@ -7,6 +7,7 @@ import { Snapline } from "@antv/x6-plugin-snapline";
 import { Transform } from "@antv/x6-plugin-transform";
 import type { PaletteItem, ShapeCategory, CanvasModel } from "./types";
 import { shapeIcon } from "./shapes/index";
+import { FIXED_PORT_IDS, type FixedPortId } from "./shapes/ports";
 import { nodeHtml, defaultErdCols, defaultUml, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { collectPluginCss } from "./staticRender";
 import * as dagre from "@dagrejs/dagre";
@@ -160,6 +161,10 @@ const FLOW_TYPE_LABEL: Record<string, string> = {
 };
 const EDGE_DASHES: Record<string, string> = { solid: "", dashed: "6 4", dotted: "2 4" };
 type SpawnDir = "top" | "right" | "bottom" | "left";
+type PortSide = SpawnDir;
+const PORT_SIDE: Record<PortSide, PortSide> = { top: "top", right: "right", bottom: "bottom", left: "left" };
+const OPPOSITE_SIDE: Record<PortSide, PortSide> = { top: "bottom", right: "left", bottom: "top", left: "right" };
+const PORT_CONNECTION_POINT = { name: "anchor" } as const;
 const ACT_WIDTH = 12; // fixed width of the sequence activation bar
 // Container/frame shapes that should render behind regular nodes.
 const FRAME_KINDS = new Set<string>([
@@ -191,6 +196,9 @@ const BPMN_ACTIVITY_KINDS = new Set<string>([
   "bpmn-task-manual", "bpmn-task-send", "bpmn-task-receive", "bpmn-task-rule",
   "bpmn-subprocess", "bpmn-transaction", "bpmn-event-subprocess", "bpmn-call-activity",
 ]);
+const BPMN_EVENT_KINDS = new Set<string>([
+  "bpmn-event-start", "bpmn-event-intermediate", "bpmn-event-end",
+]);
 const BPMN_MARKERS = ["loop", "mi-par", "mi-seq", "adhoc", "compensation"] as const;
 const BPMN_MARKER_LABEL: Record<string, string> = {
   loop: "Loop", "mi-par": "Multi-Instance Parallel", "mi-seq": "Multi-Instance Sequential",
@@ -216,6 +224,53 @@ function migrateBpmnEventKind(shape: string, extra: NodeExtra): { kind: string; 
   const hit = M[shape];
   if (!hit) return { kind: shape, extra };
   return { kind: hit.kind, extra: { ...extra, ...hit.patch } };
+}
+
+function portSide(port?: string): PortSide | undefined {
+  const side = port?.split("-")[0] as PortSide | undefined;
+  return side && side in PORT_SIDE ? side : undefined;
+}
+
+function portBand(port?: string): "" | "-1" | "-2" {
+  if (port?.endsWith("-1")) return "-1";
+  if (port?.endsWith("-2")) return "-2";
+  return "";
+}
+
+function fixedPort(side: PortSide, along: number): FixedPortId {
+  const band = along < 0.375 ? "-1" : along > 0.625 ? "-2" : "";
+  return `${side}${band}` as FixedPortId;
+}
+
+function oppositePort(port?: string): FixedPortId | undefined {
+  const side = portSide(port);
+  if (!side) return undefined;
+  return `${OPPOSITE_SIDE[side]}${portBand(port)}` as FixedPortId;
+}
+
+function centerPortForSide(side: PortSide): FixedPortId {
+  return side as FixedPortId;
+}
+
+function collapsePortToSideCenter(port?: string | null): FixedPortId | undefined {
+  const side = portSide(port ?? undefined);
+  return side ? centerPortForSide(side) : undefined;
+}
+
+function nearestFixedPort(node: Node, pt: { x: number; y: number }): FixedPortId {
+  const b = node.getBBox();
+  const dx = Math.max(0, Math.min(b.width, pt.x - b.x));
+  const dy = Math.max(0, Math.min(b.height, pt.y - b.y));
+  const dLeft = dx, dRight = b.width - dx, dTop = dy, dBottom = b.height - dy;
+  const m = Math.min(dLeft, dRight, dTop, dBottom);
+  if (m === dTop) return fixedPort("top", b.width > 0 ? dx / b.width : 0.5);
+  if (m === dBottom) return fixedPort("bottom", b.width > 0 ? dx / b.width : 0.5);
+  if (m === dLeft) return fixedPort("left", b.height > 0 ? dy / b.height : 0.5);
+  return fixedPort("right", b.height > 0 ? dy / b.height : 0.5);
+}
+
+function portEndpoint(cell: string, port: string) {
+  return { cell, port, connectionPoint: PORT_CONNECTION_POINT };
 }
 // Full arrowhead set for BOTH ends (flowchart + UML/ERD relationships).
 function buildMarker(kind: string | undefined, color: string): Record<string, unknown> | null {
@@ -273,6 +328,12 @@ function arrowPreview(style: EdgeStyle): string {
   return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
 }
 
+type ConnectedEndpointEvent = {
+  type: Edge.TerminalType;
+  currentCell?: { id?: string } | null;
+  currentPort?: string | null;
+};
+
 export class OmniboardCanvas {
   private graph: Graph;
   private root: HTMLElement;
@@ -280,8 +341,6 @@ export class OmniboardCanvas {
   private contextBar: HTMLElement;
   private edgeBar: HTMLElement | null = null;
   private edgeBarDebounce: number | null = null;   // debounce showEdgeBar() during continuous segment/vertex drags
-  private edgeDragFrames: number[] | null = null;  // TEMP perf probe: frame times during an edge-tool drag
-  private edgeDragRaf: number | null = null;
   private popupLayer: HTMLElement;
   private categories: ShapeCategory[];
   private onChange: () => void;
@@ -311,7 +370,6 @@ export class OmniboardCanvas {
   private padLayer: HTMLElement | null = null;
   private pendingDrop: Edge | null = null; // dangling edge awaiting a shape pick (drag-to-blank)
   private lastSelectedAt = new Map<string, number>(); // when each node became selected (for click-to-edit)
-  private lastPointerClient: { x: number; y: number } | null = null; // last cursor pos in RAW client coords (converted to graph coords lazily at drop)
   private docListeners: Array<{ type: string; fn: EventListener }> = []; // document-scoped listeners to remove on destroy()
   // Mobile-only HTML overlay: WebKit/iOS mis-positions <foreignObject> HTML content
   // (position:absolute, clip-path, transform, %-height flex all jump to 0,0). We hide
@@ -399,19 +457,26 @@ export class OmniboardCanvas {
       grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
+<<<<<<< HEAD
         // Tight 8px snap radius for port circle highlighting, while intelligent
         // center-alignment at drop time handles straight-line snapping beautifully.
         snap: { radius: 8 },
+=======
+        // Fixed-port mode: keep the magnetic catch area only slightly larger
+        // than the visible port so drops feel precise.
+        snap: { radius: 4 },
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
         allowBlank: true,             // drop on empty canvas → "pick shape" picker
         allowLoop: false,             // no self-loops
-        allowNode: true,              // drop anywhere on a target node (not only its port)
+        allowNode: false,             // endpoints must resolve to one of the 12 ports
         allowEdge: false,
         allowMulti: true,
         highlight: true,
-        // Bind endpoints to the node CENTER (logical anchor) — without this the
-        // endpoint stores a raw {x, y} which breaks routing the moment the node
-        // moves. The visual connection stops at the node BOUNDARY (no piercing).
+        // Use the port/anchor point directly. Boundary cropping can recut a
+        // port-based endpoint to a nearby bbox/ellipse intersection, which made
+        // BPMN circle ports appear to snap off-centre.
         anchor: "center",
+<<<<<<< HEAD
         connectionPoint(line: any, view: any, magnet: any, options: any) {
           // If the magnet is a port, connect to its center (node boundary) directly
           if (magnet && (magnet as Element).classList?.contains("x6-port-body")) {
@@ -422,20 +487,17 @@ export class OmniboardCanvas {
           const intersections = line.intersectsWithRect(bbox);
           return intersections && intersections.length > 0 ? intersections[0] : line.end;
         },
+=======
+        connectionPoint: "anchor",
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
         router: SMART_ROUTER, connector: CONNECTOR,
         createEdge() { return this.createEdge({ attrs: EDGE_ATTRS }); },
-        // Accept a drop on any other node — body magnet handles snap; this also
-        // accepts EMPTY-canvas drops so allowBlank still fires edge:connected
-        // → "Chèn hình" picker (Omniboard-style).
+        // Accept drops on fixed node ports, plus empty-canvas drops so allowBlank
+        // still opens the "Chèn hình" picker.
         validateConnection: ({ sourceCell, targetCell }) =>
           !targetCell || (targetCell.isNode() && sourceCell !== targetCell),
-        // Only port circles may START a connection drag. The node body has
-        // `magnet: true` (so it can be a drop TARGET — bpmn.io drop-anywhere),
-        // but body mousedown must NOT start a drag — that would hijack clicks
-        // and break node selection (the regression we hit in add07d8).
-        // `validateMagnet` returning false here makes X6 abort the connection
-        // attempt at mousedown so the click bubbles up to the normal selection
-        // pipeline.
+        // Only port circles may start a connection drag; body clicks stay normal
+        // selection/edit interactions.
         validateMagnet: ({ magnet }) => {
           // Port circles carry class `x6-port-body`; the body hit rect doesn't.
           return !!magnet && (magnet as Element).classList?.contains("x6-port-body");
@@ -725,6 +787,7 @@ export class OmniboardCanvas {
     ), anchor);
   }
 
+<<<<<<< HEAD
   /** bpmn.io-style drop-anywhere — after the user finishes a connect drag, pin the
    *  endpoint(s) that landed on a node BODY (no explicit port) to the exact pixel
    *  position they dropped on. Each endpoint stored as `{ anchor: { topLeft +
@@ -816,27 +879,25 @@ export class OmniboardCanvas {
     return { cell: cellId, anchor: { name: "topLeft", args: { dx, dy } }, connectionPoint: { name: "anchor" } };
   }
 
+=======
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
-  private handleDragToBlank(edge: Edge): void {
+  private handleDragToBlank(edge: Edge): "removed" | "connected" | "pending" {
     const srcId = edge.getSourceCellId();
     const src = srcId ? this.graph.getCellById(srcId) : null;
-    if (!src || !src.isNode()) { edge.remove(); return; }
+    if (!src || !src.isNode()) { edge.remove(); return "removed"; }
     const pt = edge.getTargetPoint(); // graph coords of the drop
+    if (!pt) { edge.remove(); return "removed"; }
     const srcPort = (edge.getSource() as { port?: string } | undefined)?.port;
 
-    // bpmn.io-style drop-anywhere: if the drop point lands inside ANOTHER node's
-    // bbox, X6 didn't recognise it as a magnet (we don't make the body a magnet
-    // because that hijacks click→selection — see add07d8). Convert the dangling
-    // edge into a pinned anchor connection on that node so the user gets exact
-    // drop positioning instead of a shape picker.
+    // If the drop point lands inside another node, bind to the nearest of that
+    // node's fixed 12 ports instead of creating a free-position anchor.
     for (const n of this.graph.getNodes()) {
       if (n.id === src.id) continue;
       const b = n.getBBox();
       if (pt.x < b.x || pt.x > b.x + b.width || pt.y < b.y || pt.y > b.y + b.height) continue;
-      edge.setTarget(this.dockAnchorSpec(n.id, n as Node, pt) as never);
-      this.applyMindmapRoutingIfNeeded(edge);
-      this.applySeqRoutingIfNeeded(edge);
-      return;
+      edge.setTarget(portEndpoint(n.id, nearestFixedPort(n as Node, pt)) as never);
+      return "connected";
     }
 
     this.pendingDrop = edge;          // removed on dismiss unless a shape is picked
@@ -855,8 +916,16 @@ export class OmniboardCanvas {
         nx = sb.x + sb.width / 2 - item.w / 2;    // vertical flow → align X
       }
       const created = this.addHtmlNode(item.shape, nx, ny, item.w, item.h, "", undefined, undefined, item.seed as NodeExtra);
-      edge.setTarget({ cell: created.id });
+      const sb2 = (src as Node).getBBox();
+      const hint = oppositePort(srcPort) ?? nearestFixedPort(created, { x: sb2.x + sb2.width / 2, y: sb2.y + sb2.height / 2 });
+      const targetPort = this.isBpmnEventNode(created.id) ? (collapsePortToSideCenter(hint) ?? hint) : hint;
+      edge.setTarget(portEndpoint(created.id, targetPort) as never);
       edge.setData({ ...(edge.getData() as object) });
+      this.normalizeRegularEdgeEndpoints(edge, {
+        type: "target",
+        currentCell: { id: created.id },
+        currentPort: targetPort,
+      });
       this.applyMindmapRoutingIfNeeded(edge); this.applySeqRoutingIfNeeded(edge);
       this.hidePopup();
       this.graph.resetSelection([created]);
@@ -865,6 +934,7 @@ export class OmniboardCanvas {
     }, this.categoriesFor(src as Node), true)); // picker = basic + same diagram type as source + load-more for advanced
     const sc = this.graph.scale().sx; const tr = this.graph.translate();
     this.showPopupAt(wrap, pt.x * sc + tr.tx, pt.y * sc + tr.ty);
+    return "pending";
   }
 
   /** Show the popup layer at a root-relative point (clamped into view). */
@@ -896,7 +966,7 @@ export class OmniboardCanvas {
     const created = this.addHtmlNode(item.shape, x, y, item.w, item.h, "", undefined, undefined, item.seed as NodeExtra);
     const opp: Record<SpawnDir, SpawnDir> = { top: "bottom", bottom: "top", left: "right", right: "left" };
     this.graph.addEdge({
-      source: { cell: source.id, port: dir }, target: { cell: created.id, port: opp[dir] },
+      source: portEndpoint(source.id, dir), target: portEndpoint(created.id, opp[dir]),
       router: SMART_ROUTER, connector: CONNECTOR, attrs: EDGE_ATTRS,
     });
     this.graph.resetSelection([created]);
@@ -1178,10 +1248,9 @@ export class OmniboardCanvas {
     this.graph.on("node:mouseenter", ({ node }) => this.togglePorts(node, true));
     this.graph.on("node:mouseleave", ({ node }) => this.togglePorts(node, false));
     // While the user is actively drawing/dragging an arrow from a port magnet,
-    // hide ALL port circles (cardinals too) — X6 would otherwise light them up
-    // as drop targets on every node and the field of blue dots overwhelms the
-    // view. Toggle via a class on .lk-root that the CSS rule reads.
-    // Hide ALL ports during any edge interaction. Two trigger paths:
+    // dim port circles on every node so magnets stay snap-active without turning
+    // the canvas into a field of blue dots. Toggle via a class on .lk-root that
+    // the CSS rule reads. Two trigger paths:
     //   (1) node:magnet:mousedown — new edge drag from a port circle
     //   (2) capture-phase DOM mousedown on a magnet OR an edge arrowhead tool —
     //       catches existing-edge endpoint drag (re-routing arrow), which X6
@@ -1220,31 +1289,6 @@ export class OmniboardCanvas {
     addDoc("touchend", clearDrag);
     addDoc("touchcancel", clearDrag);
 
-    // Track the live cursor position so pinDropAnchor can land a dropped endpoint
-    // at the EXACT pixel the cursor was over (not the snapped port X6 reports) —
-    // this is what makes manual draw match the imported-file behaviour.
-    //
-    // Store RAW client coords only; do NOT call graph.clientToLocal here. That
-    // conversion reads the container's bounding rect → forces a layout reflow,
-    // and running it on every document mousemove made the whole canvas stutter
-    // ("đơ đơ"). We convert once, lazily, in pinDropAnchor at drop time.
-    //
-    // Listen on DOCUMENT (capture): during an X6 connect-drag the pointer can be
-    // captured by another element, so a graphMount-scoped move can stop firing
-    // mid-drag and the stored position would go stale.
-    // Track via POINTER events first: X6's connect-drag uses pointer events and
-    // captures the pointer, which suppresses the compatibility `mousemove` —
-    // so a mouse-only tracker goes stale mid-drag and pinDropAnchor falls back
-    // to whatever quarter-port X6 snapped to (the "only 3 points per side" bug).
-    // pointermove fires for mouse/touch/pen and isn't suppressed by capture, so
-    // lastPointerClient is current at drop. mouse/touch kept as belt-and-braces.
-    const trackPointer = (cx: number, cy: number) => { this.lastPointerClient = { x: cx, y: cy }; };
-    addDoc("pointermove", (e) => trackPointer((e as PointerEvent).clientX, (e as PointerEvent).clientY));
-    addDoc("pointerdown", (e) => trackPointer((e as PointerEvent).clientX, (e as PointerEvent).clientY));
-    addDoc("pointerup", (e) => trackPointer((e as PointerEvent).clientX, (e as PointerEvent).clientY));
-    addDoc("mousemove", (e) => trackPointer((e as MouseEvent).clientX, (e as MouseEvent).clientY));
-    addDoc("touchmove", (e) => { const t = (e as TouchEvent).touches[0]; if (t) trackPointer(t.clientX, t.clientY); });
-
     // Edges behave like nodes: click to select (highlighted), Delete to remove.
     // Double-click edits the label. No floating delete button.
     this.graph.on("edge:click", ({ edge }) => this.graph.select(edge));
@@ -1267,15 +1311,11 @@ export class OmniboardCanvas {
         }
       }
       // Reshape tools:
-      //  - `vertices` (addable): click the line to add a bend, drag any vertex
-      //    freely. Still useful for edges where router auto-materialize didn't
-      //    apply (e.g. `normal` router) and for adding extra bends.
       //  - `segments`: drag a whole orthogonal segment. With router bends now
       //    materialized on select, every visible segment has a handle.
+      //  - `vertices`: drag/add/remove individual bends. Keep this enabled;
+      //    without it users lose the normal edge reshape affordance.
       //  - endpoint round handles: drag-reconnect the endpoints.
-      // (The segment-drag jank was the showEdgeBar-rebuild-per-frame + leaked
-      // document listeners, both fixed earlier — debounced scheduleEdgeBar +
-      // destroy() cleanup; a temporary perf probe confirms it stays smooth.)
       const dot = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
       const isOrth = this.isOrthogonalEdge(edge);
       const tools: any[] = [
@@ -1304,6 +1344,7 @@ export class OmniboardCanvas {
       delete (edge as any).__selVertsUserChanged;
       delete (edge as any).__selVertsChangeSaved;
     });
+<<<<<<< HEAD
     // Endpoint drag (source-arrowhead / target-arrowhead) → wipe stale vertices
     // so the route re-computes cleanly to whichever side the user dropped on.
     // Endpoint spec (port vs body-floating) is left as the user dropped it.
@@ -1313,7 +1354,37 @@ export class OmniboardCanvas {
         this.isSeqLifeline(edge.getTargetCellId() ?? undefined)) return;
       if (this.isMindmapNode(edge.getSourceCellId() ?? undefined) ||
         this.isMindmapNode(edge.getTargetCellId() ?? undefined)) return;
+=======
+    const canResetEdgeVertices = (edge: Edge) => {
+      if (this.isSeqLifeline(edge.getSourceCellId() ?? undefined) ||
+          this.isSeqLifeline(edge.getTargetCellId() ?? undefined)) return false;
+      if (this.isMindmapNode(edge.getSourceCellId() ?? undefined) ||
+          this.isMindmapNode(edge.getTargetCellId() ?? undefined)) return false;
+      return true;
+    };
+    const resetEdgeVertices = (edge: Edge) => {
+      if (!canResetEdgeVertices(edge)) return;
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
       if (edge.getVertices().length) edge.setVertices([]);
+    };
+    const finalizeConnectedEdge = (edge: Edge, connected?: ConnectedEndpointEvent) => {
+      this.normalizeRegularEdgeEndpoints(edge, connected);
+      resetEdgeVertices(edge);
+      this.applySeqRoutingIfNeeded(edge);
+      this.applyMindmapRoutingIfNeeded(edge);
+    };
+    // Endpoint drag (source-arrowhead / target-arrowhead) changes source/target
+    // continuously. The X6 segments tool also updates terminal anchors while a
+    // segment is dragged; clearing vertices in response fights that tool every
+    // pointermove and makes the drag freeze. Tool-originated source/target
+    // changes only move the bar here; endpoint reconnect cleanup happens on
+    // edge:connected below.
+    const onEndpointMoved = ({ edge, options }: { edge: Edge; options?: Record<string, unknown> }) => {
+      if ((options as any)?.toolId) {
+        this.scheduleEdgeBar(edge);
+        return;
+      }
+      resetEdgeVertices(edge);
       this.scheduleEdgeBar(edge);   // debounced — change:source/target fires continuously during an arrowhead drag
     };
     this.graph.on("edge:change:source", onEndpointMoved);
@@ -1403,6 +1474,7 @@ export class OmniboardCanvas {
 
     // Sequence messages: when both endpoints are sequence lifelines, swap the
     // edge's connector to "seq-msg" so the arrow stays horizontal at source Y.
+<<<<<<< HEAD
     this.graph.on("edge:connected", ({ edge, isNew, type }) => {
       (edge as any).__selVertsUserChanged = true; // Mark as modified so it won't revert on unselect!
       // Dropped on empty canvas → show shape picker at the drop point (Omniboard).
@@ -1418,6 +1490,29 @@ export class OmniboardCanvas {
       const dropped: "source" | "target" = type === "source" ? "source" : "target";
       this.pinDropAnchor(edge, dropped);
       this.onChange();
+=======
+    this.graph.on("edge:connected", ({ edge, isNew, type, currentCell, currentPort }) => {
+      // Dropped on empty canvas → show shape picker at the drop point (Omniboard).
+      if (isNew && !edge.getTargetCellId()) {
+        const state = this.handleDragToBlank(edge);
+        if (state !== "connected") return;
+        const targetId = edge.getTargetCellId() ?? undefined;
+        const connectedFromBlank = targetId
+          ? {
+              type: "target" as const,
+              currentCell: { id: targetId },
+              currentPort: this.endpointPort(edge, "target") ?? null,
+            }
+          : undefined;
+        finalizeConnectedEdge(edge, connectedFromBlank);
+        return;
+      }
+      finalizeConnectedEdge(edge, {
+        type,
+        currentCell: (currentCell as { id?: string } | null | undefined) ?? null,
+        currentPort: currentPort ?? null,
+      });
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
     });
     // Robust fallback: some X6 builds don't emit edge:connected for a blank drop.
     // After any mouseup, scan for a freshly dangling edge (source cell, target point)
@@ -1426,7 +1521,18 @@ export class OmniboardCanvas {
       window.setTimeout(() => {
         if (this.pendingDrop) return; // already handling one
         const dangling = this.graph.getEdges().find((e) => !!e.getSourceCellId() && !e.getTargetCellId());
-        if (dangling) this.handleDragToBlank(dangling);
+        if (!dangling) return;
+        const state = this.handleDragToBlank(dangling);
+        if (state !== "connected") return;
+        const targetId = dangling.getTargetCellId() ?? undefined;
+        const connectedFromFallback = targetId
+          ? {
+              type: "target" as const,
+              currentCell: { id: targetId },
+              currentPort: this.endpointPort(dangling, "target") ?? null,
+            }
+          : undefined;
+        finalizeConnectedEdge(dangling, connectedFromFallback);
       }, 0);
     });
 
@@ -1443,15 +1549,12 @@ export class OmniboardCanvas {
   private togglePorts(node: Node, visible: boolean) {
     const view = this.graph.findViewByCell(node);
     if (!view) return;
-    // Show only the 4 cardinal ports (top/right/bottom/left mid-side). The 8
-    // quarter ports (top-1/top-2/left-1/…) stay invisible to keep the hover UI
-    // uncluttered — they remain in the port definitions so any saved board
-    // referencing them still resolves, but the user doesn't see/target them.
-    // X6 writes the port id onto the <circle> element (port-attr), not the <g>.
+    // Show all 12 fixed ports (3 per side). X6 writes the port id onto the
+    // <circle> element (port-attr), not the <g>.
     (view.container as Element).querySelectorAll<SVGElement>(".x6-port circle").forEach((c) => {
       const id = c.getAttribute("port") ?? "";
-      const isCardinal = id === "top" || id === "right" || id === "bottom" || id === "left";
-      c.style.visibility = visible && isCardinal ? "visible" : "hidden";
+      const isFixed = FIXED_PORT_IDS.includes(id as FixedPortId);
+      c.style.visibility = visible && isFixed ? "visible" : "hidden";
     });
   }
 
@@ -1479,7 +1582,8 @@ export class OmniboardCanvas {
     this.railHand = hand;
 
     // Arrow / message tool (directly below pan): hover (desktop) or tap (mobile) →
-    // pick an arrow type, which drops a straight arrow on the canvas (sequence messages).
+    // pick an arrow type. Generic arrows are orthogonal; sequence lifelines still
+    // switch to a horizontal sequence connector.
     const arrow = el("div", "lk-rail-item");
     arrow.innerHTML = ARROW_ICON;
     arrow.title = "Mũi tên";
@@ -1597,7 +1701,7 @@ export class OmniboardCanvas {
     this.flyout = fly;
   }
 
-  /** Drop a standalone straight arrow at the centre of the visible canvas. */
+  /** Drop a standalone arrow at the centre of the visible canvas. */
   private placeArrow(style: EdgeStyle) {
     // Viewport centre → graph coords via rect + translate + scale (robust on iOS,
     // unlike X6's getScreenCTM-based clientToLocal).
@@ -3247,19 +3351,20 @@ export class OmniboardCanvas {
     const view = this.graph.findViewByCell(edge) as { update?: () => void } | null;
     view?.update?.();
   }
-  // Line shape (orthogonal/elbow/straight/curved) — skip seq/mindmap (special routing).
+  // Apply the selected line shape (orthogonal/elbow/straight/curved) to normal
+  // edges. Sequence and mindmap edges keep their special routing.
   // A line jump (arc/gap) overrides the connector with X6's native jumpover.
   private applyEdgeShape(edge: Edge) {
     const sid = edge.getSourceCellId() ?? undefined;
     if (this.isSeqLifeline(sid) || this.isMindmapNode(sid)) return;
     const st = this.edgeStyle(edge);
-    const p = EDGE_SHAPES[st.shape ?? "orthogonal"] ?? EDGE_SHAPES.orthogonal;
-    edge.setRouter(p.router as never);
+    const shape = EDGE_SHAPES[st.shape ?? "orthogonal"] ?? EDGE_SHAPES.orthogonal;
+    edge.setRouter(shape.router as never);
     const jump = EDGE_JUMPS[st.jump ?? "none"];
     if (jump && jump !== "none") {
       edge.setConnector({ name: "jumpover", args: { type: jump, size: 6 } } as never);
     } else {
-      edge.setConnector(p.connector as never);
+      edge.setConnector(shape.connector as never);
     }
   }
   // Reverse arrow direction = swap the two endpoints.
@@ -3315,46 +3420,11 @@ export class OmniboardCanvas {
    *  drags. */
   private scheduleEdgeBar(edge: Edge) {
     if (!this.graph.getSelectedCells().some((c) => c.id === edge.id)) return;
-    this.startEdgeDragProfile();
     if (this.edgeBarDebounce != null) window.clearTimeout(this.edgeBarDebounce);
     this.edgeBarDebounce = window.setTimeout(() => {
       this.edgeBarDebounce = null;
-      this.stopEdgeDragProfile();
       if (this.graph.getSelectedCells().some((c) => c.id === edge.id)) this.showEdgeBar(edge);
     }, 110);
-  }
-
-  /** TEMPORARY self-gating perf probe. Records per-frame times while an edge
-   *  reshape/endpoint drag is in progress (change:vertices/source/target fire
-   *  continuously, driving scheduleEdgeBar). Stays SILENT when smooth; only
-   *  console.warns if a frame exceeded 50ms — so we can confirm the freeze is
-   *  gone on the user's Electron without a screen recording. Remove once the
-   *  segment-drag jank is confirmed fixed. */
-  private startEdgeDragProfile(): void {
-    if (this.edgeDragFrames != null) return; // already sampling this drag
-    this.edgeDragFrames = [];
-    let last = performance.now();
-    const tick = (now: number): void => {
-      if (this.edgeDragFrames == null) return;
-      this.edgeDragFrames.push(now - last);
-      last = now;
-      this.edgeDragRaf = requestAnimationFrame(tick);
-    };
-    this.edgeDragRaf = requestAnimationFrame(tick);
-  }
-
-  private stopEdgeDragProfile(): void {
-    const frames = this.edgeDragFrames;
-    this.edgeDragFrames = null;
-    if (this.edgeDragRaf != null) { cancelAnimationFrame(this.edgeDragRaf); this.edgeDragRaf = null; }
-    const samples = (frames ?? []).slice(2); // drop warmup frames
-    if (samples.length < 3) return;
-    const max = Math.round(Math.max(...samples));
-    if (max <= 50) return; // smooth → silent
-    const sorted = samples.slice().sort((a, b) => a - b);
-    const med = Math.round(sorted[sorted.length >> 1]);
-    const janky = samples.filter((d) => d > 33).length;
-    console.warn(`[omniboard-perf] edge drag janky: ${samples.length} frames · median ${med}ms · max ${max}ms · ${janky} frame(s) >33ms`);
   }
 
   private showEdgeBar(edge: Edge) {
@@ -3476,20 +3546,22 @@ export class OmniboardCanvas {
     }
     this.showPopup(list, anchor);
   }
-  // Line popup: shape (orthogonal/elbow/straight/curved) + dash + weight.
+  // Line popup: shape + dash + weight + jumps.
   private openEdgeLinePopup(edge: Edge, anchor: HTMLElement) {
     const st = this.edgeStyle(edge);
     const wrap = el("div", "lk-line-popup");
-    const shapes: Array<[string, string]> = [
-      ["orthogonal", `<path d="M2 12 H8 V2 H16" fill="none" stroke="currentColor" stroke-width="1.8"/>`],
-      ["elbow", `<path d="M2 12 H10 V2 H16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="miter"/>`],
-      ["straight", `<line x1="2" y1="13" x2="16" y2="2" stroke="currentColor" stroke-width="1.8"/>`],
-      ["curved", `<path d="M2 12 C8 12 8 3 16 3" fill="none" stroke="currentColor" stroke-width="1.8"/>`],
-    ];
     const shapeRow = el("div", "lk-line-row");
-    for (const [key, svg] of shapes) {
-      const b = el("div", "lk-line-cell" + ((st.shape ?? "orthogonal") === key ? " on" : ""), `<svg viewBox="0 0 18 14" width="22" height="16">${svg}</svg>`);
-      b.title = key;
+    const shapeOptions: Array<[string, string, string]> = [
+      ["orthogonal", "Vuông bo", `<path d="M2 12 H8 V2 H16" fill="none" stroke="currentColor" stroke-width="1.8"/>`],
+      ["elbow", "Gấp khúc", `<path d="M2 12 H9 V2 H16" fill="none" stroke="currentColor" stroke-width="1.8"/>`],
+      ["straight", "Thẳng", `<line x1="2" y1="12" x2="16" y2="2" stroke="currentColor" stroke-width="1.8"/>`],
+      ["curved", "Cong", `<path d="M2 12 C6 2 12 2 16 12" fill="none" stroke="currentColor" stroke-width="1.8"/>`],
+    ];
+    for (const [key, title, path] of shapeOptions) {
+      const active = (st.shape ?? "orthogonal") === key;
+      const b = el("div", "lk-line-cell" + (active ? " on" : ""),
+        `<svg viewBox="0 0 18 14" width="22" height="16">${path}</svg>`);
+      b.title = title;
       b.onclick = () => { this.setEdgeStyle(edge, { shape: key }); this.applyEdgeShape(edge); this.showEdgeBar(edge); };
       shapeRow.appendChild(b);
     }
@@ -3556,7 +3628,7 @@ export class OmniboardCanvas {
 
   // Edges with an orthogonal router emit polyline routePoints we can materialize
   // as vertices so the X6 `segments` tool renders one handle per visible segment.
-  // Curved/straight routers (`normal`) don't produce meaningful bends here.
+  // Non-orthogonal special routers don't produce meaningful bends here.
   private isOrthogonalEdge(edge: Edge): boolean {
     const r = edge.getRouter() as any;
     const name = typeof r === "string" ? r : r?.name;
@@ -3616,7 +3688,7 @@ export class OmniboardCanvas {
   private refreshBpmnEventLabels(): void {
     for (const n of this.graph.getNodes()) {
       const k = this.nodeKind(n);
-      const isEvent = k.startsWith("bpmn-start") || k.startsWith("bpmn-end") || k.startsWith("bpmn-intermediate");
+      const isEvent = BPMN_EVENT_KINDS.has(k);
       const isGw = k.startsWith("bpmn-gateway");
       if (!isEvent && !isGw) continue;
       const cy = n.getPosition().y + n.getSize().height / 2;
@@ -3649,6 +3721,70 @@ export class OmniboardCanvas {
     return !!k && MM_KINDS.has(k);
   }
 
+  private isBpmnEventNode(cellId: string | undefined): boolean {
+    if (!cellId) return false;
+    const c = this.graph.getCellById(cellId);
+    if (!c || !c.isNode()) return false;
+    return BPMN_EVENT_KINDS.has(this.nodeKind(c as Node));
+  }
+
+  private endpointPort(edge: Edge, type: Edge.TerminalType): string | undefined {
+    const terminal = (type === "source" ? edge.getSource() : edge.getTarget()) as { port?: string } | undefined;
+    return terminal?.port;
+  }
+
+  private inferEventEndpointSide(edge: Edge, type: Edge.TerminalType): PortSide | undefined {
+    const eventId = type === "source" ? edge.getSourceCellId() ?? undefined : edge.getTargetCellId() ?? undefined;
+    const peerId = type === "source" ? edge.getTargetCellId() ?? undefined : edge.getSourceCellId() ?? undefined;
+    if (!eventId || !peerId) return undefined;
+    const eventCell = this.graph.getCellById(eventId);
+    const peerCell = this.graph.getCellById(peerId);
+    if (!eventCell || !eventCell.isNode() || !peerCell || !peerCell.isNode()) return undefined;
+    const eventNode = eventCell as Node;
+    const peerNode = peerCell as Node;
+    const ePos = eventNode.getPosition();
+    const eSize = eventNode.getSize();
+    const pPos = peerNode.getPosition();
+    const pSize = peerNode.getSize();
+    const dx = (pPos.x + pSize.width / 2) - (ePos.x + eSize.width / 2);
+    const dy = (pPos.y + pSize.height / 2) - (ePos.y + eSize.height / 2);
+    if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? "right" : "left";
+    return dy >= 0 ? "bottom" : "top";
+  }
+
+  /** Regular-edge contract: BPMN event endpoints always use side center ports. */
+  private normalizeRegularEdgeEndpoints(edge: Edge, connected?: ConnectedEndpointEvent): void {
+    const srcId = edge.getSourceCellId() ?? undefined;
+    const tgtId = edge.getTargetCellId() ?? undefined;
+    if (!srcId || !tgtId) return;
+    if (this.isSeqLifeline(srcId) || this.isSeqLifeline(tgtId)) return;
+    if (this.isMindmapNode(srcId) || this.isMindmapNode(tgtId)) return;
+
+    (["source", "target"] as const).forEach((type) => {
+      const cellId = type === "source" ? srcId : tgtId;
+      if (!this.isBpmnEventNode(cellId)) return;
+      const fromConnect =
+        connected?.type === type && connected.currentCell?.id === cellId
+          ? collapsePortToSideCenter(connected.currentPort)
+          : undefined;
+      const fromTerminal = collapsePortToSideCenter(this.endpointPort(edge, type));
+      const inferredSide = this.inferEventEndpointSide(edge, type);
+      const normalized = fromConnect ?? fromTerminal ?? (inferredSide ? centerPortForSide(inferredSide) : undefined);
+      if (!normalized) return;
+      if (this.endpointPort(edge, type) === normalized) return;
+      if (type === "source") edge.setSource(portEndpoint(cellId, normalized) as never);
+      else edge.setTarget(portEndpoint(cellId, normalized) as never);
+    });
+  }
+
+  /** Board-load migration: collapse legacy quarter ports on BPMN events to side center. */
+  private normalizeLegacyBpmnEventPort(cellId: string, port?: string): string | undefined {
+    if (!port) return undefined;
+    if (!this.isBpmnEventNode(cellId)) return port;
+    if (!port.endsWith("-1") && !port.endsWith("-2")) return port;
+    return collapsePortToSideCenter(port) ?? port;
+  }
+
   private applyMindmapRoutingIfNeeded(edge: Edge): void {
     const srcId = edge.getSourceCellId() ?? undefined;
     const tgtId = edge.getTargetCellId() ?? undefined;
@@ -3660,8 +3796,8 @@ export class OmniboardCanvas {
     const sc = src.getPosition().x + src.getSize().width / 2;
     const tc = tgt.getPosition().x + tgt.getSize().width / 2;
     const right = tc >= sc;
-    edge.setSource({ cell: srcId!, port: right ? "right" : "left" });
-    edge.setTarget({ cell: tgtId!, port: right ? "left" : "right" });
+    edge.setSource(portEndpoint(srcId!, right ? "right" : "left") as never);
+    edge.setTarget(portEndpoint(tgtId!, right ? "left" : "right") as never);
     edge.setRouter("normal");
     edge.setConnector("mm-edge");
   }
@@ -3747,22 +3883,21 @@ export class OmniboardCanvas {
           data.style = { ...(data.style ?? {}), flowType: ft, ...FLOW_TYPE_PRESETS[ft] };
         }
       }
-      const forcedRouter = e.router === "normal" ? "normal" : e.router === "orth" ? { name: "orth" } : null;
-      // bpmn.io-style unlimited anchoring: when `sourceAnchor`/`targetAnchor`
-      // is set, pin the endpoint to that exact offset from the node's top-left
-      // (boundary crop keeps the visible line on the node edge). Falls back to
-      // the discrete port string if no offset is provided. Mutation happens
-      // ONCE here at edge-creation time — no runtime setSource/setTarget in
-      // event handlers, so the recursive-relayout freeze we hit before stays
-      // gone.
+      const forcedRouter = e.router === "normal" ? { name: "normal" } : e.router === "orth" ? { name: "orth" } : null;
+      // Legacy/import-only precise anchoring: when `sourceAnchor`/`targetAnchor`
+      // is set, pin the endpoint to that exact offset from the node's top-left.
+      // Newly drawn canvas edges use the fixed 12-port grid instead.
       // connectionPoint "anchor" (not "boundary"): keep the endpoint exactly at
       // the stored offset. "boundary" re-cropped it to wherever the route hit
       // the bbox, which ignored the offset for edges approaching from above
       // (collapsed onto the top edge).
+      const sourcePort = this.normalizeLegacyBpmnEventPort(e.source, e.sourcePort);
+      const targetPort = this.normalizeLegacyBpmnEventPort(e.target, e.targetPort);
       const sourceEnd: Record<string, unknown> = { cell: e.source };
       if (e.sourceAnchor) {
         sourceEnd.anchor = { name: "topLeft", args: { dx: e.sourceAnchor.dx, dy: e.sourceAnchor.dy } };
         sourceEnd.connectionPoint = { name: "anchor" };
+<<<<<<< HEAD
       } else if (e.sourcePort) {
         sourceEnd.port = e.sourcePort;
       } else if (!seq && !mm) {
@@ -3792,11 +3927,17 @@ export class OmniboardCanvas {
             sourceEnd.port = dy >= 0 ? "bottom" : "top";
           }
         }
+=======
+      } else if (sourcePort) {
+        sourceEnd.port = sourcePort;
+        sourceEnd.connectionPoint = PORT_CONNECTION_POINT;
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
       }
       const targetEnd: Record<string, unknown> = { cell: e.target };
       if (e.targetAnchor) {
         targetEnd.anchor = { name: "topLeft", args: { dx: e.targetAnchor.dx, dy: e.targetAnchor.dy } };
         targetEnd.connectionPoint = { name: "anchor" };
+<<<<<<< HEAD
       } else if (e.targetPort) {
         targetEnd.port = e.targetPort;
       } else if (!seq && !mm) {
@@ -3816,6 +3957,11 @@ export class OmniboardCanvas {
             targetEnd.port = dy >= 0 ? "top" : "bottom";
           }
         }
+=======
+      } else if (targetPort) {
+        targetEnd.port = targetPort;
+        targetEnd.connectionPoint = PORT_CONNECTION_POINT;
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
       }
       const created = this.graph.addEdge({
         id: e.id,
@@ -4212,8 +4358,8 @@ export class OmniboardCanvas {
       if (this.isMindmapNode(sId) && this.isMindmapNode(tId)) continue;
       if (this.isSeqLifeline(sId) && this.isSeqLifeline(tId)) continue;
       e.setVertices([]);
-      e.setSource({ cell: sId, port: srcPort });
-      e.setTarget({ cell: tId, port: tgtPort });
+      e.setSource(portEndpoint(sId, srcPort) as never);
+      e.setTarget(portEndpoint(tId, tgtPort) as never);
       e.setRouter(SMART_ROUTER as never);
       e.setConnector(CONNECTOR as never);
       // Preserve any user edge style (dash/marker/jump/etc).
@@ -4363,8 +4509,6 @@ export class OmniboardCanvas {
     for (const { type, fn } of this.docListeners) document.removeEventListener(type, fn, true);
     this.docListeners = [];
     if (this.edgeBarDebounce != null) { window.clearTimeout(this.edgeBarDebounce); this.edgeBarDebounce = null; }
-    if (this.edgeDragRaf != null) { cancelAnimationFrame(this.edgeDragRaf); this.edgeDragRaf = null; }
-    this.edgeDragFrames = null;
     this.graph.dispose();
   }
 }

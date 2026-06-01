@@ -98,6 +98,16 @@ function decompress(b64: string): string | null {
   }
 }
 
+function parseMaybeCompressedJson(block: string): unknown | null {
+  const inflated = decompress(block);
+  if (inflated !== null) {
+    try { return JSON.parse(inflated); } catch { /* fall through */ }
+  }
+  // Fallback: allow raw JSON content when compression is disabled or when AI/agents
+  // write the block directly.
+  try { return JSON.parse(block); } catch { return null; }
+}
+
 function escapeMd(s: string): string {
   // Strip newlines from labels so each Text Element stays on a single line
   // (preserves block-reference parsing). Spaces and unicode are fine as-is.
@@ -112,12 +122,20 @@ function escapeMd(s: string): string {
 export function deserializeSourceMeta(raw: string): unknown {
   const m = META_RE.exec(raw);
   if (!m) return null;
-  const json = decompress(m[1]);
-  if (json === null) return null;
-  try { return JSON.parse(json); } catch { return null; }
+  return parseMaybeCompressedJson(m[1]);
 }
 
+<<<<<<< HEAD
 export function serializeBoard(model: CanvasModel, previousRaw = "", sourceMeta?: unknown, compress = true): string {
+=======
+export function serializeBoard(
+  model: CanvasModel,
+  previousRaw = "",
+  sourceMeta?: unknown,
+  opts?: { compressDrawingData?: boolean },
+): string {
+  const useCompression = opts?.compressDrawingData !== false;
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
   const fm = parseFrontmatter(previousRaw);
   // If caller didn't pass meta, preserve the previous meta block.
   const meta = sourceMeta ?? deserializeSourceMeta(previousRaw);
@@ -153,15 +171,24 @@ export function serializeBoard(model: CanvasModel, previousRaw = "", sourceMeta?
   parts.push("%%");
   parts.push("## Drawing");
   parts.push("```" + DATA_LANG);
+<<<<<<< HEAD
   // When compress=false store plain JSON (Excalidraw "Decompress" mode).
   // AI agents can then read and write the file without a Gzip step.
   parts.push(compress ? compressFn(json) : json);
+=======
+  parts.push(useCompression ? compress(json) : json);
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
   parts.push("```");
   if (meta) {
     parts.push("");
     parts.push("## Source Meta");
     parts.push("```" + META_LANG);
+<<<<<<< HEAD
     parts.push(compress ? compressFn(JSON.stringify(meta)) : JSON.stringify(meta));
+=======
+    const metaJson = JSON.stringify(meta);
+    parts.push(useCompression ? compress(metaJson) : metaJson);
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
     parts.push("```");
   }
   parts.push("%%");
@@ -183,6 +210,7 @@ export function deserializeBoard(raw: string): CanvasModel | null {
   if (!raw.trim()) return { nodes: [], edges: [] };
   const m = DRAWING_RE.exec(raw);
   if (!m) return null;
+<<<<<<< HEAD
 
   // ── Path 1: Gzip + Base64 (standard compressed format) ──────────────────
   const json = decompress(m[1]);
@@ -207,6 +235,10 @@ export function deserializeBoard(raw: string): CanvasModel | null {
     /* fall through */
   }
 
+=======
+  const parsed = parseMaybeCompressedJson(m[1]) as CanvasModel | null;
+  if (parsed && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) return parsed;
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
   return null;
 }
 

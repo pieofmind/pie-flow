@@ -30,11 +30,11 @@ export interface CanvasModel {
   }>;
   edges: Array<{
     id: string; source: string; sourcePort?: string; target: string; targetPort?: string;
-    /** Precise anchor on the source/target node (bpmn.io-style unlimited
-     *  positioning). Offset is in graph pixels from the node's top-left corner.
+    /** Legacy/import-only precise anchor on the source/target node.
+     *  Offset is in graph pixels from the node's top-left corner.
      *  When set, takes precedence over the discrete `sourcePort` / `targetPort`
      *  string. Used by importers to preserve the exact waypoint position the
-     *  source file specified. */
+     *  source file specified; newly drawn canvas edges use fixed ports. */
     sourceAnchor?: { dx: number; dy: number };
     targetAnchor?: { dx: number; dy: number };
     label?: string; labelPos?: { distance?: number; offset?: number | { x: number; y: number } }; y?: number; ret?: boolean;

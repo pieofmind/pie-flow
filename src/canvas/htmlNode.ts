@@ -17,6 +17,7 @@ export function registerHtmlNode(): void {
       },
     ],
     attrs: {
+<<<<<<< HEAD
       // `magnet: 'passive'` lets X6 treat the body as a valid DROP target during
        // an arrow-drag (so the user can drop anywhere on the node and pinDropAnchor
        // pins to that exact pixel) WITHOUT making body clicks initiate a connect
@@ -36,6 +37,11 @@ export function registerHtmlNode(): void {
       // across the full bbox (SVG default `visiblePainted` ignores transparent
       // areas — corner drops would otherwise fall through onto the SVG canvas).
       hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", magnet: false, pointerEvents: "all" },
+=======
+      // The transparent hit rect owns selection/edit pointer events only. Edges
+      // connect through the 12 fixed ports supplied by makePorts().
+      hit: { refWidth: "100%", refHeight: "100%", fill: "transparent", stroke: "none", pointerEvents: "all" },
+>>>>>>> 59490c1 (Stabilize edge endpoint finalization to stop off-center BPMN snaps)
       fo: { refWidth: "100%", refHeight: "100%" },
       content: { html: "", class: "hn" },
     },

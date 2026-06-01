@@ -1,4 +1,4 @@
-import { TextFileView, WorkspaceLeaf, setIcon, Notice, Menu } from "obsidian";
+import { TextFileView, WorkspaceLeaf, setIcon, Notice, Menu, Modal } from "obsidian";
 import { OmniboardCanvas } from "../canvas/OmniboardCanvas";
 import type { CanvasModel } from "../canvas/types";
 import { registerAllShapes, SHAPE_CATEGORIES } from "../canvas/shapes/index";
@@ -6,6 +6,10 @@ import { serializeBoard, deserializeBoard } from "./boardSerde";
 import { importFromFile } from "../io/dispatcher";
 import { findById, FORMATS } from "../io/registry";
 import type { SourceMeta } from "../io/types";
+import { emitOmniboardSelectionChange, OMNIBOARD_PROPERTIES_VIEW_TYPE } from "../ui/PropertiesPanel";
+import { emitBpmnIssuesRefresh, OMNIBOARD_ISSUES_VIEW_TYPE } from "../ui/BpmnIssuesView";
+import { validateBpmnModel } from "../io/bpmn/validator";
+import type DiagramsPlugin from "../main";
 
 registerAllShapes();
 
@@ -47,6 +51,67 @@ interface FsPickerWindow {
     createWritable: () => Promise<{ write: (data: BlobPart) => Promise<void>; close: () => Promise<void>; }>;
     name: string;
   }>;
+}
+
+class DiagramPickerModal extends Modal {
+  private readonly diagrams: Array<{ index: number; id: string; planeRef?: string; elementCount?: number }>;
+  private readonly onPick: (index: number) => void;
+  private readonly onCancel: () => void;
+  constructor(
+    view: BoardView,
+    diagrams: Array<{ index: number; id: string; planeRef?: string; elementCount?: number }>,
+    onPick: (index: number) => void,
+    onCancel: () => void,
+  ) {
+    super(view.app);
+    this.diagrams = diagrams;
+    this.onPick = onPick;
+    this.onCancel = onCancel;
+  }
+  onOpen(): void {
+    const { contentEl } = this;
+    this.modalEl.addClass("omniboard-diagram-picker");
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "Select BPMN Diagram" });
+    contentEl.createEl("p", { text: `This file contains ${this.diagrams.length} diagrams. Pick one to import.` });
+    const sorted = [...this.diagrams].sort((a, b) => (b.elementCount ?? 0) - (a.elementCount ?? 0));
+    const list = contentEl.createDiv({ cls: "obp-kv" });
+    const base = sorted.slice(0, 8);
+    const more = sorted.slice(8);
+    const mkBtn = (d: { index: number; id: string; planeRef?: string; elementCount?: number }) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "obi-row";
+      btn.innerHTML =
+        `<span class="obi-code">#${d.index + 1} • ${d.elementCount ?? 0} elements</span>` +
+        `<span class="obi-msg">${d.id}${d.planeRef ? ` — plane: ${d.planeRef}` : ""}</span>`;
+      btn.onclick = () => { this.onPick(d.index); this.close(); };
+      return btn;
+    };
+    for (const d of base) list.appendChild(mkBtn(d));
+    if (more.length) {
+      const moreBtn = document.createElement("button");
+      moreBtn.type = "button";
+      moreBtn.className = "lk-flyout-more";
+      moreBtn.textContent = `Load more (${more.length})`;
+      moreBtn.onclick = () => {
+        const frag = document.createDocumentFragment();
+        for (const d of more) frag.appendChild(mkBtn(d));
+        list.insertBefore(frag, moreBtn);
+        moreBtn.remove();
+      };
+      list.appendChild(moreBtn);
+    }
+    const actions = contentEl.createDiv({ cls: "lk-prow2" });
+    const cancel = document.createElement("button");
+    cancel.className = "lk-padd";
+    cancel.textContent = "Cancel";
+    cancel.onclick = () => { this.onCancel(); this.close(); };
+    actions.appendChild(cancel);
+  }
+  onClose(): void {
+    this.contentEl.empty();
+  }
 }
 async function saveToLocal(
   data: Blob | string | ArrayBuffer,
@@ -97,9 +162,11 @@ export class BoardView extends TextFileView {
   private model: CanvasModel = EMPTY_MODEL;
   private rawData = "";
   private invalidFormat = false;
+  private readonly plugin: DiagramsPlugin;
 
-  constructor(leaf: WorkspaceLeaf) {
+  constructor(leaf: WorkspaceLeaf, plugin: DiagramsPlugin) {
     super(leaf);
+    this.plugin = plugin;
   }
 
   getViewType(): string { return BOARD_VIEW_TYPE; }
@@ -116,8 +183,10 @@ export class BoardView extends TextFileView {
     this.host = this.contentEl.createDiv({ cls: "da-board-host" });
     this.host.style.cssText = "position:relative; flex:1; min-height:0;";
 
-    this.canvas = new OmniboardCanvas(this.host, SHAPE_CATEGORIES, () => this.requestSave());
+    this.canvas = new OmniboardCanvas(this.host, SHAPE_CATEGORIES, () => { this.requestSave(); emitBpmnIssuesRefresh(); });
+    this.canvas.setSelectionChangeHandler(emitOmniboardSelectionChange);
     this.canvas.loadModel(this.model);
+    emitBpmnIssuesRefresh();
   }
 
   private buildTopBar(): void {
@@ -145,6 +214,8 @@ export class BoardView extends TextFileView {
     iconBtn("redo-2", "Redo", () => this.canvas?.redo());
     iconBtn("copy", "Nhân bản (⌘D)", () => this.canvas?.duplicate());
     iconBtn("trash-2", "Xóa", () => this.canvas?.deleteSelection());
+    iconBtn("sliders-horizontal", "BPMN properties", () => this.openPropertiesLeaf());
+    iconBtn("alert-triangle", "BPMN issues", () => this.openIssuesLeaf());
     const layoutBtn = iconBtn("workflow", "Tự sắp xếp (auto layout)", () => {
       const m = new Menu();
       m.addItem((i) => i.setTitle("Sắp xếp ngang →").setIcon("arrow-right").onClick(() => this.canvas?.autoLayout("LR")));
@@ -166,6 +237,32 @@ export class BoardView extends TextFileView {
     setIcon(save, "check");
     save.createSpan({ text: "Lưu & đóng" });
     save.onclick = async () => { await this.save(); this.leaf.detach(); };
+  }
+
+  getCanvas(): OmniboardCanvas | null {
+    return this.canvas;
+  }
+
+  focusCellId(id: string): boolean {
+    return this.canvas?.focusCellById(id) ?? false;
+  }
+
+  private async openPropertiesLeaf(): Promise<void> {
+    const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_PROPERTIES_VIEW_TYPE)[0];
+    const leaf = existing ?? this.app.workspace.getRightLeaf(false);
+    if (!leaf) return;
+    await leaf.setViewState({ type: OMNIBOARD_PROPERTIES_VIEW_TYPE, active: true });
+    this.app.workspace.revealLeaf(leaf);
+    emitOmniboardSelectionChange();
+  }
+
+  private async openIssuesLeaf(): Promise<void> {
+    const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_ISSUES_VIEW_TYPE)[0];
+    const leaf = existing ?? this.app.workspace.getRightLeaf(false);
+    if (!leaf) return;
+    await leaf.setViewState({ type: OMNIBOARD_ISSUES_VIEW_TYPE, active: true });
+    this.app.workspace.revealLeaf(leaf);
+    emitBpmnIssuesRefresh();
   }
 
   private showExportMenu(e: MouseEvent): void {
@@ -258,6 +355,7 @@ export class BoardView extends TextFileView {
       const current = JSON.stringify(this.canvas.getModel());
       if (JSON.stringify(parsed) === current) return;
       this.canvas.loadModel(this.model);
+      emitBpmnIssuesRefresh();
     }
   }
 
@@ -299,7 +397,21 @@ export class BoardView extends TextFileView {
       if (!file) return;
       try {
         const raw = await file.text();
-        const result = await importFromFile(file.name, raw);
+        let result;
+        if (/\.(bpmn|bpmn2|xml)$/i.test(file.name) && /xmlns[^=]*=["']http:\/\/www\.omg\.org\/spec\/BPMN/i.test(raw.slice(0, 4096))) {
+          const { inspectBpmnDiagrams } = await import("../io/bpmn/import");
+          const { diagramCount, diagrams } = await inspectBpmnDiagrams(raw);
+          let diagramIndex = 0;
+          if (diagramCount > 1) {
+            diagramIndex = await new Promise<number | null>((resolve) => {
+              new DiagramPickerModal(this, diagrams, (idx) => resolve(idx), () => resolve(null)).open();
+            }) ?? -1;
+            if (diagramIndex < 0) return;
+          }
+          result = await importFromFile(file.name, raw, { diagramIndex });
+        } else {
+          result = await importFromFile(file.name, raw);
+        }
         const { added } = this.canvas!.mergeModel(result.model);
         // Stash the source meta on the view; on next save it gets serialised
         // into the .omniboard.md so export can round-trip later.
@@ -313,6 +425,7 @@ export class BoardView extends TextFileView {
         if (result.warnings.length) {
           for (const w of result.warnings.slice(0, 5)) notify("warn", w, 6000);
         }
+        emitBpmnIssuesRefresh();
       } catch (err) {
         notify("error", `Import lỗi: ${(err as Error).message}`, 8000);
       }
@@ -328,10 +441,23 @@ export class BoardView extends TextFileView {
     const fmt = findById(formatId as never);
     if (!fmt) return;
     try {
+      const model = this.canvas.getModel();
+      if (fmt.id === "bpmn" && this.plugin.settings.validateBpmnBeforeExport) {
+        const issues = validateBpmnModel(model);
+        const errors = issues.filter((i) => i.severity === "error");
+        const warns = issues.filter((i) => i.severity === "warn");
+        if (errors.length) {
+          notify("error", `BPMN export bị chặn: ${errors.length} lỗi semantic.`);
+          for (const i of errors.slice(0, 6)) notify("error", `[${i.code}] ${i.message}`, 8000);
+          for (const i of warns.slice(0, 3)) notify("warn", `[${i.code}] ${i.message}`, 6000);
+          return;
+        }
+        for (const i of warns.slice(0, 6)) notify("warn", `[${i.code}] ${i.message}`, 6000);
+      }
       const meta: SourceMeta | null =
         this.pendingSourceMeta ??
         ((await import("./boardSerde")).deserializeSourceMeta(this.rawData) as SourceMeta | null);
-      const text = await fmt.exporter(this.canvas.getModel(), meta);
+      const text = await fmt.exporter(model, meta);
       const ext = fmt.extensions[0];
       const mime =
         ext === "bpmn" || ext === "bpmn2" ? "application/xml" :
@@ -352,7 +478,9 @@ export class BoardView extends TextFileView {
   }
 
   async onClose(): Promise<void> {
+    this.canvas?.setSelectionChangeHandler(null);
     this.canvas?.destroy();
     this.canvas = null;
+    emitBpmnIssuesRefresh();
   }
 }

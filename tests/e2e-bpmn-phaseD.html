@@ -1,0 +1,92 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>BPMN Phase D E2E</title>
+<style>body{margin:0;font-family:system-ui;background:#FFF4DE}#host{width:1280px;height:720px;border:1px solid #ccc}#log{padding:8px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;background:#fff;max-height:300px;overflow:auto}.pass{color:#0a0}.fail{color:#c00;font-weight:600}</style>
+<link rel="stylesheet" href="../styles.css"/></head><body>
+<div id="host" class="da-board-view"></div><div id="log"></div>
+<script src="../harness/harness.js?v=phaseD1"></script>
+<script>
+const log = document.getElementById('log');
+const w = (s, c='') => { const d=document.createElement('div'); if(c)d.className=c; d.textContent=s; log.appendChild(d); };
+const results = [];
+async function run(name, fn) {
+  try { const out = await fn(); results.push({name, ok:true, info: out||''}); w(`✅ ${name}  ${out||''}`, 'pass'); }
+  catch(e) { results.push({name, ok:false, err: String(e?.message||e)}); w(`❌ ${name}  ${e?.message||e}`, 'fail'); }
+}
+const a = (c, m) => { if (!c) throw new Error(m); };
+
+const H = '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" id="d" targetNamespace="x">';
+
+const DOC_BIOC = H + `<bpmn:process id="P"><bpmn:task id="t" name="Pay"><bpmn:documentation>Pay invoice carefully.</bpmn:documentation></bpmn:task></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="t" bioc:fill="#bbdefb" bioc:stroke="#1565c0"><dc:Bounds x="100" y="100" width="120" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+const CAMUNDA_XML = '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="d" targetNamespace="x"><bpmn:process id="P"><bpmn:userTask id="t" name="Review" camunda:assignee="john" camunda:formKey="forms/review"><bpmn:extensionElements><camunda:properties><camunda:property name="priority" value="high"/></camunda:properties></bpmn:extensionElements></bpmn:userTask></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="t"><dc:Bounds x="0" y="0" width="100" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>';
+
+async function runAll() {
+  await run('D1 import docs + bioc → bpmnDoc/Fill/Stroke in attrs', async () => {
+    const r = await window.__import.bpmn(DOC_BIOC);
+    const m = window.__ob.getModel();
+    const t = m.nodes.find(n=>n.id==='t');
+    a(t?.attrs?.bpmnDoc === 'Pay invoice carefully.', `doc=${t?.attrs?.bpmnDoc}`);
+    a(t?.attrs?.bpmnFill === '#bbdefb', `fill=${t?.attrs?.bpmnFill}`);
+    a(t?.attrs?.bpmnStroke === '#1565c0', `stroke=${t?.attrs?.bpmnStroke}`);
+    return `doc+bioc ok`;
+  });
+
+  await run('D2 bioc round-trip — user changes fill → XML gets bioc:fill', async () => {
+    const r = await window.__import.bpmn(DOC_BIOC);
+    const m = window.__ob.getModel();
+    m.nodes.find(n=>n.id==='t').attrs.bpmnFill = '#ff0000';
+    const xml = await window.__export.bpmn(m, r.sourceMeta);
+    a(/bioc:fill="#ff0000"/.test(xml), `no bioc:fill in XML: ${xml.match(/bioc:[^"]+="[^"]*"/g)}`);
+    return `bioc:fill="#ff0000" emitted`;
+  });
+
+  await run('D3 docs round-trip — user edits doc → XML gets <documentation>', async () => {
+    const r = await window.__import.bpmn(DOC_BIOC);
+    const m = window.__ob.getModel();
+    m.nodes.find(n=>n.id==='t').attrs.bpmnDoc = 'Updated doc.';
+    const xml = await window.__export.bpmn(m, r.sourceMeta);
+    a(/<bpmn:documentation>Updated doc\.<\/bpmn:documentation>/.test(xml), 'no documentation element');
+    return 'documentation updated';
+  });
+
+  await run('D4 import camunda:assignee/formKey → node.attrs.camunda', async () => {
+    await window.__import.bpmn(CAMUNDA_XML);
+    const m = window.__ob.getModel();
+    const t = m.nodes.find(n=>n.id==='t');
+    a(t?.attrs?.camunda?.assignee === 'john', `assignee=${t?.attrs?.camunda?.assignee}`);
+    a(t?.attrs?.camunda?.formKey === 'forms/review', `formKey=${t?.attrs?.camunda?.formKey}`);
+    return `assignee=john formKey=forms/review`;
+  });
+
+  await run('D5 bpmnProps from camunda:property elements', async () => {
+    await window.__import.bpmn(CAMUNDA_XML);
+    const m = window.__ob.getModel();
+    const t = m.nodes.find(n=>n.id==='t');
+    const props = t?.attrs?.bpmnProps;
+    a(Array.isArray(props) && props.length > 0, `bpmnProps=${JSON.stringify(props)}`);
+    a(props[0].name === 'priority' && props[0].value === 'high', `props[0]=${JSON.stringify(props[0])}`);
+    return `{priority: high}`;
+  });
+
+  await run('D6 BPMN props panel renders for bpmn-task', async () => {
+    await window.__import.bpmn(DOC_BIOC);
+    await new Promise(r => setTimeout(r, 100));
+    // Select the task node
+    const ob = window.__ob;
+    const cell = ob.graph.getCellById('t');
+    ob.graph.select(cell);
+    await new Promise(r => setTimeout(r, 100));
+    // Check that the BPMN color section rendered
+    const secHeaders = [...document.querySelectorAll('.lk-psec-h')].map(e=>e.textContent);
+    a(secHeaders.some(h => h?.includes('Màu BPMN')), `sections: ${secHeaders.join(',')}`);
+    a(secHeaders.some(h => h?.includes('documentation')), `sections: ${secHeaders.join(',')}`);
+    return `sections: ${secHeaders.filter(h=>h?.includes('BPMN')||h?.includes('doc')).join(', ')}`;
+  });
+
+  const passed = results.filter(r=>r.ok).length;
+  w('', '');
+  w(`SUMMARY: ${passed}/${results.length} passed`, passed===results.length ? 'pass' : 'fail');
+  window.__results = { passed, failed: results.length-passed, total: results.length, results };
+}
+runAll().then(()=>{ window.__done = true; });
+</script></body></html>

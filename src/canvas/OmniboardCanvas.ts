@@ -13,6 +13,16 @@ import * as dagre from "@dagrejs/dagre";
 
 export type { PaletteItem, ShapeCategory, CanvasModel };
 
+export interface SelectedNodeSnapshot {
+  id: string;
+  kind: string;
+  label: string;
+  attrs: Record<string, unknown>;
+  style: NodeStyle;
+  position: { x: number; y: number };
+  size: { width: number; height: number };
+}
+
 // Pie "Warm AI Productivity" palette (DESIGN.md): soft tints row + brand/accent row.
 // Row 1 = transparent + light surfaces/tints; Row 2 = brand cores + saturated extras.
 const FILL_SWATCHES = [
@@ -154,14 +164,14 @@ const ACT_WIDTH = 12; // fixed width of the sequence activation bar
 // Container/frame shapes that should render behind regular nodes.
 const FRAME_KINDS = new Set<string>([
   "sq-frag-alt", "sq-frag-opt", "sq-frag-loop", "sq-frag-par",
-  "bpmn-subprocess", "bpmn-transaction", "bpmn-event-subprocess",
+  "bpmn-subprocess", "bpmn-transaction", "bpmn-event-subprocess", "bpmn-adhoc-subprocess",
   "bpmn-lane", "bpmn-pool", "bpmn-annotation", "bpmn-group",
 ]);
 // Container shapes whose bbox should hug their children after auto-layout.
 // (annotation = sticky note, NOT a container — stays as a normal node.)
 const CONTAINER_KINDS = new Set<string>([
   "sq-frag-alt", "sq-frag-opt", "sq-frag-loop", "sq-frag-par",
-  "bpmn-subprocess", "bpmn-transaction", "bpmn-event-subprocess",
+  "bpmn-subprocess", "bpmn-transaction", "bpmn-event-subprocess", "bpmn-adhoc-subprocess",
   "bpmn-lane", "bpmn-pool", "bpmn-group",
 ]);
 
@@ -279,6 +289,7 @@ export class OmniboardCanvas {
   private propsBody: HTMLElement | null = null;
   private propsPanel: HTMLElement | null = null;
   private propsFab: HTMLElement | null = null;
+  private selectionChangeHandler: (() => void) | null = null;
   private zoomLabel: HTMLElement | null = null;
   private minimap: HTMLElement | null = null;
   private minimapSvg: SVGSVGElement | null = null;
@@ -654,18 +665,37 @@ export class OmniboardCanvas {
     this.padLayer.style.display = "block";
   }
 
-  /** Shared "Insert shape" grid (skips mindmap kinds). */
-  private buildShapeGrid(onPick: (item: PaletteItem) => void, onlyCats?: string[]): HTMLElement {
+  /** Shared "Insert shape" grid (skips mindmap kinds).
+   *  `withLoadMore=true` keeps advanced palette items collapsed behind a button,
+   *  mirroring the left toolbar flyout behavior for dense BPMN sets. */
+  private buildShapeGrid(onPick: (item: PaletteItem) => void, onlyCats?: string[], withLoadMore = false): HTMLElement {
     const grid = el("div", "lk-shape-grid");
+    const common: PaletteItem[] = [];
+    const advanced: PaletteItem[] = [];
     for (const cat of this.categories) {
       if (onlyCats && !onlyCats.includes(cat.title)) continue;
       for (const item of cat.items) {
         if (item.shape.startsWith("mm-")) continue; // mindmap has its own flow
-        const cell = el("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
-        cell.title = item.label;
-        cell.onclick = () => onPick(item);
-        grid.appendChild(cell);
+        if (withLoadMore && item.advanced) advanced.push(item);
+        else common.push(item);
       }
+    }
+    const mkCell = (item: PaletteItem) => {
+      const cell = el("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
+      cell.title = item.label;
+      cell.onclick = () => onPick(item);
+      return cell;
+    };
+    for (const item of common) grid.appendChild(mkCell(item));
+    if (withLoadMore && advanced.length > 0) {
+      const more = el("button", "lk-flyout-more", `Load more (${advanced.length})`);
+      more.onclick = () => {
+        const frag = document.createDocumentFragment();
+        for (const item of advanced) frag.appendChild(mkCell(item));
+        more.parentElement?.insertBefore(frag, more);
+        more.remove();
+      };
+      grid.appendChild(more);
     }
     return grid;
   }
@@ -794,7 +824,7 @@ export class OmniboardCanvas {
       this.graph.resetSelection([created]);
       this.editLabel(created);
       this.onChange();
-    }, this.categoriesFor(src as Node))); // picker = basic + same diagram type as source
+    }, this.categoriesFor(src as Node), true)); // picker = basic + same diagram type as source + load-more for advanced
     const sc = this.graph.scale().sx; const tr = this.graph.translate();
     this.showPopupAt(wrap, pt.x * sc + tr.tx, pt.y * sc + tr.ty);
   }
@@ -2030,6 +2060,58 @@ export class OmniboardCanvas {
     if (this.propsFab) this.propsFab.style.display = open ? "none" : "grid";
   }
 
+  setSelectionChangeHandler(handler: (() => void) | null): void {
+    this.selectionChangeHandler = handler;
+  }
+
+  private notifySelectionChanged(): void {
+    this.selectionChangeHandler?.();
+  }
+
+  getSelectedNodeSnapshot(): SelectedNodeSnapshot | null {
+    const nodes = this.graph.getSelectedCells().filter((c) => c.isNode()) as Node[];
+    if (nodes.length !== 1) return null;
+    const node = nodes[0];
+    const p = node.getPosition();
+    const s = node.getSize();
+    return {
+      id: node.id,
+      kind: this.nodeKind(node),
+      label: this.nodeLabel(node),
+      attrs: { ...(node.getData() ?? {}) },
+      style: this.nodeStyle(node),
+      position: { x: p.x, y: p.y },
+      size: { width: s.width, height: s.height },
+    };
+  }
+
+  patchSelectedNode(patch: {
+    label?: string;
+    attrs?: Record<string, unknown>;
+    style?: Partial<NodeStyle>;
+    position?: Partial<{ x: number; y: number }>;
+    size?: Partial<{ width: number; height: number }>;
+  }): void {
+    const nodes = this.graph.getSelectedCells().filter((c) => c.isNode()) as Node[];
+    if (nodes.length !== 1) return;
+    const node = nodes[0];
+    if (patch.label !== undefined) node.setData({ ...node.getData(), label: patch.label });
+    if (patch.attrs) node.setData({ ...node.getData(), ...patch.attrs });
+    if (patch.style) this.setStyle(node, patch.style);
+    if (patch.position) {
+      const p = node.getPosition();
+      node.setPosition(patch.position.x ?? p.x, patch.position.y ?? p.y);
+    }
+    if (patch.size) {
+      const s = node.getSize();
+      node.resize(patch.size.width ?? s.width, patch.size.height ?? s.height);
+    }
+    this.rerender(node);
+    this.onChange();
+    this.refreshProps();
+    this.notifySelectionChanged();
+  }
+
   private refreshProps() {
     const body = this.propsBody;
     if (!body) return;
@@ -2039,6 +2121,7 @@ export class OmniboardCanvas {
       const empty = el("div", "lk-props-empty");
       empty.innerHTML = `<div class="lk-props-empty-ic">◇</div>Chọn một phần tử trên canvas để chỉnh nội dung, màu và vị trí.`;
       body.appendChild(empty);
+      this.notifySelectionChanged();
       return;
     }
     const node = nodes[0];
@@ -2060,10 +2143,11 @@ export class OmniboardCanvas {
     labelInput.oninput = () => { node.setData({ ...node.getData(), label: labelInput.value }); this.rerender(node); this.onChange(); };
     field(s1, "Nhãn", labelInput);
 
-    // Data-driven editors (ERD columns / UML members)
+    // Data-driven editors (ERD columns / UML members / BPMN properties)
     const kind = this.nodeKind(node);
     if (kind === "erd-entity") this.buildErdEditor(node, body);
     else if (kind === "uml-class" || kind === "uml-interface") this.buildUmlEditor(node, body);
+    if (kind.startsWith("bpmn-")) this.buildBpmnPropsEditor(node, body);
 
     // Style
     const s2 = sec("Kiểu");
@@ -2107,6 +2191,140 @@ export class OmniboardCanvas {
     sizeRow.appendChild(mkNum(size.width, (v) => node.resize(v, node.getSize().height)));
     sizeRow.appendChild(mkNum(size.height, (v) => node.resize(node.getSize().width, v)));
     field(s3, "Rộng / Cao", sizeRow);
+    this.notifySelectionChanged();
+  }
+
+  // ── BPMN Properties editor (Phase D) ──────────────────────────────────────
+  private buildBpmnPropsEditor(node: Node, body: HTMLElement): void {
+    const kind = this.nodeKind(node);
+    const ex = this.nodeExtra(node);
+    const d = (node.getData() ?? {}) as Record<string, unknown>;
+    const sec = (title: string) => {
+      const s = el("div", "lk-psec"); s.appendChild(el("div", "lk-psec-h", title)); body.appendChild(s); return s;
+    };
+    const field = (parent: HTMLElement, label: string, control: HTMLElement) => {
+      const f = el("div", "lk-pfield");
+      f.appendChild(el("label", undefined, label));
+      f.appendChild(control); parent.appendChild(f);
+    };
+    const save = (patch: Record<string, unknown>) => {
+      node.setData({ ...node.getData(), ...patch });
+      this.rerender(node); this.onChange();
+    };
+
+    // ── BPMN color ───────────────────────────────────────────────────────────
+    const bpmnFill = d.bpmnFill as string | undefined;
+    const bpmnStroke = d.bpmnStroke as string | undefined;
+    if (!kind.endsWith("-lane") && !kind.endsWith("-pool")) {
+      const sColor = sec("Màu BPMN");
+      const makeColor = (label: string, key: "bpmnFill" | "bpmnStroke", cur: string | undefined) => {
+        const wrap = el("div", "lk-prow2");
+        const inp = el("input", "lk-pinput lk-pcolor") as HTMLInputElement;
+        inp.type = "text"; inp.placeholder = "#ffffff"; inp.value = cur ?? "";
+        inp.oninput = () => { save({ [key]: inp.value.trim() || undefined }); };
+        const swatch = el("div", "lk-pswatch lk-pcolor-swatch");
+        swatch.style.background = cur ?? "transparent";
+        inp.addEventListener("input", () => { swatch.style.background = inp.value.trim() || "transparent"; });
+        wrap.appendChild(swatch); wrap.appendChild(inp);
+        field(sColor, label, wrap);
+      };
+      makeColor("Fill", "bpmnFill", bpmnFill);
+      makeColor("Stroke", "bpmnStroke", bpmnStroke);
+    }
+
+    // ── Event trigger (for event nodes) ─────────────────────────────────────
+    if (kind === "bpmn-event-start" || kind === "bpmn-event-intermediate" || kind === "bpmn-event-end") {
+      const sTrig = sec("Trigger sự kiện");
+      const TRIGGERS = ["(none)", "message", "timer", "signal", "error", "escalation",
+        "compensation", "conditional", "link", "cancel", "terminate", "multiple", "parallel-multiple"];
+      const sel = el("select", "lk-pselect") as HTMLSelectElement;
+      for (const t of TRIGGERS) {
+        const opt = document.createElement("option"); opt.value = t === "(none)" ? "" : t;
+        opt.textContent = t; if ((ex.trigger ?? "") === opt.value) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.onchange = () => { save({ trigger: sel.value || undefined }); };
+      field(sTrig, "Trigger", sel);
+      if (kind === "bpmn-event-intermediate") {
+        const thrChk = el("input") as HTMLInputElement;
+        thrChk.type = "checkbox"; thrChk.checked = ex.throwing === true;
+        thrChk.onchange = () => { save({ throwing: thrChk.checked }); };
+        field(sTrig, "Throwing", thrChk);
+      }
+    }
+
+    // ── Loop type (activities) ───────────────────────────────────────────────
+    const isActivity = kind.startsWith("bpmn-task") || kind === "bpmn-subprocess"
+      || kind === "bpmn-transaction" || kind === "bpmn-adhoc-subprocess"
+      || kind === "bpmn-event-subprocess" || kind === "bpmn-call-activity";
+    if (isActivity) {
+      const sLoop = sec("Đặc tính vòng lặp");
+      const LOOP_OPTS: Array<[string, string]> = [
+        ["", "Không"], ["loop", "Vòng lặp"], ["mi-par", "Multi-instance //"], ["mi-seq", "Multi-instance ≡"],
+      ];
+      const sel = el("select", "lk-pselect") as HTMLSelectElement;
+      const curLoop = ex.markers?.find(m => m === "loop" || m === "mi-par" || m === "mi-seq") ?? "";
+      for (const [v, l] of LOOP_OPTS) {
+        const opt = document.createElement("option"); opt.value = v; opt.textContent = l;
+        if (curLoop === v) opt.selected = true; sel.appendChild(opt);
+      }
+      sel.onchange = () => {
+        const other = (ex.markers ?? []).filter(m => m !== "loop" && m !== "mi-par" && m !== "mi-seq");
+        save({ markers: sel.value ? [...other, sel.value as "loop" | "mi-par" | "mi-seq"] : other });
+      };
+      field(sLoop, "Kiểu", sel);
+      const compChk = el("input") as HTMLInputElement;
+      compChk.type = "checkbox"; compChk.checked = (ex.markers ?? []).includes("compensation");
+      compChk.onchange = () => {
+        const others = (ex.markers ?? []).filter(m => m !== "compensation");
+        save({ markers: compChk.checked ? [...others, "compensation" as const] : others });
+      };
+      field(sLoop, "Compensation", compChk);
+    }
+
+    // ── BPMN Documentation ───────────────────────────────────────────────────
+    const sDocs = sec("Mô tả (documentation)");
+    const docTa = el("textarea", "lk-ptextarea") as HTMLTextAreaElement;
+    docTa.rows = 4; docTa.placeholder = "Nhập mô tả phần tử BPMN...";
+    docTa.value = (d.bpmnDoc as string | undefined) ?? "";
+    docTa.oninput = () => { save({ bpmnDoc: docTa.value.trim() || undefined }); };
+    sDocs.appendChild(docTa);
+
+    // ── Camunda properties ───────────────────────────────────────────────────
+    const camunda = (d.camunda as Record<string, string> | undefined) ?? {};
+    const CAMUNDA_FIELDS: Array<[string, string]> = [
+      ["assignee", "Assignee"], ["candidateUsers", "Candidate users"], ["candidateGroups", "Candidate groups"],
+      ["formKey", "Form key"], ["dueDate", "Due date"], ["priority", "Priority"],
+    ];
+    const hasCamundaData = CAMUNDA_FIELDS.some(([k]) => camunda[k]);
+    if (hasCamundaData || kind === "bpmn-task-user") {
+      const sCam = sec("Camunda");
+      for (const [key, label] of CAMUNDA_FIELDS) {
+        const inp = el("input", "lk-pinput") as HTMLInputElement;
+        inp.value = camunda[key] ?? ""; inp.placeholder = label;
+        inp.oninput = () => {
+          const updated = { ...camunda, [key]: inp.value.trim() || undefined };
+          save({ camunda: Object.fromEntries(Object.entries(updated).filter(([,v]) => v !== undefined)) });
+        };
+        field(sCam, label, inp);
+      }
+    }
+
+    // ── Custom bpmnProps ─────────────────────────────────────────────────────
+    const bpmnProps = (d.bpmnProps as Array<{ name: string; value: string }> | undefined) ?? [];
+    if (bpmnProps.length) {
+      const sProps = sec("Properties");
+      for (const p of bpmnProps) {
+        const row = el("div", "lk-prow2");
+        const kIn = el("input", "lk-pinput") as HTMLInputElement; kIn.value = p.name; kIn.readOnly = true;
+        const vIn = el("input", "lk-pinput") as HTMLInputElement; vIn.value = p.value;
+        vIn.oninput = () => {
+          const updated = bpmnProps.map(q => q.name === p.name ? { ...q, value: vIn.value } : q);
+          save({ bpmnProps: updated });
+        };
+        row.appendChild(kIn); row.appendChild(vIn); sProps.appendChild(row);
+      }
+    }
   }
 
   // ── ERD column / UML member editors (right panel) ────────────────────────
@@ -2548,13 +2766,17 @@ export class OmniboardCanvas {
     if (data?.methods) out.methods = data.methods;
     if (data?.who !== undefined) out.who = data.who;
     if (data?.labelOffset) out.labelOffset = data.labelOffset;
-    if (data?.lanes && data.lanes.length > 0) out.lanes = data.lanes;  // empty array falls back to seed default
+    if (data?.lanes) out.lanes = data.lanes;
+    if (data?.poolHorizontal !== undefined) out.poolHorizontal = data.poolHorizontal;
+    if (data?.blackBox !== undefined) out.blackBox = data.blackBox;
+    if (out.blackBox) delete out.lanes;
     // BPMN extras (Đợt A)
     if (data?.trigger) out.trigger = data.trigger;
     if (data?.throwing !== undefined) out.throwing = data.throwing;
     if (data?.interrupting !== undefined) out.interrupting = data.interrupting;
     if (data?.attachedTo) out.attachedTo = data.attachedTo;
     if (data?.markers && data.markers.length > 0) out.markers = data.markers;
+    if (data?.collapsed !== undefined) out.collapsed = data.collapsed;
     return out;
   }
   private nodeKind(n: Node): string { return (n.getData()?.kind as string) ?? "bs-rect"; }
@@ -2567,6 +2789,9 @@ export class OmniboardCanvas {
       labelOffset: d.labelOffset, lanes: d.lanes,
       trigger: d.trigger, throwing: d.throwing, interrupting: d.interrupting,
       attachedTo: d.attachedTo, markers: d.markers,
+      collapsed: d.collapsed,
+      poolHorizontal: d.poolHorizontal,
+      blackBox: d.blackBox,
     };
   }
   private rerender(n: Node) {
@@ -3171,6 +3396,18 @@ export class OmniboardCanvas {
       const row = el("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
       row.onclick = () => {
         this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
+        // Phase A — keep semantic bpmnKind + bpmnAttrs in sync so export emits
+        // the right BPMN element (SequenceFlow vs MessageFlow vs Association)
+        // and the right marker (default / conditional placeholder).
+        const data = (edge.getData() as { bpmnKind?: string; bpmnAttrs?: Record<string, unknown> } | undefined) ?? {};
+        const nextAttrs = { ...(data.bpmnAttrs ?? {}) };
+        delete nextAttrs.isDefault;
+        // Preserve user-typed condition body across visual switches; clear only
+        // when the new visual implies "not a sequence flow".
+        if (key === "message" || key === "association") delete nextAttrs.condition;
+        if (key === "default") nextAttrs.isDefault = true;
+        const nextKind = key === "message" ? "message" : key === "association" ? "association" : undefined;
+        edge.setData({ ...data, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : undefined });
         this.hidePopup();
         this.showEdgeBar(edge);
       };
@@ -3382,17 +3619,28 @@ export class OmniboardCanvas {
         who: a.who as string | undefined,
         labelOffset: a.labelOffset as { x: number; y: number } | undefined,
         lanes: a.lanes as Array<{ id: string; label: string }> | undefined,
+        poolHorizontal: a.poolHorizontal as boolean | undefined,
+        blackBox: a.blackBox as boolean | undefined,
         trigger: a.trigger as NodeExtra["trigger"],
         throwing: a.throwing as boolean | undefined,
         interrupting: a.interrupting as boolean | undefined,
         attachedTo: a.attachedTo as string | undefined,
         markers: a.markers as NodeExtra["markers"],
+        collapsed: a.collapsed as boolean | undefined,
       };
       // Migration shim (Đợt A, 2026-06-01): collapse legacy event kinds to the
       // unified bpmn-event-{start,intermediate,end} + trigger/throwing in extra.
       // Keeps old .board files rendering identically while consolidating the schema.
       const migrated = migrateBpmnEventKind(n.shape, extra);
-      this.addHtmlNode(migrated.kind, n.x, n.y, n.width, n.height, n.label, style, n.id, migrated.extra, a.__source);
+      const node = this.addHtmlNode(migrated.kind, n.x, n.y, n.width, n.height, n.label, style, n.id, migrated.extra, a.__source);
+      // Phase D — store metadata attrs directly on node.data for round-trip.
+      const phaseD: Record<string, unknown> = {};
+      if (a.bpmnDoc) phaseD.bpmnDoc = a.bpmnDoc;
+      if (a.bpmnFill) phaseD.bpmnFill = a.bpmnFill;
+      if (a.bpmnStroke) phaseD.bpmnStroke = a.bpmnStroke;
+      if (a.camunda) phaseD.camunda = a.camunda;
+      if (a.bpmnProps) phaseD.bpmnProps = a.bpmnProps;
+      if (Object.keys(phaseD).length) node.setData({ ...node.getData(), ...phaseD });
     }
     for (const e of model.edges) {
       const seq = this.isSeqLifeline(e.source) && this.isSeqLifeline(e.target);
@@ -3412,9 +3660,26 @@ export class OmniboardCanvas {
       const edgeAttrs = seq && e.ret
         ? { line: { ...EDGE_ATTRS.line, strokeDasharray: "5 4" } }
         : EDGE_ATTRS;
-      const data: { y?: number; ret?: boolean; style?: EdgeStyle } = {};
+      const data: { y?: number; ret?: boolean; style?: EdgeStyle; bpmnKind?: string; bpmnAttrs?: Record<string, unknown> } = {};
       if (seq) { data.y = typeof e.y === "number" ? e.y : undefined; data.ret = e.ret || undefined; }
       if (e.style) data.style = e.style;
+      // Phase A — BPMN edge semantic round-trip. `kind` + `attrs` are persisted
+      // on edge.data; visual style is derived from kind unless the user already
+      // set style.flowType explicitly. Priority: explicit user style > kind > default.
+      if (e.kind && e.kind !== "sequence") data.bpmnKind = e.kind;
+      if (e.attrs && Object.keys(e.attrs).length) data.bpmnAttrs = { ...e.attrs };
+      if (!data.style?.flowType) {
+        // Derive visual flowType from semantic kind + attrs.
+        const ft: EdgeStyle["flowType"] | undefined =
+          e.kind === "message" ? "message" :
+          e.kind === "association" ? "association" :
+          e.attrs?.isDefault ? "default" :
+          e.attrs?.condition ? "conditional" :
+          undefined;
+        if (ft) {
+          data.style = { ...(data.style ?? {}), flowType: ft, ...FLOW_TYPE_PRESETS[ft] };
+        }
+      }
       const forcedRouter = e.router === "normal" ? "normal" : e.router === "orth" ? { name: "orth" } : null;
       // bpmn.io-style unlimited anchoring: when `sourceAnchor`/`targetAnchor`
       // is set, pin the endpoint to that exact offset from the node's top-left
@@ -3452,10 +3717,53 @@ export class OmniboardCanvas {
         // Sequence Y is read by the seq-msg connector from edge data at draw time.
         data,
       });
-      if (e.style) this.applyEdgeStyle(created); // custom relationship style overrides defaults
+      // Apply edge style if either the user/importer set `e.style` directly
+      // OR Phase A derived one from semantic `kind`/`attrs` (data.style was
+      // populated above for message/association/default/conditional).
+      if (e.style || data.style) this.applyEdgeStyle(created);
       if (mm) this.applyMindmapRoutingIfNeeded(created); // re-anchor right/left ports (old boards had none)
       // Generic edges: saved ports (sourcePort/targetPort) are honoured as-is.
       // Body-drop endpoints (no port) float via the edge's anchor=center + boundary crop.
+    }
+    // Phase B — preserve subprocess containment + lane membership on every
+    // node's data so getModel can round-trip them, then ALSO embed the
+    // node into its X6 parent (subprocess) for visual drag-follow. Lanes
+    // aren't X6 nodes (they live as `attrs.lanes` on the pool), so laneId
+    // is stored on data only; export.ts rebuilds lane.flowNodeRef from it.
+    for (const n of model.nodes) {
+      if (!n.parentId && !n.laneId) continue;
+      const child = this.graph.getCellById(n.id);
+      if (!child || !child.isNode()) continue;
+      const prev = (child.getData() as Record<string, unknown> | undefined) ?? {};
+      child.setData({
+        ...prev,
+        ...(n.parentId ? { parentId: n.parentId } : {}),
+        ...(n.laneId ? { laneId: n.laneId } : {}),
+      });
+      if (n.parentId) {
+        const parent = this.graph.getCellById(n.parentId);
+        if (parent && parent.isNode()) parent.addChild(child);
+      }
+    }
+    // Phase C — fix nested-frame z-order. All FRAME_KINDS were `toBack()`-ed
+    // at creation, so a nested sub-process (sp2 inside sp1) ends up BEHIND
+    // its parent and its border disappears. Walk parentId depth and assign
+    // increasing z to deeper frames so each level renders on top of its
+    // container. Non-frame nodes stay above all frames (handled by their
+    // default zIndex which is higher than toBack()-ed frames).
+    const parentById = new Map<string, string | undefined>(model.nodes.map((n) => [n.id, n.parentId]));
+    const depthOf = (id: string): number => {
+      let d = 0;
+      let cur: string | undefined = parentById.get(id);
+      while (cur && d < 32) { d++; cur = parentById.get(cur); }
+      return d;
+    };
+    for (const n of model.nodes) {
+      if (!FRAME_KINDS.has(n.shape)) continue;
+      const cell = this.graph.getCellById(n.id);
+      if (!cell || !cell.isNode()) continue;
+      // Base for frames is negative (toBack). Add depth so nested wins.
+      cell.setZIndex(-1000 + depthOf(n.id));
     }
     this.graph.stopBatch("load");
     this.resyncHtmlNodes();   // rebuild the mobile overlay from the freshly loaded nodes
@@ -3575,16 +3883,34 @@ export class OmniboardCanvas {
   getModel(): CanvasModel {
     const nodes = this.graph.getNodes().map((n) => {
       const p = n.getPosition(); const s = n.getSize(); const ex = this.nodeExtra(n);
+      // Phase B — parentId / laneId round-trip via node.data (set in loadModel).
+      // Live X6 parent (set by user dragging a node into a subprocess) takes
+      // precedence over the cached data, so post-drag state is always current.
+      const data = (n.getData() as { parentId?: string; laneId?: string } | undefined) ?? {};
+      const x6Parent = n.getParent();
+      const parentId = x6Parent && x6Parent.isNode() ? x6Parent.id : data.parentId;
+      const laneId = data.laneId;
       return {
         id: n.id, shape: this.nodeKind(n), x: p.x, y: p.y, width: s.width, height: s.height,
         label: this.nodeLabel(n),
+        ...(parentId ? { parentId } : {}),
+        ...(laneId ? { laneId } : {}),
         attrs: {
           style: this.nodeStyle(n),
           cols: ex.cols, fields: ex.fields, methods: ex.methods, who: ex.who,
           labelOffset: ex.labelOffset, lanes: ex.lanes,
+          poolHorizontal: ex.poolHorizontal,
+          blackBox: ex.blackBox,
           // BPMN extras (Đợt A)
           trigger: ex.trigger, throwing: ex.throwing, interrupting: ex.interrupting,
           attachedTo: ex.attachedTo, markers: ex.markers,
+          collapsed: ex.collapsed,
+          // Phase D — BPMN metadata (live on node.data, not NodeExtra)
+          bpmnDoc: n.getData()?.bpmnDoc,
+          bpmnFill: n.getData()?.bpmnFill,
+          bpmnStroke: n.getData()?.bpmnStroke,
+          camunda: n.getData()?.camunda,
+          bpmnProps: n.getData()?.bpmnProps,
           __source: n.getData()?.__source,
         },
       };
@@ -3594,7 +3920,7 @@ export class OmniboardCanvas {
       const tgt = e.getTarget() as { cell: string; port?: string };
       const srcFull = e.getSource() as { cell?: string; port?: string; anchor?: { name?: string; args?: { dx?: number; dy?: number } } };
       const tgtFull = e.getTarget() as { cell?: string; port?: string; anchor?: { name?: string; args?: { dx?: number; dy?: number } } };
-      const d = (e.getData() as { y?: number; ret?: boolean; style?: EdgeStyle } | undefined) ?? {};
+      const d = (e.getData() as { y?: number; ret?: boolean; style?: EdgeStyle; bpmnKind?: string; bpmnAttrs?: Record<string, unknown> } | undefined) ?? {};
       const verts = e.getVertices();
       const lbl = e.getLabels()?.[0] as { attrs?: { label?: { text?: string } }; position?: { distance?: number; offset?: number | { x: number; y: number } } } | undefined;
       const labelPos = lbl?.position && (lbl.position.distance != null || lbl.position.offset != null)
@@ -3609,6 +3935,20 @@ export class OmniboardCanvas {
         ? { dx: srcFull.anchor.args.dx, dy: srcFull.anchor.args.dy } : undefined;
       const tgtAnchor = tgtFull.anchor?.name === "topLeft" && typeof tgtFull.anchor.args?.dx === "number" && typeof tgtFull.anchor.args?.dy === "number"
         ? { dx: tgtFull.anchor.args.dx, dy: tgtFull.anchor.args.dy } : undefined;
+      // Phase A — derive semantic kind + attrs. Priority: explicit data.bpmnKind
+      // (set at load time or by future Phase D UI) > visual style.flowType (the
+      // legacy on-canvas picker). Conditional/default visual presets map to
+      // sequence kind + attrs.condition/isDefault for BPMN serialization.
+      let bpmnKind = d.bpmnKind as "sequence" | "message" | "association" | undefined;
+      const bpmnAttrs: Record<string, unknown> = { ...(d.bpmnAttrs ?? {}) };
+      const ft = d.style?.flowType;
+      if (!bpmnKind) {
+        if (ft === "message") bpmnKind = "message";
+        else if (ft === "association") bpmnKind = "association";
+      }
+      if (ft === "default" && bpmnAttrs.isDefault === undefined) bpmnAttrs.isDefault = true;
+      // (Don't synthesize a placeholder condition body when ft === "conditional"
+      // and no body is set — that's a Phase D editor concern.)
       return {
         id: e.id, source: src.cell, sourcePort: src.port, target: tgt.cell, targetPort: tgt.port,
         sourceAnchor: srcAnchor, targetAnchor: tgtAnchor,
@@ -3619,12 +3959,31 @@ export class OmniboardCanvas {
         style: d.style && Object.keys(d.style).length ? d.style : undefined,
         vertices: verts && verts.length ? verts.map((v) => ({ x: v.x, y: v.y })) : undefined,
         router,
+        ...(bpmnKind && bpmnKind !== "sequence" ? { kind: bpmnKind } : {}),
+        ...(Object.keys(bpmnAttrs).length ? { attrs: bpmnAttrs as CanvasModel["edges"][number]["attrs"] } : {}),
       };
     });
     return { nodes, edges };
   }
 
   nodeCount(): number { return this.graph.getNodes().length; }
+
+  focusCellById(id: string): boolean {
+    const cell = this.graph.getCellById(id);
+    if (!cell) return false;
+    this.graph.resetSelection([cell]);
+    if (cell.isNode()) {
+      const n = cell as Node;
+      const p = n.getPosition();
+      const s = n.getSize();
+      const cx = p.x + s.width / 2;
+      const cy = p.y + s.height / 2;
+      this.graph.centerPoint(cx, cy);
+    }
+    this.refreshContextBar();
+    this.refreshProps();
+    return true;
+  }
 
   /**
    * n8n-style auto layout (longest-path ranking).

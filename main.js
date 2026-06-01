@@ -16791,18 +16791,18 @@ var require_array_includes = __commonJS({
     var toAbsoluteIndex = require_to_absolute_index();
     var lengthOfArrayLike = require_length_of_array_like();
     var createMethod = function(IS_INCLUDES) {
-      return function($this, el2, fromIndex) {
+      return function($this, el3, fromIndex) {
         var O5 = toIndexedObject($this);
         var length2 = lengthOfArrayLike(O5);
         if (length2 === 0) return !IS_INCLUDES && -1;
         var index3 = toAbsoluteIndex(fromIndex, length2);
         var value;
-        if (IS_INCLUDES && el2 !== el2) while (length2 > index3) {
+        if (IS_INCLUDES && el3 !== el3) while (length2 > index3) {
           value = O5[index3++];
           if (value !== value) return true;
         }
         else for (; length2 > index3; index3++) {
-          if ((IS_INCLUDES || index3 in O5) && O5[index3] === el2) return IS_INCLUDES || index3 || 0;
+          if ((IS_INCLUDES || index3 in O5) && O5[index3] === el3) return IS_INCLUDES || index3 || 0;
         }
         return !IS_INCLUDES && -1;
       };
@@ -33766,16 +33766,6702 @@ var init_boardSerde = __esm({
   }
 });
 
+// node_modules/min-dash/dist/index.js
+function isUndefined(obj) {
+  return obj === void 0;
+}
+function isDefined(obj) {
+  return obj !== void 0;
+}
+function isNil(obj) {
+  return obj == null;
+}
+function isArray2(obj) {
+  return nativeToString.call(obj) === "[object Array]";
+}
+function isObject2(obj) {
+  return nativeToString.call(obj) === "[object Object]";
+}
+function isFunction2(obj) {
+  const tag = nativeToString.call(obj);
+  return tag === "[object Function]" || tag === "[object AsyncFunction]" || tag === "[object GeneratorFunction]" || tag === "[object AsyncGeneratorFunction]" || tag === "[object Proxy]";
+}
+function isString(obj) {
+  return nativeToString.call(obj) === "[object String]";
+}
+function has2(target, key) {
+  return !isNil(target) && nativeHasOwnProperty.call(target, key);
+}
+function find2(collection, matcher) {
+  const matchFn = toMatcher(matcher);
+  let match;
+  forEach(collection, function(val, key) {
+    if (matchFn(val, key)) {
+      match = val;
+      return false;
+    }
+  });
+  return match;
+}
+function findIndex(collection, matcher) {
+  const matchFn = toMatcher(matcher);
+  let idx = isArray2(collection) ? -1 : void 0;
+  forEach(collection, function(val, key) {
+    if (matchFn(val, key)) {
+      idx = key;
+      return false;
+    }
+  });
+  return idx;
+}
+function filter2(collection, matcher) {
+  const matchFn = toMatcher(matcher);
+  let result = [];
+  forEach(collection, function(val, key) {
+    if (matchFn(val, key)) {
+      result.push(val);
+    }
+  });
+  return result;
+}
+function forEach(collection, iterator) {
+  let val, result;
+  if (isUndefined(collection)) {
+    return;
+  }
+  const convertKey = isArray2(collection) ? toNum : identity2;
+  for (let key in collection) {
+    if (has2(collection, key)) {
+      val = collection[key];
+      result = iterator(val, convertKey(key));
+      if (result === false) {
+        return val;
+      }
+    }
+  }
+}
+function toMatcher(matcher) {
+  return isFunction2(matcher) ? matcher : (e4) => {
+    return e4 === matcher;
+  };
+}
+function identity2(arg) {
+  return arg;
+}
+function toNum(arg) {
+  return Number(arg);
+}
+function bind(fn2, target) {
+  return fn2.bind(target);
+}
+function assign2(target, ...others) {
+  return Object.assign(target, ...others);
+}
+function set(target, path2, value) {
+  let currentTarget = target;
+  forEach(path2, function(key, idx) {
+    if (typeof key !== "number" && typeof key !== "string") {
+      throw new Error("illegal key type: " + typeof key + ". Key should be of type number or string.");
+    }
+    if (key === "constructor") {
+      throw new Error("illegal key: constructor");
+    }
+    if (key === "__proto__") {
+      throw new Error("illegal key: __proto__");
+    }
+    let nextKey = path2[idx + 1];
+    let nextTarget = currentTarget[key];
+    if (isDefined(nextKey) && isNil(nextTarget)) {
+      nextTarget = currentTarget[key] = isNaN(+nextKey) ? {} : [];
+    }
+    if (isUndefined(nextKey)) {
+      if (isUndefined(value)) {
+        delete currentTarget[key];
+      } else {
+        currentTarget[key] = value;
+      }
+    } else {
+      currentTarget = nextTarget;
+    }
+  });
+  return target;
+}
+function pick2(target, properties) {
+  let result = {};
+  let obj = Object(target);
+  forEach(properties, function(prop2) {
+    if (prop2 in obj) {
+      result[prop2] = target[prop2];
+    }
+  });
+  return result;
+}
+var nativeToString, nativeHasOwnProperty;
+var init_dist = __esm({
+  "node_modules/min-dash/dist/index.js"() {
+    nativeToString = Object.prototype.toString;
+    nativeHasOwnProperty = Object.prototype.hasOwnProperty;
+  }
+});
+
+// node_modules/moddle/dist/index.js
+function Base3() {
+}
+function Factory(model, properties) {
+  this.model = model;
+  this.properties = properties;
+}
+function coerceType(type, value) {
+  var converter = TYPE_CONVERTERS[type];
+  if (converter) {
+    return converter(value);
+  } else {
+    return value;
+  }
+}
+function isBuiltIn(type) {
+  return !!BUILTINS[type];
+}
+function isSimple(type) {
+  return !!TYPE_CONVERTERS[type];
+}
+function parseName(name2, defaultPrefix) {
+  var parts = name2.split(/:/), localName, prefix2;
+  if (parts.length === 1) {
+    localName = name2;
+    prefix2 = defaultPrefix;
+  } else if (parts.length === 2) {
+    localName = parts[1];
+    prefix2 = parts[0];
+  } else {
+    throw new Error("expected <prefix:localName> or <localName>, got " + name2);
+  }
+  name2 = (prefix2 ? prefix2 + ":" : "") + localName;
+  return {
+    name: name2,
+    prefix: prefix2,
+    localName
+  };
+}
+function DescriptorBuilder(nameNs) {
+  this.ns = nameNs;
+  this.name = nameNs.name;
+  this.allTypes = [];
+  this.allTypesByName = {};
+  this.properties = [];
+  this.propertiesByName = {};
+}
+function Registry2(packages2, properties) {
+  this.packageMap = {};
+  this.typeMap = {};
+  this.packages = [];
+  this.properties = properties;
+  forEach(packages2, bind(this.registerPackage, this));
+}
+function ensureAvailable(packageMap, pkg, identifierKey) {
+  var value = pkg[identifierKey];
+  if (value in packageMap) {
+    throw new Error("package with " + identifierKey + " <" + value + "> already defined");
+  }
+}
+function Properties(model) {
+  this.model = model;
+}
+function isUndefined2(val) {
+  return typeof val === "undefined";
+}
+function defineProperty2(target, property2, value) {
+  Object.defineProperty(target, property2.name, {
+    enumerable: !property2.isReference,
+    writable: true,
+    value,
+    configurable: true
+  });
+}
+function stripGlobal(name2) {
+  return name2.replace(/^:/, "");
+}
+function Moddle(packages2, config = {}) {
+  this.properties = new Properties(this);
+  this.factory = new Factory(this, this.properties);
+  this.registry = new Registry2(packages2, this.properties);
+  this.typeCache = {};
+  this.config = config;
+}
+var BUILTINS, TYPE_CONVERTERS;
+var init_dist2 = __esm({
+  "node_modules/moddle/dist/index.js"() {
+    init_dist();
+    Base3.prototype.get = function(name2) {
+      return this.$model.properties.get(this, name2);
+    };
+    Base3.prototype.set = function(name2, value) {
+      this.$model.properties.set(this, name2, value);
+    };
+    Factory.prototype.createType = function(descriptor) {
+      var model = this.model;
+      var props = this.properties, prototype = Object.create(Base3.prototype);
+      forEach(descriptor.properties, function(p6) {
+        if (!p6.isMany && p6.default !== void 0) {
+          prototype[p6.name] = p6.default;
+        }
+      });
+      props.defineModel(prototype, model);
+      props.defineDescriptor(prototype, descriptor);
+      var name2 = descriptor.ns.name;
+      function ModdleElement(attrs) {
+        props.define(this, "$type", { value: name2, enumerable: true });
+        props.define(this, "$attrs", { value: {} });
+        props.define(this, "$parent", { writable: true });
+        forEach(attrs, bind(function(val, key) {
+          this.set(key, val);
+        }, this));
+      }
+      ModdleElement.prototype = prototype;
+      ModdleElement.hasType = prototype.$instanceOf = this.model.hasType;
+      props.defineModel(ModdleElement, model);
+      props.defineDescriptor(ModdleElement, descriptor);
+      return ModdleElement;
+    };
+    BUILTINS = {
+      String: true,
+      Boolean: true,
+      Integer: true,
+      Real: true,
+      Element: true
+    };
+    TYPE_CONVERTERS = {
+      String: function(s5) {
+        return s5;
+      },
+      Boolean: function(s5) {
+        return s5 === "true";
+      },
+      Integer: function(s5) {
+        return parseInt(s5, 10);
+      },
+      Real: function(s5) {
+        return parseFloat(s5);
+      }
+    };
+    DescriptorBuilder.prototype.build = function() {
+      return pick2(this, [
+        "ns",
+        "name",
+        "allTypes",
+        "allTypesByName",
+        "properties",
+        "propertiesByName",
+        "bodyProperty",
+        "idProperty"
+      ]);
+    };
+    DescriptorBuilder.prototype.addProperty = function(p6, idx, validate) {
+      if (typeof idx === "boolean") {
+        validate = idx;
+        idx = void 0;
+      }
+      this.addNamedProperty(p6, validate !== false);
+      var properties = this.properties;
+      if (idx !== void 0) {
+        properties.splice(idx, 0, p6);
+      } else {
+        properties.push(p6);
+      }
+    };
+    DescriptorBuilder.prototype.replaceProperty = function(oldProperty, newProperty, replace) {
+      var oldNameNs = oldProperty.ns;
+      var props = this.properties, propertiesByName = this.propertiesByName, rename = oldProperty.name !== newProperty.name;
+      if (oldProperty.isId) {
+        if (!newProperty.isId) {
+          throw new Error(
+            "property <" + newProperty.ns.name + "> must be id property to refine <" + oldProperty.ns.name + ">"
+          );
+        }
+        this.setIdProperty(newProperty, false);
+      }
+      if (oldProperty.isBody) {
+        if (!newProperty.isBody) {
+          throw new Error(
+            "property <" + newProperty.ns.name + "> must be body property to refine <" + oldProperty.ns.name + ">"
+          );
+        }
+        this.setBodyProperty(newProperty, false);
+      }
+      var idx = props.indexOf(oldProperty);
+      if (idx === -1) {
+        throw new Error("property <" + oldNameNs.name + "> not found in property list");
+      }
+      props.splice(idx, 1);
+      this.addProperty(newProperty, replace ? void 0 : idx, rename);
+      propertiesByName[oldNameNs.name] = propertiesByName[oldNameNs.localName] = newProperty;
+    };
+    DescriptorBuilder.prototype.redefineProperty = function(p6, targetPropertyName, replace) {
+      var nsPrefix = p6.ns.prefix;
+      var parts = targetPropertyName.split("#");
+      var name2 = parseName(parts[0], nsPrefix);
+      var attrName = parseName(parts[1], name2.prefix).name;
+      var redefinedProperty = this.propertiesByName[attrName];
+      if (!redefinedProperty) {
+        throw new Error("refined property <" + attrName + "> not found");
+      } else {
+        this.replaceProperty(redefinedProperty, p6, replace);
+      }
+      delete p6.redefines;
+    };
+    DescriptorBuilder.prototype.addNamedProperty = function(p6, validate) {
+      var ns2 = p6.ns, propsByName = this.propertiesByName;
+      if (validate) {
+        this.assertNotDefined(p6, ns2.name);
+        this.assertNotDefined(p6, ns2.localName);
+      }
+      propsByName[ns2.name] = propsByName[ns2.localName] = p6;
+    };
+    DescriptorBuilder.prototype.removeNamedProperty = function(p6) {
+      var ns2 = p6.ns, propsByName = this.propertiesByName;
+      delete propsByName[ns2.name];
+      delete propsByName[ns2.localName];
+    };
+    DescriptorBuilder.prototype.setBodyProperty = function(p6, validate) {
+      if (validate && this.bodyProperty) {
+        throw new Error(
+          "body property defined multiple times (<" + this.bodyProperty.ns.name + ">, <" + p6.ns.name + ">)"
+        );
+      }
+      this.bodyProperty = p6;
+    };
+    DescriptorBuilder.prototype.setIdProperty = function(p6, validate) {
+      if (validate && this.idProperty) {
+        throw new Error(
+          "id property defined multiple times (<" + this.idProperty.ns.name + ">, <" + p6.ns.name + ">)"
+        );
+      }
+      this.idProperty = p6;
+    };
+    DescriptorBuilder.prototype.assertNotTrait = function(typeDescriptor) {
+      const _extends = typeDescriptor.extends || [];
+      if (_extends.length) {
+        throw new Error(
+          `cannot create <${typeDescriptor.name}> extending <${typeDescriptor.extends}>`
+        );
+      }
+    };
+    DescriptorBuilder.prototype.assertNotDefined = function(p6, name2) {
+      var propertyName = p6.name, definedProperty = this.propertiesByName[propertyName];
+      if (definedProperty) {
+        throw new Error(
+          "property <" + propertyName + "> already defined; override of <" + definedProperty.definedBy.ns.name + "#" + definedProperty.ns.name + "> by <" + p6.definedBy.ns.name + "#" + p6.ns.name + "> not allowed without redefines"
+        );
+      }
+    };
+    DescriptorBuilder.prototype.hasProperty = function(name2) {
+      return this.propertiesByName[name2];
+    };
+    DescriptorBuilder.prototype.addTrait = function(t5, inherited) {
+      if (inherited) {
+        this.assertNotTrait(t5);
+      }
+      var typesByName = this.allTypesByName, types2 = this.allTypes;
+      var typeName = t5.name;
+      if (typeName in typesByName) {
+        return;
+      }
+      forEach(t5.properties, bind(function(p6) {
+        p6 = assign2({}, p6, {
+          name: p6.ns.localName,
+          inherited
+        });
+        Object.defineProperty(p6, "definedBy", {
+          value: t5
+        });
+        var replaces = p6.replaces, redefines = p6.redefines;
+        if (replaces || redefines) {
+          this.redefineProperty(p6, replaces || redefines, replaces);
+        } else {
+          if (p6.isBody) {
+            this.setBodyProperty(p6);
+          }
+          if (p6.isId) {
+            this.setIdProperty(p6);
+          }
+          this.addProperty(p6);
+        }
+      }, this));
+      types2.push(t5);
+      typesByName[typeName] = t5;
+    };
+    Registry2.prototype.getPackage = function(uriOrPrefix) {
+      return this.packageMap[uriOrPrefix];
+    };
+    Registry2.prototype.getPackages = function() {
+      return this.packages;
+    };
+    Registry2.prototype.registerPackage = function(pkg) {
+      pkg = assign2({}, pkg);
+      var pkgMap = this.packageMap;
+      ensureAvailable(pkgMap, pkg, "prefix");
+      ensureAvailable(pkgMap, pkg, "uri");
+      forEach(pkg.types, bind(function(descriptor) {
+        this.registerType(descriptor, pkg);
+      }, this));
+      pkgMap[pkg.uri] = pkgMap[pkg.prefix] = pkg;
+      this.packages.push(pkg);
+    };
+    Registry2.prototype.registerType = function(type, pkg) {
+      type = assign2({}, type, {
+        superClass: (type.superClass || []).slice(),
+        extends: (type.extends || []).slice(),
+        properties: (type.properties || []).slice(),
+        meta: assign2(type.meta || {})
+      });
+      var ns2 = parseName(type.name, pkg.prefix), name2 = ns2.name, propertiesByName = {};
+      forEach(type.properties, bind(function(p6) {
+        var propertyNs = parseName(p6.name, ns2.prefix), propertyName = propertyNs.name;
+        if (!isBuiltIn(p6.type)) {
+          p6.type = parseName(p6.type, propertyNs.prefix).name;
+        }
+        assign2(p6, {
+          ns: propertyNs,
+          name: propertyName
+        });
+        propertiesByName[propertyName] = p6;
+      }, this));
+      assign2(type, {
+        ns: ns2,
+        name: name2,
+        propertiesByName
+      });
+      forEach(type.extends, bind(function(extendsName) {
+        var extendsNameNs = parseName(extendsName, ns2.prefix);
+        var extended = this.typeMap[extendsNameNs.name];
+        extended.traits = extended.traits || [];
+        extended.traits.push(name2);
+      }, this));
+      this.definePackage(type, pkg);
+      this.typeMap[name2] = type;
+    };
+    Registry2.prototype.mapTypes = function(nsName2, iterator, trait) {
+      var type = isBuiltIn(nsName2.name) ? { name: nsName2.name } : this.typeMap[nsName2.name];
+      var self2 = this;
+      function traverse(cls, trait2) {
+        var parentNs = parseName(cls, isBuiltIn(cls) ? "" : nsName2.prefix);
+        self2.mapTypes(parentNs, iterator, trait2);
+      }
+      function traverseTrait(cls) {
+        return traverse(cls, true);
+      }
+      function traverseSuper(cls) {
+        return traverse(cls, false);
+      }
+      if (!type) {
+        throw new Error("unknown type <" + nsName2.name + ">");
+      }
+      forEach(type.superClass, trait ? traverseTrait : traverseSuper);
+      iterator(type, !trait);
+      forEach(type.traits, traverseTrait);
+    };
+    Registry2.prototype.getEffectiveDescriptor = function(name2) {
+      var nsName2 = parseName(name2);
+      var builder = new DescriptorBuilder(nsName2);
+      this.mapTypes(nsName2, function(type, inherited) {
+        builder.addTrait(type, inherited);
+      });
+      var descriptor = builder.build();
+      this.definePackage(descriptor, descriptor.allTypes[descriptor.allTypes.length - 1].$pkg);
+      return descriptor;
+    };
+    Registry2.prototype.definePackage = function(target, pkg) {
+      this.properties.define(target, "$pkg", { value: pkg });
+    };
+    Properties.prototype.set = function(target, name2, value) {
+      if (!isString(name2) || !name2.length) {
+        throw new TypeError("property name must be a non-empty string");
+      }
+      var property2 = this.getProperty(target, name2);
+      var propertyName = property2 && property2.name;
+      if (isUndefined2(value)) {
+        if (property2) {
+          delete target[propertyName];
+        } else {
+          delete target.$attrs[stripGlobal(name2)];
+        }
+      } else {
+        if (property2) {
+          if (propertyName in target) {
+            target[propertyName] = value;
+          } else {
+            defineProperty2(target, property2, value);
+          }
+        } else {
+          target.$attrs[stripGlobal(name2)] = value;
+        }
+      }
+    };
+    Properties.prototype.get = function(target, name2) {
+      var property2 = this.getProperty(target, name2);
+      if (!property2) {
+        return target.$attrs[stripGlobal(name2)];
+      }
+      var propertyName = property2.name;
+      if (!target[propertyName] && property2.isMany) {
+        defineProperty2(target, property2, []);
+      }
+      return target[propertyName];
+    };
+    Properties.prototype.define = function(target, name2, options) {
+      if (!options.writable) {
+        var value = options.value;
+        options = assign2({}, options, {
+          get: function() {
+            return value;
+          }
+        });
+        delete options.value;
+      }
+      Object.defineProperty(target, name2, options);
+    };
+    Properties.prototype.defineDescriptor = function(target, descriptor) {
+      this.define(target, "$descriptor", { value: descriptor });
+    };
+    Properties.prototype.defineModel = function(target, model) {
+      this.define(target, "$model", { value: model });
+    };
+    Properties.prototype.getProperty = function(target, name2) {
+      var model = this.model;
+      var property2 = model.getPropertyDescriptor(target, name2);
+      if (property2) {
+        return property2;
+      }
+      if (name2.includes(":")) {
+        return null;
+      }
+      const strict = model.config.strict;
+      if (typeof strict !== "undefined") {
+        const error3 = new TypeError(`unknown property <${name2}> on <${target.$type}>`);
+        if (strict) {
+          throw error3;
+        } else {
+          typeof console !== "undefined" && console.warn(error3);
+        }
+      }
+      return null;
+    };
+    Moddle.prototype.create = function(descriptor, attrs) {
+      var Type = this.getType(descriptor);
+      if (!Type) {
+        throw new Error("unknown type <" + descriptor + ">");
+      }
+      return new Type(attrs);
+    };
+    Moddle.prototype.getType = function(descriptor) {
+      var cache = this.typeCache;
+      var name2 = isString(descriptor) ? descriptor : descriptor.ns.name;
+      var type = cache[name2];
+      if (!type) {
+        descriptor = this.registry.getEffectiveDescriptor(name2);
+        type = cache[name2] = this.factory.createType(descriptor);
+      }
+      return type;
+    };
+    Moddle.prototype.createAny = function(name2, nsUri, properties) {
+      var nameNs = parseName(name2);
+      var element = {
+        $type: name2,
+        $instanceOf: function(type) {
+          return type === this.$type;
+        },
+        get: function(key) {
+          return this[key];
+        },
+        set: function(key, value) {
+          set(this, [key], value);
+        }
+      };
+      var descriptor = {
+        name: name2,
+        isGeneric: true,
+        ns: {
+          prefix: nameNs.prefix,
+          localName: nameNs.localName,
+          uri: nsUri
+        }
+      };
+      this.properties.defineDescriptor(element, descriptor);
+      this.properties.defineModel(element, this);
+      this.properties.define(element, "get", { enumerable: false, writable: true });
+      this.properties.define(element, "set", { enumerable: false, writable: true });
+      this.properties.define(element, "$parent", { enumerable: false, writable: true });
+      this.properties.define(element, "$instanceOf", { enumerable: false, writable: true });
+      forEach(properties, function(a5, key) {
+        if (isObject2(a5) && a5.value !== void 0) {
+          element[a5.name] = a5.value;
+        } else {
+          element[key] = a5;
+        }
+      });
+      return element;
+    };
+    Moddle.prototype.getPackage = function(uriOrPrefix) {
+      return this.registry.getPackage(uriOrPrefix);
+    };
+    Moddle.prototype.getPackages = function() {
+      return this.registry.getPackages();
+    };
+    Moddle.prototype.getElementDescriptor = function(element) {
+      return element.$descriptor;
+    };
+    Moddle.prototype.hasType = function(element, type) {
+      if (type === void 0) {
+        type = element;
+        element = this;
+      }
+      var descriptor = element.$model.getElementDescriptor(element);
+      return type in descriptor.allTypesByName;
+    };
+    Moddle.prototype.getPropertyDescriptor = function(element, property2) {
+      return this.getElementDescriptor(element).propertiesByName[property2];
+    };
+    Moddle.prototype.getTypeDescriptor = function(type) {
+      return this.registry.typeMap[type];
+    };
+  }
+});
+
+// node_modules/saxen/dist/index.js
+function replaceEntities(_5, d4, x4, z5) {
+  if (z5) {
+    if (hasOwnProperty18.call(ENTITY_MAPPING, z5)) {
+      return ENTITY_MAPPING[z5];
+    } else {
+      return "&" + z5 + ";";
+    }
+  }
+  if (d4) {
+    return fromCharCode(d4);
+  }
+  return fromCharCode(parseInt(x4, 16));
+}
+function decodeEntities(s5) {
+  if (s5.length > 3 && s5.indexOf("&") !== -1) {
+    return s5.replace(ENTITY_PATTERN, replaceEntities);
+  }
+  return s5;
+}
+function error(msg) {
+  return new Error(msg);
+}
+function missingNamespaceForPrefix(prefix2) {
+  return "missing namespace for prefix <" + prefix2 + ">";
+}
+function getter(getFn) {
+  return {
+    "get": getFn,
+    "enumerable": true
+  };
+}
+function cloneNsMatrix(nsMatrix) {
+  var clone3 = {}, key;
+  for (key in nsMatrix) {
+    clone3[key] = nsMatrix[key];
+  }
+  return clone3;
+}
+function uriPrefix(prefix2) {
+  return prefix2 + "$uri";
+}
+function buildNsMatrix(nsUriToPrefix) {
+  var nsMatrix = {}, uri2, prefix2;
+  for (uri2 in nsUriToPrefix) {
+    prefix2 = nsUriToPrefix[uri2];
+    nsMatrix[prefix2] = prefix2;
+    nsMatrix[uriPrefix(prefix2)] = uri2;
+  }
+  return nsMatrix;
+}
+function noopGetContext() {
+  return { line: 0, column: 0 };
+}
+function throwFunc(err2) {
+  throw err2;
+}
+function Parser2(options) {
+  if (!this) {
+    return new Parser2(options);
+  }
+  var proxy = options && options["proxy"];
+  var onText, onOpenTag, onCloseTag, onCDATA, onError = throwFunc, onWarning, onComment, onQuestion, onAttention;
+  var getContext = noopGetContext;
+  var maybeNS = false;
+  var isNamespace = false;
+  var returnError = null;
+  var parseStop = false;
+  var nsUriToPrefix;
+  function handleError(err2) {
+    if (!(err2 instanceof Error)) {
+      err2 = error(err2);
+    }
+    returnError = err2;
+    onError(err2, getContext);
+  }
+  function handleWarning(err2) {
+    if (!onWarning) {
+      return;
+    }
+    if (!(err2 instanceof Error)) {
+      err2 = error(err2);
+    }
+    onWarning(err2, getContext);
+  }
+  this["on"] = function(name2, cb) {
+    if (typeof cb !== "function") {
+      throw error("required args <name, cb>");
+    }
+    switch (name2) {
+      case "openTag":
+        onOpenTag = cb;
+        break;
+      case "text":
+        onText = cb;
+        break;
+      case "closeTag":
+        onCloseTag = cb;
+        break;
+      case "error":
+        onError = cb;
+        break;
+      case "warn":
+        onWarning = cb;
+        break;
+      case "cdata":
+        onCDATA = cb;
+        break;
+      case "attention":
+        onAttention = cb;
+        break;
+      case "question":
+        onQuestion = cb;
+        break;
+      case "comment":
+        onComment = cb;
+        break;
+      default:
+        throw error("unsupported event: " + name2);
+    }
+    return this;
+  };
+  this["ns"] = function(nsMap) {
+    if (typeof nsMap === "undefined") {
+      nsMap = {};
+    }
+    if (typeof nsMap !== "object") {
+      throw error("required args <nsMap={}>");
+    }
+    var _nsUriToPrefix = {}, k5;
+    for (k5 in nsMap) {
+      _nsUriToPrefix[k5] = nsMap[k5];
+    }
+    isNamespace = true;
+    nsUriToPrefix = _nsUriToPrefix;
+    return this;
+  };
+  this["parse"] = function(xml3) {
+    if (typeof xml3 !== "string") {
+      throw error("required args <xml=string>");
+    }
+    returnError = null;
+    parse2(xml3);
+    getContext = noopGetContext;
+    parseStop = false;
+    return returnError;
+  };
+  this["stop"] = function() {
+    parseStop = true;
+  };
+  function parse2(xml3) {
+    var nsMatrixStack = isNamespace ? [] : null, nsMatrix = isNamespace ? buildNsMatrix(nsUriToPrefix) : null, _nsMatrix, nodeStack = [], anonymousNsCount = 0, tagStart = false, tagEnd = false, i6 = 0, j5 = 0, x4, y5, q4, w5, v6, xmlns, elementName, _elementName, elementProxy;
+    var attrsString = "", attrsStart = 0, cachedAttrs;
+    function getAttrs() {
+      if (cachedAttrs !== null) {
+        return cachedAttrs;
+      }
+      var nsUri, nsUriPrefix, nsName2, defaultAlias = isNamespace && nsMatrix["xmlns"], attrList = isNamespace && maybeNS ? [] : null, i7 = attrsStart, s5 = attrsString, l5 = s5.length, hasNewMatrix, newalias, value, alias, name2, attrs = {}, seenAttrs = {}, skipAttr, w6, j6;
+      parseAttr:
+        for (; i7 < l5; i7++) {
+          skipAttr = false;
+          w6 = s5.charCodeAt(i7);
+          if (w6 === 32 || w6 < 14 && w6 > 8) {
+            continue;
+          }
+          if (w6 < 65 || w6 > 122 || w6 > 90 && w6 < 97) {
+            if (w6 !== 95 && w6 !== 58) {
+              handleWarning("illegal first char attribute name");
+              skipAttr = true;
+            }
+          }
+          for (j6 = i7 + 1; j6 < l5; j6++) {
+            w6 = s5.charCodeAt(j6);
+            if (w6 > 96 && w6 < 123 || w6 > 64 && w6 < 91 || w6 > 47 && w6 < 59 || w6 === 46 || // '.'
+            w6 === 45 || // '-'
+            w6 === 95) {
+              continue;
+            }
+            if (w6 === 32 || w6 < 14 && w6 > 8) {
+              handleWarning("missing attribute value");
+              i7 = j6;
+              continue parseAttr;
+            }
+            if (w6 === 61) {
+              break;
+            }
+            handleWarning("illegal attribute name char");
+            skipAttr = true;
+          }
+          name2 = s5.substring(i7, j6);
+          if (name2 === "xmlns:xmlns") {
+            handleWarning("illegal declaration of xmlns");
+            skipAttr = true;
+          }
+          w6 = s5.charCodeAt(j6 + 1);
+          if (w6 === 34) {
+            j6 = s5.indexOf('"', i7 = j6 + 2);
+            if (j6 === -1) {
+              j6 = s5.indexOf("'", i7);
+              if (j6 !== -1) {
+                handleWarning("attribute value quote missmatch");
+                skipAttr = true;
+              }
+            }
+          } else if (w6 === 39) {
+            j6 = s5.indexOf("'", i7 = j6 + 2);
+            if (j6 === -1) {
+              j6 = s5.indexOf('"', i7);
+              if (j6 !== -1) {
+                handleWarning("attribute value quote missmatch");
+                skipAttr = true;
+              }
+            }
+          } else {
+            handleWarning("missing attribute value quotes");
+            skipAttr = true;
+            for (j6 = j6 + 1; j6 < l5; j6++) {
+              w6 = s5.charCodeAt(j6 + 1);
+              if (w6 === 32 || w6 < 14 && w6 > 8) {
+                break;
+              }
+            }
+          }
+          if (j6 === -1) {
+            handleWarning("missing closing quotes");
+            j6 = l5;
+            skipAttr = true;
+          }
+          if (!skipAttr) {
+            value = s5.substring(i7, j6);
+          }
+          i7 = j6;
+          for (; j6 + 1 < l5; j6++) {
+            w6 = s5.charCodeAt(j6 + 1);
+            if (w6 === 32 || w6 < 14 && w6 > 8) {
+              break;
+            }
+            if (i7 === j6) {
+              handleWarning("illegal character after attribute end");
+              skipAttr = true;
+            }
+          }
+          i7 = j6 + 1;
+          if (skipAttr) {
+            continue parseAttr;
+          }
+          if (name2 in seenAttrs) {
+            handleWarning("attribute <" + name2 + "> already defined");
+            continue;
+          }
+          seenAttrs[name2] = true;
+          if (!isNamespace) {
+            attrs[name2] = value;
+            continue;
+          }
+          if (maybeNS) {
+            newalias = name2 === "xmlns" ? "xmlns" : name2.charCodeAt(0) === 120 && name2.substr(0, 6) === "xmlns:" ? name2.substr(6) : null;
+            if (newalias !== null) {
+              nsUri = decodeEntities(value);
+              nsUriPrefix = uriPrefix(newalias);
+              alias = nsUriToPrefix[nsUri];
+              if (!alias) {
+                if (newalias === "xmlns" || nsUriPrefix in nsMatrix && nsMatrix[nsUriPrefix] !== nsUri) {
+                  do {
+                    alias = "ns" + anonymousNsCount++;
+                  } while (typeof nsMatrix[alias] !== "undefined");
+                } else {
+                  alias = newalias;
+                }
+                nsUriToPrefix[nsUri] = alias;
+              }
+              if (nsMatrix[newalias] !== alias) {
+                if (!hasNewMatrix) {
+                  nsMatrix = cloneNsMatrix(nsMatrix);
+                  hasNewMatrix = true;
+                }
+                nsMatrix[newalias] = alias;
+                if (newalias === "xmlns") {
+                  nsMatrix[uriPrefix(alias)] = nsUri;
+                  defaultAlias = alias;
+                }
+                nsMatrix[nsUriPrefix] = nsUri;
+              }
+              attrs[name2] = value;
+              continue;
+            }
+            attrList.push(name2, value);
+            continue;
+          }
+          w6 = name2.indexOf(":");
+          if (w6 === -1) {
+            attrs[name2] = value;
+            continue;
+          }
+          if (!(nsName2 = nsMatrix[name2.substring(0, w6)])) {
+            handleWarning(missingNamespaceForPrefix(name2.substring(0, w6)));
+            continue;
+          }
+          name2 = defaultAlias === nsName2 ? name2.substr(w6 + 1) : nsName2 + name2.substr(w6);
+          attrs[name2] = value;
+        }
+      if (maybeNS) {
+        for (i7 = 0, l5 = attrList.length; i7 < l5; i7++) {
+          name2 = attrList[i7++];
+          value = attrList[i7];
+          w6 = name2.indexOf(":");
+          if (w6 !== -1) {
+            if (!(nsName2 = nsMatrix[name2.substring(0, w6)])) {
+              handleWarning(missingNamespaceForPrefix(name2.substring(0, w6)));
+              continue;
+            }
+            name2 = defaultAlias === nsName2 ? name2.substr(w6 + 1) : nsName2 + name2.substr(w6);
+          }
+          attrs[name2] = value;
+        }
+      }
+      return cachedAttrs = attrs;
+    }
+    function getParseContext() {
+      var splitsRe = /(\r\n|\r|\n)/g;
+      var line2 = 0;
+      var column = 0;
+      var startOfLine = 0;
+      var endOfLine = j5;
+      var match;
+      var data2;
+      while (i6 >= startOfLine) {
+        match = splitsRe.exec(xml3);
+        if (!match) {
+          break;
+        }
+        endOfLine = match[0].length + match.index;
+        if (endOfLine > i6) {
+          break;
+        }
+        line2 += 1;
+        startOfLine = endOfLine;
+      }
+      if (i6 == -1) {
+        column = endOfLine;
+        data2 = xml3.substring(j5);
+      } else if (j5 === 0) {
+        data2 = xml3.substring(j5, i6);
+      } else {
+        column = i6 - startOfLine;
+        data2 = j5 == -1 ? xml3.substring(i6) : xml3.substring(i6, j5 + 1);
+      }
+      return {
+        "data": data2,
+        "line": line2,
+        "column": column
+      };
+    }
+    getContext = getParseContext;
+    if (proxy) {
+      elementProxy = Object.create({}, {
+        "name": getter(function() {
+          return elementName;
+        }),
+        "originalName": getter(function() {
+          return _elementName;
+        }),
+        "attrs": getter(getAttrs),
+        "ns": getter(function() {
+          return nsMatrix;
+        })
+      });
+    }
+    while (j5 !== -1) {
+      if (xml3.charCodeAt(j5) === 60) {
+        i6 = j5;
+      } else {
+        i6 = xml3.indexOf("<", j5);
+      }
+      if (i6 === -1) {
+        if (nodeStack.length) {
+          return handleError("unexpected end of file");
+        }
+        if (j5 === 0) {
+          return handleError("missing start tag");
+        }
+        if (j5 < xml3.length) {
+          if (xml3.substring(j5).trim()) {
+            handleWarning(NON_WHITESPACE_OUTSIDE_ROOT_NODE);
+          }
+        }
+        return;
+      }
+      if (j5 !== i6) {
+        if (nodeStack.length) {
+          if (onText) {
+            onText(xml3.substring(j5, i6), decodeEntities, getContext);
+            if (parseStop) {
+              return;
+            }
+          }
+        } else {
+          if (xml3.substring(j5, i6).trim()) {
+            handleWarning(NON_WHITESPACE_OUTSIDE_ROOT_NODE);
+            if (parseStop) {
+              return;
+            }
+          }
+        }
+      }
+      w5 = xml3.charCodeAt(i6 + 1);
+      if (w5 === 33) {
+        q4 = xml3.charCodeAt(i6 + 2);
+        if (q4 === 91 && xml3.substr(i6 + 3, 6) === "CDATA[") {
+          j5 = xml3.indexOf("]]>", i6);
+          if (j5 === -1) {
+            return handleError("unclosed cdata");
+          }
+          if (onCDATA) {
+            onCDATA(xml3.substring(i6 + 9, j5), getContext);
+            if (parseStop) {
+              return;
+            }
+          }
+          j5 += 3;
+          continue;
+        }
+        if (q4 === 45 && xml3.charCodeAt(i6 + 3) === 45) {
+          j5 = xml3.indexOf("-->", i6);
+          if (j5 === -1) {
+            return handleError("unclosed comment");
+          }
+          if (onComment) {
+            onComment(xml3.substring(i6 + 4, j5), decodeEntities, getContext);
+            if (parseStop) {
+              return;
+            }
+          }
+          j5 += 3;
+          continue;
+        }
+      }
+      if (w5 === 63) {
+        j5 = xml3.indexOf("?>", i6);
+        if (j5 === -1) {
+          return handleError("unclosed question");
+        }
+        if (onQuestion) {
+          onQuestion(xml3.substring(i6, j5 + 2), getContext);
+          if (parseStop) {
+            return;
+          }
+        }
+        j5 += 2;
+        continue;
+      }
+      for (x4 = i6 + 1; ; x4++) {
+        v6 = xml3.charCodeAt(x4);
+        if (isNaN(v6)) {
+          j5 = -1;
+          return handleError("unclosed tag");
+        }
+        if (v6 === 34) {
+          q4 = xml3.indexOf('"', x4 + 1);
+          x4 = q4 !== -1 ? q4 : x4;
+        } else if (v6 === 39) {
+          q4 = xml3.indexOf("'", x4 + 1);
+          x4 = q4 !== -1 ? q4 : x4;
+        } else if (v6 === 62) {
+          j5 = x4;
+          break;
+        }
+      }
+      if (w5 === 33) {
+        if (onAttention) {
+          onAttention(xml3.substring(i6, j5 + 1), decodeEntities, getContext);
+          if (parseStop) {
+            return;
+          }
+        }
+        j5 += 1;
+        continue;
+      }
+      cachedAttrs = {};
+      if (w5 === 47) {
+        tagStart = false;
+        tagEnd = true;
+        if (!nodeStack.length) {
+          return handleError("missing open tag");
+        }
+        x4 = elementName = nodeStack.pop();
+        q4 = i6 + 2 + x4.length;
+        if (xml3.substring(i6 + 2, q4) !== x4) {
+          return handleError("closing tag mismatch");
+        }
+        for (; q4 < j5; q4++) {
+          w5 = xml3.charCodeAt(q4);
+          if (w5 === 32 || w5 > 8 && w5 < 14) {
+            continue;
+          }
+          return handleError("close tag");
+        }
+      } else {
+        if (xml3.charCodeAt(j5 - 1) === 47) {
+          x4 = elementName = xml3.substring(i6 + 1, j5 - 1);
+          tagStart = true;
+          tagEnd = true;
+        } else {
+          x4 = elementName = xml3.substring(i6 + 1, j5);
+          tagStart = true;
+          tagEnd = false;
+        }
+        if (!(w5 > 96 && w5 < 123 || w5 > 64 && w5 < 91 || w5 === 95 || w5 === 58)) {
+          return handleError("illegal first char nodeName");
+        }
+        for (q4 = 1, y5 = x4.length; q4 < y5; q4++) {
+          w5 = x4.charCodeAt(q4);
+          if (w5 > 96 && w5 < 123 || w5 > 64 && w5 < 91 || w5 > 47 && w5 < 59 || w5 === 45 || w5 === 95 || w5 == 46) {
+            continue;
+          }
+          if (w5 === 32 || w5 < 14 && w5 > 8) {
+            elementName = x4.substring(0, q4);
+            cachedAttrs = null;
+            break;
+          }
+          return handleError("invalid nodeName");
+        }
+        if (!tagEnd) {
+          nodeStack.push(elementName);
+        }
+      }
+      if (isNamespace) {
+        _nsMatrix = nsMatrix;
+        if (tagStart) {
+          if (!tagEnd) {
+            nsMatrixStack.push(_nsMatrix);
+          }
+          if (cachedAttrs === null) {
+            if (maybeNS = x4.indexOf("xmlns", q4) !== -1) {
+              attrsStart = q4;
+              attrsString = x4;
+              getAttrs();
+              maybeNS = false;
+            }
+          }
+        }
+        _elementName = elementName;
+        w5 = elementName.indexOf(":");
+        if (w5 !== -1) {
+          xmlns = nsMatrix[elementName.substring(0, w5)];
+          if (!xmlns) {
+            return handleError("missing namespace on <" + _elementName + ">");
+          }
+          elementName = elementName.substr(w5 + 1);
+        } else {
+          xmlns = nsMatrix["xmlns"];
+        }
+        if (xmlns) {
+          elementName = xmlns + ":" + elementName;
+        }
+      }
+      if (tagStart) {
+        attrsStart = q4;
+        attrsString = x4;
+        if (onOpenTag) {
+          if (proxy) {
+            onOpenTag(elementProxy, decodeEntities, tagEnd, getContext);
+          } else {
+            onOpenTag(elementName, getAttrs, decodeEntities, tagEnd, getContext);
+          }
+          if (parseStop) {
+            return;
+          }
+        }
+      }
+      if (tagEnd) {
+        if (onCloseTag) {
+          onCloseTag(proxy ? elementProxy : elementName, decodeEntities, tagStart, getContext);
+          if (parseStop) {
+            return;
+          }
+        }
+        if (isNamespace) {
+          if (!tagStart) {
+            nsMatrix = nsMatrixStack.pop();
+          } else {
+            nsMatrix = _nsMatrix;
+          }
+        }
+      }
+      j5 += 1;
+    }
+  }
+}
+var fromCharCode, hasOwnProperty18, ENTITY_PATTERN, ENTITY_MAPPING, NON_WHITESPACE_OUTSIDE_ROOT_NODE;
+var init_dist3 = __esm({
+  "node_modules/saxen/dist/index.js"() {
+    fromCharCode = String.fromCharCode;
+    hasOwnProperty18 = Object.prototype.hasOwnProperty;
+    ENTITY_PATTERN = /&#(\d+);|&#x([0-9a-f]+);|&(\w+);/ig;
+    ENTITY_MAPPING = {
+      "amp": "&",
+      "apos": "'",
+      "gt": ">",
+      "lt": "<",
+      "quot": '"'
+    };
+    Object.keys(ENTITY_MAPPING).forEach(function(k5) {
+      ENTITY_MAPPING[k5.toUpperCase()] = ENTITY_MAPPING[k5];
+    });
+    NON_WHITESPACE_OUTSIDE_ROOT_NODE = "non-whitespace outside of root node";
+  }
+});
+
+// node_modules/moddle-xml/dist/index.js
+function hasLowerCaseAlias(pkg) {
+  return pkg.xml && pkg.xml.tagAlias === "lowerCase";
+}
+function getSerialization(element) {
+  return element.xml && element.xml.serialize;
+}
+function getSerializationType(element) {
+  const type = getSerialization(element);
+  return type !== SERIALIZE_PROPERTY && (type || null);
+}
+function capitalize2(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+function aliasToName(aliasNs, pkg) {
+  if (!hasLowerCaseAlias(pkg)) {
+    return aliasNs.name;
+  }
+  return aliasNs.prefix + ":" + capitalize2(aliasNs.localName);
+}
+function prefixedToName(nameNs, pkg) {
+  var name2 = nameNs.name, localName = nameNs.localName;
+  var typePrefix = pkg && pkg.xml && pkg.xml.typePrefix;
+  if (typePrefix && localName.indexOf(typePrefix) === 0) {
+    return nameNs.prefix + ":" + localName.slice(typePrefix.length);
+  } else {
+    return name2;
+  }
+}
+function normalizeTypeName(name2, nsMap, model) {
+  const nameNs = parseName(name2, nsMap.xmlns);
+  const normalizedName = `${nsMap[nameNs.prefix] || nameNs.prefix}:${nameNs.localName}`;
+  const normalizedNameNs = parseName(normalizedName);
+  var pkg = model.getPackage(normalizedNameNs.prefix);
+  return prefixedToName(normalizedNameNs, pkg);
+}
+function error2(message) {
+  return new Error(message);
+}
+function getModdleDescriptor(element) {
+  return element.$descriptor;
+}
+function Context(options) {
+  assign2(this, options);
+  this.elementsById = {};
+  this.references = [];
+  this.warnings = [];
+  this.addReference = function(reference) {
+    this.references.push(reference);
+  };
+  this.addElement = function(element) {
+    if (!element) {
+      throw error2("expected element");
+    }
+    var elementsById = this.elementsById;
+    var descriptor = getModdleDescriptor(element);
+    var idProperty = descriptor.idProperty, id;
+    if (idProperty) {
+      id = element.get(idProperty.name);
+      if (id) {
+        if (!/^([a-z][\w-.]*:)?[a-z_][\w-.]*$/i.test(id)) {
+          throw new Error("illegal ID <" + id + ">");
+        }
+        if (elementsById[id]) {
+          throw error2("duplicate ID <" + id + ">");
+        }
+        elementsById[id] = element;
+      }
+    }
+  };
+  this.addWarning = function(warning) {
+    this.warnings.push(warning);
+  };
+}
+function BaseHandler() {
+}
+function NoopHandler() {
+}
+function BodyHandler() {
+}
+function ReferenceHandler(property2, context) {
+  this.property = property2;
+  this.context = context;
+}
+function ValueHandler(propertyDesc, element) {
+  this.element = element;
+  this.propertyDesc = propertyDesc;
+}
+function BaseElementHandler() {
+}
+function ElementHandler(model, typeName, context) {
+  this.model = model;
+  this.type = model.getType(typeName);
+  this.context = context;
+}
+function RootElementHandler(model, typeName, context) {
+  ElementHandler.call(this, model, typeName, context);
+}
+function GenericElementHandler(model, typeName, context) {
+  this.model = model;
+  this.context = context;
+}
+function Reader(options) {
+  if (options instanceof Moddle) {
+    options = {
+      model: options
+    };
+  }
+  assign2(this, { lax: false }, options);
+}
+function createStack() {
+  var stack = [];
+  Object.defineProperty(stack, "peek", {
+    value: function() {
+      return this[this.length - 1];
+    }
+  });
+  return stack;
+}
+function Namespaces(parent) {
+  this.prefixMap = {};
+  this.uriMap = {};
+  this.used = {};
+  this.wellknown = [];
+  this.custom = [];
+  this.parent = parent;
+  this.defaultPrefixMap = parent && parent.defaultPrefixMap || {};
+}
+function lower(string) {
+  return string.charAt(0).toLowerCase() + string.slice(1);
+}
+function nameToAlias(name2, pkg) {
+  if (hasLowerCaseAlias(pkg)) {
+    return lower(name2);
+  } else {
+    return name2;
+  }
+}
+function inherits(ctor, superCtor) {
+  ctor.super_ = superCtor;
+  ctor.prototype = Object.create(superCtor.prototype, {
+    constructor: {
+      value: ctor,
+      enumerable: false,
+      writable: true,
+      configurable: true
+    }
+  });
+}
+function nsName(ns2) {
+  if (isString(ns2)) {
+    return ns2;
+  } else {
+    return (ns2.prefix ? ns2.prefix + ":" : "") + ns2.localName;
+  }
+}
+function getNsAttrs(namespaces) {
+  return namespaces.getUsed().filter(function(ns2) {
+    return ns2.prefix !== "xml";
+  }).map(function(ns2) {
+    var name2 = "xmlns" + (ns2.prefix ? ":" + ns2.prefix : "");
+    return { name: name2, value: ns2.uri };
+  });
+}
+function getElementNs(ns2, descriptor) {
+  if (descriptor.isGeneric) {
+    return assign2({ localName: descriptor.ns.localName }, ns2);
+  } else {
+    return assign2({ localName: nameToAlias(descriptor.ns.localName, descriptor.$pkg) }, ns2);
+  }
+}
+function getPropertyNs(ns2, descriptor) {
+  return assign2({ localName: descriptor.ns.localName }, ns2);
+}
+function getSerializableProperties(element) {
+  var descriptor = element.$descriptor;
+  return filter2(descriptor.properties, function(p6) {
+    var name2 = p6.name;
+    if (p6.isVirtual) {
+      return false;
+    }
+    if (!has2(element, name2)) {
+      return false;
+    }
+    var value = element[name2];
+    if (value === p6.default) {
+      return false;
+    }
+    if (value === null) {
+      return false;
+    }
+    return p6.isMany ? value.length : true;
+  });
+}
+function escape(str, charPattern, replaceMap) {
+  str = isString(str) ? str : "" + str;
+  return str.replace(charPattern, function(s5) {
+    return "&" + replaceMap[s5] + ";";
+  });
+}
+function escapeAttr(str) {
+  return escape(str, ESCAPE_ATTR_CHARS, ESCAPE_ATTR_MAP);
+}
+function escapeBody(str) {
+  return escape(str, ESCAPE_CHARS, ESCAPE_MAP);
+}
+function filterAttributes(props) {
+  return filter2(props, function(p6) {
+    return p6.isAttr;
+  });
+}
+function filterContained(props) {
+  return filter2(props, function(p6) {
+    return !p6.isAttr;
+  });
+}
+function ReferenceSerializer(tagName2) {
+  this.tagName = tagName2;
+}
+function BodySerializer() {
+}
+function ValueSerializer(tagName2) {
+  this.tagName = tagName2;
+}
+function ElementSerializer(parent, propertyDescriptor) {
+  this.body = [];
+  this.attrs = [];
+  this.parent = parent;
+  this.propertyDescriptor = propertyDescriptor;
+}
+function TypeSerializer(parent, propertyDescriptor, serialization) {
+  ElementSerializer.call(this, parent, propertyDescriptor);
+  this.serialization = serialization;
+}
+function SavingWriter() {
+  this.value = "";
+  this.write = function(str) {
+    this.value += str;
+  };
+}
+function FormatingWriter(out, format) {
+  var indent = [""];
+  this.append = function(str) {
+    out.write(str);
+    return this;
+  };
+  this.appendNewLine = function() {
+    if (format) {
+      out.write("\n");
+    }
+    return this;
+  };
+  this.appendIndent = function() {
+    if (format) {
+      out.write(indent.join("  "));
+    }
+    return this;
+  };
+  this.indent = function() {
+    indent.push("");
+    return this;
+  };
+  this.unindent = function() {
+    indent.pop();
+    return this;
+  };
+}
+function Writer(options) {
+  options = assign2({ format: false, preamble: true }, options || {});
+  function toXML(tree, writer) {
+    var internalWriter = writer || new SavingWriter();
+    var formatingWriter = new FormatingWriter(internalWriter, options.format);
+    if (options.preamble) {
+      formatingWriter.append(XML_PREAMBLE);
+    }
+    var serializer = new ElementSerializer();
+    var model = tree.$model;
+    serializer.getNamespaces().mapDefaultPrefixes(getDefaultPrefixMappings(model));
+    serializer.build(tree).serializeTo(formatingWriter);
+    if (!writer) {
+      return internalWriter.value;
+    }
+  }
+  return {
+    toXML
+  };
+}
+function getDefaultPrefixMappings(model) {
+  const nsMap = model.config && model.config.nsMap || {};
+  const prefixMap = {};
+  for (const prefix2 in DEFAULT_NS_MAP) {
+    prefixMap[prefix2] = DEFAULT_NS_MAP[prefix2];
+  }
+  for (const uri2 in nsMap) {
+    const prefix2 = nsMap[uri2];
+    prefixMap[prefix2] = uri2;
+  }
+  for (const pkg of model.getPackages()) {
+    prefixMap[pkg.prefix] = pkg.uri;
+  }
+  return prefixMap;
+}
+var DEFAULT_NS_MAP, SERIALIZE_PROPERTY, XML_PREAMBLE, ESCAPE_ATTR_CHARS, ESCAPE_CHARS, ESCAPE_ATTR_MAP, ESCAPE_MAP;
+var init_dist4 = __esm({
+  "node_modules/moddle-xml/dist/index.js"() {
+    init_dist();
+    init_dist3();
+    init_dist2();
+    DEFAULT_NS_MAP = {
+      "xsi": "http://www.w3.org/2001/XMLSchema-instance",
+      "xml": "http://www.w3.org/XML/1998/namespace"
+    };
+    SERIALIZE_PROPERTY = "property";
+    BaseHandler.prototype.handleEnd = function() {
+    };
+    BaseHandler.prototype.handleText = function() {
+    };
+    BaseHandler.prototype.handleNode = function() {
+    };
+    NoopHandler.prototype = Object.create(BaseHandler.prototype);
+    NoopHandler.prototype.handleNode = function() {
+      return this;
+    };
+    BodyHandler.prototype = Object.create(BaseHandler.prototype);
+    BodyHandler.prototype.handleText = function(text4) {
+      this.body = (this.body || "") + text4;
+    };
+    ReferenceHandler.prototype = Object.create(BodyHandler.prototype);
+    ReferenceHandler.prototype.handleNode = function(node2) {
+      if (this.element) {
+        throw error2("expected no sub nodes");
+      } else {
+        this.element = this.createReference(node2);
+      }
+      return this;
+    };
+    ReferenceHandler.prototype.handleEnd = function() {
+      this.element.id = this.body;
+    };
+    ReferenceHandler.prototype.createReference = function(node2) {
+      return {
+        property: this.property.ns.name,
+        id: ""
+      };
+    };
+    ValueHandler.prototype = Object.create(BodyHandler.prototype);
+    ValueHandler.prototype.handleEnd = function() {
+      var value = this.body || "", element = this.element, propertyDesc = this.propertyDesc;
+      value = coerceType(propertyDesc.type, value);
+      if (propertyDesc.isMany) {
+        element.get(propertyDesc.name).push(value);
+      } else {
+        element.set(propertyDesc.name, value);
+      }
+    };
+    BaseElementHandler.prototype = Object.create(BodyHandler.prototype);
+    BaseElementHandler.prototype.handleNode = function(node2) {
+      var parser = this, element = this.element;
+      if (!element) {
+        element = this.element = this.createElement(node2);
+        this.context.addElement(element);
+      } else {
+        parser = this.handleChild(node2);
+      }
+      return parser;
+    };
+    ElementHandler.prototype = Object.create(BaseElementHandler.prototype);
+    ElementHandler.prototype.addReference = function(reference) {
+      this.context.addReference(reference);
+    };
+    ElementHandler.prototype.handleText = function(text4) {
+      var element = this.element, descriptor = getModdleDescriptor(element), bodyProperty = descriptor.bodyProperty;
+      if (!bodyProperty) {
+        throw error2("unexpected body text <" + text4 + ">");
+      }
+      BodyHandler.prototype.handleText.call(this, text4);
+    };
+    ElementHandler.prototype.handleEnd = function() {
+      var value = this.body, element = this.element, descriptor = getModdleDescriptor(element), bodyProperty = descriptor.bodyProperty;
+      if (bodyProperty && value !== void 0) {
+        value = coerceType(bodyProperty.type, value);
+        element.set(bodyProperty.name, value);
+      }
+    };
+    ElementHandler.prototype.createElement = function(node2) {
+      var attributes = node2.attributes, Type = this.type, descriptor = getModdleDescriptor(Type), context = this.context, instance = new Type({}), model = this.model, propNameNs;
+      forEach(attributes, function(value, name2) {
+        var prop2 = descriptor.propertiesByName[name2], values;
+        if (prop2 && prop2.isReference) {
+          if (!prop2.isMany) {
+            context.addReference({
+              element: instance,
+              property: prop2.ns.name,
+              id: value
+            });
+          } else {
+            values = value.split(" ");
+            forEach(values, function(v6) {
+              context.addReference({
+                element: instance,
+                property: prop2.ns.name,
+                id: v6
+              });
+            });
+          }
+        } else {
+          if (prop2) {
+            value = coerceType(prop2.type, value);
+          } else if (name2 === "xmlns") {
+            name2 = ":" + name2;
+          } else {
+            propNameNs = parseName(name2, descriptor.ns.prefix);
+            if (model.getPackage(propNameNs.prefix)) {
+              context.addWarning({
+                message: "unknown attribute <" + name2 + ">",
+                element: instance,
+                property: name2,
+                value
+              });
+            }
+          }
+          instance.set(name2, value);
+        }
+      });
+      return instance;
+    };
+    ElementHandler.prototype.getPropertyForNode = function(node2) {
+      var name2 = node2.name;
+      var nameNs = parseName(name2);
+      var type = this.type, model = this.model, descriptor = getModdleDescriptor(type);
+      var propertyName = nameNs.name, property2 = descriptor.propertiesByName[propertyName];
+      if (property2 && !property2.isAttr) {
+        const serializationType = getSerializationType(property2);
+        if (serializationType) {
+          const elementTypeName = node2.attributes[serializationType];
+          if (elementTypeName) {
+            const normalizedTypeName = normalizeTypeName(elementTypeName, node2.ns, model);
+            const elementType = model.getType(normalizedTypeName);
+            return assign2({}, property2, {
+              effectiveType: getModdleDescriptor(elementType).name
+            });
+          }
+        }
+        return property2;
+      }
+      var pkg = model.getPackage(nameNs.prefix);
+      if (pkg) {
+        const elementTypeName = aliasToName(nameNs, pkg);
+        const elementType = model.getType(elementTypeName);
+        property2 = find2(descriptor.properties, function(p6) {
+          return !p6.isVirtual && !p6.isReference && !p6.isAttribute && elementType.hasType(p6.type);
+        });
+        if (property2) {
+          return assign2({}, property2, {
+            effectiveType: getModdleDescriptor(elementType).name
+          });
+        }
+      } else {
+        property2 = find2(descriptor.properties, function(p6) {
+          return !p6.isReference && !p6.isAttribute && p6.type === "Element";
+        });
+        if (property2) {
+          return property2;
+        }
+      }
+      throw error2("unrecognized element <" + nameNs.name + ">");
+    };
+    ElementHandler.prototype.toString = function() {
+      return "ElementDescriptor[" + getModdleDescriptor(this.type).name + "]";
+    };
+    ElementHandler.prototype.valueHandler = function(propertyDesc, element) {
+      return new ValueHandler(propertyDesc, element);
+    };
+    ElementHandler.prototype.referenceHandler = function(propertyDesc) {
+      return new ReferenceHandler(propertyDesc, this.context);
+    };
+    ElementHandler.prototype.handler = function(type) {
+      if (type === "Element") {
+        return new GenericElementHandler(this.model, type, this.context);
+      } else {
+        return new ElementHandler(this.model, type, this.context);
+      }
+    };
+    ElementHandler.prototype.handleChild = function(node2) {
+      var propertyDesc, type, element, childHandler;
+      propertyDesc = this.getPropertyForNode(node2);
+      element = this.element;
+      type = propertyDesc.effectiveType || propertyDesc.type;
+      if (isSimple(type)) {
+        return this.valueHandler(propertyDesc, element);
+      }
+      if (propertyDesc.isReference) {
+        childHandler = this.referenceHandler(propertyDesc).handleNode(node2);
+      } else {
+        childHandler = this.handler(type).handleNode(node2);
+      }
+      var newElement = childHandler.element;
+      if (newElement !== void 0) {
+        if (propertyDesc.isMany) {
+          element.get(propertyDesc.name).push(newElement);
+        } else {
+          element.set(propertyDesc.name, newElement);
+        }
+        if (propertyDesc.isReference) {
+          assign2(newElement, {
+            element
+          });
+          this.context.addReference(newElement);
+        } else {
+          newElement.$parent = element;
+        }
+      }
+      return childHandler;
+    };
+    RootElementHandler.prototype = Object.create(ElementHandler.prototype);
+    RootElementHandler.prototype.createElement = function(node2) {
+      var name2 = node2.name, nameNs = parseName(name2), model = this.model, type = this.type, pkg = model.getPackage(nameNs.prefix), typeName = pkg && aliasToName(nameNs, pkg) || name2;
+      if (!type.hasType(typeName)) {
+        throw error2("unexpected element <" + node2.originalName + ">");
+      }
+      return ElementHandler.prototype.createElement.call(this, node2);
+    };
+    GenericElementHandler.prototype = Object.create(BaseElementHandler.prototype);
+    GenericElementHandler.prototype.createElement = function(node2) {
+      var name2 = node2.name, ns2 = parseName(name2), prefix2 = ns2.prefix, uri2 = node2.ns[prefix2 + "$uri"], attributes = node2.attributes;
+      return this.model.createAny(name2, uri2, attributes);
+    };
+    GenericElementHandler.prototype.handleChild = function(node2) {
+      var handler = new GenericElementHandler(this.model, "Element", this.context).handleNode(node2), element = this.element;
+      var newElement = handler.element, children2;
+      if (newElement !== void 0) {
+        children2 = element.$children = element.$children || [];
+        children2.push(newElement);
+        newElement.$parent = element;
+      }
+      return handler;
+    };
+    GenericElementHandler.prototype.handleEnd = function() {
+      if (this.body) {
+        this.element.$body = this.body;
+      }
+    };
+    Reader.prototype.fromXML = function(xml3, options, done) {
+      var rootHandler = options.rootHandler;
+      if (options instanceof ElementHandler) {
+        rootHandler = options;
+        options = {};
+      } else {
+        if (typeof options === "string") {
+          rootHandler = this.handler(options);
+          options = {};
+        } else if (typeof rootHandler === "string") {
+          rootHandler = this.handler(rootHandler);
+        }
+      }
+      var model = this.model, lax = this.lax;
+      var context = new Context(assign2({}, options, { rootHandler })), parser = new Parser2({ proxy: true }), stack = createStack();
+      rootHandler.context = context;
+      stack.push(rootHandler);
+      function handleError(err2, getContext, lax2) {
+        var ctx = getContext();
+        var line2 = ctx.line, column = ctx.column, data2 = ctx.data;
+        if (data2.charAt(0) === "<" && data2.indexOf(" ") !== -1) {
+          data2 = data2.slice(0, data2.indexOf(" ")) + ">";
+        }
+        var message = "unparsable content " + (data2 ? data2 + " " : "") + "detected\n	line: " + line2 + "\n	column: " + column + "\n	nested error: " + err2.message;
+        if (lax2) {
+          context.addWarning({
+            message,
+            error: err2
+          });
+          return true;
+        } else {
+          throw error2(message);
+        }
+      }
+      function handleWarning(err2, getContext) {
+        return handleError(err2, getContext, true);
+      }
+      function resolveReferences() {
+        var elementsById = context.elementsById;
+        var references = context.references;
+        var i6, r4;
+        for (i6 = 0; r4 = references[i6]; i6++) {
+          var element = r4.element;
+          var reference = elementsById[r4.id];
+          var property2 = getModdleDescriptor(element).propertiesByName[r4.property];
+          if (!reference) {
+            context.addWarning({
+              message: "unresolved reference <" + r4.id + ">",
+              element: r4.element,
+              property: r4.property,
+              value: r4.id
+            });
+          }
+          if (property2.isMany) {
+            var collection = element.get(property2.name), idx = collection.indexOf(r4);
+            if (idx === -1) {
+              idx = collection.length;
+            }
+            if (!reference) {
+              collection.splice(idx, 1);
+            } else {
+              collection[idx] = reference;
+            }
+          } else {
+            element.set(property2.name, reference);
+          }
+        }
+      }
+      function handleClose() {
+        stack.pop().handleEnd();
+      }
+      var PREAMBLE_START_PATTERN = /^<\?xml /i;
+      var ENCODING_PATTERN = / encoding="([^"]+)"/i;
+      var UTF_8_PATTERN = /^utf-8$/i;
+      function handleQuestion(question) {
+        if (!PREAMBLE_START_PATTERN.test(question)) {
+          return;
+        }
+        var match = ENCODING_PATTERN.exec(question);
+        var encoding = match && match[1];
+        if (!encoding || UTF_8_PATTERN.test(encoding)) {
+          return;
+        }
+        context.addWarning({
+          message: "unsupported document encoding <" + encoding + ">, falling back to UTF-8"
+        });
+      }
+      function handleOpen(node2, getContext) {
+        var handler = stack.peek();
+        try {
+          stack.push(handler.handleNode(node2));
+        } catch (err2) {
+          if (handleError(err2, getContext, lax)) {
+            stack.push(new NoopHandler());
+          }
+        }
+      }
+      function handleCData(text4, getContext) {
+        try {
+          stack.peek().handleText(text4);
+        } catch (err2) {
+          handleWarning(err2, getContext);
+        }
+      }
+      function handleText(text4, getContext) {
+        if (!text4.trim()) {
+          return;
+        }
+        handleCData(text4, getContext);
+      }
+      var uriMap = model.getPackages().reduce(function(uriMap2, p6) {
+        uriMap2[p6.uri] = p6.prefix;
+        return uriMap2;
+      }, Object.entries(DEFAULT_NS_MAP).reduce(function(map, [prefix2, url]) {
+        map[url] = prefix2;
+        return map;
+      }, model.config && model.config.nsMap || {}));
+      parser.ns(uriMap).on("openTag", function(obj, decodeStr, selfClosing, getContext) {
+        var attrs = obj.attrs || {};
+        var decodedAttrs = Object.keys(attrs).reduce(function(d4, key) {
+          var value = decodeStr(attrs[key]);
+          d4[key] = value;
+          return d4;
+        }, {});
+        var node2 = {
+          name: obj.name,
+          originalName: obj.originalName,
+          attributes: decodedAttrs,
+          ns: obj.ns
+        };
+        handleOpen(node2, getContext);
+      }).on("question", handleQuestion).on("closeTag", handleClose).on("cdata", handleCData).on("text", function(text4, decodeEntities2, getContext) {
+        handleText(decodeEntities2(text4), getContext);
+      }).on("error", handleError).on("warn", handleWarning);
+      return new Promise(function(resolve3, reject) {
+        var err2;
+        try {
+          parser.parse(xml3);
+          resolveReferences();
+        } catch (e4) {
+          err2 = e4;
+        }
+        var rootElement = rootHandler.element;
+        if (!err2 && !rootElement) {
+          err2 = error2("failed to parse document as <" + rootHandler.type.$descriptor.name + ">");
+        }
+        var warnings = context.warnings;
+        var references = context.references;
+        var elementsById = context.elementsById;
+        if (err2) {
+          err2.warnings = warnings;
+          return reject(err2);
+        } else {
+          return resolve3({
+            rootElement,
+            elementsById,
+            references,
+            warnings
+          });
+        }
+      });
+    };
+    Reader.prototype.handler = function(name2) {
+      return new RootElementHandler(this.model, name2);
+    };
+    XML_PREAMBLE = '<?xml version="1.0" encoding="UTF-8"?>\n';
+    ESCAPE_ATTR_CHARS = /<|>|'|"|&|\n\r|\n/g;
+    ESCAPE_CHARS = /<|>|&/g;
+    Namespaces.prototype.mapDefaultPrefixes = function(defaultPrefixMap) {
+      this.defaultPrefixMap = defaultPrefixMap;
+    };
+    Namespaces.prototype.defaultUriByPrefix = function(prefix2) {
+      return this.defaultPrefixMap[prefix2];
+    };
+    Namespaces.prototype.byUri = function(uri2) {
+      return this.uriMap[uri2] || this.parent && this.parent.byUri(uri2);
+    };
+    Namespaces.prototype.add = function(ns2, isWellknown) {
+      this.uriMap[ns2.uri] = ns2;
+      if (isWellknown) {
+        this.wellknown.push(ns2);
+      } else {
+        this.custom.push(ns2);
+      }
+      this.mapPrefix(ns2.prefix, ns2.uri);
+    };
+    Namespaces.prototype.uriByPrefix = function(prefix2) {
+      return this.prefixMap[prefix2 || "xmlns"] || this.parent && this.parent.uriByPrefix(prefix2);
+    };
+    Namespaces.prototype.mapPrefix = function(prefix2, uri2) {
+      this.prefixMap[prefix2 || "xmlns"] = uri2;
+    };
+    Namespaces.prototype.getNSKey = function(ns2) {
+      return ns2.prefix !== void 0 ? ns2.uri + "|" + ns2.prefix : ns2.uri;
+    };
+    Namespaces.prototype.logUsed = function(ns2) {
+      var uri2 = ns2.uri;
+      var nsKey = this.getNSKey(ns2);
+      this.used[nsKey] = this.byUri(uri2);
+      if (this.parent) {
+        this.parent.logUsed(ns2);
+      }
+    };
+    Namespaces.prototype.getUsed = function(ns2) {
+      var allNs = [].concat(this.wellknown, this.custom);
+      return allNs.filter((ns3) => {
+        var nsKey = this.getNSKey(ns3);
+        return this.used[nsKey];
+      });
+    };
+    ESCAPE_ATTR_MAP = {
+      "\n": "#10",
+      "\n\r": "#10",
+      '"': "#34",
+      "'": "#39",
+      "<": "#60",
+      ">": "#62",
+      "&": "#38"
+    };
+    ESCAPE_MAP = {
+      "<": "lt",
+      ">": "gt",
+      "&": "amp"
+    };
+    ReferenceSerializer.prototype.build = function(element) {
+      this.element = element;
+      return this;
+    };
+    ReferenceSerializer.prototype.serializeTo = function(writer) {
+      writer.appendIndent().append("<" + this.tagName + ">" + this.element.id + "</" + this.tagName + ">").appendNewLine();
+    };
+    BodySerializer.prototype.serializeValue = BodySerializer.prototype.serializeTo = function(writer) {
+      writer.append(
+        this.escape ? escapeBody(this.value) : this.value
+      );
+    };
+    BodySerializer.prototype.build = function(prop2, value) {
+      this.value = value;
+      if (prop2.type === "String" && value.search(ESCAPE_CHARS) !== -1) {
+        this.escape = true;
+      }
+      return this;
+    };
+    inherits(ValueSerializer, BodySerializer);
+    ValueSerializer.prototype.serializeTo = function(writer) {
+      writer.appendIndent().append("<" + this.tagName + ">");
+      this.serializeValue(writer);
+      writer.append("</" + this.tagName + ">").appendNewLine();
+    };
+    ElementSerializer.prototype.build = function(element) {
+      this.element = element;
+      var elementDescriptor = element.$descriptor, propertyDescriptor = this.propertyDescriptor;
+      var otherAttrs, properties;
+      var isGeneric = elementDescriptor.isGeneric;
+      if (isGeneric) {
+        otherAttrs = this.parseGenericNsAttributes(element);
+      } else {
+        otherAttrs = this.parseNsAttributes(element);
+      }
+      if (propertyDescriptor) {
+        this.ns = this.nsPropertyTagName(propertyDescriptor);
+      } else {
+        this.ns = this.nsTagName(elementDescriptor);
+      }
+      this.tagName = this.addTagName(this.ns);
+      if (isGeneric) {
+        this.parseGenericContainments(element);
+      } else {
+        properties = getSerializableProperties(element);
+        this.parseAttributes(filterAttributes(properties));
+        this.parseContainments(filterContained(properties));
+      }
+      this.parseGenericAttributes(element, otherAttrs);
+      return this;
+    };
+    ElementSerializer.prototype.nsTagName = function(descriptor) {
+      var effectiveNs = this.logNamespaceUsed(descriptor.ns);
+      return getElementNs(effectiveNs, descriptor);
+    };
+    ElementSerializer.prototype.nsPropertyTagName = function(descriptor) {
+      var effectiveNs = this.logNamespaceUsed(descriptor.ns);
+      return getPropertyNs(effectiveNs, descriptor);
+    };
+    ElementSerializer.prototype.isLocalNs = function(ns2) {
+      return ns2.uri === this.ns.uri;
+    };
+    ElementSerializer.prototype.nsAttributeName = function(element) {
+      var ns2;
+      if (isString(element)) {
+        ns2 = parseName(element);
+      } else {
+        ns2 = element.ns;
+      }
+      if (element.inherited) {
+        return { localName: ns2.localName };
+      }
+      var effectiveNs = this.logNamespaceUsed(ns2);
+      this.getNamespaces().logUsed(effectiveNs);
+      if (this.isLocalNs(effectiveNs)) {
+        return { localName: ns2.localName };
+      } else {
+        return assign2({ localName: ns2.localName }, effectiveNs);
+      }
+    };
+    ElementSerializer.prototype.parseGenericNsAttributes = function(element) {
+      return Object.entries(element).filter(
+        ([key, value]) => !key.startsWith("$") && this.parseNsAttribute(element, key, value)
+      ).map(
+        ([key, value]) => ({ name: key, value })
+      );
+    };
+    ElementSerializer.prototype.parseGenericContainments = function(element) {
+      var body = element.$body;
+      if (body) {
+        this.body.push(new BodySerializer().build({ type: "String" }, body));
+      }
+      var children2 = element.$children;
+      if (children2) {
+        forEach(children2, (child) => {
+          this.body.push(new ElementSerializer(this).build(child));
+        });
+      }
+    };
+    ElementSerializer.prototype.parseNsAttribute = function(element, name2, value) {
+      var model = element.$model;
+      var nameNs = parseName(name2);
+      var ns2;
+      if (nameNs.prefix === "xmlns") {
+        ns2 = { prefix: nameNs.localName, uri: value };
+      }
+      if (!nameNs.prefix && nameNs.localName === "xmlns") {
+        ns2 = { uri: value };
+      }
+      if (!ns2) {
+        return {
+          name: name2,
+          value
+        };
+      }
+      if (model && model.getPackage(value)) {
+        this.logNamespace(ns2, true, true);
+      } else {
+        var actualNs = this.logNamespaceUsed(ns2, true);
+        this.getNamespaces().logUsed(actualNs);
+      }
+    };
+    ElementSerializer.prototype.parseNsAttributes = function(element) {
+      var self2 = this;
+      var genericAttrs = element.$attrs;
+      var attributes = [];
+      forEach(genericAttrs, function(value, name2) {
+        var nonNsAttr = self2.parseNsAttribute(element, name2, value);
+        if (nonNsAttr) {
+          attributes.push(nonNsAttr);
+        }
+      });
+      return attributes;
+    };
+    ElementSerializer.prototype.parseGenericAttributes = function(element, attributes) {
+      var self2 = this;
+      forEach(attributes, function(attr2) {
+        try {
+          self2.addAttribute(self2.nsAttributeName(attr2.name), attr2.value);
+        } catch (e4) {
+          typeof console !== "undefined" && console.warn(
+            `missing namespace information for <${attr2.name}=${attr2.value}> on`,
+            element,
+            e4
+          );
+        }
+      });
+    };
+    ElementSerializer.prototype.parseContainments = function(properties) {
+      var self2 = this, body = this.body, element = this.element;
+      forEach(properties, function(p6) {
+        var value = element.get(p6.name), isReference = p6.isReference, isMany = p6.isMany;
+        if (!isMany) {
+          value = [value];
+        }
+        if (p6.isBody) {
+          body.push(new BodySerializer().build(p6, value[0]));
+        } else if (isSimple(p6.type)) {
+          forEach(value, function(v6) {
+            body.push(new ValueSerializer(self2.addTagName(self2.nsPropertyTagName(p6))).build(p6, v6));
+          });
+        } else if (isReference) {
+          forEach(value, function(v6) {
+            body.push(new ReferenceSerializer(self2.addTagName(self2.nsPropertyTagName(p6))).build(v6));
+          });
+        } else {
+          var serialization = getSerialization(p6);
+          forEach(value, function(v6) {
+            var serializer;
+            if (serialization) {
+              if (serialization === SERIALIZE_PROPERTY) {
+                serializer = new ElementSerializer(self2, p6);
+              } else {
+                serializer = new TypeSerializer(self2, p6, serialization);
+              }
+            } else {
+              serializer = new ElementSerializer(self2);
+            }
+            body.push(serializer.build(v6));
+          });
+        }
+      });
+    };
+    ElementSerializer.prototype.getNamespaces = function(local) {
+      var namespaces = this.namespaces, parent = this.parent, parentNamespaces;
+      if (!namespaces) {
+        parentNamespaces = parent && parent.getNamespaces();
+        if (local || !parentNamespaces) {
+          this.namespaces = namespaces = new Namespaces(parentNamespaces);
+        } else {
+          namespaces = parentNamespaces;
+        }
+      }
+      return namespaces;
+    };
+    ElementSerializer.prototype.logNamespace = function(ns2, wellknown, local) {
+      var namespaces = this.getNamespaces(local);
+      var nsUri = ns2.uri, nsPrefix = ns2.prefix;
+      var existing = namespaces.byUri(nsUri);
+      if (!existing || local) {
+        namespaces.add(ns2, wellknown);
+      }
+      namespaces.mapPrefix(nsPrefix, nsUri);
+      return ns2;
+    };
+    ElementSerializer.prototype.logNamespaceUsed = function(ns2, local) {
+      var namespaces = this.getNamespaces(local);
+      var prefix2 = ns2.prefix, uri2 = ns2.uri, newPrefix, idx, wellknownUri;
+      if (!prefix2 && !uri2) {
+        return { localName: ns2.localName };
+      }
+      wellknownUri = namespaces.defaultUriByPrefix(prefix2);
+      uri2 = uri2 || wellknownUri || namespaces.uriByPrefix(prefix2);
+      if (!uri2) {
+        throw new Error("no namespace uri given for prefix <" + prefix2 + ">");
+      }
+      ns2 = namespaces.byUri(uri2);
+      if (!ns2 && !prefix2) {
+        ns2 = this.logNamespace({ uri: uri2 }, wellknownUri === uri2, true);
+      }
+      if (!ns2) {
+        newPrefix = prefix2;
+        idx = 1;
+        while (namespaces.uriByPrefix(newPrefix)) {
+          newPrefix = prefix2 + "_" + idx++;
+        }
+        ns2 = this.logNamespace({ prefix: newPrefix, uri: uri2 }, wellknownUri === uri2);
+      }
+      if (prefix2) {
+        namespaces.mapPrefix(prefix2, uri2);
+      }
+      return ns2;
+    };
+    ElementSerializer.prototype.parseAttributes = function(properties) {
+      var self2 = this, element = this.element;
+      forEach(properties, function(p6) {
+        var value = element.get(p6.name);
+        if (p6.isReference) {
+          if (!p6.isMany) {
+            value = value.id;
+          } else {
+            var values = [];
+            forEach(value, function(v6) {
+              values.push(v6.id);
+            });
+            value = values.join(" ");
+          }
+        }
+        self2.addAttribute(self2.nsAttributeName(p6), value);
+      });
+    };
+    ElementSerializer.prototype.addTagName = function(nsTagName) {
+      var actualNs = this.logNamespaceUsed(nsTagName);
+      this.getNamespaces().logUsed(actualNs);
+      return nsName(nsTagName);
+    };
+    ElementSerializer.prototype.addAttribute = function(name2, value) {
+      var attrs = this.attrs;
+      if (isString(value)) {
+        value = escapeAttr(value);
+      }
+      var idx = findIndex(attrs, function(element) {
+        return element.name.localName === name2.localName && element.name.uri === name2.uri && element.name.prefix === name2.prefix;
+      });
+      var attr2 = { name: name2, value };
+      if (idx !== -1) {
+        attrs.splice(idx, 1, attr2);
+      } else {
+        attrs.push(attr2);
+      }
+    };
+    ElementSerializer.prototype.serializeAttributes = function(writer) {
+      var attrs = this.attrs, namespaces = this.namespaces;
+      if (namespaces) {
+        attrs = getNsAttrs(namespaces).concat(attrs);
+      }
+      forEach(attrs, function(a5) {
+        writer.append(" ").append(nsName(a5.name)).append('="').append(a5.value).append('"');
+      });
+    };
+    ElementSerializer.prototype.serializeTo = function(writer) {
+      var firstBody = this.body[0], indent = firstBody && firstBody.constructor !== BodySerializer;
+      writer.appendIndent().append("<" + this.tagName);
+      this.serializeAttributes(writer);
+      writer.append(firstBody ? ">" : " />");
+      if (firstBody) {
+        if (indent) {
+          writer.appendNewLine().indent();
+        }
+        forEach(this.body, function(b3) {
+          b3.serializeTo(writer);
+        });
+        if (indent) {
+          writer.unindent().appendIndent();
+        }
+        writer.append("</" + this.tagName + ">");
+      }
+      writer.appendNewLine();
+    };
+    inherits(TypeSerializer, ElementSerializer);
+    TypeSerializer.prototype.parseNsAttributes = function(element) {
+      var attributes = ElementSerializer.prototype.parseNsAttributes.call(this, element).filter(
+        (attr2) => attr2.name !== this.serialization
+      );
+      var descriptor = element.$descriptor;
+      if (descriptor.name === this.propertyDescriptor.type) {
+        return attributes;
+      }
+      var typeNs = this.typeNs = this.nsTagName(descriptor);
+      this.getNamespaces().logUsed(this.typeNs);
+      var pkg = element.$model.getPackage(typeNs.uri), typePrefix = pkg.xml && pkg.xml.typePrefix || "";
+      this.addAttribute(
+        this.nsAttributeName(this.serialization),
+        (typeNs.prefix ? typeNs.prefix + ":" : "") + typePrefix + descriptor.ns.localName
+      );
+      return attributes;
+    };
+    TypeSerializer.prototype.isLocalNs = function(ns2) {
+      return ns2.uri === (this.typeNs || this.ns).uri;
+    };
+  }
+});
+
+// node_modules/bpmn-moddle/dist/index.js
+function BpmnModdle(packages2, options) {
+  Moddle.call(this, packages2, options);
+}
+function SimpleBpmnModdle(additionalPackages, options) {
+  const pks = assign2({}, packages, additionalPackages);
+  return new BpmnModdle(pks, options);
+}
+var name$5, uri$5, prefix$5, associations$5, types$5, enumerations$3, xml$1, BpmnPackage, name$4, uri$4, prefix$4, types$4, enumerations$2, associations$4, BpmnDiPackage, name$3, uri$3, prefix$3, types$3, associations$3, DcPackage, name$2, uri$2, prefix$2, types$2, associations$2, xml2, DiPackage, name$1, uri$1, prefix$1, types$1, enumerations$1, associations$1, BiocPackage, name, uri, prefix, types, enumerations, associations, BpmnInColorPackage, packages;
+var init_dist5 = __esm({
+  "node_modules/bpmn-moddle/dist/index.js"() {
+    init_dist();
+    init_dist2();
+    init_dist4();
+    BpmnModdle.prototype = Object.create(Moddle.prototype);
+    BpmnModdle.prototype.fromXML = function(xmlStr, typeName, options) {
+      if (!isString(typeName)) {
+        options = typeName;
+        typeName = "bpmn:Definitions";
+      }
+      var reader = new Reader(assign2({ model: this, lax: true }, options));
+      var rootHandler = reader.handler(typeName);
+      return reader.fromXML(xmlStr, rootHandler);
+    };
+    BpmnModdle.prototype.toXML = function(element, options) {
+      var writer = new Writer(options);
+      return new Promise(function(resolve3, reject) {
+        try {
+          var result = writer.toXML(element);
+          return resolve3({
+            xml: result
+          });
+        } catch (err2) {
+          return reject(err2);
+        }
+      });
+    };
+    name$5 = "BPMN20";
+    uri$5 = "http://www.omg.org/spec/BPMN/20100524/MODEL";
+    prefix$5 = "bpmn";
+    associations$5 = [];
+    types$5 = [
+      {
+        name: "Interface",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "operations",
+            type: "Operation",
+            isMany: true
+          },
+          {
+            name: "implementationRef",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "Operation",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "inMessageRef",
+            type: "Message",
+            isReference: true
+          },
+          {
+            name: "outMessageRef",
+            type: "Message",
+            isReference: true
+          },
+          {
+            name: "errorRef",
+            type: "Error",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "implementationRef",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "EndPoint",
+        superClass: [
+          "RootElement"
+        ]
+      },
+      {
+        name: "Auditing",
+        superClass: [
+          "BaseElement"
+        ]
+      },
+      {
+        name: "GlobalTask",
+        superClass: [
+          "CallableElement"
+        ],
+        properties: [
+          {
+            name: "resources",
+            type: "ResourceRole",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "Monitoring",
+        superClass: [
+          "BaseElement"
+        ]
+      },
+      {
+        name: "Performer",
+        superClass: [
+          "ResourceRole"
+        ]
+      },
+      {
+        name: "Process",
+        superClass: [
+          "FlowElementsContainer",
+          "CallableElement"
+        ],
+        properties: [
+          {
+            name: "processType",
+            type: "ProcessType",
+            isAttr: true
+          },
+          {
+            name: "isClosed",
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "auditing",
+            type: "Auditing"
+          },
+          {
+            name: "monitoring",
+            type: "Monitoring"
+          },
+          {
+            name: "properties",
+            type: "Property",
+            isMany: true
+          },
+          {
+            name: "laneSets",
+            isMany: true,
+            replaces: "FlowElementsContainer#laneSets",
+            type: "LaneSet"
+          },
+          {
+            name: "flowElements",
+            isMany: true,
+            replaces: "FlowElementsContainer#flowElements",
+            type: "FlowElement"
+          },
+          {
+            name: "artifacts",
+            type: "Artifact",
+            isMany: true
+          },
+          {
+            name: "resources",
+            type: "ResourceRole",
+            isMany: true
+          },
+          {
+            name: "correlationSubscriptions",
+            type: "CorrelationSubscription",
+            isMany: true
+          },
+          {
+            name: "supports",
+            type: "Process",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "definitionalCollaborationRef",
+            type: "Collaboration",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "isExecutable",
+            isAttr: true,
+            type: "Boolean"
+          }
+        ]
+      },
+      {
+        name: "LaneSet",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "lanes",
+            type: "Lane",
+            isMany: true
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "Lane",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "partitionElementRef",
+            type: "BaseElement",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "partitionElement",
+            type: "BaseElement"
+          },
+          {
+            name: "flowNodeRef",
+            type: "FlowNode",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "childLaneSet",
+            type: "LaneSet",
+            xml: {
+              serialize: "xsi:type"
+            }
+          }
+        ]
+      },
+      {
+        name: "GlobalManualTask",
+        superClass: [
+          "GlobalTask"
+        ]
+      },
+      {
+        name: "ManualTask",
+        superClass: [
+          "Task"
+        ]
+      },
+      {
+        name: "UserTask",
+        superClass: [
+          "Task"
+        ],
+        properties: [
+          {
+            name: "renderings",
+            type: "Rendering",
+            isMany: true
+          },
+          {
+            name: "implementation",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "Rendering",
+        superClass: [
+          "BaseElement"
+        ]
+      },
+      {
+        name: "HumanPerformer",
+        superClass: [
+          "Performer"
+        ]
+      },
+      {
+        name: "PotentialOwner",
+        superClass: [
+          "HumanPerformer"
+        ]
+      },
+      {
+        name: "GlobalUserTask",
+        superClass: [
+          "GlobalTask"
+        ],
+        properties: [
+          {
+            name: "implementation",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "renderings",
+            type: "Rendering",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "Gateway",
+        isAbstract: true,
+        superClass: [
+          "FlowNode"
+        ],
+        properties: [
+          {
+            name: "gatewayDirection",
+            type: "GatewayDirection",
+            "default": "Unspecified",
+            isAttr: true
+          }
+        ]
+      },
+      {
+        name: "EventBasedGateway",
+        superClass: [
+          "Gateway"
+        ],
+        properties: [
+          {
+            name: "instantiate",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "eventGatewayType",
+            type: "EventBasedGatewayType",
+            isAttr: true,
+            "default": "Exclusive"
+          }
+        ]
+      },
+      {
+        name: "ComplexGateway",
+        superClass: [
+          "Gateway"
+        ],
+        properties: [
+          {
+            name: "activationCondition",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          },
+          {
+            name: "default",
+            type: "SequenceFlow",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ExclusiveGateway",
+        superClass: [
+          "Gateway"
+        ],
+        properties: [
+          {
+            name: "default",
+            type: "SequenceFlow",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "InclusiveGateway",
+        superClass: [
+          "Gateway"
+        ],
+        properties: [
+          {
+            name: "default",
+            type: "SequenceFlow",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ParallelGateway",
+        superClass: [
+          "Gateway"
+        ]
+      },
+      {
+        name: "RootElement",
+        isAbstract: true,
+        superClass: [
+          "BaseElement"
+        ]
+      },
+      {
+        name: "Relationship",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "type",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "direction",
+            type: "RelationshipDirection",
+            isAttr: true
+          },
+          {
+            name: "source",
+            isMany: true,
+            isReference: true,
+            type: "Element"
+          },
+          {
+            name: "target",
+            isMany: true,
+            isReference: true,
+            type: "Element"
+          }
+        ]
+      },
+      {
+        name: "BaseElement",
+        isAbstract: true,
+        properties: [
+          {
+            name: "id",
+            isAttr: true,
+            type: "String",
+            isId: true
+          },
+          {
+            name: "documentation",
+            type: "Documentation",
+            isMany: true
+          },
+          {
+            name: "extensionDefinitions",
+            type: "ExtensionDefinition",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "extensionElements",
+            type: "ExtensionElements"
+          }
+        ]
+      },
+      {
+        name: "Extension",
+        properties: [
+          {
+            name: "mustUnderstand",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "definition",
+            type: "ExtensionDefinition",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ExtensionDefinition",
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "extensionAttributeDefinitions",
+            type: "ExtensionAttributeDefinition",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "ExtensionAttributeDefinition",
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "type",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "isReference",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "extensionDefinition",
+            type: "ExtensionDefinition",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ExtensionElements",
+        properties: [
+          {
+            name: "valueRef",
+            isAttr: true,
+            isReference: true,
+            type: "Element"
+          },
+          {
+            name: "values",
+            type: "Element",
+            isMany: true
+          },
+          {
+            name: "extensionAttributeDefinition",
+            type: "ExtensionAttributeDefinition",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Documentation",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "text",
+            type: "String",
+            isBody: true
+          },
+          {
+            name: "textFormat",
+            "default": "text/plain",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "Event",
+        isAbstract: true,
+        superClass: [
+          "FlowNode",
+          "InteractionNode"
+        ],
+        properties: [
+          {
+            name: "properties",
+            type: "Property",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "IntermediateCatchEvent",
+        superClass: [
+          "CatchEvent"
+        ]
+      },
+      {
+        name: "IntermediateThrowEvent",
+        superClass: [
+          "ThrowEvent"
+        ]
+      },
+      {
+        name: "EndEvent",
+        superClass: [
+          "ThrowEvent"
+        ]
+      },
+      {
+        name: "StartEvent",
+        superClass: [
+          "CatchEvent"
+        ],
+        properties: [
+          {
+            name: "isInterrupting",
+            "default": true,
+            isAttr: true,
+            type: "Boolean"
+          }
+        ]
+      },
+      {
+        name: "ThrowEvent",
+        isAbstract: true,
+        superClass: [
+          "Event"
+        ],
+        properties: [
+          {
+            name: "dataInputs",
+            type: "DataInput",
+            isMany: true
+          },
+          {
+            name: "dataInputAssociations",
+            type: "DataInputAssociation",
+            isMany: true
+          },
+          {
+            name: "inputSet",
+            type: "InputSet"
+          },
+          {
+            name: "eventDefinitions",
+            type: "EventDefinition",
+            isMany: true
+          },
+          {
+            name: "eventDefinitionRef",
+            type: "EventDefinition",
+            isMany: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "CatchEvent",
+        isAbstract: true,
+        superClass: [
+          "Event"
+        ],
+        properties: [
+          {
+            name: "parallelMultiple",
+            isAttr: true,
+            type: "Boolean",
+            "default": false
+          },
+          {
+            name: "dataOutputs",
+            type: "DataOutput",
+            isMany: true
+          },
+          {
+            name: "dataOutputAssociations",
+            type: "DataOutputAssociation",
+            isMany: true
+          },
+          {
+            name: "outputSet",
+            type: "OutputSet"
+          },
+          {
+            name: "eventDefinitions",
+            type: "EventDefinition",
+            isMany: true
+          },
+          {
+            name: "eventDefinitionRef",
+            type: "EventDefinition",
+            isMany: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "BoundaryEvent",
+        superClass: [
+          "CatchEvent"
+        ],
+        properties: [
+          {
+            name: "cancelActivity",
+            "default": true,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "attachedToRef",
+            type: "Activity",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "EventDefinition",
+        isAbstract: true,
+        superClass: [
+          "RootElement"
+        ]
+      },
+      {
+        name: "CancelEventDefinition",
+        superClass: [
+          "EventDefinition"
+        ]
+      },
+      {
+        name: "ErrorEventDefinition",
+        superClass: [
+          "EventDefinition"
+        ],
+        properties: [
+          {
+            name: "errorRef",
+            type: "Error",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "TerminateEventDefinition",
+        superClass: [
+          "EventDefinition"
+        ]
+      },
+      {
+        name: "EscalationEventDefinition",
+        superClass: [
+          "EventDefinition"
+        ],
+        properties: [
+          {
+            name: "escalationRef",
+            type: "Escalation",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Escalation",
+        properties: [
+          {
+            name: "structureRef",
+            type: "ItemDefinition",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "escalationCode",
+            isAttr: true,
+            type: "String"
+          }
+        ],
+        superClass: [
+          "RootElement"
+        ]
+      },
+      {
+        name: "CompensateEventDefinition",
+        superClass: [
+          "EventDefinition"
+        ],
+        properties: [
+          {
+            name: "waitForCompletion",
+            isAttr: true,
+            type: "Boolean",
+            "default": true
+          },
+          {
+            name: "activityRef",
+            type: "Activity",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "TimerEventDefinition",
+        superClass: [
+          "EventDefinition"
+        ],
+        properties: [
+          {
+            name: "timeDate",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          },
+          {
+            name: "timeCycle",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          },
+          {
+            name: "timeDuration",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          }
+        ]
+      },
+      {
+        name: "LinkEventDefinition",
+        superClass: [
+          "EventDefinition"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "target",
+            type: "LinkEventDefinition",
+            isReference: true
+          },
+          {
+            name: "source",
+            type: "LinkEventDefinition",
+            isMany: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "MessageEventDefinition",
+        superClass: [
+          "EventDefinition"
+        ],
+        properties: [
+          {
+            name: "messageRef",
+            type: "Message",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "operationRef",
+            type: "Operation",
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ConditionalEventDefinition",
+        superClass: [
+          "EventDefinition"
+        ],
+        properties: [
+          {
+            name: "condition",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          }
+        ]
+      },
+      {
+        name: "SignalEventDefinition",
+        superClass: [
+          "EventDefinition"
+        ],
+        properties: [
+          {
+            name: "signalRef",
+            type: "Signal",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Signal",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "structureRef",
+            type: "ItemDefinition",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "ImplicitThrowEvent",
+        superClass: [
+          "ThrowEvent"
+        ]
+      },
+      {
+        name: "DataState",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "ItemAwareElement",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "itemSubjectRef",
+            type: "ItemDefinition",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "dataState",
+            type: "DataState"
+          }
+        ]
+      },
+      {
+        name: "DataAssociation",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "sourceRef",
+            type: "ItemAwareElement",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "targetRef",
+            type: "ItemAwareElement",
+            isReference: true
+          },
+          {
+            name: "transformation",
+            type: "FormalExpression",
+            xml: {
+              serialize: "property"
+            }
+          },
+          {
+            name: "assignment",
+            type: "Assignment",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "DataInput",
+        superClass: [
+          "ItemAwareElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "isCollection",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "inputSetRef",
+            type: "InputSet",
+            isMany: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "inputSetWithOptional",
+            type: "InputSet",
+            isMany: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "inputSetWithWhileExecuting",
+            type: "InputSet",
+            isMany: true,
+            isVirtual: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "DataOutput",
+        superClass: [
+          "ItemAwareElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "isCollection",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "outputSetRef",
+            type: "OutputSet",
+            isMany: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "outputSetWithOptional",
+            type: "OutputSet",
+            isMany: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "outputSetWithWhileExecuting",
+            type: "OutputSet",
+            isMany: true,
+            isVirtual: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "InputSet",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "dataInputRefs",
+            type: "DataInput",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "optionalInputRefs",
+            type: "DataInput",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "whileExecutingInputRefs",
+            type: "DataInput",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "outputSetRefs",
+            type: "OutputSet",
+            isMany: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "OutputSet",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "dataOutputRefs",
+            type: "DataOutput",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "inputSetRefs",
+            type: "InputSet",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "optionalOutputRefs",
+            type: "DataOutput",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "whileExecutingOutputRefs",
+            type: "DataOutput",
+            isMany: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Property",
+        superClass: [
+          "ItemAwareElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "DataInputAssociation",
+        superClass: [
+          "DataAssociation"
+        ]
+      },
+      {
+        name: "DataOutputAssociation",
+        superClass: [
+          "DataAssociation"
+        ]
+      },
+      {
+        name: "InputOutputSpecification",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "dataInputs",
+            type: "DataInput",
+            isMany: true
+          },
+          {
+            name: "dataOutputs",
+            type: "DataOutput",
+            isMany: true
+          },
+          {
+            name: "inputSets",
+            type: "InputSet",
+            isMany: true
+          },
+          {
+            name: "outputSets",
+            type: "OutputSet",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "DataObject",
+        superClass: [
+          "FlowElement",
+          "ItemAwareElement"
+        ],
+        properties: [
+          {
+            name: "isCollection",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          }
+        ]
+      },
+      {
+        name: "InputOutputBinding",
+        properties: [
+          {
+            name: "inputDataRef",
+            type: "InputSet",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "outputDataRef",
+            type: "OutputSet",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "operationRef",
+            type: "Operation",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Assignment",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "from",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          },
+          {
+            name: "to",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          }
+        ]
+      },
+      {
+        name: "DataStore",
+        superClass: [
+          "RootElement",
+          "ItemAwareElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "capacity",
+            isAttr: true,
+            type: "Integer"
+          },
+          {
+            name: "isUnlimited",
+            "default": true,
+            isAttr: true,
+            type: "Boolean"
+          }
+        ]
+      },
+      {
+        name: "DataStoreReference",
+        superClass: [
+          "ItemAwareElement",
+          "FlowElement"
+        ],
+        properties: [
+          {
+            name: "dataStoreRef",
+            type: "DataStore",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "DataObjectReference",
+        superClass: [
+          "ItemAwareElement",
+          "FlowElement"
+        ],
+        properties: [
+          {
+            name: "dataObjectRef",
+            type: "DataObject",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ConversationLink",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "sourceRef",
+            type: "InteractionNode",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "targetRef",
+            type: "InteractionNode",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "ConversationAssociation",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "innerConversationNodeRef",
+            type: "ConversationNode",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "outerConversationNodeRef",
+            type: "ConversationNode",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "CallConversation",
+        superClass: [
+          "ConversationNode"
+        ],
+        properties: [
+          {
+            name: "calledCollaborationRef",
+            type: "Collaboration",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "participantAssociations",
+            type: "ParticipantAssociation",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "Conversation",
+        superClass: [
+          "ConversationNode"
+        ]
+      },
+      {
+        name: "SubConversation",
+        superClass: [
+          "ConversationNode"
+        ],
+        properties: [
+          {
+            name: "conversationNodes",
+            type: "ConversationNode",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "ConversationNode",
+        isAbstract: true,
+        superClass: [
+          "InteractionNode",
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "participantRef",
+            type: "Participant",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "messageFlowRefs",
+            type: "MessageFlow",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "correlationKeys",
+            type: "CorrelationKey",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "GlobalConversation",
+        superClass: [
+          "Collaboration"
+        ]
+      },
+      {
+        name: "PartnerEntity",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "participantRef",
+            type: "Participant",
+            isMany: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "PartnerRole",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "participantRef",
+            type: "Participant",
+            isMany: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "CorrelationProperty",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "correlationPropertyRetrievalExpression",
+            type: "CorrelationPropertyRetrievalExpression",
+            isMany: true
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "type",
+            type: "ItemDefinition",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Error",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "structureRef",
+            type: "ItemDefinition",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "errorCode",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "CorrelationKey",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "correlationPropertyRef",
+            type: "CorrelationProperty",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "Expression",
+        superClass: [
+          "BaseElement"
+        ],
+        isAbstract: false,
+        properties: [
+          {
+            name: "body",
+            isBody: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "FormalExpression",
+        superClass: [
+          "Expression"
+        ],
+        properties: [
+          {
+            name: "language",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "evaluatesToTypeRef",
+            type: "ItemDefinition",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Message",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "itemRef",
+            type: "ItemDefinition",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ItemDefinition",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "itemKind",
+            type: "ItemKind",
+            isAttr: true
+          },
+          {
+            name: "structureRef",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "isCollection",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "import",
+            type: "Import",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "FlowElement",
+        isAbstract: true,
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "auditing",
+            type: "Auditing"
+          },
+          {
+            name: "monitoring",
+            type: "Monitoring"
+          },
+          {
+            name: "categoryValueRef",
+            type: "CategoryValue",
+            isMany: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "SequenceFlow",
+        superClass: [
+          "FlowElement"
+        ],
+        properties: [
+          {
+            name: "isImmediate",
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "conditionExpression",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          },
+          {
+            name: "sourceRef",
+            type: "FlowNode",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "targetRef",
+            type: "FlowNode",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "FlowElementsContainer",
+        isAbstract: true,
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "laneSets",
+            type: "LaneSet",
+            isMany: true
+          },
+          {
+            name: "flowElements",
+            type: "FlowElement",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "CallableElement",
+        isAbstract: true,
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "ioSpecification",
+            type: "InputOutputSpecification",
+            xml: {
+              serialize: "property"
+            }
+          },
+          {
+            name: "supportedInterfaceRef",
+            type: "Interface",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "ioBinding",
+            type: "InputOutputBinding",
+            isMany: true,
+            xml: {
+              serialize: "property"
+            }
+          }
+        ]
+      },
+      {
+        name: "FlowNode",
+        isAbstract: true,
+        superClass: [
+          "FlowElement"
+        ],
+        properties: [
+          {
+            name: "incoming",
+            type: "SequenceFlow",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "outgoing",
+            type: "SequenceFlow",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "lanes",
+            type: "Lane",
+            isMany: true,
+            isVirtual: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "CorrelationPropertyRetrievalExpression",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "messagePath",
+            type: "FormalExpression"
+          },
+          {
+            name: "messageRef",
+            type: "Message",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "CorrelationPropertyBinding",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "dataPath",
+            type: "FormalExpression"
+          },
+          {
+            name: "correlationPropertyRef",
+            type: "CorrelationProperty",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Resource",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "resourceParameters",
+            type: "ResourceParameter",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "ResourceParameter",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "isRequired",
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "type",
+            type: "ItemDefinition",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "CorrelationSubscription",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "correlationKeyRef",
+            type: "CorrelationKey",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "correlationPropertyBinding",
+            type: "CorrelationPropertyBinding",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "MessageFlow",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "sourceRef",
+            type: "InteractionNode",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "targetRef",
+            type: "InteractionNode",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "messageRef",
+            type: "Message",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "MessageFlowAssociation",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "innerMessageFlowRef",
+            type: "MessageFlow",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "outerMessageFlowRef",
+            type: "MessageFlow",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "InteractionNode",
+        isAbstract: true,
+        properties: [
+          {
+            name: "incomingConversationLinks",
+            type: "ConversationLink",
+            isMany: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "outgoingConversationLinks",
+            type: "ConversationLink",
+            isMany: true,
+            isVirtual: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Participant",
+        superClass: [
+          "InteractionNode",
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "interfaceRef",
+            type: "Interface",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "participantMultiplicity",
+            type: "ParticipantMultiplicity"
+          },
+          {
+            name: "endPointRefs",
+            type: "EndPoint",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "processRef",
+            type: "Process",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ParticipantAssociation",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "innerParticipantRef",
+            type: "Participant",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "outerParticipantRef",
+            type: "Participant",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ParticipantMultiplicity",
+        properties: [
+          {
+            name: "minimum",
+            "default": 0,
+            isAttr: true,
+            type: "Integer"
+          },
+          {
+            name: "maximum",
+            "default": 1,
+            isAttr: true,
+            type: "Integer"
+          }
+        ],
+        superClass: [
+          "BaseElement"
+        ]
+      },
+      {
+        name: "Collaboration",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "isClosed",
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "participants",
+            type: "Participant",
+            isMany: true
+          },
+          {
+            name: "messageFlows",
+            type: "MessageFlow",
+            isMany: true
+          },
+          {
+            name: "artifacts",
+            type: "Artifact",
+            isMany: true
+          },
+          {
+            name: "conversations",
+            type: "ConversationNode",
+            isMany: true
+          },
+          {
+            name: "conversationAssociations",
+            type: "ConversationAssociation"
+          },
+          {
+            name: "participantAssociations",
+            type: "ParticipantAssociation",
+            isMany: true
+          },
+          {
+            name: "messageFlowAssociations",
+            type: "MessageFlowAssociation",
+            isMany: true
+          },
+          {
+            name: "correlationKeys",
+            type: "CorrelationKey",
+            isMany: true
+          },
+          {
+            name: "choreographyRef",
+            type: "Choreography",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "conversationLinks",
+            type: "ConversationLink",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "ChoreographyActivity",
+        isAbstract: true,
+        superClass: [
+          "FlowNode"
+        ],
+        properties: [
+          {
+            name: "participantRef",
+            type: "Participant",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "initiatingParticipantRef",
+            type: "Participant",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "correlationKeys",
+            type: "CorrelationKey",
+            isMany: true
+          },
+          {
+            name: "loopType",
+            type: "ChoreographyLoopType",
+            "default": "None",
+            isAttr: true
+          }
+        ]
+      },
+      {
+        name: "CallChoreography",
+        superClass: [
+          "ChoreographyActivity"
+        ],
+        properties: [
+          {
+            name: "calledChoreographyRef",
+            type: "Choreography",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "participantAssociations",
+            type: "ParticipantAssociation",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "SubChoreography",
+        superClass: [
+          "ChoreographyActivity",
+          "FlowElementsContainer"
+        ],
+        properties: [
+          {
+            name: "artifacts",
+            type: "Artifact",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "ChoreographyTask",
+        superClass: [
+          "ChoreographyActivity"
+        ],
+        properties: [
+          {
+            name: "messageFlowRef",
+            type: "MessageFlow",
+            isMany: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Choreography",
+        superClass: [
+          "Collaboration",
+          "FlowElementsContainer"
+        ]
+      },
+      {
+        name: "GlobalChoreographyTask",
+        superClass: [
+          "Choreography"
+        ],
+        properties: [
+          {
+            name: "initiatingParticipantRef",
+            type: "Participant",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "TextAnnotation",
+        superClass: [
+          "Artifact"
+        ],
+        properties: [
+          {
+            name: "text",
+            type: "String"
+          },
+          {
+            name: "textFormat",
+            "default": "text/plain",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "Group",
+        superClass: [
+          "Artifact"
+        ],
+        properties: [
+          {
+            name: "categoryValueRef",
+            type: "CategoryValue",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Association",
+        superClass: [
+          "Artifact"
+        ],
+        properties: [
+          {
+            name: "associationDirection",
+            type: "AssociationDirection",
+            isAttr: true
+          },
+          {
+            name: "sourceRef",
+            type: "BaseElement",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "targetRef",
+            type: "BaseElement",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "Category",
+        superClass: [
+          "RootElement"
+        ],
+        properties: [
+          {
+            name: "categoryValue",
+            type: "CategoryValue",
+            isMany: true
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "Artifact",
+        isAbstract: true,
+        superClass: [
+          "BaseElement"
+        ]
+      },
+      {
+        name: "CategoryValue",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "categorizedFlowElements",
+            type: "FlowElement",
+            isMany: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "value",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "Activity",
+        isAbstract: true,
+        superClass: [
+          "FlowNode"
+        ],
+        properties: [
+          {
+            name: "isForCompensation",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "default",
+            type: "SequenceFlow",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "ioSpecification",
+            type: "InputOutputSpecification",
+            xml: {
+              serialize: "property"
+            }
+          },
+          {
+            name: "boundaryEventRefs",
+            type: "BoundaryEvent",
+            isMany: true,
+            isReference: true
+          },
+          {
+            name: "properties",
+            type: "Property",
+            isMany: true
+          },
+          {
+            name: "dataInputAssociations",
+            type: "DataInputAssociation",
+            isMany: true
+          },
+          {
+            name: "dataOutputAssociations",
+            type: "DataOutputAssociation",
+            isMany: true
+          },
+          {
+            name: "startQuantity",
+            "default": 1,
+            isAttr: true,
+            type: "Integer"
+          },
+          {
+            name: "resources",
+            type: "ResourceRole",
+            isMany: true
+          },
+          {
+            name: "completionQuantity",
+            "default": 1,
+            isAttr: true,
+            type: "Integer"
+          },
+          {
+            name: "loopCharacteristics",
+            type: "LoopCharacteristics"
+          }
+        ]
+      },
+      {
+        name: "ServiceTask",
+        superClass: [
+          "Task"
+        ],
+        properties: [
+          {
+            name: "implementation",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "operationRef",
+            type: "Operation",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "SubProcess",
+        superClass: [
+          "Activity",
+          "FlowElementsContainer",
+          "InteractionNode"
+        ],
+        properties: [
+          {
+            name: "triggeredByEvent",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "artifacts",
+            type: "Artifact",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "LoopCharacteristics",
+        isAbstract: true,
+        superClass: [
+          "BaseElement"
+        ]
+      },
+      {
+        name: "MultiInstanceLoopCharacteristics",
+        superClass: [
+          "LoopCharacteristics"
+        ],
+        properties: [
+          {
+            name: "isSequential",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "behavior",
+            type: "MultiInstanceBehavior",
+            "default": "All",
+            isAttr: true
+          },
+          {
+            name: "loopCardinality",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          },
+          {
+            name: "loopDataInputRef",
+            type: "ItemAwareElement",
+            isReference: true
+          },
+          {
+            name: "loopDataOutputRef",
+            type: "ItemAwareElement",
+            isReference: true
+          },
+          {
+            name: "inputDataItem",
+            type: "DataInput",
+            xml: {
+              serialize: "property"
+            }
+          },
+          {
+            name: "outputDataItem",
+            type: "DataOutput",
+            xml: {
+              serialize: "property"
+            }
+          },
+          {
+            name: "complexBehaviorDefinition",
+            type: "ComplexBehaviorDefinition",
+            isMany: true
+          },
+          {
+            name: "completionCondition",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          },
+          {
+            name: "oneBehaviorEventRef",
+            type: "EventDefinition",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "noneBehaviorEventRef",
+            type: "EventDefinition",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "StandardLoopCharacteristics",
+        superClass: [
+          "LoopCharacteristics"
+        ],
+        properties: [
+          {
+            name: "testBefore",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "loopCondition",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          },
+          {
+            name: "loopMaximum",
+            type: "Integer",
+            isAttr: true
+          }
+        ]
+      },
+      {
+        name: "CallActivity",
+        superClass: [
+          "Activity",
+          "InteractionNode"
+        ],
+        properties: [
+          {
+            name: "calledElement",
+            type: "String",
+            isAttr: true
+          }
+        ]
+      },
+      {
+        name: "Task",
+        superClass: [
+          "Activity",
+          "InteractionNode"
+        ]
+      },
+      {
+        name: "SendTask",
+        superClass: [
+          "Task"
+        ],
+        properties: [
+          {
+            name: "implementation",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "operationRef",
+            type: "Operation",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "messageRef",
+            type: "Message",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ReceiveTask",
+        superClass: [
+          "Task"
+        ],
+        properties: [
+          {
+            name: "implementation",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "instantiate",
+            "default": false,
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "operationRef",
+            type: "Operation",
+            isAttr: true,
+            isReference: true
+          },
+          {
+            name: "messageRef",
+            type: "Message",
+            isAttr: true,
+            isReference: true
+          }
+        ]
+      },
+      {
+        name: "ScriptTask",
+        superClass: [
+          "Task"
+        ],
+        properties: [
+          {
+            name: "scriptFormat",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "script",
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "BusinessRuleTask",
+        superClass: [
+          "Task"
+        ],
+        properties: [
+          {
+            name: "implementation",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "AdHocSubProcess",
+        superClass: [
+          "SubProcess"
+        ],
+        properties: [
+          {
+            name: "completionCondition",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          },
+          {
+            name: "ordering",
+            type: "AdHocOrdering",
+            isAttr: true
+          },
+          {
+            name: "cancelRemainingInstances",
+            "default": true,
+            isAttr: true,
+            type: "Boolean"
+          }
+        ]
+      },
+      {
+        name: "Transaction",
+        superClass: [
+          "SubProcess"
+        ],
+        properties: [
+          {
+            name: "protocol",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "method",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "GlobalScriptTask",
+        superClass: [
+          "GlobalTask"
+        ],
+        properties: [
+          {
+            name: "scriptLanguage",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "script",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "GlobalBusinessRuleTask",
+        superClass: [
+          "GlobalTask"
+        ],
+        properties: [
+          {
+            name: "implementation",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "ComplexBehaviorDefinition",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "condition",
+            type: "FormalExpression"
+          },
+          {
+            name: "event",
+            type: "ImplicitThrowEvent"
+          }
+        ]
+      },
+      {
+        name: "ResourceRole",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "resourceRef",
+            type: "Resource",
+            isReference: true
+          },
+          {
+            name: "resourceParameterBindings",
+            type: "ResourceParameterBinding",
+            isMany: true
+          },
+          {
+            name: "resourceAssignmentExpression",
+            type: "ResourceAssignmentExpression"
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "ResourceParameterBinding",
+        properties: [
+          {
+            name: "expression",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          },
+          {
+            name: "parameterRef",
+            type: "ResourceParameter",
+            isAttr: true,
+            isReference: true
+          }
+        ],
+        superClass: [
+          "BaseElement"
+        ]
+      },
+      {
+        name: "ResourceAssignmentExpression",
+        properties: [
+          {
+            name: "expression",
+            type: "Expression",
+            xml: {
+              serialize: "xsi:type"
+            }
+          }
+        ],
+        superClass: [
+          "BaseElement"
+        ]
+      },
+      {
+        name: "Import",
+        properties: [
+          {
+            name: "importType",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "location",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "namespace",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "Definitions",
+        superClass: [
+          "BaseElement"
+        ],
+        properties: [
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "targetNamespace",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "expressionLanguage",
+            "default": "http://www.w3.org/1999/XPath",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "typeLanguage",
+            "default": "http://www.w3.org/2001/XMLSchema",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "imports",
+            type: "Import",
+            isMany: true
+          },
+          {
+            name: "extensions",
+            type: "Extension",
+            isMany: true
+          },
+          {
+            name: "rootElements",
+            type: "RootElement",
+            isMany: true
+          },
+          {
+            name: "diagrams",
+            isMany: true,
+            type: "bpmndi:BPMNDiagram"
+          },
+          {
+            name: "exporter",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "relationships",
+            type: "Relationship",
+            isMany: true
+          },
+          {
+            name: "exporterVersion",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      }
+    ];
+    enumerations$3 = [
+      {
+        name: "ProcessType",
+        literalValues: [
+          {
+            name: "None"
+          },
+          {
+            name: "Public"
+          },
+          {
+            name: "Private"
+          }
+        ]
+      },
+      {
+        name: "GatewayDirection",
+        literalValues: [
+          {
+            name: "Unspecified"
+          },
+          {
+            name: "Converging"
+          },
+          {
+            name: "Diverging"
+          },
+          {
+            name: "Mixed"
+          }
+        ]
+      },
+      {
+        name: "EventBasedGatewayType",
+        literalValues: [
+          {
+            name: "Parallel"
+          },
+          {
+            name: "Exclusive"
+          }
+        ]
+      },
+      {
+        name: "RelationshipDirection",
+        literalValues: [
+          {
+            name: "None"
+          },
+          {
+            name: "Forward"
+          },
+          {
+            name: "Backward"
+          },
+          {
+            name: "Both"
+          }
+        ]
+      },
+      {
+        name: "ItemKind",
+        literalValues: [
+          {
+            name: "Physical"
+          },
+          {
+            name: "Information"
+          }
+        ]
+      },
+      {
+        name: "ChoreographyLoopType",
+        literalValues: [
+          {
+            name: "None"
+          },
+          {
+            name: "Standard"
+          },
+          {
+            name: "MultiInstanceSequential"
+          },
+          {
+            name: "MultiInstanceParallel"
+          }
+        ]
+      },
+      {
+        name: "AssociationDirection",
+        literalValues: [
+          {
+            name: "None"
+          },
+          {
+            name: "One"
+          },
+          {
+            name: "Both"
+          }
+        ]
+      },
+      {
+        name: "MultiInstanceBehavior",
+        literalValues: [
+          {
+            name: "None"
+          },
+          {
+            name: "One"
+          },
+          {
+            name: "All"
+          },
+          {
+            name: "Complex"
+          }
+        ]
+      },
+      {
+        name: "AdHocOrdering",
+        literalValues: [
+          {
+            name: "Parallel"
+          },
+          {
+            name: "Sequential"
+          }
+        ]
+      }
+    ];
+    xml$1 = {
+      tagAlias: "lowerCase",
+      typePrefix: "t"
+    };
+    BpmnPackage = {
+      name: name$5,
+      uri: uri$5,
+      prefix: prefix$5,
+      associations: associations$5,
+      types: types$5,
+      enumerations: enumerations$3,
+      xml: xml$1
+    };
+    name$4 = "BPMNDI";
+    uri$4 = "http://www.omg.org/spec/BPMN/20100524/DI";
+    prefix$4 = "bpmndi";
+    types$4 = [
+      {
+        name: "BPMNDiagram",
+        properties: [
+          {
+            name: "plane",
+            type: "BPMNPlane",
+            redefines: "di:Diagram#rootElement"
+          },
+          {
+            name: "labelStyle",
+            type: "BPMNLabelStyle",
+            isMany: true
+          }
+        ],
+        superClass: [
+          "di:Diagram"
+        ]
+      },
+      {
+        name: "BPMNPlane",
+        properties: [
+          {
+            name: "bpmnElement",
+            isAttr: true,
+            isReference: true,
+            type: "bpmn:BaseElement",
+            redefines: "di:DiagramElement#modelElement"
+          }
+        ],
+        superClass: [
+          "di:Plane"
+        ]
+      },
+      {
+        name: "BPMNShape",
+        properties: [
+          {
+            name: "bpmnElement",
+            isAttr: true,
+            isReference: true,
+            type: "bpmn:BaseElement",
+            redefines: "di:DiagramElement#modelElement"
+          },
+          {
+            name: "isHorizontal",
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "isExpanded",
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "isMarkerVisible",
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "label",
+            type: "BPMNLabel"
+          },
+          {
+            name: "isMessageVisible",
+            isAttr: true,
+            type: "Boolean"
+          },
+          {
+            name: "participantBandKind",
+            type: "ParticipantBandKind",
+            isAttr: true
+          },
+          {
+            name: "choreographyActivityShape",
+            type: "BPMNShape",
+            isAttr: true,
+            isReference: true
+          }
+        ],
+        superClass: [
+          "di:LabeledShape"
+        ]
+      },
+      {
+        name: "BPMNEdge",
+        properties: [
+          {
+            name: "label",
+            type: "BPMNLabel"
+          },
+          {
+            name: "bpmnElement",
+            isAttr: true,
+            isReference: true,
+            type: "bpmn:BaseElement",
+            redefines: "di:DiagramElement#modelElement"
+          },
+          {
+            name: "sourceElement",
+            isAttr: true,
+            isReference: true,
+            type: "di:DiagramElement",
+            redefines: "di:Edge#source"
+          },
+          {
+            name: "targetElement",
+            isAttr: true,
+            isReference: true,
+            type: "di:DiagramElement",
+            redefines: "di:Edge#target"
+          },
+          {
+            name: "messageVisibleKind",
+            type: "MessageVisibleKind",
+            isAttr: true,
+            "default": "initiating"
+          }
+        ],
+        superClass: [
+          "di:LabeledEdge"
+        ]
+      },
+      {
+        name: "BPMNLabel",
+        properties: [
+          {
+            name: "labelStyle",
+            type: "BPMNLabelStyle",
+            isAttr: true,
+            isReference: true,
+            redefines: "di:DiagramElement#style"
+          }
+        ],
+        superClass: [
+          "di:Label"
+        ]
+      },
+      {
+        name: "BPMNLabelStyle",
+        properties: [
+          {
+            name: "font",
+            type: "dc:Font"
+          }
+        ],
+        superClass: [
+          "di:Style"
+        ]
+      }
+    ];
+    enumerations$2 = [
+      {
+        name: "ParticipantBandKind",
+        literalValues: [
+          {
+            name: "top_initiating"
+          },
+          {
+            name: "middle_initiating"
+          },
+          {
+            name: "bottom_initiating"
+          },
+          {
+            name: "top_non_initiating"
+          },
+          {
+            name: "middle_non_initiating"
+          },
+          {
+            name: "bottom_non_initiating"
+          }
+        ]
+      },
+      {
+        name: "MessageVisibleKind",
+        literalValues: [
+          {
+            name: "initiating"
+          },
+          {
+            name: "non_initiating"
+          }
+        ]
+      }
+    ];
+    associations$4 = [];
+    BpmnDiPackage = {
+      name: name$4,
+      uri: uri$4,
+      prefix: prefix$4,
+      types: types$4,
+      enumerations: enumerations$2,
+      associations: associations$4
+    };
+    name$3 = "DC";
+    uri$3 = "http://www.omg.org/spec/DD/20100524/DC";
+    prefix$3 = "dc";
+    types$3 = [
+      {
+        name: "Boolean"
+      },
+      {
+        name: "Integer"
+      },
+      {
+        name: "Real"
+      },
+      {
+        name: "String"
+      },
+      {
+        name: "Font",
+        properties: [
+          {
+            name: "name",
+            type: "String",
+            isAttr: true
+          },
+          {
+            name: "size",
+            type: "Real",
+            isAttr: true
+          },
+          {
+            name: "isBold",
+            type: "Boolean",
+            isAttr: true
+          },
+          {
+            name: "isItalic",
+            type: "Boolean",
+            isAttr: true
+          },
+          {
+            name: "isUnderline",
+            type: "Boolean",
+            isAttr: true
+          },
+          {
+            name: "isStrikeThrough",
+            type: "Boolean",
+            isAttr: true
+          }
+        ]
+      },
+      {
+        name: "Point",
+        properties: [
+          {
+            name: "x",
+            type: "Real",
+            "default": "0",
+            isAttr: true
+          },
+          {
+            name: "y",
+            type: "Real",
+            "default": "0",
+            isAttr: true
+          }
+        ]
+      },
+      {
+        name: "Bounds",
+        properties: [
+          {
+            name: "x",
+            type: "Real",
+            "default": "0",
+            isAttr: true
+          },
+          {
+            name: "y",
+            type: "Real",
+            "default": "0",
+            isAttr: true
+          },
+          {
+            name: "width",
+            type: "Real",
+            isAttr: true
+          },
+          {
+            name: "height",
+            type: "Real",
+            isAttr: true
+          }
+        ]
+      }
+    ];
+    associations$3 = [];
+    DcPackage = {
+      name: name$3,
+      uri: uri$3,
+      prefix: prefix$3,
+      types: types$3,
+      associations: associations$3
+    };
+    name$2 = "DI";
+    uri$2 = "http://www.omg.org/spec/DD/20100524/DI";
+    prefix$2 = "di";
+    types$2 = [
+      {
+        name: "DiagramElement",
+        isAbstract: true,
+        properties: [
+          {
+            name: "id",
+            isAttr: true,
+            isId: true,
+            type: "String"
+          },
+          {
+            name: "extension",
+            type: "Extension"
+          },
+          {
+            name: "owningDiagram",
+            type: "Diagram",
+            isReadOnly: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "owningElement",
+            type: "DiagramElement",
+            isReadOnly: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "modelElement",
+            isReadOnly: true,
+            isVirtual: true,
+            isReference: true,
+            type: "Element"
+          },
+          {
+            name: "style",
+            type: "Style",
+            isReadOnly: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "ownedElement",
+            type: "DiagramElement",
+            isReadOnly: true,
+            isMany: true,
+            isVirtual: true
+          }
+        ]
+      },
+      {
+        name: "Node",
+        isAbstract: true,
+        superClass: [
+          "DiagramElement"
+        ]
+      },
+      {
+        name: "Edge",
+        isAbstract: true,
+        superClass: [
+          "DiagramElement"
+        ],
+        properties: [
+          {
+            name: "source",
+            type: "DiagramElement",
+            isReadOnly: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "target",
+            type: "DiagramElement",
+            isReadOnly: true,
+            isVirtual: true,
+            isReference: true
+          },
+          {
+            name: "waypoint",
+            isUnique: false,
+            isMany: true,
+            type: "dc:Point",
+            xml: {
+              serialize: "xsi:type"
+            }
+          }
+        ]
+      },
+      {
+        name: "Diagram",
+        isAbstract: true,
+        properties: [
+          {
+            name: "id",
+            isAttr: true,
+            isId: true,
+            type: "String"
+          },
+          {
+            name: "rootElement",
+            type: "DiagramElement",
+            isReadOnly: true,
+            isVirtual: true
+          },
+          {
+            name: "name",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "documentation",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "resolution",
+            isAttr: true,
+            type: "Real"
+          },
+          {
+            name: "ownedStyle",
+            type: "Style",
+            isReadOnly: true,
+            isMany: true,
+            isVirtual: true
+          }
+        ]
+      },
+      {
+        name: "Shape",
+        isAbstract: true,
+        superClass: [
+          "Node"
+        ],
+        properties: [
+          {
+            name: "bounds",
+            type: "dc:Bounds"
+          }
+        ]
+      },
+      {
+        name: "Plane",
+        isAbstract: true,
+        superClass: [
+          "Node"
+        ],
+        properties: [
+          {
+            name: "planeElement",
+            type: "DiagramElement",
+            subsettedProperty: "DiagramElement-ownedElement",
+            isMany: true
+          }
+        ]
+      },
+      {
+        name: "LabeledEdge",
+        isAbstract: true,
+        superClass: [
+          "Edge"
+        ],
+        properties: [
+          {
+            name: "ownedLabel",
+            type: "Label",
+            isReadOnly: true,
+            subsettedProperty: "DiagramElement-ownedElement",
+            isMany: true,
+            isVirtual: true
+          }
+        ]
+      },
+      {
+        name: "LabeledShape",
+        isAbstract: true,
+        superClass: [
+          "Shape"
+        ],
+        properties: [
+          {
+            name: "ownedLabel",
+            type: "Label",
+            isReadOnly: true,
+            subsettedProperty: "DiagramElement-ownedElement",
+            isMany: true,
+            isVirtual: true
+          }
+        ]
+      },
+      {
+        name: "Label",
+        isAbstract: true,
+        superClass: [
+          "Node"
+        ],
+        properties: [
+          {
+            name: "bounds",
+            type: "dc:Bounds"
+          }
+        ]
+      },
+      {
+        name: "Style",
+        isAbstract: true,
+        properties: [
+          {
+            name: "id",
+            isAttr: true,
+            isId: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "Extension",
+        properties: [
+          {
+            name: "values",
+            isMany: true,
+            type: "Element"
+          }
+        ]
+      }
+    ];
+    associations$2 = [];
+    xml2 = {
+      tagAlias: "lowerCase"
+    };
+    DiPackage = {
+      name: name$2,
+      uri: uri$2,
+      prefix: prefix$2,
+      types: types$2,
+      associations: associations$2,
+      xml: xml2
+    };
+    name$1 = "bpmn.io colors for BPMN";
+    uri$1 = "http://bpmn.io/schema/bpmn/biocolor/1.0";
+    prefix$1 = "bioc";
+    types$1 = [
+      {
+        name: "ColoredShape",
+        "extends": [
+          "bpmndi:BPMNShape"
+        ],
+        properties: [
+          {
+            name: "stroke",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "fill",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "ColoredEdge",
+        "extends": [
+          "bpmndi:BPMNEdge"
+        ],
+        properties: [
+          {
+            name: "stroke",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "fill",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      }
+    ];
+    enumerations$1 = [];
+    associations$1 = [];
+    BiocPackage = {
+      name: name$1,
+      uri: uri$1,
+      prefix: prefix$1,
+      types: types$1,
+      enumerations: enumerations$1,
+      associations: associations$1
+    };
+    name = "BPMN in Color";
+    uri = "http://www.omg.org/spec/BPMN/non-normative/color/1.0";
+    prefix = "color";
+    types = [
+      {
+        name: "ColoredLabel",
+        "extends": [
+          "bpmndi:BPMNLabel"
+        ],
+        properties: [
+          {
+            name: "color",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "ColoredShape",
+        "extends": [
+          "bpmndi:BPMNShape"
+        ],
+        properties: [
+          {
+            name: "background-color",
+            isAttr: true,
+            type: "String"
+          },
+          {
+            name: "border-color",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      },
+      {
+        name: "ColoredEdge",
+        "extends": [
+          "bpmndi:BPMNEdge"
+        ],
+        properties: [
+          {
+            name: "border-color",
+            isAttr: true,
+            type: "String"
+          }
+        ]
+      }
+    ];
+    enumerations = [];
+    associations = [];
+    BpmnInColorPackage = {
+      name,
+      uri,
+      prefix,
+      types,
+      enumerations,
+      associations
+    };
+    packages = {
+      bpmn: BpmnPackage,
+      bpmndi: BpmnDiPackage,
+      dc: DcPackage,
+      di: DiPackage,
+      bioc: BiocPackage,
+      color: BpmnInColorPackage
+    };
+  }
+});
+
+// node_modules/path-intersection/intersect.js
+var math, PI, mmin, mmax, pow, abs2, isArray3;
+var init_intersect = __esm({
+  "node_modules/path-intersection/intersect.js"() {
+    math = Math;
+    PI = math.PI;
+    mmin = math.min;
+    mmax = math.max;
+    pow = math.pow;
+    abs2 = math.abs;
+    isArray3 = Array.isArray || function(o5) {
+      return o5 instanceof Array;
+    };
+  }
+});
+
+// node_modules/diagram-js/lib/layout/LayoutUtil.js
+function asTRBL(bounds) {
+  return {
+    top: bounds.y,
+    right: bounds.x + (bounds.width || 0),
+    bottom: bounds.y + (bounds.height || 0),
+    left: bounds.x
+  };
+}
+function getOrientation(rect2, reference, padding) {
+  padding = padding || 0;
+  if (!isObject2(padding)) {
+    padding = { x: padding, y: padding };
+  }
+  var rectOrientation = asTRBL(rect2), referenceOrientation = asTRBL(reference);
+  var top4 = rectOrientation.bottom + padding.y <= referenceOrientation.top, right4 = rectOrientation.left - padding.x >= referenceOrientation.right, bottom4 = rectOrientation.top - padding.y >= referenceOrientation.bottom, left4 = rectOrientation.right + padding.x <= referenceOrientation.left;
+  var vertical = top4 ? "top" : bottom4 ? "bottom" : null, horizontal = left4 ? "left" : right4 ? "right" : null;
+  if (horizontal && vertical) {
+    return vertical + "-" + horizontal;
+  } else {
+    return horizontal || vertical || "intersect";
+  }
+}
+var init_LayoutUtil = __esm({
+  "node_modules/diagram-js/lib/layout/LayoutUtil.js"() {
+    init_dist();
+    init_intersect();
+  }
+});
+
+// src/io/bpmn/shapes.ts
+var BPMN_TO_SHAPE, SHAPE_TO_BPMN, EVENT_DEF_TO_TRIGGER, TRIGGER_TO_EVENT_DEF;
+var init_shapes = __esm({
+  "src/io/bpmn/shapes.ts"() {
+    "use strict";
+    BPMN_TO_SHAPE = {
+      // Events — base position; importer overlays extra.trigger/throwing.
+      startEvent: "bpmn-event-start",
+      endEvent: "bpmn-event-end",
+      intermediateThrowEvent: "bpmn-event-intermediate",
+      intermediateCatchEvent: "bpmn-event-intermediate",
+      boundaryEvent: "bpmn-event-intermediate",
+      // Gateways
+      exclusiveGateway: "bpmn-gateway-x",
+      parallelGateway: "bpmn-gateway-parallel",
+      inclusiveGateway: "bpmn-gateway-inclusive",
+      eventBasedGateway: "bpmn-gateway-event",
+      complexGateway: "bpmn-gateway-complex",
+      // Tasks — subtype preserved
+      task: "bpmn-task",
+      userTask: "bpmn-task-user",
+      serviceTask: "bpmn-task-service",
+      scriptTask: "bpmn-task-script",
+      sendTask: "bpmn-task-send",
+      receiveTask: "bpmn-task-receive",
+      manualTask: "bpmn-task-manual",
+      businessRuleTask: "bpmn-task-rule",
+      // Activities — sibling types
+      callActivity: "bpmn-call-activity",
+      subProcess: "bpmn-subprocess",
+      transaction: "bpmn-transaction",
+      adHocSubProcess: "bpmn-adhoc-subprocess",
+      // Data artifacts
+      dataObjectReference: "bpmn-data-object",
+      dataStoreReference: "bpmn-data-store",
+      dataInput: "bpmn-data-input",
+      dataOutput: "bpmn-data-output",
+      // Misc
+      textAnnotation: "bpmn-annotation",
+      group: "bpmn-group",
+      participant: "bpmn-pool",
+      lane: "bpmn-lane"
+    };
+    SHAPE_TO_BPMN = {
+      // Events — unified Đợt A kinds
+      "bpmn-event-start": "startEvent",
+      "bpmn-event-intermediate": "intermediateThrowEvent",
+      "bpmn-event-end": "endEvent",
+      // Legacy kinds — accepted if migration shim is bypassed
+      "bpmn-start": "startEvent",
+      "bpmn-start-message": "startEvent",
+      "bpmn-start-timer": "startEvent",
+      "bpmn-intermediate": "intermediateThrowEvent",
+      "bpmn-intermediate-message": "intermediateCatchEvent",
+      "bpmn-intermediate-timer": "intermediateCatchEvent",
+      "bpmn-end": "endEvent",
+      "bpmn-end-message": "endEvent",
+      "bpmn-end-terminate": "endEvent",
+      // Gateways
+      "bpmn-gateway-x": "exclusiveGateway",
+      "bpmn-gateway-parallel": "parallelGateway",
+      "bpmn-gateway-inclusive": "inclusiveGateway",
+      "bpmn-gateway-event": "eventBasedGateway",
+      "bpmn-gateway-complex": "complexGateway",
+      // Tasks
+      "bpmn-task": "task",
+      "bpmn-task-user": "userTask",
+      "bpmn-task-service": "serviceTask",
+      "bpmn-task-script": "scriptTask",
+      "bpmn-task-send": "sendTask",
+      "bpmn-task-receive": "receiveTask",
+      "bpmn-task-manual": "manualTask",
+      "bpmn-task-rule": "businessRuleTask",
+      // Activities
+      "bpmn-subprocess": "subProcess",
+      "bpmn-transaction": "transaction",
+      "bpmn-event-subprocess": "subProcess",
+      // export.ts sets triggeredByEvent=true
+      "bpmn-adhoc-subprocess": "adHocSubProcess",
+      "bpmn-call-activity": "callActivity",
+      // Data artifacts
+      "bpmn-data-object": "dataObjectReference",
+      "bpmn-data-collection": "dataObjectReference",
+      // export.ts sets isCollection=true
+      "bpmn-data-input": "dataInput",
+      "bpmn-data-output": "dataOutput",
+      "bpmn-data-store": "dataStoreReference",
+      // Misc
+      "bpmn-annotation": "textAnnotation",
+      "bpmn-group": "group",
+      "bpmn-pool": "participant",
+      "bpmn-lane": "lane"
+    };
+    EVENT_DEF_TO_TRIGGER = {
+      messageEventDefinition: "message",
+      timerEventDefinition: "timer",
+      signalEventDefinition: "signal",
+      errorEventDefinition: "error",
+      escalationEventDefinition: "escalation",
+      compensateEventDefinition: "compensation",
+      conditionalEventDefinition: "conditional",
+      linkEventDefinition: "link",
+      cancelEventDefinition: "cancel",
+      terminateEventDefinition: "terminate"
+    };
+    TRIGGER_TO_EVENT_DEF = Object.fromEntries(
+      Object.entries(EVENT_DEF_TO_TRIGGER).map(([k5, v6]) => [v6, k5])
+    );
+  }
+});
+
+// src/io/bpmn/import.ts
+var import_exports = {};
+__export(import_exports, {
+  importBpmn: () => importBpmn,
+  inspectBpmnDiagrams: () => inspectBpmnDiagrams
+});
+function bpmnExtras(fn2, tagLc) {
+  var _a3, _b2, _c, _d;
+  const out = {};
+  const defRaw = (_c = (_b2 = (_a3 = fn2.eventDefinitions) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.$type) == null ? void 0 : _c.replace(/^bpmn:/, "");
+  const defLc = defRaw ? defRaw.charAt(0).toLowerCase() + defRaw.slice(1) : void 0;
+  if (defLc && EVENT_DEF_TO_TRIGGER[defLc]) out.trigger = EVENT_DEF_TO_TRIGGER[defLc];
+  if (tagLc === "intermediateThrowEvent" || tagLc === "endEvent") out.throwing = true;
+  if (tagLc === "boundaryEvent") {
+    out.interrupting = fn2.cancelActivity !== false;
+    if ((_d = fn2.attachedToRef) == null ? void 0 : _d.id) out.attachedTo = fn2.attachedToRef.id;
+  } else if (fn2.isInterrupting === false) {
+    out.interrupting = false;
+  }
+  const markers = [];
+  const loop3 = fn2.loopCharacteristics;
+  if (loop3) {
+    const lt3 = loop3.$type.replace(/^bpmn:/, "");
+    if (lt3 === "MultiInstanceLoopCharacteristics") markers.push(loop3.isSequential ? "mi-seq" : "mi-par");
+    else if (lt3 === "StandardLoopCharacteristics") markers.push("loop");
+  }
+  if (fn2.isForCompensation) markers.push("compensation");
+  if (markers.length > 0) out.markers = markers;
+  if (tagLc === "subProcess" && fn2.triggeredByEvent) out.kindOverride = "bpmn-event-subprocess";
+  return out;
+}
+function portFor(wp, b3) {
+  const o5 = getOrientation({ x: wp.x, y: wp.y, width: 0, height: 0 }, b3, 0);
+  let side;
+  let pos;
+  if (o5.indexOf("top") === 0) {
+    side = "top";
+    pos = b3.width > 0 ? (wp.x - b3.x) / b3.width : 0.5;
+  } else if (o5.indexOf("bottom") === 0) {
+    side = "bottom";
+    pos = b3.width > 0 ? (wp.x - b3.x) / b3.width : 0.5;
+  } else if (o5 === "left") {
+    side = "left";
+    pos = b3.height > 0 ? (wp.y - b3.y) / b3.height : 0.5;
+  } else if (o5 === "right") {
+    side = "right";
+    pos = b3.height > 0 ? (wp.y - b3.y) / b3.height : 0.5;
+  } else {
+    const dT = Math.abs(wp.y - b3.y);
+    const dB = Math.abs(wp.y - (b3.y + b3.height));
+    const dL = Math.abs(wp.x - b3.x);
+    const dR = Math.abs(wp.x - (b3.x + b3.width));
+    const m6 = Math.min(dT, dB, dL, dR);
+    if (m6 === dT) {
+      side = "top";
+      pos = b3.width > 0 ? (wp.x - b3.x) / b3.width : 0.5;
+    } else if (m6 === dB) {
+      side = "bottom";
+      pos = b3.width > 0 ? (wp.x - b3.x) / b3.width : 0.5;
+    } else if (m6 === dL) {
+      side = "left";
+      pos = b3.height > 0 ? (wp.y - b3.y) / b3.height : 0.5;
+    } else {
+      side = "right";
+      pos = b3.height > 0 ? (wp.y - b3.y) / b3.height : 0.5;
+    }
+  }
+  if (pos < 0.375) return `${side}-1`;
+  if (pos > 0.625) return `${side}-2`;
+  return side;
+}
+function diColours(di) {
+  var _a3;
+  if (!di) return {};
+  const attrs = (_a3 = di.$attrs) != null ? _a3 : {};
+  const fill2 = di.fill || attrs["color:background-color"] || attrs["background-color"] || attrs["bioc:fill"] || attrs["fill"];
+  const stroke3 = di.stroke || attrs["color:border-color"] || attrs["border-color"] || attrs["bioc:stroke"] || attrs["stroke"];
+  return { fill: fill2, stroke: stroke3 };
+}
+function moddle() {
+  if (!moddleSingleton) moddleSingleton = new SimpleBpmnModdle();
+  return moddleSingleton;
+}
+function parseCamundaExt(ext, nodeAttrs) {
+  var _a3, _b2, _c;
+  const out = {};
+  const camunda = {};
+  const bpmnProps = [];
+  const CAMUNDA_ATTRS = {
+    "camunda:assignee": "assignee",
+    "camunda:candidateUsers": "candidateUsers",
+    "camunda:candidateGroups": "candidateGroups",
+    "camunda:formKey": "formKey",
+    "camunda:dueDate": "dueDate",
+    "camunda:priority": "priority"
+  };
+  for (const [rawKey, shortKey] of Object.entries(CAMUNDA_ATTRS)) {
+    const val = nodeAttrs == null ? void 0 : nodeAttrs[rawKey];
+    if (typeof val === "string" && val) camunda[shortKey] = val;
+  }
+  if ((_a3 = ext == null ? void 0 : ext.values) == null ? void 0 : _a3.length) {
+    for (const v6 of ext.values) {
+      const children2 = (_b2 = v6.$children) != null ? _b2 : [];
+      for (const child of children2) {
+        if (child.$type === "camunda:property" && typeof child.name === "string") {
+          bpmnProps.push({ name: child.name, value: String((_c = child.value) != null ? _c : "") });
+        }
+      }
+    }
+  }
+  if (Object.keys(camunda).length) out.camunda = camunda;
+  if (bpmnProps.length) out.bpmnProps = bpmnProps;
+  return out;
+}
+async function inspectBpmnDiagrams(raw2) {
+  var _a3;
+  const { rootElement: definitions } = await moddle().fromXML(raw2, "bpmn:Definitions");
+  const diagrams = ((_a3 = definitions.diagrams) != null ? _a3 : []).map((d4, index3) => {
+    var _a4, _b2, _c, _d, _e3, _f;
+    return {
+      index: index3,
+      id: (_a4 = d4.id) != null ? _a4 : `Diagram_${index3 + 1}`,
+      planeRef: (_c = (_b2 = d4.plane) == null ? void 0 : _b2.bpmnElement) == null ? void 0 : _c.id,
+      elementCount: (_f = (_e3 = (_d = d4.plane) == null ? void 0 : _d.planeElement) == null ? void 0 : _e3.length) != null ? _f : 0
+    };
+  });
+  return { diagramCount: diagrams.length, diagrams };
+}
+async function importBpmn(raw2, options) {
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I;
+  if (raw2.length > MAX_BPMN_BYTES) {
+    throw new Error(`BPMN file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 4 MB.`);
+  }
+  const { rootElement: definitions, warnings: parserWarnings } = await moddle().fromXML(raw2, "bpmn:Definitions");
+  const warnings = parserWarnings.map(
+    (w5) => {
+      var _a4;
+      return typeof w5 === "string" ? w5 : (_a4 = w5.message) != null ? _a4 : String(w5);
+    }
+  );
+  const flowNodes = [];
+  const flowNodeParentId = /* @__PURE__ */ new Map();
+  const sequenceFlows = [];
+  const associations2 = [];
+  const messageFlows = [];
+  const collectFlow = (parent, parentSubprocessId) => {
+    var _a4, _b3, _c2, _d2;
+    for (const fe3 of (_a4 = parent.flowElements) != null ? _a4 : []) {
+      if (FLOW_NODE_TYPES.has(fe3.$type)) {
+        flowNodes.push(fe3);
+        if (parentSubprocessId && fe3.id) flowNodeParentId.set(fe3.id, parentSubprocessId);
+        for (const da of (_b3 = fe3.dataInputAssociations) != null ? _b3 : []) associations2.push(da);
+        for (const da of (_c2 = fe3.dataOutputAssociations) != null ? _c2 : []) associations2.push(da);
+      } else if (fe3.$type === "bpmn:SequenceFlow") sequenceFlows.push(fe3);
+      if (fe3.flowElements) {
+        const isContainer = fe3.$type === "bpmn:SubProcess" || fe3.$type === "bpmn:Transaction" || fe3.$type === "bpmn:AdHocSubProcess";
+        collectFlow(fe3, isContainer && fe3.id ? fe3.id : parentSubprocessId);
+      }
+    }
+    for (const ar of (_d2 = parent.artifacts) != null ? _d2 : []) {
+      if (ar.$type === "bpmn:Association") associations2.push(ar);
+    }
+  };
+  for (const root2 of (_a3 = definitions.rootElements) != null ? _a3 : []) {
+    collectFlow(root2);
+    if (root2.$type === "bpmn:Collaboration") {
+      for (const mf of (_b2 = root2.messageFlows) != null ? _b2 : []) messageFlows.push(mf);
+    }
+  }
+  const flowNodeLaneId = /* @__PURE__ */ new Map();
+  const walkLanes = (lanes) => {
+    var _a4, _b3;
+    for (const ln3 of lanes != null ? lanes : []) {
+      const childLanes = (_a4 = ln3.childLaneSet) == null ? void 0 : _a4.lanes;
+      if (childLanes == null ? void 0 : childLanes.length) {
+        walkLanes(childLanes);
+        continue;
+      }
+      const laneId = ln3.id;
+      if (!laneId) continue;
+      for (const ref2 of (_b3 = ln3.flowNodeRef) != null ? _b3 : []) {
+        const refId = typeof ref2 === "string" ? ref2 : ref2.id;
+        if (refId) flowNodeLaneId.set(refId, laneId);
+      }
+    }
+  };
+  for (const root2 of (_c = definitions.rootElements) != null ? _c : []) {
+    if (root2.$type !== "bpmn:Process") continue;
+    for (const ls of (_d = root2.laneSets) != null ? _d : []) walkLanes(ls.lanes);
+  }
+  const candidateIds = /* @__PURE__ */ new Set();
+  for (const n3 of flowNodes) if (n3.id) candidateIds.add(n3.id);
+  for (const e4 of sequenceFlows) if (e4.id) candidateIds.add(e4.id);
+  for (const e4 of associations2) if (e4.id) candidateIds.add(e4.id);
+  for (const e4 of messageFlows) if (e4.id) candidateIds.add(e4.id);
+  for (const root2 of (_e3 = definitions.rootElements) != null ? _e3 : []) {
+    if (root2.$type !== "bpmn:Collaboration") continue;
+    for (const p6 of (_f = root2.participants) != null ? _f : []) if (p6.id) candidateIds.add(p6.id);
+  }
+  for (const root2 of (_g = definitions.rootElements) != null ? _g : []) {
+    if (root2.$type !== "bpmn:Process") continue;
+    for (const ls of (_h = root2.laneSets) != null ? _h : []) {
+      for (const ln3 of (_i = ls.lanes) != null ? _i : []) if (ln3.id) candidateIds.add(ln3.id);
+    }
+  }
+  const diagrams = (_j = definitions.diagrams) != null ? _j : [];
+  let chosenDiagramIndex = 0;
+  const requested = options == null ? void 0 : options.diagramIndex;
+  if (typeof requested === "number" && requested >= 0 && requested < diagrams.length) {
+    chosenDiagramIndex = requested;
+  } else {
+    let bestScore = -1;
+    diagrams.forEach((dia, idx) => {
+      var _a4, _b3;
+      let score = 0;
+      for (const pe3 of (_a4 = dia.plane.planeElement) != null ? _a4 : []) {
+        const id = (_b3 = pe3.bpmnElement) == null ? void 0 : _b3.id;
+        if (id && candidateIds.has(id)) score++;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        chosenDiagramIndex = idx;
+      }
+    });
+  }
+  if (diagrams.length > 1) {
+    warnings.push(`BPMN c\xF3 ${diagrams.length} diagrams; \u0111ang import plane #${chosenDiagramIndex + 1} (nhi\u1EC1u ph\u1EA7n t\u1EED nh\u1EA5t).`);
+  }
+  const chosenPlane = (_k = diagrams[chosenDiagramIndex]) == null ? void 0 : _k.plane;
+  const diShapes = /* @__PURE__ */ new Map();
+  const diEdges = /* @__PURE__ */ new Map();
+  for (const pe3 of (_l = chosenPlane == null ? void 0 : chosenPlane.planeElement) != null ? _l : []) {
+    const refId = (_m = pe3.bpmnElement) == null ? void 0 : _m.id;
+    if (!refId) continue;
+    if (pe3.$type === "bpmndi:BPMNShape") diShapes.set(refId, pe3);
+    else if (pe3.$type === "bpmndi:BPMNEdge") diEdges.set(refId, pe3);
+  }
+  const model = { nodes: [], edges: [] };
+  for (const fn2 of flowNodes) {
+    const id = fn2.id;
+    const tag = fn2.$type.replace(/^bpmn:/, "");
+    const tagLc = tag.charAt(0).toLowerCase() + tag.slice(1);
+    const extras = bpmnExtras(fn2, tagLc);
+    const shape = (_o = (_n2 = extras.kindOverride) != null ? _n2 : BPMN_TO_SHAPE[tagLc]) != null ? _o : "bpmn-task";
+    const di = diShapes.get(id);
+    const bounds = di == null ? void 0 : di.bounds;
+    const x4 = (_p = bounds == null ? void 0 : bounds.x) != null ? _p : 100;
+    const y5 = (_q = bounds == null ? void 0 : bounds.y) != null ? _q : 100;
+    const width2 = (_r = bounds == null ? void 0 : bounds.width) != null ? _r : tagLc.endsWith("Event") ? 36 : 100;
+    const height2 = (_s = bounds == null ? void 0 : bounds.height) != null ? _s : tagLc.endsWith("Event") ? 36 : 60;
+    const nodeLabelOffset = ((_t3 = di == null ? void 0 : di.label) == null ? void 0 : _t3.bounds) ? {
+      x: di.label.bounds.x + di.label.bounds.width / 2 - (x4 + width2 / 2),
+      y: di.label.bounds.y + di.label.bounds.height / 2 - (y5 + height2 / 2)
+    } : void 0;
+    const { fill: fill2, stroke: stroke3 } = diColours(di);
+    const style2 = {};
+    if (fill2) style2.fill = fill2;
+    if (stroke3) style2.stroke = stroke3;
+    model.nodes.push({
+      id,
+      shape,
+      x: x4,
+      y: y5,
+      width: width2,
+      height: height2,
+      label: ((_u = fn2.name) != null ? _u : "").replace(/&#10;/g, "\n"),
+      ...flowNodeParentId.get(id) ? { parentId: flowNodeParentId.get(id) } : {},
+      ...flowNodeLaneId.get(id) ? { laneId: flowNodeLaneId.get(id) } : {},
+      attrs: {
+        // Phase C — preserve DI.isExpanded so collapse state survives round-trip.
+        ...(di == null ? void 0 : di.isExpanded) === false ? { collapsed: true } : {},
+        // Phase D — bioc/color-spec explicit fill/stroke stored separately so
+        // the panel can write back named DI attrs (not just canvas node style).
+        ...fill2 ? { bpmnFill: fill2 } : {},
+        ...stroke3 ? { bpmnStroke: stroke3 } : {},
+        // Phase D — documentation text (first <bpmn:documentation> element body).
+        ...((_w = (_v = fn2.documentation) == null ? void 0 : _v[0]) == null ? void 0 : _w.text) ? { bpmnDoc: fn2.documentation[0].text } : {},
+        // Phase D — Camunda attrs (in $attrs) + extensionElements property values.
+        ...parseCamundaExt(fn2.extensionElements, fn2.$attrs),
+        __source: { format: "bpmn", sourceId: id, tag: tagLc },
+        ...Object.keys(style2).length ? { style: style2 } : {},
+        // Đợt F — BPMN semantics preserved in NodeExtra for canvas + round-trip
+        ...extras.trigger ? { trigger: extras.trigger } : {},
+        ...extras.throwing !== void 0 ? { throwing: extras.throwing } : {},
+        ...extras.interrupting !== void 0 ? { interrupting: extras.interrupting } : {},
+        ...extras.attachedTo ? { attachedTo: extras.attachedTo } : {},
+        ...extras.markers ? { markers: extras.markers } : {},
+        ...nodeLabelOffset ? { labelOffset: nodeLabelOffset } : {}
+      }
+    });
+    if (!di) warnings.push(`BPMN flow node "${id}" thi\u1EBFu BPMNShape DI \u2014 \u0111\u1EB7t v\u1ECB tr\xED m\u1EB7c \u0111\u1ECBnh.`);
+  }
+  const nodeBox2 = /* @__PURE__ */ new Map();
+  for (const n3 of model.nodes) nodeBox2.set(n3.id, { x: n3.x, y: n3.y, width: n3.width, height: n3.height });
+  const buildEdge = (fe3, kind) => {
+    var _a4, _b3, _c2, _d2, _e4, _f2, _g2, _h2;
+    const id = fe3.id;
+    const sourceId = Array.isArray(fe3.sourceRef) ? (_b3 = typeof fe3.sourceRef[0] === "string" ? fe3.sourceRef[0] : (_a4 = fe3.sourceRef[0]) == null ? void 0 : _a4.id) != null ? _b3 : void 0 : (_c2 = fe3.sourceRef) == null ? void 0 : _c2.id;
+    const targetId = (_d2 = fe3.targetRef) == null ? void 0 : _d2.id;
+    if (!id || !sourceId || !targetId) return null;
+    const di = diEdges.get(id);
+    const wps = (_e4 = di == null ? void 0 : di.waypoint) != null ? _e4 : [];
+    const vertices = wps.length > 2 ? wps.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y })) : void 0;
+    const srcBox = nodeBox2.get(sourceId);
+    const tgtBox = nodeBox2.get(targetId);
+    const sourceAnchor = wps.length >= 2 && srcBox ? { dx: wps[0].x - srcBox.x, dy: wps[0].y - srcBox.y } : void 0;
+    const targetAnchor = wps.length >= 2 && tgtBox ? { dx: wps[wps.length - 1].x - tgtBox.x, dy: wps[wps.length - 1].y - tgtBox.y } : void 0;
+    const sourcePort = sourceAnchor ? void 0 : wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : void 0;
+    const targetPort = targetAnchor ? void 0 : wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : void 0;
+    let labelPos;
+    const lb = (_f2 = di == null ? void 0 : di.label) == null ? void 0 : _f2.bounds;
+    if (lb && wps.length >= 2) {
+      const labelCx = lb.x + lb.width / 2;
+      const labelCy = lb.y + lb.height / 2;
+      let totalLen = 0;
+      const segLens = [];
+      for (let i6 = 1; i6 < wps.length; i6++) {
+        const dx = wps[i6].x - wps[i6 - 1].x, dy = wps[i6].y - wps[i6 - 1].y;
+        const l5 = Math.sqrt(dx * dx + dy * dy);
+        segLens.push(l5);
+        totalLen += l5;
+      }
+      let cumLen = 0, midX = wps[0].x, midY = wps[0].y;
+      for (let i6 = 0; i6 < segLens.length; i6++) {
+        if (cumLen + segLens[i6] >= totalLen / 2) {
+          const t5 = totalLen > 0 ? (totalLen / 2 - cumLen) / segLens[i6] : 0;
+          midX = wps[i6].x + (wps[i6 + 1].x - wps[i6].x) * t5;
+          midY = wps[i6].y + (wps[i6 + 1].y - wps[i6].y) * t5;
+          break;
+        }
+        cumLen += segLens[i6];
+      }
+      labelPos = { distance: 0.5, offset: { x: labelCx - midX, y: labelCy - midY } };
+    }
+    const edgeAttrs = {};
+    if (kind === "sequence" && ((_g2 = fe3.conditionExpression) == null ? void 0 : _g2.body)) {
+      edgeAttrs.condition = fe3.conditionExpression.body;
+    }
+    if (kind === "association" && fe3.associationDirection && fe3.associationDirection !== "None") {
+      edgeAttrs.associationDirection = fe3.associationDirection;
+    }
+    return {
+      id,
+      source: sourceId,
+      sourcePort,
+      sourceAnchor,
+      target: targetId,
+      targetPort,
+      targetAnchor,
+      label: ((_h2 = fe3.name) != null ? _h2 : "").replace(/&#10;/g, "\n") || void 0,
+      labelPos,
+      vertices,
+      router: "normal",
+      ...kind !== "sequence" ? { kind } : {},
+      ...Object.keys(edgeAttrs).length ? { attrs: edgeAttrs } : {}
+    };
+  };
+  for (const sf of sequenceFlows) {
+    const edge = buildEdge(sf, "sequence");
+    if (edge) model.edges.push(edge);
+  }
+  for (const mf of messageFlows) {
+    const edge = buildEdge(mf, "message");
+    if (edge) model.edges.push(edge);
+  }
+  for (const ar of associations2) {
+    const edge = buildEdge(ar, "association");
+    if (edge) model.edges.push(edge);
+  }
+  const defaultEdgeIds = /* @__PURE__ */ new Set();
+  for (const fn2 of flowNodes) {
+    const def = fn2.default;
+    const defId = typeof def === "string" ? def : def == null ? void 0 : def.id;
+    if (defId) defaultEdgeIds.add(defId);
+  }
+  for (const edge of model.edges) {
+    if (defaultEdgeIds.has(edge.id)) {
+      edge.attrs = { ...(_x = edge.attrs) != null ? _x : {}, isDefault: true };
+    }
+  }
+  const defs = definitions;
+  const processById = /* @__PURE__ */ new Map();
+  for (const root2 of (_y = defs.rootElements) != null ? _y : []) {
+    if (root2.$type === "bpmn:Process" && root2.id) processById.set(root2.id, root2);
+  }
+  const pools = [];
+  const HEADER = 30;
+  const LANE_HEAD = 24;
+  const PAD = 30;
+  const flowNodePoolId = /* @__PURE__ */ new Map();
+  for (const root2 of (_z = defs.rootElements) != null ? _z : []) {
+    if (root2.$type !== "bpmn:Collaboration") continue;
+    for (const part of (_A = root2.participants) != null ? _A : []) {
+      const processRefId = (_B = part.processRef) == null ? void 0 : _B.id;
+      const proc = processRefId ? processById.get(processRefId) : void 0;
+      const lanes = ((_C = proc == null ? void 0 : proc.laneSets) != null ? _C : []).flatMap((ls) => {
+        var _a4;
+        return (_a4 = ls.lanes) != null ? _a4 : [];
+      });
+      const laneAttrs = lanes.map((ln3) => {
+        var _a4, _b3;
+        return { id: (_a4 = ln3.id) != null ? _a4 : "", label: (_b3 = ln3.name) != null ? _b3 : "" };
+      });
+      let px2, py, pw, ph;
+      const partDi = part.id ? diShapes.get(part.id) : void 0;
+      if (partDi == null ? void 0 : partDi.bounds) {
+        ({ x: px2, y: py, width: pw, height: ph } = partDi.bounds);
+      } else {
+        const members = model.nodes.filter((n3) => {
+          var _a4, _b3, _c2;
+          const sid = (_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.sourceId;
+          return sid && ((_c2 = proc == null ? void 0 : proc.flowElements) == null ? void 0 : _c2.some((fe3) => fe3.id === sid));
+        });
+        const box = members.length ? members : model.nodes;
+        if (!box.length) continue;
+        const minX = Math.min(...box.map((n3) => n3.x));
+        const minY = Math.min(...box.map((n3) => n3.y));
+        const maxX = Math.max(...box.map((n3) => n3.x + n3.width));
+        const maxY = Math.max(...box.map((n3) => n3.y + n3.height));
+        px2 = minX - HEADER - LANE_HEAD - PAD;
+        py = minY - PAD;
+        pw = maxX - minX + HEADER + LANE_HEAD + PAD * 2;
+        ph = maxY - minY + PAD * 2;
+      }
+      if ((proc == null ? void 0 : proc.flowElements) && part.id) {
+        for (const fe3 of proc.flowElements) {
+          if (fe3.id) flowNodePoolId.set(fe3.id, part.id);
+        }
+      }
+      const isHorizontal = part.id ? ((_D = diShapes.get(part.id)) == null ? void 0 : _D.isHorizontal) !== false : true;
+      const isBlackBox = !processRefId;
+      pools.push({
+        id: (_E = part.id) != null ? _E : `pool_${pools.length}`,
+        shape: "bpmn-pool",
+        x: px2,
+        y: py,
+        width: pw,
+        height: ph,
+        label: (_F = part.name) != null ? _F : "",
+        attrs: {
+          lanes: laneAttrs.length ? laneAttrs : void 0,
+          poolHorizontal: isHorizontal,
+          blackBox: isBlackBox,
+          __source: { format: "bpmn", sourceId: part.id, kind: "pool" }
+        }
+      });
+    }
+  }
+  for (const n3 of model.nodes) {
+    const pid = flowNodePoolId.get(n3.id);
+    if (pid) {
+      n3.attrs = { ...(_G = n3.attrs) != null ? _G : {}, poolId: pid, __source: { ...(_I = (_H = n3.attrs) == null ? void 0 : _H.__source) != null ? _I : {}, poolId: pid } };
+    }
+  }
+  if (pools.length) model.nodes.unshift(...pools);
+  const sourceMeta = { format: "bpmn", payload: { raw: raw2, diagramIndex: chosenDiagramIndex } };
+  return { model, warnings, sourceMeta };
+}
+var FLOW_NODE_TYPES, moddleSingleton, MAX_BPMN_BYTES;
+var init_import = __esm({
+  "src/io/bpmn/import.ts"() {
+    "use strict";
+    init_dist5();
+    init_LayoutUtil();
+    init_shapes();
+    FLOW_NODE_TYPES = /* @__PURE__ */ new Set([
+      "bpmn:StartEvent",
+      "bpmn:EndEvent",
+      "bpmn:IntermediateThrowEvent",
+      "bpmn:IntermediateCatchEvent",
+      "bpmn:BoundaryEvent",
+      "bpmn:ExclusiveGateway",
+      "bpmn:ParallelGateway",
+      "bpmn:InclusiveGateway",
+      "bpmn:EventBasedGateway",
+      "bpmn:ComplexGateway",
+      "bpmn:Task",
+      "bpmn:UserTask",
+      "bpmn:ServiceTask",
+      "bpmn:ScriptTask",
+      "bpmn:SendTask",
+      "bpmn:ReceiveTask",
+      "bpmn:ManualTask",
+      "bpmn:BusinessRuleTask",
+      "bpmn:CallActivity",
+      "bpmn:SubProcess",
+      "bpmn:Transaction",
+      "bpmn:AdHocSubProcess",
+      // Đợt F — data artifacts + annotations + groups round-trip through canvas
+      "bpmn:DataObjectReference",
+      "bpmn:DataStoreReference",
+      "bpmn:DataInput",
+      "bpmn:DataOutput",
+      "bpmn:TextAnnotation",
+      "bpmn:Group"
+    ]);
+    moddleSingleton = null;
+    MAX_BPMN_BYTES = 4 * 1024 * 1024;
+  }
+});
+
 // src/main.ts
 var main_exports18 = {};
 __export(main_exports18, {
   default: () => DiagramsPlugin
 });
 module.exports = __toCommonJS(main_exports18);
-var import_obsidian4 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 
 // src/view/BoardView.ts
-var import_obsidian = require("obsidian");
+var import_obsidian3 = require("obsidian");
 
 // node_modules/@antv/x6-common/es/polyfill/index.js
 if (typeof window === "object" && window.NodeList && !NodeList.prototype.forEach) {
@@ -70192,6 +76878,8 @@ function nodeHtmlBase(kind, label, extra) {
       return `<div class="bp-frame bp-sub is-transaction"><span class="bp-frame-lbl">${L4 || "Transaction"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
     case "bpmn-event-subprocess":
       return `<div class="bp-frame bp-sub is-event-sub"><span class="bp-frame-lbl">${L4 || "Event sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
+    case "bpmn-adhoc-subprocess":
+      return `<div class="bp-frame bp-sub is-adhoc"><span class="bp-frame-lbl">${L4 || "Ad-hoc sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}<span class="bp-adhoc-mark">\u223C</span></div>`;
     case "bpmn-call-activity":
       return `<div class="bp-task is-call">${nl(L4) || "Call activity"}${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
     case "bpmn-data-object":
@@ -70249,9 +76937,14 @@ function bpGateway(mark, label, extra) {
 }
 function bpPool(label, extra) {
   var _a3;
+  if (extra == null ? void 0 : extra.blackBox) {
+    const orient2 = extra.poolHorizontal === false ? " is-vertical" : "";
+    return `<div class="bp-pool is-blackbox${orient2}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-blackbox-body"><span>Black-box participant</span></div></div>`;
+  }
   const lanes = ((_a3 = extra == null ? void 0 : extra.lanes) == null ? void 0 : _a3.length) ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
+  const orient = (extra == null ? void 0 : extra.poolHorizontal) === false ? " is-vertical" : "";
   const laneHtml = lanes.map((ln3) => `<div class="bp-pool-lane" data-lane-id="${esc(ln3.id)}"><div class="bp-pool-lane-head">${esc(ln3.label)}</div><div class="bp-pool-lane-body"></div></div>`).join("");
-  return `<div class="bp-pool"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
+  return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
 }
 
 // src/canvas/shapes/index.ts
@@ -70400,6 +77093,7 @@ var SHAPE_CATEGORIES = [
       // Remaining activities
       { shape: "bpmn-transaction", label: "Transaction", w: 200, h: 120, advanced: true },
       { shape: "bpmn-event-subprocess", label: "Event sub-process", w: 200, h: 120, advanced: true },
+      { shape: "bpmn-adhoc-subprocess", label: "Ad-hoc sub-process", w: 200, h: 120, advanced: true },
       { shape: "bpmn-call-activity", label: "Call activity", w: 120, h: 60, advanced: true },
       // Data artifacts
       { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
@@ -70497,6 +77191,7 @@ var ICONS = {
   // Đợt B — Activities
   "bpmn-transaction": I(`<rect x="3" y="8" width="26" height="16" rx="4" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="5.5" y="10.5" width="21" height="11" rx="2.5" fill="none" stroke="#1565c0" stroke-width="1.2"/>`),
   "bpmn-event-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M16 12v8M12 16h8" stroke="#1565c0" stroke-width="1.2"/>`),
+  "bpmn-adhoc-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="2"/><path d="M11 18 q1.5 -2.5 3 0 t3 0 t3 0" fill="none" stroke="#1565c0" stroke-width="1.4"/>`),
   "bpmn-call-activity": I(`<rect x="4" y="10" width="24" height="12" rx="3" fill="#fff" stroke="#1565c0" stroke-width="3"/>`),
   // Đợt B — Data artifacts
   "bpmn-data-collection": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/><path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`),
@@ -72448,6 +79143,7 @@ var FRAME_KINDS = /* @__PURE__ */ new Set([
   "bpmn-subprocess",
   "bpmn-transaction",
   "bpmn-event-subprocess",
+  "bpmn-adhoc-subprocess",
   "bpmn-lane",
   "bpmn-pool",
   "bpmn-annotation",
@@ -72461,6 +79157,7 @@ var CONTAINER_KINDS = /* @__PURE__ */ new Set([
   "bpmn-subprocess",
   "bpmn-transaction",
   "bpmn-event-subprocess",
+  "bpmn-adhoc-subprocess",
   "bpmn-lane",
   "bpmn-pool",
   "bpmn-group"
@@ -72614,6 +79311,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.propsBody = null;
     this.propsPanel = null;
     this.propsFab = null;
+    this.selectionChangeHandler = null;
     this.zoomLabel = null;
     this.minimap = null;
     this.minimapSvg = null;
@@ -73114,18 +79812,38 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     mk("left", left4 - gap, midY, "Th\xEAm node b\xEAn tr\xE1i");
     this.padLayer.style.display = "block";
   }
-  /** Shared "Insert shape" grid (skips mindmap kinds). */
-  buildShapeGrid(onPick, onlyCats) {
+  /** Shared "Insert shape" grid (skips mindmap kinds).
+   *  `withLoadMore=true` keeps advanced palette items collapsed behind a button,
+   *  mirroring the left toolbar flyout behavior for dense BPMN sets. */
+  buildShapeGrid(onPick, onlyCats, withLoadMore = false) {
     const grid = el("div", "lk-shape-grid");
+    const common2 = [];
+    const advanced = [];
     for (const cat of this.categories) {
       if (onlyCats && !onlyCats.includes(cat.title)) continue;
       for (const item of cat.items) {
         if (item.shape.startsWith("mm-")) continue;
-        const cell = el("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
-        cell.title = item.label;
-        cell.onclick = () => onPick(item);
-        grid.appendChild(cell);
+        if (withLoadMore && item.advanced) advanced.push(item);
+        else common2.push(item);
       }
+    }
+    const mkCell = (item) => {
+      const cell = el("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
+      cell.title = item.label;
+      cell.onclick = () => onPick(item);
+      return cell;
+    };
+    for (const item of common2) grid.appendChild(mkCell(item));
+    if (withLoadMore && advanced.length > 0) {
+      const more = el("button", "lk-flyout-more", `Load more (${advanced.length})`);
+      more.onclick = () => {
+        var _a3;
+        const frag = document.createDocumentFragment();
+        for (const item of advanced) frag.appendChild(mkCell(item));
+        (_a3 = more.parentElement) == null ? void 0 : _a3.insertBefore(frag, more);
+        more.remove();
+      };
+      grid.appendChild(more);
     }
     return grid;
   }
@@ -73237,7 +79955,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.graph.resetSelection([created]);
       this.editLabel(created);
       this.onChange();
-    }, this.categoriesFor(src)));
+    }, this.categoriesFor(src), true));
     const sc = this.graph.scale().sx;
     const tr2 = this.graph.translate();
     this.showPopupAt(wrap, pt2.x * sc + tr2.tx, pt2.y * sc + tr2.ty);
@@ -74265,8 +80983,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     source.addEventListener("touchend", end);
     source.addEventListener("touchcancel", end);
   }
-  pointInRect(x4, y5, el2) {
-    const r4 = el2.getBoundingClientRect();
+  pointInRect(x4, y5, el3) {
+    const r4 = el3.getBoundingClientRect();
     return x4 >= r4.left && x4 <= r4.right && y5 >= r4.top && y5 <= r4.bottom;
   }
   pointInGraph(x4, y5) {
@@ -74409,6 +81127,51 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     (_a3 = this.propsPanel) == null ? void 0 : _a3.classList.toggle("open", open2);
     if (this.propsFab) this.propsFab.style.display = open2 ? "none" : "grid";
   }
+  setSelectionChangeHandler(handler) {
+    this.selectionChangeHandler = handler;
+  }
+  notifySelectionChanged() {
+    var _a3;
+    (_a3 = this.selectionChangeHandler) == null ? void 0 : _a3.call(this);
+  }
+  getSelectedNodeSnapshot() {
+    var _a3;
+    const nodes = this.graph.getSelectedCells().filter((c6) => c6.isNode());
+    if (nodes.length !== 1) return null;
+    const node2 = nodes[0];
+    const p6 = node2.getPosition();
+    const s5 = node2.getSize();
+    return {
+      id: node2.id,
+      kind: this.nodeKind(node2),
+      label: this.nodeLabel(node2),
+      attrs: { ...(_a3 = node2.getData()) != null ? _a3 : {} },
+      style: this.nodeStyle(node2),
+      position: { x: p6.x, y: p6.y },
+      size: { width: s5.width, height: s5.height }
+    };
+  }
+  patchSelectedNode(patch) {
+    var _a3, _b2, _c, _d;
+    const nodes = this.graph.getSelectedCells().filter((c6) => c6.isNode());
+    if (nodes.length !== 1) return;
+    const node2 = nodes[0];
+    if (patch.label !== void 0) node2.setData({ ...node2.getData(), label: patch.label });
+    if (patch.attrs) node2.setData({ ...node2.getData(), ...patch.attrs });
+    if (patch.style) this.setStyle(node2, patch.style);
+    if (patch.position) {
+      const p6 = node2.getPosition();
+      node2.setPosition((_a3 = patch.position.x) != null ? _a3 : p6.x, (_b2 = patch.position.y) != null ? _b2 : p6.y);
+    }
+    if (patch.size) {
+      const s5 = node2.getSize();
+      node2.resize((_c = patch.size.width) != null ? _c : s5.width, (_d = patch.size.height) != null ? _d : s5.height);
+    }
+    this.rerender(node2);
+    this.onChange();
+    this.refreshProps();
+    this.notifySelectionChanged();
+  }
   refreshProps() {
     const body = this.propsBody;
     if (!body) return;
@@ -74418,6 +81181,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const empty3 = el("div", "lk-props-empty");
       empty3.innerHTML = `<div class="lk-props-empty-ic">\u25C7</div>Ch\u1ECDn m\u1ED9t ph\u1EA7n t\u1EED tr\xEAn canvas \u0111\u1EC3 ch\u1EC9nh n\u1ED9i dung, m\xE0u v\xE0 v\u1ECB tr\xED.`;
       body.appendChild(empty3);
+      this.notifySelectionChanged();
       return;
     }
     const node2 = nodes[0];
@@ -74446,6 +81210,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const kind = this.nodeKind(node2);
     if (kind === "erd-entity") this.buildErdEditor(node2, body);
     else if (kind === "uml-class" || kind === "uml-interface") this.buildUmlEditor(node2, body);
+    if (kind.startsWith("bpmn-")) this.buildBpmnPropsEditor(node2, body);
     const s22 = sec("Ki\u1EC3u");
     const swatchRow = (key) => {
       const row = el("div", "lk-pswatches");
@@ -74501,6 +81266,180 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     sizeRow.appendChild(mkNum(size.width, (v6) => node2.resize(v6, node2.getSize().height)));
     sizeRow.appendChild(mkNum(size.height, (v6) => node2.resize(node2.getSize().width, v6)));
     field(s32, "R\u1ED9ng / Cao", sizeRow);
+    this.notifySelectionChanged();
+  }
+  // ── BPMN Properties editor (Phase D) ──────────────────────────────────────
+  buildBpmnPropsEditor(node2, body) {
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
+    const kind = this.nodeKind(node2);
+    const ex = this.nodeExtra(node2);
+    const d4 = (_a3 = node2.getData()) != null ? _a3 : {};
+    const sec = (title2) => {
+      const s5 = el("div", "lk-psec");
+      s5.appendChild(el("div", "lk-psec-h", title2));
+      body.appendChild(s5);
+      return s5;
+    };
+    const field = (parent, label, control) => {
+      const f6 = el("div", "lk-pfield");
+      f6.appendChild(el("label", void 0, label));
+      f6.appendChild(control);
+      parent.appendChild(f6);
+    };
+    const save = (patch) => {
+      node2.setData({ ...node2.getData(), ...patch });
+      this.rerender(node2);
+      this.onChange();
+    };
+    const bpmnFill = d4.bpmnFill;
+    const bpmnStroke = d4.bpmnStroke;
+    if (!kind.endsWith("-lane") && !kind.endsWith("-pool")) {
+      const sColor = sec("M\xE0u BPMN");
+      const makeColor = (label, key, cur) => {
+        const wrap = el("div", "lk-prow2");
+        const inp = el("input", "lk-pinput lk-pcolor");
+        inp.type = "text";
+        inp.placeholder = "#ffffff";
+        inp.value = cur != null ? cur : "";
+        inp.oninput = () => {
+          save({ [key]: inp.value.trim() || void 0 });
+        };
+        const swatch = el("div", "lk-pswatch lk-pcolor-swatch");
+        swatch.style.background = cur != null ? cur : "transparent";
+        inp.addEventListener("input", () => {
+          swatch.style.background = inp.value.trim() || "transparent";
+        });
+        wrap.appendChild(swatch);
+        wrap.appendChild(inp);
+        field(sColor, label, wrap);
+      };
+      makeColor("Fill", "bpmnFill", bpmnFill);
+      makeColor("Stroke", "bpmnStroke", bpmnStroke);
+    }
+    if (kind === "bpmn-event-start" || kind === "bpmn-event-intermediate" || kind === "bpmn-event-end") {
+      const sTrig = sec("Trigger s\u1EF1 ki\u1EC7n");
+      const TRIGGERS = [
+        "(none)",
+        "message",
+        "timer",
+        "signal",
+        "error",
+        "escalation",
+        "compensation",
+        "conditional",
+        "link",
+        "cancel",
+        "terminate",
+        "multiple",
+        "parallel-multiple"
+      ];
+      const sel = el("select", "lk-pselect");
+      for (const t5 of TRIGGERS) {
+        const opt = document.createElement("option");
+        opt.value = t5 === "(none)" ? "" : t5;
+        opt.textContent = t5;
+        if (((_b2 = ex.trigger) != null ? _b2 : "") === opt.value) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.onchange = () => {
+        save({ trigger: sel.value || void 0 });
+      };
+      field(sTrig, "Trigger", sel);
+      if (kind === "bpmn-event-intermediate") {
+        const thrChk = el("input");
+        thrChk.type = "checkbox";
+        thrChk.checked = ex.throwing === true;
+        thrChk.onchange = () => {
+          save({ throwing: thrChk.checked });
+        };
+        field(sTrig, "Throwing", thrChk);
+      }
+    }
+    const isActivity = kind.startsWith("bpmn-task") || kind === "bpmn-subprocess" || kind === "bpmn-transaction" || kind === "bpmn-adhoc-subprocess" || kind === "bpmn-event-subprocess" || kind === "bpmn-call-activity";
+    if (isActivity) {
+      const sLoop = sec("\u0110\u1EB7c t\xEDnh v\xF2ng l\u1EB7p");
+      const LOOP_OPTS = [
+        ["", "Kh\xF4ng"],
+        ["loop", "V\xF2ng l\u1EB7p"],
+        ["mi-par", "Multi-instance //"],
+        ["mi-seq", "Multi-instance \u2261"]
+      ];
+      const sel = el("select", "lk-pselect");
+      const curLoop = (_d = (_c = ex.markers) == null ? void 0 : _c.find((m6) => m6 === "loop" || m6 === "mi-par" || m6 === "mi-seq")) != null ? _d : "";
+      for (const [v6, l5] of LOOP_OPTS) {
+        const opt = document.createElement("option");
+        opt.value = v6;
+        opt.textContent = l5;
+        if (curLoop === v6) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.onchange = () => {
+        var _a4;
+        const other = ((_a4 = ex.markers) != null ? _a4 : []).filter((m6) => m6 !== "loop" && m6 !== "mi-par" && m6 !== "mi-seq");
+        save({ markers: sel.value ? [...other, sel.value] : other });
+      };
+      field(sLoop, "Ki\u1EC3u", sel);
+      const compChk = el("input");
+      compChk.type = "checkbox";
+      compChk.checked = ((_e3 = ex.markers) != null ? _e3 : []).includes("compensation");
+      compChk.onchange = () => {
+        var _a4;
+        const others = ((_a4 = ex.markers) != null ? _a4 : []).filter((m6) => m6 !== "compensation");
+        save({ markers: compChk.checked ? [...others, "compensation"] : others });
+      };
+      field(sLoop, "Compensation", compChk);
+    }
+    const sDocs = sec("M\xF4 t\u1EA3 (documentation)");
+    const docTa = el("textarea", "lk-ptextarea");
+    docTa.rows = 4;
+    docTa.placeholder = "Nh\u1EADp m\xF4 t\u1EA3 ph\u1EA7n t\u1EED BPMN...";
+    docTa.value = (_f = d4.bpmnDoc) != null ? _f : "";
+    docTa.oninput = () => {
+      save({ bpmnDoc: docTa.value.trim() || void 0 });
+    };
+    sDocs.appendChild(docTa);
+    const camunda = (_g = d4.camunda) != null ? _g : {};
+    const CAMUNDA_FIELDS = [
+      ["assignee", "Assignee"],
+      ["candidateUsers", "Candidate users"],
+      ["candidateGroups", "Candidate groups"],
+      ["formKey", "Form key"],
+      ["dueDate", "Due date"],
+      ["priority", "Priority"]
+    ];
+    const hasCamundaData = CAMUNDA_FIELDS.some(([k5]) => camunda[k5]);
+    if (hasCamundaData || kind === "bpmn-task-user") {
+      const sCam = sec("Camunda");
+      for (const [key, label] of CAMUNDA_FIELDS) {
+        const inp = el("input", "lk-pinput");
+        inp.value = (_h = camunda[key]) != null ? _h : "";
+        inp.placeholder = label;
+        inp.oninput = () => {
+          const updated = { ...camunda, [key]: inp.value.trim() || void 0 };
+          save({ camunda: Object.fromEntries(Object.entries(updated).filter(([, v6]) => v6 !== void 0)) });
+        };
+        field(sCam, label, inp);
+      }
+    }
+    const bpmnProps = (_i = d4.bpmnProps) != null ? _i : [];
+    if (bpmnProps.length) {
+      const sProps = sec("Properties");
+      for (const p6 of bpmnProps) {
+        const row = el("div", "lk-prow2");
+        const kIn = el("input", "lk-pinput");
+        kIn.value = p6.name;
+        kIn.readOnly = true;
+        const vIn = el("input", "lk-pinput");
+        vIn.value = p6.value;
+        vIn.oninput = () => {
+          const updated = bpmnProps.map((q4) => q4.name === p6.name ? { ...q4, value: vIn.value } : q4);
+          save({ bpmnProps: updated });
+        };
+        row.appendChild(kIn);
+        row.appendChild(vIn);
+        sProps.appendChild(row);
+      }
+    }
   }
   // ── ERD column / UML member editors (right panel) ────────────────────────
   buildErdEditor(node2, body) {
@@ -75060,12 +81999,16 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (data2 == null ? void 0 : data2.methods) out.methods = data2.methods;
     if ((data2 == null ? void 0 : data2.who) !== void 0) out.who = data2.who;
     if (data2 == null ? void 0 : data2.labelOffset) out.labelOffset = data2.labelOffset;
-    if ((data2 == null ? void 0 : data2.lanes) && data2.lanes.length > 0) out.lanes = data2.lanes;
+    if (data2 == null ? void 0 : data2.lanes) out.lanes = data2.lanes;
+    if ((data2 == null ? void 0 : data2.poolHorizontal) !== void 0) out.poolHorizontal = data2.poolHorizontal;
+    if ((data2 == null ? void 0 : data2.blackBox) !== void 0) out.blackBox = data2.blackBox;
+    if (out.blackBox) delete out.lanes;
     if (data2 == null ? void 0 : data2.trigger) out.trigger = data2.trigger;
     if ((data2 == null ? void 0 : data2.throwing) !== void 0) out.throwing = data2.throwing;
     if ((data2 == null ? void 0 : data2.interrupting) !== void 0) out.interrupting = data2.interrupting;
     if (data2 == null ? void 0 : data2.attachedTo) out.attachedTo = data2.attachedTo;
     if ((data2 == null ? void 0 : data2.markers) && data2.markers.length > 0) out.markers = data2.markers;
+    if ((data2 == null ? void 0 : data2.collapsed) !== void 0) out.collapsed = data2.collapsed;
     return out;
   }
   nodeKind(n3) {
@@ -75094,7 +82037,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       throwing: d4.throwing,
       interrupting: d4.interrupting,
       attachedTo: d4.attachedTo,
-      markers: d4.markers
+      markers: d4.markers,
+      collapsed: d4.collapsed,
+      poolHorizontal: d4.poolHorizontal,
+      blackBox: d4.blackBox
     };
   }
   rerender(n3) {
@@ -75782,7 +82728,15 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     for (const key of ["sequence", "default", "message", "conditional", "association"]) {
       const row = el("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
       row.onclick = () => {
+        var _a4, _b2;
         this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
+        const data2 = (_a4 = edge.getData()) != null ? _a4 : {};
+        const nextAttrs = { ...(_b2 = data2.bpmnAttrs) != null ? _b2 : {} };
+        delete nextAttrs.isDefault;
+        if (key === "message" || key === "association") delete nextAttrs.condition;
+        if (key === "default") nextAttrs.isDefault = true;
+        const nextKind = key === "message" ? "message" : key === "association" ? "association" : void 0;
+        edge.setData({ ...data2, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : void 0 });
         this.hidePopup();
         this.showEdgeBar(edge);
       };
@@ -75980,8 +82934,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
       const flipUp = bottom4 && !top4;
       const view = this.graph.findViewByCell(n3);
-      const el2 = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, isGw ? ".bp-gw" : ".bp-event");
-      if (el2) el2.classList.toggle("label-top", flipUp);
+      const el3 = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, isGw ? ".bp-gw" : ".bp-event");
+      if (el3) el3.classList.toggle("label-top", flipUp);
     }
   }
   isMindmapNode(cellId) {
@@ -76009,7 +82963,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   // ── Model load / serialize ───────────────────────────────────────────────
   loadModel(model) {
-    var _a3, _b2, _c;
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h;
     this.graph.startBatch("load");
     this.graph.clearCells();
     for (const n3 of model.nodes) {
@@ -76022,14 +82976,24 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         who: a5.who,
         labelOffset: a5.labelOffset,
         lanes: a5.lanes,
+        poolHorizontal: a5.poolHorizontal,
+        blackBox: a5.blackBox,
         trigger: a5.trigger,
         throwing: a5.throwing,
         interrupting: a5.interrupting,
         attachedTo: a5.attachedTo,
-        markers: a5.markers
+        markers: a5.markers,
+        collapsed: a5.collapsed
       };
       const migrated = migrateBpmnEventKind(n3.shape, extra);
-      this.addHtmlNode(migrated.kind, n3.x, n3.y, n3.width, n3.height, n3.label, style2, n3.id, migrated.extra, a5.__source);
+      const node2 = this.addHtmlNode(migrated.kind, n3.x, n3.y, n3.width, n3.height, n3.label, style2, n3.id, migrated.extra, a5.__source);
+      const phaseD = {};
+      if (a5.bpmnDoc) phaseD.bpmnDoc = a5.bpmnDoc;
+      if (a5.bpmnFill) phaseD.bpmnFill = a5.bpmnFill;
+      if (a5.bpmnStroke) phaseD.bpmnStroke = a5.bpmnStroke;
+      if (a5.camunda) phaseD.camunda = a5.camunda;
+      if (a5.bpmnProps) phaseD.bpmnProps = a5.bpmnProps;
+      if (Object.keys(phaseD).length) node2.setData({ ...node2.getData(), ...phaseD });
     }
     for (const e4 of model.edges) {
       const seq = this.isSeqLifeline(e4.source) && this.isSeqLifeline(e4.target);
@@ -76043,6 +83007,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         data2.ret = e4.ret || void 0;
       }
       if (e4.style) data2.style = e4.style;
+      if (e4.kind && e4.kind !== "sequence") data2.bpmnKind = e4.kind;
+      if (e4.attrs && Object.keys(e4.attrs).length) data2.bpmnAttrs = { ...e4.attrs };
+      if (!((_c = data2.style) == null ? void 0 : _c.flowType)) {
+        const ft3 = e4.kind === "message" ? "message" : e4.kind === "association" ? "association" : ((_d = e4.attrs) == null ? void 0 : _d.isDefault) ? "default" : ((_e3 = e4.attrs) == null ? void 0 : _e3.condition) ? "conditional" : void 0;
+        if (ft3) {
+          data2.style = { ...(_f = data2.style) != null ? _f : {}, flowType: ft3, ...FLOW_TYPE_PRESETS[ft3] };
+        }
+      }
       const forcedRouter = e4.router === "normal" ? "normal" : e4.router === "orth" ? { name: "orth" } : null;
       const sourceEnd = { cell: e4.source };
       if (e4.sourceAnchor) {
@@ -76066,12 +83038,43 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         connector: seq ? "seq-msg" : mm ? "mm-edge" : CONNECTOR,
         attrs: edgeAttrs,
         labels: labelSpec,
-        vertices: (_c = e4.vertices) != null ? _c : [],
+        vertices: (_g = e4.vertices) != null ? _g : [],
         // Sequence Y is read by the seq-msg connector from edge data at draw time.
         data: data2
       });
-      if (e4.style) this.applyEdgeStyle(created);
+      if (e4.style || data2.style) this.applyEdgeStyle(created);
       if (mm) this.applyMindmapRoutingIfNeeded(created);
+    }
+    for (const n3 of model.nodes) {
+      if (!n3.parentId && !n3.laneId) continue;
+      const child = this.graph.getCellById(n3.id);
+      if (!child || !child.isNode()) continue;
+      const prev = (_h = child.getData()) != null ? _h : {};
+      child.setData({
+        ...prev,
+        ...n3.parentId ? { parentId: n3.parentId } : {},
+        ...n3.laneId ? { laneId: n3.laneId } : {}
+      });
+      if (n3.parentId) {
+        const parent = this.graph.getCellById(n3.parentId);
+        if (parent && parent.isNode()) parent.addChild(child);
+      }
+    }
+    const parentById = new Map(model.nodes.map((n3) => [n3.id, n3.parentId]));
+    const depthOf = (id) => {
+      let d4 = 0;
+      let cur = parentById.get(id);
+      while (cur && d4 < 32) {
+        d4++;
+        cur = parentById.get(cur);
+      }
+      return d4;
+    };
+    for (const n3 of model.nodes) {
+      if (!FRAME_KINDS.has(n3.shape)) continue;
+      const cell = this.graph.getCellById(n3.id);
+      if (!cell || !cell.isNode()) continue;
+      cell.setZIndex(-1e3 + depthOf(n3.id));
     }
     this.graph.stopBatch("load");
     this.resyncHtmlNodes();
@@ -76174,10 +83177,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   getModel() {
     const nodes = this.graph.getNodes().map((n3) => {
-      var _a3;
+      var _a3, _b2, _c, _d, _e3, _f, _g;
       const p6 = n3.getPosition();
       const s5 = n3.getSize();
       const ex = this.nodeExtra(n3);
+      const data2 = (_a3 = n3.getData()) != null ? _a3 : {};
+      const x6Parent = n3.getParent();
+      const parentId = x6Parent && x6Parent.isNode() ? x6Parent.id : data2.parentId;
+      const laneId = data2.laneId;
       return {
         id: n3.id,
         shape: this.nodeKind(n3),
@@ -76186,6 +83193,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         width: s5.width,
         height: s5.height,
         label: this.nodeLabel(n3),
+        ...parentId ? { parentId } : {},
+        ...laneId ? { laneId } : {},
         attrs: {
           style: this.nodeStyle(n3),
           cols: ex.cols,
@@ -76194,18 +83203,27 @@ var _OmniboardCanvas = class _OmniboardCanvas {
           who: ex.who,
           labelOffset: ex.labelOffset,
           lanes: ex.lanes,
+          poolHorizontal: ex.poolHorizontal,
+          blackBox: ex.blackBox,
           // BPMN extras (Đợt A)
           trigger: ex.trigger,
           throwing: ex.throwing,
           interrupting: ex.interrupting,
           attachedTo: ex.attachedTo,
           markers: ex.markers,
-          __source: (_a3 = n3.getData()) == null ? void 0 : _a3.__source
+          collapsed: ex.collapsed,
+          // Phase D — BPMN metadata (live on node.data, not NodeExtra)
+          bpmnDoc: (_b2 = n3.getData()) == null ? void 0 : _b2.bpmnDoc,
+          bpmnFill: (_c = n3.getData()) == null ? void 0 : _c.bpmnFill,
+          bpmnStroke: (_d = n3.getData()) == null ? void 0 : _d.bpmnStroke,
+          camunda: (_e3 = n3.getData()) == null ? void 0 : _e3.camunda,
+          bpmnProps: (_f = n3.getData()) == null ? void 0 : _f.bpmnProps,
+          __source: (_g = n3.getData()) == null ? void 0 : _g.__source
         }
       };
     });
     const edges = this.graph.getEdges().map((e4) => {
-      var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j;
+      var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l;
       const src = e4.getSource();
       const tgt = e4.getTarget();
       const srcFull = e4.getSource();
@@ -76219,6 +83237,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const router2 = routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : void 0;
       const srcAnchor = ((_c = srcFull.anchor) == null ? void 0 : _c.name) === "topLeft" && typeof ((_d = srcFull.anchor.args) == null ? void 0 : _d.dx) === "number" && typeof ((_e3 = srcFull.anchor.args) == null ? void 0 : _e3.dy) === "number" ? { dx: srcFull.anchor.args.dx, dy: srcFull.anchor.args.dy } : void 0;
       const tgtAnchor = ((_f = tgtFull.anchor) == null ? void 0 : _f.name) === "topLeft" && typeof ((_g = tgtFull.anchor.args) == null ? void 0 : _g.dx) === "number" && typeof ((_h = tgtFull.anchor.args) == null ? void 0 : _h.dy) === "number" ? { dx: tgtFull.anchor.args.dx, dy: tgtFull.anchor.args.dy } : void 0;
+      let bpmnKind = d4.bpmnKind;
+      const bpmnAttrs = { ...(_i = d4.bpmnAttrs) != null ? _i : {} };
+      const ft3 = (_j = d4.style) == null ? void 0 : _j.flowType;
+      if (!bpmnKind) {
+        if (ft3 === "message") bpmnKind = "message";
+        else if (ft3 === "association") bpmnKind = "association";
+      }
+      if (ft3 === "default" && bpmnAttrs.isDefault === void 0) bpmnAttrs.isDefault = true;
       return {
         id: e4.id,
         source: src.cell,
@@ -76227,19 +83253,37 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         targetPort: tgt.port,
         sourceAnchor: srcAnchor,
         targetAnchor: tgtAnchor,
-        label: (_j = (_i = lbl == null ? void 0 : lbl.attrs) == null ? void 0 : _i.label) == null ? void 0 : _j.text,
+        label: (_l = (_k = lbl == null ? void 0 : lbl.attrs) == null ? void 0 : _k.label) == null ? void 0 : _l.text,
         labelPos,
         y: typeof d4.y === "number" ? d4.y : void 0,
         ret: d4.ret ? true : void 0,
         style: d4.style && Object.keys(d4.style).length ? d4.style : void 0,
         vertices: verts && verts.length ? verts.map((v6) => ({ x: v6.x, y: v6.y })) : void 0,
-        router: router2
+        router: router2,
+        ...bpmnKind && bpmnKind !== "sequence" ? { kind: bpmnKind } : {},
+        ...Object.keys(bpmnAttrs).length ? { attrs: bpmnAttrs } : {}
       };
     });
     return { nodes, edges };
   }
   nodeCount() {
     return this.graph.getNodes().length;
+  }
+  focusCellById(id) {
+    const cell = this.graph.getCellById(id);
+    if (!cell) return false;
+    this.graph.resetSelection([cell]);
+    if (cell.isNode()) {
+      const n3 = cell;
+      const p6 = n3.getPosition();
+      const s5 = n3.getSize();
+      const cx = p6.x + s5.width / 2;
+      const cy = p6.y + s5.height / 2;
+      this.graph.centerPoint(cx, cy);
+    }
+    this.refreshContextBar();
+    this.refreshProps();
+    return true;
   }
   /**
    * n8n-style auto layout (longest-path ranking).
@@ -76540,6437 +83584,12 @@ var OmniboardCanvas = _OmniboardCanvas;
 // src/view/BoardView.ts
 init_boardSerde();
 
-// node_modules/min-dash/dist/index.js
-var nativeToString = Object.prototype.toString;
-var nativeHasOwnProperty = Object.prototype.hasOwnProperty;
-function isUndefined(obj) {
-  return obj === void 0;
-}
-function isDefined(obj) {
-  return obj !== void 0;
-}
-function isNil(obj) {
-  return obj == null;
-}
-function isArray2(obj) {
-  return nativeToString.call(obj) === "[object Array]";
-}
-function isObject2(obj) {
-  return nativeToString.call(obj) === "[object Object]";
-}
-function isFunction2(obj) {
-  const tag = nativeToString.call(obj);
-  return tag === "[object Function]" || tag === "[object AsyncFunction]" || tag === "[object GeneratorFunction]" || tag === "[object AsyncGeneratorFunction]" || tag === "[object Proxy]";
-}
-function isString(obj) {
-  return nativeToString.call(obj) === "[object String]";
-}
-function has2(target, key) {
-  return !isNil(target) && nativeHasOwnProperty.call(target, key);
-}
-function find2(collection, matcher) {
-  const matchFn = toMatcher(matcher);
-  let match;
-  forEach(collection, function(val, key) {
-    if (matchFn(val, key)) {
-      match = val;
-      return false;
-    }
-  });
-  return match;
-}
-function findIndex(collection, matcher) {
-  const matchFn = toMatcher(matcher);
-  let idx = isArray2(collection) ? -1 : void 0;
-  forEach(collection, function(val, key) {
-    if (matchFn(val, key)) {
-      idx = key;
-      return false;
-    }
-  });
-  return idx;
-}
-function filter2(collection, matcher) {
-  const matchFn = toMatcher(matcher);
-  let result = [];
-  forEach(collection, function(val, key) {
-    if (matchFn(val, key)) {
-      result.push(val);
-    }
-  });
-  return result;
-}
-function forEach(collection, iterator) {
-  let val, result;
-  if (isUndefined(collection)) {
-    return;
-  }
-  const convertKey = isArray2(collection) ? toNum : identity2;
-  for (let key in collection) {
-    if (has2(collection, key)) {
-      val = collection[key];
-      result = iterator(val, convertKey(key));
-      if (result === false) {
-        return val;
-      }
-    }
-  }
-}
-function toMatcher(matcher) {
-  return isFunction2(matcher) ? matcher : (e4) => {
-    return e4 === matcher;
-  };
-}
-function identity2(arg) {
-  return arg;
-}
-function toNum(arg) {
-  return Number(arg);
-}
-function bind(fn2, target) {
-  return fn2.bind(target);
-}
-function assign2(target, ...others) {
-  return Object.assign(target, ...others);
-}
-function set(target, path2, value) {
-  let currentTarget = target;
-  forEach(path2, function(key, idx) {
-    if (typeof key !== "number" && typeof key !== "string") {
-      throw new Error("illegal key type: " + typeof key + ". Key should be of type number or string.");
-    }
-    if (key === "constructor") {
-      throw new Error("illegal key: constructor");
-    }
-    if (key === "__proto__") {
-      throw new Error("illegal key: __proto__");
-    }
-    let nextKey = path2[idx + 1];
-    let nextTarget = currentTarget[key];
-    if (isDefined(nextKey) && isNil(nextTarget)) {
-      nextTarget = currentTarget[key] = isNaN(+nextKey) ? {} : [];
-    }
-    if (isUndefined(nextKey)) {
-      if (isUndefined(value)) {
-        delete currentTarget[key];
-      } else {
-        currentTarget[key] = value;
-      }
-    } else {
-      currentTarget = nextTarget;
-    }
-  });
-  return target;
-}
-function pick2(target, properties) {
-  let result = {};
-  let obj = Object(target);
-  forEach(properties, function(prop2) {
-    if (prop2 in obj) {
-      result[prop2] = target[prop2];
-    }
-  });
-  return result;
-}
-
-// node_modules/moddle/dist/index.js
-function Base3() {
-}
-Base3.prototype.get = function(name2) {
-  return this.$model.properties.get(this, name2);
-};
-Base3.prototype.set = function(name2, value) {
-  this.$model.properties.set(this, name2, value);
-};
-function Factory(model, properties) {
-  this.model = model;
-  this.properties = properties;
-}
-Factory.prototype.createType = function(descriptor) {
-  var model = this.model;
-  var props = this.properties, prototype = Object.create(Base3.prototype);
-  forEach(descriptor.properties, function(p6) {
-    if (!p6.isMany && p6.default !== void 0) {
-      prototype[p6.name] = p6.default;
-    }
-  });
-  props.defineModel(prototype, model);
-  props.defineDescriptor(prototype, descriptor);
-  var name2 = descriptor.ns.name;
-  function ModdleElement(attrs) {
-    props.define(this, "$type", { value: name2, enumerable: true });
-    props.define(this, "$attrs", { value: {} });
-    props.define(this, "$parent", { writable: true });
-    forEach(attrs, bind(function(val, key) {
-      this.set(key, val);
-    }, this));
-  }
-  ModdleElement.prototype = prototype;
-  ModdleElement.hasType = prototype.$instanceOf = this.model.hasType;
-  props.defineModel(ModdleElement, model);
-  props.defineDescriptor(ModdleElement, descriptor);
-  return ModdleElement;
-};
-var BUILTINS = {
-  String: true,
-  Boolean: true,
-  Integer: true,
-  Real: true,
-  Element: true
-};
-var TYPE_CONVERTERS = {
-  String: function(s5) {
-    return s5;
-  },
-  Boolean: function(s5) {
-    return s5 === "true";
-  },
-  Integer: function(s5) {
-    return parseInt(s5, 10);
-  },
-  Real: function(s5) {
-    return parseFloat(s5);
-  }
-};
-function coerceType(type, value) {
-  var converter = TYPE_CONVERTERS[type];
-  if (converter) {
-    return converter(value);
-  } else {
-    return value;
-  }
-}
-function isBuiltIn(type) {
-  return !!BUILTINS[type];
-}
-function isSimple(type) {
-  return !!TYPE_CONVERTERS[type];
-}
-function parseName(name2, defaultPrefix) {
-  var parts = name2.split(/:/), localName, prefix2;
-  if (parts.length === 1) {
-    localName = name2;
-    prefix2 = defaultPrefix;
-  } else if (parts.length === 2) {
-    localName = parts[1];
-    prefix2 = parts[0];
-  } else {
-    throw new Error("expected <prefix:localName> or <localName>, got " + name2);
-  }
-  name2 = (prefix2 ? prefix2 + ":" : "") + localName;
-  return {
-    name: name2,
-    prefix: prefix2,
-    localName
-  };
-}
-function DescriptorBuilder(nameNs) {
-  this.ns = nameNs;
-  this.name = nameNs.name;
-  this.allTypes = [];
-  this.allTypesByName = {};
-  this.properties = [];
-  this.propertiesByName = {};
-}
-DescriptorBuilder.prototype.build = function() {
-  return pick2(this, [
-    "ns",
-    "name",
-    "allTypes",
-    "allTypesByName",
-    "properties",
-    "propertiesByName",
-    "bodyProperty",
-    "idProperty"
-  ]);
-};
-DescriptorBuilder.prototype.addProperty = function(p6, idx, validate) {
-  if (typeof idx === "boolean") {
-    validate = idx;
-    idx = void 0;
-  }
-  this.addNamedProperty(p6, validate !== false);
-  var properties = this.properties;
-  if (idx !== void 0) {
-    properties.splice(idx, 0, p6);
-  } else {
-    properties.push(p6);
-  }
-};
-DescriptorBuilder.prototype.replaceProperty = function(oldProperty, newProperty, replace) {
-  var oldNameNs = oldProperty.ns;
-  var props = this.properties, propertiesByName = this.propertiesByName, rename = oldProperty.name !== newProperty.name;
-  if (oldProperty.isId) {
-    if (!newProperty.isId) {
-      throw new Error(
-        "property <" + newProperty.ns.name + "> must be id property to refine <" + oldProperty.ns.name + ">"
-      );
-    }
-    this.setIdProperty(newProperty, false);
-  }
-  if (oldProperty.isBody) {
-    if (!newProperty.isBody) {
-      throw new Error(
-        "property <" + newProperty.ns.name + "> must be body property to refine <" + oldProperty.ns.name + ">"
-      );
-    }
-    this.setBodyProperty(newProperty, false);
-  }
-  var idx = props.indexOf(oldProperty);
-  if (idx === -1) {
-    throw new Error("property <" + oldNameNs.name + "> not found in property list");
-  }
-  props.splice(idx, 1);
-  this.addProperty(newProperty, replace ? void 0 : idx, rename);
-  propertiesByName[oldNameNs.name] = propertiesByName[oldNameNs.localName] = newProperty;
-};
-DescriptorBuilder.prototype.redefineProperty = function(p6, targetPropertyName, replace) {
-  var nsPrefix = p6.ns.prefix;
-  var parts = targetPropertyName.split("#");
-  var name2 = parseName(parts[0], nsPrefix);
-  var attrName = parseName(parts[1], name2.prefix).name;
-  var redefinedProperty = this.propertiesByName[attrName];
-  if (!redefinedProperty) {
-    throw new Error("refined property <" + attrName + "> not found");
-  } else {
-    this.replaceProperty(redefinedProperty, p6, replace);
-  }
-  delete p6.redefines;
-};
-DescriptorBuilder.prototype.addNamedProperty = function(p6, validate) {
-  var ns2 = p6.ns, propsByName = this.propertiesByName;
-  if (validate) {
-    this.assertNotDefined(p6, ns2.name);
-    this.assertNotDefined(p6, ns2.localName);
-  }
-  propsByName[ns2.name] = propsByName[ns2.localName] = p6;
-};
-DescriptorBuilder.prototype.removeNamedProperty = function(p6) {
-  var ns2 = p6.ns, propsByName = this.propertiesByName;
-  delete propsByName[ns2.name];
-  delete propsByName[ns2.localName];
-};
-DescriptorBuilder.prototype.setBodyProperty = function(p6, validate) {
-  if (validate && this.bodyProperty) {
-    throw new Error(
-      "body property defined multiple times (<" + this.bodyProperty.ns.name + ">, <" + p6.ns.name + ">)"
-    );
-  }
-  this.bodyProperty = p6;
-};
-DescriptorBuilder.prototype.setIdProperty = function(p6, validate) {
-  if (validate && this.idProperty) {
-    throw new Error(
-      "id property defined multiple times (<" + this.idProperty.ns.name + ">, <" + p6.ns.name + ">)"
-    );
-  }
-  this.idProperty = p6;
-};
-DescriptorBuilder.prototype.assertNotTrait = function(typeDescriptor) {
-  const _extends = typeDescriptor.extends || [];
-  if (_extends.length) {
-    throw new Error(
-      `cannot create <${typeDescriptor.name}> extending <${typeDescriptor.extends}>`
-    );
-  }
-};
-DescriptorBuilder.prototype.assertNotDefined = function(p6, name2) {
-  var propertyName = p6.name, definedProperty = this.propertiesByName[propertyName];
-  if (definedProperty) {
-    throw new Error(
-      "property <" + propertyName + "> already defined; override of <" + definedProperty.definedBy.ns.name + "#" + definedProperty.ns.name + "> by <" + p6.definedBy.ns.name + "#" + p6.ns.name + "> not allowed without redefines"
-    );
-  }
-};
-DescriptorBuilder.prototype.hasProperty = function(name2) {
-  return this.propertiesByName[name2];
-};
-DescriptorBuilder.prototype.addTrait = function(t5, inherited) {
-  if (inherited) {
-    this.assertNotTrait(t5);
-  }
-  var typesByName = this.allTypesByName, types2 = this.allTypes;
-  var typeName = t5.name;
-  if (typeName in typesByName) {
-    return;
-  }
-  forEach(t5.properties, bind(function(p6) {
-    p6 = assign2({}, p6, {
-      name: p6.ns.localName,
-      inherited
-    });
-    Object.defineProperty(p6, "definedBy", {
-      value: t5
-    });
-    var replaces = p6.replaces, redefines = p6.redefines;
-    if (replaces || redefines) {
-      this.redefineProperty(p6, replaces || redefines, replaces);
-    } else {
-      if (p6.isBody) {
-        this.setBodyProperty(p6);
-      }
-      if (p6.isId) {
-        this.setIdProperty(p6);
-      }
-      this.addProperty(p6);
-    }
-  }, this));
-  types2.push(t5);
-  typesByName[typeName] = t5;
-};
-function Registry2(packages2, properties) {
-  this.packageMap = {};
-  this.typeMap = {};
-  this.packages = [];
-  this.properties = properties;
-  forEach(packages2, bind(this.registerPackage, this));
-}
-Registry2.prototype.getPackage = function(uriOrPrefix) {
-  return this.packageMap[uriOrPrefix];
-};
-Registry2.prototype.getPackages = function() {
-  return this.packages;
-};
-Registry2.prototype.registerPackage = function(pkg) {
-  pkg = assign2({}, pkg);
-  var pkgMap = this.packageMap;
-  ensureAvailable(pkgMap, pkg, "prefix");
-  ensureAvailable(pkgMap, pkg, "uri");
-  forEach(pkg.types, bind(function(descriptor) {
-    this.registerType(descriptor, pkg);
-  }, this));
-  pkgMap[pkg.uri] = pkgMap[pkg.prefix] = pkg;
-  this.packages.push(pkg);
-};
-Registry2.prototype.registerType = function(type, pkg) {
-  type = assign2({}, type, {
-    superClass: (type.superClass || []).slice(),
-    extends: (type.extends || []).slice(),
-    properties: (type.properties || []).slice(),
-    meta: assign2(type.meta || {})
-  });
-  var ns2 = parseName(type.name, pkg.prefix), name2 = ns2.name, propertiesByName = {};
-  forEach(type.properties, bind(function(p6) {
-    var propertyNs = parseName(p6.name, ns2.prefix), propertyName = propertyNs.name;
-    if (!isBuiltIn(p6.type)) {
-      p6.type = parseName(p6.type, propertyNs.prefix).name;
-    }
-    assign2(p6, {
-      ns: propertyNs,
-      name: propertyName
-    });
-    propertiesByName[propertyName] = p6;
-  }, this));
-  assign2(type, {
-    ns: ns2,
-    name: name2,
-    propertiesByName
-  });
-  forEach(type.extends, bind(function(extendsName) {
-    var extendsNameNs = parseName(extendsName, ns2.prefix);
-    var extended = this.typeMap[extendsNameNs.name];
-    extended.traits = extended.traits || [];
-    extended.traits.push(name2);
-  }, this));
-  this.definePackage(type, pkg);
-  this.typeMap[name2] = type;
-};
-Registry2.prototype.mapTypes = function(nsName2, iterator, trait) {
-  var type = isBuiltIn(nsName2.name) ? { name: nsName2.name } : this.typeMap[nsName2.name];
-  var self2 = this;
-  function traverse(cls, trait2) {
-    var parentNs = parseName(cls, isBuiltIn(cls) ? "" : nsName2.prefix);
-    self2.mapTypes(parentNs, iterator, trait2);
-  }
-  function traverseTrait(cls) {
-    return traverse(cls, true);
-  }
-  function traverseSuper(cls) {
-    return traverse(cls, false);
-  }
-  if (!type) {
-    throw new Error("unknown type <" + nsName2.name + ">");
-  }
-  forEach(type.superClass, trait ? traverseTrait : traverseSuper);
-  iterator(type, !trait);
-  forEach(type.traits, traverseTrait);
-};
-Registry2.prototype.getEffectiveDescriptor = function(name2) {
-  var nsName2 = parseName(name2);
-  var builder = new DescriptorBuilder(nsName2);
-  this.mapTypes(nsName2, function(type, inherited) {
-    builder.addTrait(type, inherited);
-  });
-  var descriptor = builder.build();
-  this.definePackage(descriptor, descriptor.allTypes[descriptor.allTypes.length - 1].$pkg);
-  return descriptor;
-};
-Registry2.prototype.definePackage = function(target, pkg) {
-  this.properties.define(target, "$pkg", { value: pkg });
-};
-function ensureAvailable(packageMap, pkg, identifierKey) {
-  var value = pkg[identifierKey];
-  if (value in packageMap) {
-    throw new Error("package with " + identifierKey + " <" + value + "> already defined");
-  }
-}
-function Properties(model) {
-  this.model = model;
-}
-Properties.prototype.set = function(target, name2, value) {
-  if (!isString(name2) || !name2.length) {
-    throw new TypeError("property name must be a non-empty string");
-  }
-  var property2 = this.getProperty(target, name2);
-  var propertyName = property2 && property2.name;
-  if (isUndefined2(value)) {
-    if (property2) {
-      delete target[propertyName];
-    } else {
-      delete target.$attrs[stripGlobal(name2)];
-    }
-  } else {
-    if (property2) {
-      if (propertyName in target) {
-        target[propertyName] = value;
-      } else {
-        defineProperty2(target, property2, value);
-      }
-    } else {
-      target.$attrs[stripGlobal(name2)] = value;
-    }
-  }
-};
-Properties.prototype.get = function(target, name2) {
-  var property2 = this.getProperty(target, name2);
-  if (!property2) {
-    return target.$attrs[stripGlobal(name2)];
-  }
-  var propertyName = property2.name;
-  if (!target[propertyName] && property2.isMany) {
-    defineProperty2(target, property2, []);
-  }
-  return target[propertyName];
-};
-Properties.prototype.define = function(target, name2, options) {
-  if (!options.writable) {
-    var value = options.value;
-    options = assign2({}, options, {
-      get: function() {
-        return value;
-      }
-    });
-    delete options.value;
-  }
-  Object.defineProperty(target, name2, options);
-};
-Properties.prototype.defineDescriptor = function(target, descriptor) {
-  this.define(target, "$descriptor", { value: descriptor });
-};
-Properties.prototype.defineModel = function(target, model) {
-  this.define(target, "$model", { value: model });
-};
-Properties.prototype.getProperty = function(target, name2) {
-  var model = this.model;
-  var property2 = model.getPropertyDescriptor(target, name2);
-  if (property2) {
-    return property2;
-  }
-  if (name2.includes(":")) {
-    return null;
-  }
-  const strict = model.config.strict;
-  if (typeof strict !== "undefined") {
-    const error3 = new TypeError(`unknown property <${name2}> on <${target.$type}>`);
-    if (strict) {
-      throw error3;
-    } else {
-      typeof console !== "undefined" && console.warn(error3);
-    }
-  }
-  return null;
-};
-function isUndefined2(val) {
-  return typeof val === "undefined";
-}
-function defineProperty2(target, property2, value) {
-  Object.defineProperty(target, property2.name, {
-    enumerable: !property2.isReference,
-    writable: true,
-    value,
-    configurable: true
-  });
-}
-function stripGlobal(name2) {
-  return name2.replace(/^:/, "");
-}
-function Moddle(packages2, config = {}) {
-  this.properties = new Properties(this);
-  this.factory = new Factory(this, this.properties);
-  this.registry = new Registry2(packages2, this.properties);
-  this.typeCache = {};
-  this.config = config;
-}
-Moddle.prototype.create = function(descriptor, attrs) {
-  var Type = this.getType(descriptor);
-  if (!Type) {
-    throw new Error("unknown type <" + descriptor + ">");
-  }
-  return new Type(attrs);
-};
-Moddle.prototype.getType = function(descriptor) {
-  var cache = this.typeCache;
-  var name2 = isString(descriptor) ? descriptor : descriptor.ns.name;
-  var type = cache[name2];
-  if (!type) {
-    descriptor = this.registry.getEffectiveDescriptor(name2);
-    type = cache[name2] = this.factory.createType(descriptor);
-  }
-  return type;
-};
-Moddle.prototype.createAny = function(name2, nsUri, properties) {
-  var nameNs = parseName(name2);
-  var element = {
-    $type: name2,
-    $instanceOf: function(type) {
-      return type === this.$type;
-    },
-    get: function(key) {
-      return this[key];
-    },
-    set: function(key, value) {
-      set(this, [key], value);
-    }
-  };
-  var descriptor = {
-    name: name2,
-    isGeneric: true,
-    ns: {
-      prefix: nameNs.prefix,
-      localName: nameNs.localName,
-      uri: nsUri
-    }
-  };
-  this.properties.defineDescriptor(element, descriptor);
-  this.properties.defineModel(element, this);
-  this.properties.define(element, "get", { enumerable: false, writable: true });
-  this.properties.define(element, "set", { enumerable: false, writable: true });
-  this.properties.define(element, "$parent", { enumerable: false, writable: true });
-  this.properties.define(element, "$instanceOf", { enumerable: false, writable: true });
-  forEach(properties, function(a5, key) {
-    if (isObject2(a5) && a5.value !== void 0) {
-      element[a5.name] = a5.value;
-    } else {
-      element[key] = a5;
-    }
-  });
-  return element;
-};
-Moddle.prototype.getPackage = function(uriOrPrefix) {
-  return this.registry.getPackage(uriOrPrefix);
-};
-Moddle.prototype.getPackages = function() {
-  return this.registry.getPackages();
-};
-Moddle.prototype.getElementDescriptor = function(element) {
-  return element.$descriptor;
-};
-Moddle.prototype.hasType = function(element, type) {
-  if (type === void 0) {
-    type = element;
-    element = this;
-  }
-  var descriptor = element.$model.getElementDescriptor(element);
-  return type in descriptor.allTypesByName;
-};
-Moddle.prototype.getPropertyDescriptor = function(element, property2) {
-  return this.getElementDescriptor(element).propertiesByName[property2];
-};
-Moddle.prototype.getTypeDescriptor = function(type) {
-  return this.registry.typeMap[type];
-};
-
-// node_modules/saxen/dist/index.js
-var fromCharCode = String.fromCharCode;
-var hasOwnProperty18 = Object.prototype.hasOwnProperty;
-var ENTITY_PATTERN = /&#(\d+);|&#x([0-9a-f]+);|&(\w+);/ig;
-var ENTITY_MAPPING = {
-  "amp": "&",
-  "apos": "'",
-  "gt": ">",
-  "lt": "<",
-  "quot": '"'
-};
-Object.keys(ENTITY_MAPPING).forEach(function(k5) {
-  ENTITY_MAPPING[k5.toUpperCase()] = ENTITY_MAPPING[k5];
-});
-function replaceEntities(_5, d4, x4, z5) {
-  if (z5) {
-    if (hasOwnProperty18.call(ENTITY_MAPPING, z5)) {
-      return ENTITY_MAPPING[z5];
-    } else {
-      return "&" + z5 + ";";
-    }
-  }
-  if (d4) {
-    return fromCharCode(d4);
-  }
-  return fromCharCode(parseInt(x4, 16));
-}
-function decodeEntities(s5) {
-  if (s5.length > 3 && s5.indexOf("&") !== -1) {
-    return s5.replace(ENTITY_PATTERN, replaceEntities);
-  }
-  return s5;
-}
-var NON_WHITESPACE_OUTSIDE_ROOT_NODE = "non-whitespace outside of root node";
-function error(msg) {
-  return new Error(msg);
-}
-function missingNamespaceForPrefix(prefix2) {
-  return "missing namespace for prefix <" + prefix2 + ">";
-}
-function getter(getFn) {
-  return {
-    "get": getFn,
-    "enumerable": true
-  };
-}
-function cloneNsMatrix(nsMatrix) {
-  var clone3 = {}, key;
-  for (key in nsMatrix) {
-    clone3[key] = nsMatrix[key];
-  }
-  return clone3;
-}
-function uriPrefix(prefix2) {
-  return prefix2 + "$uri";
-}
-function buildNsMatrix(nsUriToPrefix) {
-  var nsMatrix = {}, uri2, prefix2;
-  for (uri2 in nsUriToPrefix) {
-    prefix2 = nsUriToPrefix[uri2];
-    nsMatrix[prefix2] = prefix2;
-    nsMatrix[uriPrefix(prefix2)] = uri2;
-  }
-  return nsMatrix;
-}
-function noopGetContext() {
-  return { line: 0, column: 0 };
-}
-function throwFunc(err2) {
-  throw err2;
-}
-function Parser2(options) {
-  if (!this) {
-    return new Parser2(options);
-  }
-  var proxy = options && options["proxy"];
-  var onText, onOpenTag, onCloseTag, onCDATA, onError = throwFunc, onWarning, onComment, onQuestion, onAttention;
-  var getContext = noopGetContext;
-  var maybeNS = false;
-  var isNamespace = false;
-  var returnError = null;
-  var parseStop = false;
-  var nsUriToPrefix;
-  function handleError(err2) {
-    if (!(err2 instanceof Error)) {
-      err2 = error(err2);
-    }
-    returnError = err2;
-    onError(err2, getContext);
-  }
-  function handleWarning(err2) {
-    if (!onWarning) {
-      return;
-    }
-    if (!(err2 instanceof Error)) {
-      err2 = error(err2);
-    }
-    onWarning(err2, getContext);
-  }
-  this["on"] = function(name2, cb) {
-    if (typeof cb !== "function") {
-      throw error("required args <name, cb>");
-    }
-    switch (name2) {
-      case "openTag":
-        onOpenTag = cb;
-        break;
-      case "text":
-        onText = cb;
-        break;
-      case "closeTag":
-        onCloseTag = cb;
-        break;
-      case "error":
-        onError = cb;
-        break;
-      case "warn":
-        onWarning = cb;
-        break;
-      case "cdata":
-        onCDATA = cb;
-        break;
-      case "attention":
-        onAttention = cb;
-        break;
-      case "question":
-        onQuestion = cb;
-        break;
-      case "comment":
-        onComment = cb;
-        break;
-      default:
-        throw error("unsupported event: " + name2);
-    }
-    return this;
-  };
-  this["ns"] = function(nsMap) {
-    if (typeof nsMap === "undefined") {
-      nsMap = {};
-    }
-    if (typeof nsMap !== "object") {
-      throw error("required args <nsMap={}>");
-    }
-    var _nsUriToPrefix = {}, k5;
-    for (k5 in nsMap) {
-      _nsUriToPrefix[k5] = nsMap[k5];
-    }
-    isNamespace = true;
-    nsUriToPrefix = _nsUriToPrefix;
-    return this;
-  };
-  this["parse"] = function(xml3) {
-    if (typeof xml3 !== "string") {
-      throw error("required args <xml=string>");
-    }
-    returnError = null;
-    parse2(xml3);
-    getContext = noopGetContext;
-    parseStop = false;
-    return returnError;
-  };
-  this["stop"] = function() {
-    parseStop = true;
-  };
-  function parse2(xml3) {
-    var nsMatrixStack = isNamespace ? [] : null, nsMatrix = isNamespace ? buildNsMatrix(nsUriToPrefix) : null, _nsMatrix, nodeStack = [], anonymousNsCount = 0, tagStart = false, tagEnd = false, i6 = 0, j5 = 0, x4, y5, q4, w5, v6, xmlns, elementName, _elementName, elementProxy;
-    var attrsString = "", attrsStart = 0, cachedAttrs;
-    function getAttrs() {
-      if (cachedAttrs !== null) {
-        return cachedAttrs;
-      }
-      var nsUri, nsUriPrefix, nsName2, defaultAlias = isNamespace && nsMatrix["xmlns"], attrList = isNamespace && maybeNS ? [] : null, i7 = attrsStart, s5 = attrsString, l5 = s5.length, hasNewMatrix, newalias, value, alias, name2, attrs = {}, seenAttrs = {}, skipAttr, w6, j6;
-      parseAttr:
-        for (; i7 < l5; i7++) {
-          skipAttr = false;
-          w6 = s5.charCodeAt(i7);
-          if (w6 === 32 || w6 < 14 && w6 > 8) {
-            continue;
-          }
-          if (w6 < 65 || w6 > 122 || w6 > 90 && w6 < 97) {
-            if (w6 !== 95 && w6 !== 58) {
-              handleWarning("illegal first char attribute name");
-              skipAttr = true;
-            }
-          }
-          for (j6 = i7 + 1; j6 < l5; j6++) {
-            w6 = s5.charCodeAt(j6);
-            if (w6 > 96 && w6 < 123 || w6 > 64 && w6 < 91 || w6 > 47 && w6 < 59 || w6 === 46 || // '.'
-            w6 === 45 || // '-'
-            w6 === 95) {
-              continue;
-            }
-            if (w6 === 32 || w6 < 14 && w6 > 8) {
-              handleWarning("missing attribute value");
-              i7 = j6;
-              continue parseAttr;
-            }
-            if (w6 === 61) {
-              break;
-            }
-            handleWarning("illegal attribute name char");
-            skipAttr = true;
-          }
-          name2 = s5.substring(i7, j6);
-          if (name2 === "xmlns:xmlns") {
-            handleWarning("illegal declaration of xmlns");
-            skipAttr = true;
-          }
-          w6 = s5.charCodeAt(j6 + 1);
-          if (w6 === 34) {
-            j6 = s5.indexOf('"', i7 = j6 + 2);
-            if (j6 === -1) {
-              j6 = s5.indexOf("'", i7);
-              if (j6 !== -1) {
-                handleWarning("attribute value quote missmatch");
-                skipAttr = true;
-              }
-            }
-          } else if (w6 === 39) {
-            j6 = s5.indexOf("'", i7 = j6 + 2);
-            if (j6 === -1) {
-              j6 = s5.indexOf('"', i7);
-              if (j6 !== -1) {
-                handleWarning("attribute value quote missmatch");
-                skipAttr = true;
-              }
-            }
-          } else {
-            handleWarning("missing attribute value quotes");
-            skipAttr = true;
-            for (j6 = j6 + 1; j6 < l5; j6++) {
-              w6 = s5.charCodeAt(j6 + 1);
-              if (w6 === 32 || w6 < 14 && w6 > 8) {
-                break;
-              }
-            }
-          }
-          if (j6 === -1) {
-            handleWarning("missing closing quotes");
-            j6 = l5;
-            skipAttr = true;
-          }
-          if (!skipAttr) {
-            value = s5.substring(i7, j6);
-          }
-          i7 = j6;
-          for (; j6 + 1 < l5; j6++) {
-            w6 = s5.charCodeAt(j6 + 1);
-            if (w6 === 32 || w6 < 14 && w6 > 8) {
-              break;
-            }
-            if (i7 === j6) {
-              handleWarning("illegal character after attribute end");
-              skipAttr = true;
-            }
-          }
-          i7 = j6 + 1;
-          if (skipAttr) {
-            continue parseAttr;
-          }
-          if (name2 in seenAttrs) {
-            handleWarning("attribute <" + name2 + "> already defined");
-            continue;
-          }
-          seenAttrs[name2] = true;
-          if (!isNamespace) {
-            attrs[name2] = value;
-            continue;
-          }
-          if (maybeNS) {
-            newalias = name2 === "xmlns" ? "xmlns" : name2.charCodeAt(0) === 120 && name2.substr(0, 6) === "xmlns:" ? name2.substr(6) : null;
-            if (newalias !== null) {
-              nsUri = decodeEntities(value);
-              nsUriPrefix = uriPrefix(newalias);
-              alias = nsUriToPrefix[nsUri];
-              if (!alias) {
-                if (newalias === "xmlns" || nsUriPrefix in nsMatrix && nsMatrix[nsUriPrefix] !== nsUri) {
-                  do {
-                    alias = "ns" + anonymousNsCount++;
-                  } while (typeof nsMatrix[alias] !== "undefined");
-                } else {
-                  alias = newalias;
-                }
-                nsUriToPrefix[nsUri] = alias;
-              }
-              if (nsMatrix[newalias] !== alias) {
-                if (!hasNewMatrix) {
-                  nsMatrix = cloneNsMatrix(nsMatrix);
-                  hasNewMatrix = true;
-                }
-                nsMatrix[newalias] = alias;
-                if (newalias === "xmlns") {
-                  nsMatrix[uriPrefix(alias)] = nsUri;
-                  defaultAlias = alias;
-                }
-                nsMatrix[nsUriPrefix] = nsUri;
-              }
-              attrs[name2] = value;
-              continue;
-            }
-            attrList.push(name2, value);
-            continue;
-          }
-          w6 = name2.indexOf(":");
-          if (w6 === -1) {
-            attrs[name2] = value;
-            continue;
-          }
-          if (!(nsName2 = nsMatrix[name2.substring(0, w6)])) {
-            handleWarning(missingNamespaceForPrefix(name2.substring(0, w6)));
-            continue;
-          }
-          name2 = defaultAlias === nsName2 ? name2.substr(w6 + 1) : nsName2 + name2.substr(w6);
-          attrs[name2] = value;
-        }
-      if (maybeNS) {
-        for (i7 = 0, l5 = attrList.length; i7 < l5; i7++) {
-          name2 = attrList[i7++];
-          value = attrList[i7];
-          w6 = name2.indexOf(":");
-          if (w6 !== -1) {
-            if (!(nsName2 = nsMatrix[name2.substring(0, w6)])) {
-              handleWarning(missingNamespaceForPrefix(name2.substring(0, w6)));
-              continue;
-            }
-            name2 = defaultAlias === nsName2 ? name2.substr(w6 + 1) : nsName2 + name2.substr(w6);
-          }
-          attrs[name2] = value;
-        }
-      }
-      return cachedAttrs = attrs;
-    }
-    function getParseContext() {
-      var splitsRe = /(\r\n|\r|\n)/g;
-      var line2 = 0;
-      var column = 0;
-      var startOfLine = 0;
-      var endOfLine = j5;
-      var match;
-      var data2;
-      while (i6 >= startOfLine) {
-        match = splitsRe.exec(xml3);
-        if (!match) {
-          break;
-        }
-        endOfLine = match[0].length + match.index;
-        if (endOfLine > i6) {
-          break;
-        }
-        line2 += 1;
-        startOfLine = endOfLine;
-      }
-      if (i6 == -1) {
-        column = endOfLine;
-        data2 = xml3.substring(j5);
-      } else if (j5 === 0) {
-        data2 = xml3.substring(j5, i6);
-      } else {
-        column = i6 - startOfLine;
-        data2 = j5 == -1 ? xml3.substring(i6) : xml3.substring(i6, j5 + 1);
-      }
-      return {
-        "data": data2,
-        "line": line2,
-        "column": column
-      };
-    }
-    getContext = getParseContext;
-    if (proxy) {
-      elementProxy = Object.create({}, {
-        "name": getter(function() {
-          return elementName;
-        }),
-        "originalName": getter(function() {
-          return _elementName;
-        }),
-        "attrs": getter(getAttrs),
-        "ns": getter(function() {
-          return nsMatrix;
-        })
-      });
-    }
-    while (j5 !== -1) {
-      if (xml3.charCodeAt(j5) === 60) {
-        i6 = j5;
-      } else {
-        i6 = xml3.indexOf("<", j5);
-      }
-      if (i6 === -1) {
-        if (nodeStack.length) {
-          return handleError("unexpected end of file");
-        }
-        if (j5 === 0) {
-          return handleError("missing start tag");
-        }
-        if (j5 < xml3.length) {
-          if (xml3.substring(j5).trim()) {
-            handleWarning(NON_WHITESPACE_OUTSIDE_ROOT_NODE);
-          }
-        }
-        return;
-      }
-      if (j5 !== i6) {
-        if (nodeStack.length) {
-          if (onText) {
-            onText(xml3.substring(j5, i6), decodeEntities, getContext);
-            if (parseStop) {
-              return;
-            }
-          }
-        } else {
-          if (xml3.substring(j5, i6).trim()) {
-            handleWarning(NON_WHITESPACE_OUTSIDE_ROOT_NODE);
-            if (parseStop) {
-              return;
-            }
-          }
-        }
-      }
-      w5 = xml3.charCodeAt(i6 + 1);
-      if (w5 === 33) {
-        q4 = xml3.charCodeAt(i6 + 2);
-        if (q4 === 91 && xml3.substr(i6 + 3, 6) === "CDATA[") {
-          j5 = xml3.indexOf("]]>", i6);
-          if (j5 === -1) {
-            return handleError("unclosed cdata");
-          }
-          if (onCDATA) {
-            onCDATA(xml3.substring(i6 + 9, j5), getContext);
-            if (parseStop) {
-              return;
-            }
-          }
-          j5 += 3;
-          continue;
-        }
-        if (q4 === 45 && xml3.charCodeAt(i6 + 3) === 45) {
-          j5 = xml3.indexOf("-->", i6);
-          if (j5 === -1) {
-            return handleError("unclosed comment");
-          }
-          if (onComment) {
-            onComment(xml3.substring(i6 + 4, j5), decodeEntities, getContext);
-            if (parseStop) {
-              return;
-            }
-          }
-          j5 += 3;
-          continue;
-        }
-      }
-      if (w5 === 63) {
-        j5 = xml3.indexOf("?>", i6);
-        if (j5 === -1) {
-          return handleError("unclosed question");
-        }
-        if (onQuestion) {
-          onQuestion(xml3.substring(i6, j5 + 2), getContext);
-          if (parseStop) {
-            return;
-          }
-        }
-        j5 += 2;
-        continue;
-      }
-      for (x4 = i6 + 1; ; x4++) {
-        v6 = xml3.charCodeAt(x4);
-        if (isNaN(v6)) {
-          j5 = -1;
-          return handleError("unclosed tag");
-        }
-        if (v6 === 34) {
-          q4 = xml3.indexOf('"', x4 + 1);
-          x4 = q4 !== -1 ? q4 : x4;
-        } else if (v6 === 39) {
-          q4 = xml3.indexOf("'", x4 + 1);
-          x4 = q4 !== -1 ? q4 : x4;
-        } else if (v6 === 62) {
-          j5 = x4;
-          break;
-        }
-      }
-      if (w5 === 33) {
-        if (onAttention) {
-          onAttention(xml3.substring(i6, j5 + 1), decodeEntities, getContext);
-          if (parseStop) {
-            return;
-          }
-        }
-        j5 += 1;
-        continue;
-      }
-      cachedAttrs = {};
-      if (w5 === 47) {
-        tagStart = false;
-        tagEnd = true;
-        if (!nodeStack.length) {
-          return handleError("missing open tag");
-        }
-        x4 = elementName = nodeStack.pop();
-        q4 = i6 + 2 + x4.length;
-        if (xml3.substring(i6 + 2, q4) !== x4) {
-          return handleError("closing tag mismatch");
-        }
-        for (; q4 < j5; q4++) {
-          w5 = xml3.charCodeAt(q4);
-          if (w5 === 32 || w5 > 8 && w5 < 14) {
-            continue;
-          }
-          return handleError("close tag");
-        }
-      } else {
-        if (xml3.charCodeAt(j5 - 1) === 47) {
-          x4 = elementName = xml3.substring(i6 + 1, j5 - 1);
-          tagStart = true;
-          tagEnd = true;
-        } else {
-          x4 = elementName = xml3.substring(i6 + 1, j5);
-          tagStart = true;
-          tagEnd = false;
-        }
-        if (!(w5 > 96 && w5 < 123 || w5 > 64 && w5 < 91 || w5 === 95 || w5 === 58)) {
-          return handleError("illegal first char nodeName");
-        }
-        for (q4 = 1, y5 = x4.length; q4 < y5; q4++) {
-          w5 = x4.charCodeAt(q4);
-          if (w5 > 96 && w5 < 123 || w5 > 64 && w5 < 91 || w5 > 47 && w5 < 59 || w5 === 45 || w5 === 95 || w5 == 46) {
-            continue;
-          }
-          if (w5 === 32 || w5 < 14 && w5 > 8) {
-            elementName = x4.substring(0, q4);
-            cachedAttrs = null;
-            break;
-          }
-          return handleError("invalid nodeName");
-        }
-        if (!tagEnd) {
-          nodeStack.push(elementName);
-        }
-      }
-      if (isNamespace) {
-        _nsMatrix = nsMatrix;
-        if (tagStart) {
-          if (!tagEnd) {
-            nsMatrixStack.push(_nsMatrix);
-          }
-          if (cachedAttrs === null) {
-            if (maybeNS = x4.indexOf("xmlns", q4) !== -1) {
-              attrsStart = q4;
-              attrsString = x4;
-              getAttrs();
-              maybeNS = false;
-            }
-          }
-        }
-        _elementName = elementName;
-        w5 = elementName.indexOf(":");
-        if (w5 !== -1) {
-          xmlns = nsMatrix[elementName.substring(0, w5)];
-          if (!xmlns) {
-            return handleError("missing namespace on <" + _elementName + ">");
-          }
-          elementName = elementName.substr(w5 + 1);
-        } else {
-          xmlns = nsMatrix["xmlns"];
-        }
-        if (xmlns) {
-          elementName = xmlns + ":" + elementName;
-        }
-      }
-      if (tagStart) {
-        attrsStart = q4;
-        attrsString = x4;
-        if (onOpenTag) {
-          if (proxy) {
-            onOpenTag(elementProxy, decodeEntities, tagEnd, getContext);
-          } else {
-            onOpenTag(elementName, getAttrs, decodeEntities, tagEnd, getContext);
-          }
-          if (parseStop) {
-            return;
-          }
-        }
-      }
-      if (tagEnd) {
-        if (onCloseTag) {
-          onCloseTag(proxy ? elementProxy : elementName, decodeEntities, tagStart, getContext);
-          if (parseStop) {
-            return;
-          }
-        }
-        if (isNamespace) {
-          if (!tagStart) {
-            nsMatrix = nsMatrixStack.pop();
-          } else {
-            nsMatrix = _nsMatrix;
-          }
-        }
-      }
-      j5 += 1;
-    }
-  }
-}
-
-// node_modules/moddle-xml/dist/index.js
-function hasLowerCaseAlias(pkg) {
-  return pkg.xml && pkg.xml.tagAlias === "lowerCase";
-}
-var DEFAULT_NS_MAP = {
-  "xsi": "http://www.w3.org/2001/XMLSchema-instance",
-  "xml": "http://www.w3.org/XML/1998/namespace"
-};
-var SERIALIZE_PROPERTY = "property";
-function getSerialization(element) {
-  return element.xml && element.xml.serialize;
-}
-function getSerializationType(element) {
-  const type = getSerialization(element);
-  return type !== SERIALIZE_PROPERTY && (type || null);
-}
-function capitalize2(str) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-function aliasToName(aliasNs, pkg) {
-  if (!hasLowerCaseAlias(pkg)) {
-    return aliasNs.name;
-  }
-  return aliasNs.prefix + ":" + capitalize2(aliasNs.localName);
-}
-function prefixedToName(nameNs, pkg) {
-  var name2 = nameNs.name, localName = nameNs.localName;
-  var typePrefix = pkg && pkg.xml && pkg.xml.typePrefix;
-  if (typePrefix && localName.indexOf(typePrefix) === 0) {
-    return nameNs.prefix + ":" + localName.slice(typePrefix.length);
-  } else {
-    return name2;
-  }
-}
-function normalizeTypeName(name2, nsMap, model) {
-  const nameNs = parseName(name2, nsMap.xmlns);
-  const normalizedName = `${nsMap[nameNs.prefix] || nameNs.prefix}:${nameNs.localName}`;
-  const normalizedNameNs = parseName(normalizedName);
-  var pkg = model.getPackage(normalizedNameNs.prefix);
-  return prefixedToName(normalizedNameNs, pkg);
-}
-function error2(message) {
-  return new Error(message);
-}
-function getModdleDescriptor(element) {
-  return element.$descriptor;
-}
-function Context(options) {
-  assign2(this, options);
-  this.elementsById = {};
-  this.references = [];
-  this.warnings = [];
-  this.addReference = function(reference) {
-    this.references.push(reference);
-  };
-  this.addElement = function(element) {
-    if (!element) {
-      throw error2("expected element");
-    }
-    var elementsById = this.elementsById;
-    var descriptor = getModdleDescriptor(element);
-    var idProperty = descriptor.idProperty, id;
-    if (idProperty) {
-      id = element.get(idProperty.name);
-      if (id) {
-        if (!/^([a-z][\w-.]*:)?[a-z_][\w-.]*$/i.test(id)) {
-          throw new Error("illegal ID <" + id + ">");
-        }
-        if (elementsById[id]) {
-          throw error2("duplicate ID <" + id + ">");
-        }
-        elementsById[id] = element;
-      }
-    }
-  };
-  this.addWarning = function(warning) {
-    this.warnings.push(warning);
-  };
-}
-function BaseHandler() {
-}
-BaseHandler.prototype.handleEnd = function() {
-};
-BaseHandler.prototype.handleText = function() {
-};
-BaseHandler.prototype.handleNode = function() {
-};
-function NoopHandler() {
-}
-NoopHandler.prototype = Object.create(BaseHandler.prototype);
-NoopHandler.prototype.handleNode = function() {
-  return this;
-};
-function BodyHandler() {
-}
-BodyHandler.prototype = Object.create(BaseHandler.prototype);
-BodyHandler.prototype.handleText = function(text4) {
-  this.body = (this.body || "") + text4;
-};
-function ReferenceHandler(property2, context) {
-  this.property = property2;
-  this.context = context;
-}
-ReferenceHandler.prototype = Object.create(BodyHandler.prototype);
-ReferenceHandler.prototype.handleNode = function(node2) {
-  if (this.element) {
-    throw error2("expected no sub nodes");
-  } else {
-    this.element = this.createReference(node2);
-  }
-  return this;
-};
-ReferenceHandler.prototype.handleEnd = function() {
-  this.element.id = this.body;
-};
-ReferenceHandler.prototype.createReference = function(node2) {
-  return {
-    property: this.property.ns.name,
-    id: ""
-  };
-};
-function ValueHandler(propertyDesc, element) {
-  this.element = element;
-  this.propertyDesc = propertyDesc;
-}
-ValueHandler.prototype = Object.create(BodyHandler.prototype);
-ValueHandler.prototype.handleEnd = function() {
-  var value = this.body || "", element = this.element, propertyDesc = this.propertyDesc;
-  value = coerceType(propertyDesc.type, value);
-  if (propertyDesc.isMany) {
-    element.get(propertyDesc.name).push(value);
-  } else {
-    element.set(propertyDesc.name, value);
-  }
-};
-function BaseElementHandler() {
-}
-BaseElementHandler.prototype = Object.create(BodyHandler.prototype);
-BaseElementHandler.prototype.handleNode = function(node2) {
-  var parser = this, element = this.element;
-  if (!element) {
-    element = this.element = this.createElement(node2);
-    this.context.addElement(element);
-  } else {
-    parser = this.handleChild(node2);
-  }
-  return parser;
-};
-function ElementHandler(model, typeName, context) {
-  this.model = model;
-  this.type = model.getType(typeName);
-  this.context = context;
-}
-ElementHandler.prototype = Object.create(BaseElementHandler.prototype);
-ElementHandler.prototype.addReference = function(reference) {
-  this.context.addReference(reference);
-};
-ElementHandler.prototype.handleText = function(text4) {
-  var element = this.element, descriptor = getModdleDescriptor(element), bodyProperty = descriptor.bodyProperty;
-  if (!bodyProperty) {
-    throw error2("unexpected body text <" + text4 + ">");
-  }
-  BodyHandler.prototype.handleText.call(this, text4);
-};
-ElementHandler.prototype.handleEnd = function() {
-  var value = this.body, element = this.element, descriptor = getModdleDescriptor(element), bodyProperty = descriptor.bodyProperty;
-  if (bodyProperty && value !== void 0) {
-    value = coerceType(bodyProperty.type, value);
-    element.set(bodyProperty.name, value);
-  }
-};
-ElementHandler.prototype.createElement = function(node2) {
-  var attributes = node2.attributes, Type = this.type, descriptor = getModdleDescriptor(Type), context = this.context, instance = new Type({}), model = this.model, propNameNs;
-  forEach(attributes, function(value, name2) {
-    var prop2 = descriptor.propertiesByName[name2], values;
-    if (prop2 && prop2.isReference) {
-      if (!prop2.isMany) {
-        context.addReference({
-          element: instance,
-          property: prop2.ns.name,
-          id: value
-        });
-      } else {
-        values = value.split(" ");
-        forEach(values, function(v6) {
-          context.addReference({
-            element: instance,
-            property: prop2.ns.name,
-            id: v6
-          });
-        });
-      }
-    } else {
-      if (prop2) {
-        value = coerceType(prop2.type, value);
-      } else if (name2 === "xmlns") {
-        name2 = ":" + name2;
-      } else {
-        propNameNs = parseName(name2, descriptor.ns.prefix);
-        if (model.getPackage(propNameNs.prefix)) {
-          context.addWarning({
-            message: "unknown attribute <" + name2 + ">",
-            element: instance,
-            property: name2,
-            value
-          });
-        }
-      }
-      instance.set(name2, value);
-    }
-  });
-  return instance;
-};
-ElementHandler.prototype.getPropertyForNode = function(node2) {
-  var name2 = node2.name;
-  var nameNs = parseName(name2);
-  var type = this.type, model = this.model, descriptor = getModdleDescriptor(type);
-  var propertyName = nameNs.name, property2 = descriptor.propertiesByName[propertyName];
-  if (property2 && !property2.isAttr) {
-    const serializationType = getSerializationType(property2);
-    if (serializationType) {
-      const elementTypeName = node2.attributes[serializationType];
-      if (elementTypeName) {
-        const normalizedTypeName = normalizeTypeName(elementTypeName, node2.ns, model);
-        const elementType = model.getType(normalizedTypeName);
-        return assign2({}, property2, {
-          effectiveType: getModdleDescriptor(elementType).name
-        });
-      }
-    }
-    return property2;
-  }
-  var pkg = model.getPackage(nameNs.prefix);
-  if (pkg) {
-    const elementTypeName = aliasToName(nameNs, pkg);
-    const elementType = model.getType(elementTypeName);
-    property2 = find2(descriptor.properties, function(p6) {
-      return !p6.isVirtual && !p6.isReference && !p6.isAttribute && elementType.hasType(p6.type);
-    });
-    if (property2) {
-      return assign2({}, property2, {
-        effectiveType: getModdleDescriptor(elementType).name
-      });
-    }
-  } else {
-    property2 = find2(descriptor.properties, function(p6) {
-      return !p6.isReference && !p6.isAttribute && p6.type === "Element";
-    });
-    if (property2) {
-      return property2;
-    }
-  }
-  throw error2("unrecognized element <" + nameNs.name + ">");
-};
-ElementHandler.prototype.toString = function() {
-  return "ElementDescriptor[" + getModdleDescriptor(this.type).name + "]";
-};
-ElementHandler.prototype.valueHandler = function(propertyDesc, element) {
-  return new ValueHandler(propertyDesc, element);
-};
-ElementHandler.prototype.referenceHandler = function(propertyDesc) {
-  return new ReferenceHandler(propertyDesc, this.context);
-};
-ElementHandler.prototype.handler = function(type) {
-  if (type === "Element") {
-    return new GenericElementHandler(this.model, type, this.context);
-  } else {
-    return new ElementHandler(this.model, type, this.context);
-  }
-};
-ElementHandler.prototype.handleChild = function(node2) {
-  var propertyDesc, type, element, childHandler;
-  propertyDesc = this.getPropertyForNode(node2);
-  element = this.element;
-  type = propertyDesc.effectiveType || propertyDesc.type;
-  if (isSimple(type)) {
-    return this.valueHandler(propertyDesc, element);
-  }
-  if (propertyDesc.isReference) {
-    childHandler = this.referenceHandler(propertyDesc).handleNode(node2);
-  } else {
-    childHandler = this.handler(type).handleNode(node2);
-  }
-  var newElement = childHandler.element;
-  if (newElement !== void 0) {
-    if (propertyDesc.isMany) {
-      element.get(propertyDesc.name).push(newElement);
-    } else {
-      element.set(propertyDesc.name, newElement);
-    }
-    if (propertyDesc.isReference) {
-      assign2(newElement, {
-        element
-      });
-      this.context.addReference(newElement);
-    } else {
-      newElement.$parent = element;
-    }
-  }
-  return childHandler;
-};
-function RootElementHandler(model, typeName, context) {
-  ElementHandler.call(this, model, typeName, context);
-}
-RootElementHandler.prototype = Object.create(ElementHandler.prototype);
-RootElementHandler.prototype.createElement = function(node2) {
-  var name2 = node2.name, nameNs = parseName(name2), model = this.model, type = this.type, pkg = model.getPackage(nameNs.prefix), typeName = pkg && aliasToName(nameNs, pkg) || name2;
-  if (!type.hasType(typeName)) {
-    throw error2("unexpected element <" + node2.originalName + ">");
-  }
-  return ElementHandler.prototype.createElement.call(this, node2);
-};
-function GenericElementHandler(model, typeName, context) {
-  this.model = model;
-  this.context = context;
-}
-GenericElementHandler.prototype = Object.create(BaseElementHandler.prototype);
-GenericElementHandler.prototype.createElement = function(node2) {
-  var name2 = node2.name, ns2 = parseName(name2), prefix2 = ns2.prefix, uri2 = node2.ns[prefix2 + "$uri"], attributes = node2.attributes;
-  return this.model.createAny(name2, uri2, attributes);
-};
-GenericElementHandler.prototype.handleChild = function(node2) {
-  var handler = new GenericElementHandler(this.model, "Element", this.context).handleNode(node2), element = this.element;
-  var newElement = handler.element, children2;
-  if (newElement !== void 0) {
-    children2 = element.$children = element.$children || [];
-    children2.push(newElement);
-    newElement.$parent = element;
-  }
-  return handler;
-};
-GenericElementHandler.prototype.handleEnd = function() {
-  if (this.body) {
-    this.element.$body = this.body;
-  }
-};
-function Reader(options) {
-  if (options instanceof Moddle) {
-    options = {
-      model: options
-    };
-  }
-  assign2(this, { lax: false }, options);
-}
-Reader.prototype.fromXML = function(xml3, options, done) {
-  var rootHandler = options.rootHandler;
-  if (options instanceof ElementHandler) {
-    rootHandler = options;
-    options = {};
-  } else {
-    if (typeof options === "string") {
-      rootHandler = this.handler(options);
-      options = {};
-    } else if (typeof rootHandler === "string") {
-      rootHandler = this.handler(rootHandler);
-    }
-  }
-  var model = this.model, lax = this.lax;
-  var context = new Context(assign2({}, options, { rootHandler })), parser = new Parser2({ proxy: true }), stack = createStack();
-  rootHandler.context = context;
-  stack.push(rootHandler);
-  function handleError(err2, getContext, lax2) {
-    var ctx = getContext();
-    var line2 = ctx.line, column = ctx.column, data2 = ctx.data;
-    if (data2.charAt(0) === "<" && data2.indexOf(" ") !== -1) {
-      data2 = data2.slice(0, data2.indexOf(" ")) + ">";
-    }
-    var message = "unparsable content " + (data2 ? data2 + " " : "") + "detected\n	line: " + line2 + "\n	column: " + column + "\n	nested error: " + err2.message;
-    if (lax2) {
-      context.addWarning({
-        message,
-        error: err2
-      });
-      return true;
-    } else {
-      throw error2(message);
-    }
-  }
-  function handleWarning(err2, getContext) {
-    return handleError(err2, getContext, true);
-  }
-  function resolveReferences() {
-    var elementsById = context.elementsById;
-    var references = context.references;
-    var i6, r4;
-    for (i6 = 0; r4 = references[i6]; i6++) {
-      var element = r4.element;
-      var reference = elementsById[r4.id];
-      var property2 = getModdleDescriptor(element).propertiesByName[r4.property];
-      if (!reference) {
-        context.addWarning({
-          message: "unresolved reference <" + r4.id + ">",
-          element: r4.element,
-          property: r4.property,
-          value: r4.id
-        });
-      }
-      if (property2.isMany) {
-        var collection = element.get(property2.name), idx = collection.indexOf(r4);
-        if (idx === -1) {
-          idx = collection.length;
-        }
-        if (!reference) {
-          collection.splice(idx, 1);
-        } else {
-          collection[idx] = reference;
-        }
-      } else {
-        element.set(property2.name, reference);
-      }
-    }
-  }
-  function handleClose() {
-    stack.pop().handleEnd();
-  }
-  var PREAMBLE_START_PATTERN = /^<\?xml /i;
-  var ENCODING_PATTERN = / encoding="([^"]+)"/i;
-  var UTF_8_PATTERN = /^utf-8$/i;
-  function handleQuestion(question) {
-    if (!PREAMBLE_START_PATTERN.test(question)) {
-      return;
-    }
-    var match = ENCODING_PATTERN.exec(question);
-    var encoding = match && match[1];
-    if (!encoding || UTF_8_PATTERN.test(encoding)) {
-      return;
-    }
-    context.addWarning({
-      message: "unsupported document encoding <" + encoding + ">, falling back to UTF-8"
-    });
-  }
-  function handleOpen(node2, getContext) {
-    var handler = stack.peek();
-    try {
-      stack.push(handler.handleNode(node2));
-    } catch (err2) {
-      if (handleError(err2, getContext, lax)) {
-        stack.push(new NoopHandler());
-      }
-    }
-  }
-  function handleCData(text4, getContext) {
-    try {
-      stack.peek().handleText(text4);
-    } catch (err2) {
-      handleWarning(err2, getContext);
-    }
-  }
-  function handleText(text4, getContext) {
-    if (!text4.trim()) {
-      return;
-    }
-    handleCData(text4, getContext);
-  }
-  var uriMap = model.getPackages().reduce(function(uriMap2, p6) {
-    uriMap2[p6.uri] = p6.prefix;
-    return uriMap2;
-  }, Object.entries(DEFAULT_NS_MAP).reduce(function(map, [prefix2, url]) {
-    map[url] = prefix2;
-    return map;
-  }, model.config && model.config.nsMap || {}));
-  parser.ns(uriMap).on("openTag", function(obj, decodeStr, selfClosing, getContext) {
-    var attrs = obj.attrs || {};
-    var decodedAttrs = Object.keys(attrs).reduce(function(d4, key) {
-      var value = decodeStr(attrs[key]);
-      d4[key] = value;
-      return d4;
-    }, {});
-    var node2 = {
-      name: obj.name,
-      originalName: obj.originalName,
-      attributes: decodedAttrs,
-      ns: obj.ns
-    };
-    handleOpen(node2, getContext);
-  }).on("question", handleQuestion).on("closeTag", handleClose).on("cdata", handleCData).on("text", function(text4, decodeEntities2, getContext) {
-    handleText(decodeEntities2(text4), getContext);
-  }).on("error", handleError).on("warn", handleWarning);
-  return new Promise(function(resolve3, reject) {
-    var err2;
-    try {
-      parser.parse(xml3);
-      resolveReferences();
-    } catch (e4) {
-      err2 = e4;
-    }
-    var rootElement = rootHandler.element;
-    if (!err2 && !rootElement) {
-      err2 = error2("failed to parse document as <" + rootHandler.type.$descriptor.name + ">");
-    }
-    var warnings = context.warnings;
-    var references = context.references;
-    var elementsById = context.elementsById;
-    if (err2) {
-      err2.warnings = warnings;
-      return reject(err2);
-    } else {
-      return resolve3({
-        rootElement,
-        elementsById,
-        references,
-        warnings
-      });
-    }
-  });
-};
-Reader.prototype.handler = function(name2) {
-  return new RootElementHandler(this.model, name2);
-};
-function createStack() {
-  var stack = [];
-  Object.defineProperty(stack, "peek", {
-    value: function() {
-      return this[this.length - 1];
-    }
-  });
-  return stack;
-}
-var XML_PREAMBLE = '<?xml version="1.0" encoding="UTF-8"?>\n';
-var ESCAPE_ATTR_CHARS = /<|>|'|"|&|\n\r|\n/g;
-var ESCAPE_CHARS = /<|>|&/g;
-function Namespaces(parent) {
-  this.prefixMap = {};
-  this.uriMap = {};
-  this.used = {};
-  this.wellknown = [];
-  this.custom = [];
-  this.parent = parent;
-  this.defaultPrefixMap = parent && parent.defaultPrefixMap || {};
-}
-Namespaces.prototype.mapDefaultPrefixes = function(defaultPrefixMap) {
-  this.defaultPrefixMap = defaultPrefixMap;
-};
-Namespaces.prototype.defaultUriByPrefix = function(prefix2) {
-  return this.defaultPrefixMap[prefix2];
-};
-Namespaces.prototype.byUri = function(uri2) {
-  return this.uriMap[uri2] || this.parent && this.parent.byUri(uri2);
-};
-Namespaces.prototype.add = function(ns2, isWellknown) {
-  this.uriMap[ns2.uri] = ns2;
-  if (isWellknown) {
-    this.wellknown.push(ns2);
-  } else {
-    this.custom.push(ns2);
-  }
-  this.mapPrefix(ns2.prefix, ns2.uri);
-};
-Namespaces.prototype.uriByPrefix = function(prefix2) {
-  return this.prefixMap[prefix2 || "xmlns"] || this.parent && this.parent.uriByPrefix(prefix2);
-};
-Namespaces.prototype.mapPrefix = function(prefix2, uri2) {
-  this.prefixMap[prefix2 || "xmlns"] = uri2;
-};
-Namespaces.prototype.getNSKey = function(ns2) {
-  return ns2.prefix !== void 0 ? ns2.uri + "|" + ns2.prefix : ns2.uri;
-};
-Namespaces.prototype.logUsed = function(ns2) {
-  var uri2 = ns2.uri;
-  var nsKey = this.getNSKey(ns2);
-  this.used[nsKey] = this.byUri(uri2);
-  if (this.parent) {
-    this.parent.logUsed(ns2);
-  }
-};
-Namespaces.prototype.getUsed = function(ns2) {
-  var allNs = [].concat(this.wellknown, this.custom);
-  return allNs.filter((ns3) => {
-    var nsKey = this.getNSKey(ns3);
-    return this.used[nsKey];
-  });
-};
-function lower(string) {
-  return string.charAt(0).toLowerCase() + string.slice(1);
-}
-function nameToAlias(name2, pkg) {
-  if (hasLowerCaseAlias(pkg)) {
-    return lower(name2);
-  } else {
-    return name2;
-  }
-}
-function inherits(ctor, superCtor) {
-  ctor.super_ = superCtor;
-  ctor.prototype = Object.create(superCtor.prototype, {
-    constructor: {
-      value: ctor,
-      enumerable: false,
-      writable: true,
-      configurable: true
-    }
-  });
-}
-function nsName(ns2) {
-  if (isString(ns2)) {
-    return ns2;
-  } else {
-    return (ns2.prefix ? ns2.prefix + ":" : "") + ns2.localName;
-  }
-}
-function getNsAttrs(namespaces) {
-  return namespaces.getUsed().filter(function(ns2) {
-    return ns2.prefix !== "xml";
-  }).map(function(ns2) {
-    var name2 = "xmlns" + (ns2.prefix ? ":" + ns2.prefix : "");
-    return { name: name2, value: ns2.uri };
-  });
-}
-function getElementNs(ns2, descriptor) {
-  if (descriptor.isGeneric) {
-    return assign2({ localName: descriptor.ns.localName }, ns2);
-  } else {
-    return assign2({ localName: nameToAlias(descriptor.ns.localName, descriptor.$pkg) }, ns2);
-  }
-}
-function getPropertyNs(ns2, descriptor) {
-  return assign2({ localName: descriptor.ns.localName }, ns2);
-}
-function getSerializableProperties(element) {
-  var descriptor = element.$descriptor;
-  return filter2(descriptor.properties, function(p6) {
-    var name2 = p6.name;
-    if (p6.isVirtual) {
-      return false;
-    }
-    if (!has2(element, name2)) {
-      return false;
-    }
-    var value = element[name2];
-    if (value === p6.default) {
-      return false;
-    }
-    if (value === null) {
-      return false;
-    }
-    return p6.isMany ? value.length : true;
-  });
-}
-var ESCAPE_ATTR_MAP = {
-  "\n": "#10",
-  "\n\r": "#10",
-  '"': "#34",
-  "'": "#39",
-  "<": "#60",
-  ">": "#62",
-  "&": "#38"
-};
-var ESCAPE_MAP = {
-  "<": "lt",
-  ">": "gt",
-  "&": "amp"
-};
-function escape(str, charPattern, replaceMap) {
-  str = isString(str) ? str : "" + str;
-  return str.replace(charPattern, function(s5) {
-    return "&" + replaceMap[s5] + ";";
-  });
-}
-function escapeAttr(str) {
-  return escape(str, ESCAPE_ATTR_CHARS, ESCAPE_ATTR_MAP);
-}
-function escapeBody(str) {
-  return escape(str, ESCAPE_CHARS, ESCAPE_MAP);
-}
-function filterAttributes(props) {
-  return filter2(props, function(p6) {
-    return p6.isAttr;
-  });
-}
-function filterContained(props) {
-  return filter2(props, function(p6) {
-    return !p6.isAttr;
-  });
-}
-function ReferenceSerializer(tagName2) {
-  this.tagName = tagName2;
-}
-ReferenceSerializer.prototype.build = function(element) {
-  this.element = element;
-  return this;
-};
-ReferenceSerializer.prototype.serializeTo = function(writer) {
-  writer.appendIndent().append("<" + this.tagName + ">" + this.element.id + "</" + this.tagName + ">").appendNewLine();
-};
-function BodySerializer() {
-}
-BodySerializer.prototype.serializeValue = BodySerializer.prototype.serializeTo = function(writer) {
-  writer.append(
-    this.escape ? escapeBody(this.value) : this.value
-  );
-};
-BodySerializer.prototype.build = function(prop2, value) {
-  this.value = value;
-  if (prop2.type === "String" && value.search(ESCAPE_CHARS) !== -1) {
-    this.escape = true;
-  }
-  return this;
-};
-function ValueSerializer(tagName2) {
-  this.tagName = tagName2;
-}
-inherits(ValueSerializer, BodySerializer);
-ValueSerializer.prototype.serializeTo = function(writer) {
-  writer.appendIndent().append("<" + this.tagName + ">");
-  this.serializeValue(writer);
-  writer.append("</" + this.tagName + ">").appendNewLine();
-};
-function ElementSerializer(parent, propertyDescriptor) {
-  this.body = [];
-  this.attrs = [];
-  this.parent = parent;
-  this.propertyDescriptor = propertyDescriptor;
-}
-ElementSerializer.prototype.build = function(element) {
-  this.element = element;
-  var elementDescriptor = element.$descriptor, propertyDescriptor = this.propertyDescriptor;
-  var otherAttrs, properties;
-  var isGeneric = elementDescriptor.isGeneric;
-  if (isGeneric) {
-    otherAttrs = this.parseGenericNsAttributes(element);
-  } else {
-    otherAttrs = this.parseNsAttributes(element);
-  }
-  if (propertyDescriptor) {
-    this.ns = this.nsPropertyTagName(propertyDescriptor);
-  } else {
-    this.ns = this.nsTagName(elementDescriptor);
-  }
-  this.tagName = this.addTagName(this.ns);
-  if (isGeneric) {
-    this.parseGenericContainments(element);
-  } else {
-    properties = getSerializableProperties(element);
-    this.parseAttributes(filterAttributes(properties));
-    this.parseContainments(filterContained(properties));
-  }
-  this.parseGenericAttributes(element, otherAttrs);
-  return this;
-};
-ElementSerializer.prototype.nsTagName = function(descriptor) {
-  var effectiveNs = this.logNamespaceUsed(descriptor.ns);
-  return getElementNs(effectiveNs, descriptor);
-};
-ElementSerializer.prototype.nsPropertyTagName = function(descriptor) {
-  var effectiveNs = this.logNamespaceUsed(descriptor.ns);
-  return getPropertyNs(effectiveNs, descriptor);
-};
-ElementSerializer.prototype.isLocalNs = function(ns2) {
-  return ns2.uri === this.ns.uri;
-};
-ElementSerializer.prototype.nsAttributeName = function(element) {
-  var ns2;
-  if (isString(element)) {
-    ns2 = parseName(element);
-  } else {
-    ns2 = element.ns;
-  }
-  if (element.inherited) {
-    return { localName: ns2.localName };
-  }
-  var effectiveNs = this.logNamespaceUsed(ns2);
-  this.getNamespaces().logUsed(effectiveNs);
-  if (this.isLocalNs(effectiveNs)) {
-    return { localName: ns2.localName };
-  } else {
-    return assign2({ localName: ns2.localName }, effectiveNs);
-  }
-};
-ElementSerializer.prototype.parseGenericNsAttributes = function(element) {
-  return Object.entries(element).filter(
-    ([key, value]) => !key.startsWith("$") && this.parseNsAttribute(element, key, value)
-  ).map(
-    ([key, value]) => ({ name: key, value })
-  );
-};
-ElementSerializer.prototype.parseGenericContainments = function(element) {
-  var body = element.$body;
-  if (body) {
-    this.body.push(new BodySerializer().build({ type: "String" }, body));
-  }
-  var children2 = element.$children;
-  if (children2) {
-    forEach(children2, (child) => {
-      this.body.push(new ElementSerializer(this).build(child));
-    });
-  }
-};
-ElementSerializer.prototype.parseNsAttribute = function(element, name2, value) {
-  var model = element.$model;
-  var nameNs = parseName(name2);
-  var ns2;
-  if (nameNs.prefix === "xmlns") {
-    ns2 = { prefix: nameNs.localName, uri: value };
-  }
-  if (!nameNs.prefix && nameNs.localName === "xmlns") {
-    ns2 = { uri: value };
-  }
-  if (!ns2) {
-    return {
-      name: name2,
-      value
-    };
-  }
-  if (model && model.getPackage(value)) {
-    this.logNamespace(ns2, true, true);
-  } else {
-    var actualNs = this.logNamespaceUsed(ns2, true);
-    this.getNamespaces().logUsed(actualNs);
-  }
-};
-ElementSerializer.prototype.parseNsAttributes = function(element) {
-  var self2 = this;
-  var genericAttrs = element.$attrs;
-  var attributes = [];
-  forEach(genericAttrs, function(value, name2) {
-    var nonNsAttr = self2.parseNsAttribute(element, name2, value);
-    if (nonNsAttr) {
-      attributes.push(nonNsAttr);
-    }
-  });
-  return attributes;
-};
-ElementSerializer.prototype.parseGenericAttributes = function(element, attributes) {
-  var self2 = this;
-  forEach(attributes, function(attr2) {
-    try {
-      self2.addAttribute(self2.nsAttributeName(attr2.name), attr2.value);
-    } catch (e4) {
-      typeof console !== "undefined" && console.warn(
-        `missing namespace information for <${attr2.name}=${attr2.value}> on`,
-        element,
-        e4
-      );
-    }
-  });
-};
-ElementSerializer.prototype.parseContainments = function(properties) {
-  var self2 = this, body = this.body, element = this.element;
-  forEach(properties, function(p6) {
-    var value = element.get(p6.name), isReference = p6.isReference, isMany = p6.isMany;
-    if (!isMany) {
-      value = [value];
-    }
-    if (p6.isBody) {
-      body.push(new BodySerializer().build(p6, value[0]));
-    } else if (isSimple(p6.type)) {
-      forEach(value, function(v6) {
-        body.push(new ValueSerializer(self2.addTagName(self2.nsPropertyTagName(p6))).build(p6, v6));
-      });
-    } else if (isReference) {
-      forEach(value, function(v6) {
-        body.push(new ReferenceSerializer(self2.addTagName(self2.nsPropertyTagName(p6))).build(v6));
-      });
-    } else {
-      var serialization = getSerialization(p6);
-      forEach(value, function(v6) {
-        var serializer;
-        if (serialization) {
-          if (serialization === SERIALIZE_PROPERTY) {
-            serializer = new ElementSerializer(self2, p6);
-          } else {
-            serializer = new TypeSerializer(self2, p6, serialization);
-          }
-        } else {
-          serializer = new ElementSerializer(self2);
-        }
-        body.push(serializer.build(v6));
-      });
-    }
-  });
-};
-ElementSerializer.prototype.getNamespaces = function(local) {
-  var namespaces = this.namespaces, parent = this.parent, parentNamespaces;
-  if (!namespaces) {
-    parentNamespaces = parent && parent.getNamespaces();
-    if (local || !parentNamespaces) {
-      this.namespaces = namespaces = new Namespaces(parentNamespaces);
-    } else {
-      namespaces = parentNamespaces;
-    }
-  }
-  return namespaces;
-};
-ElementSerializer.prototype.logNamespace = function(ns2, wellknown, local) {
-  var namespaces = this.getNamespaces(local);
-  var nsUri = ns2.uri, nsPrefix = ns2.prefix;
-  var existing = namespaces.byUri(nsUri);
-  if (!existing || local) {
-    namespaces.add(ns2, wellknown);
-  }
-  namespaces.mapPrefix(nsPrefix, nsUri);
-  return ns2;
-};
-ElementSerializer.prototype.logNamespaceUsed = function(ns2, local) {
-  var namespaces = this.getNamespaces(local);
-  var prefix2 = ns2.prefix, uri2 = ns2.uri, newPrefix, idx, wellknownUri;
-  if (!prefix2 && !uri2) {
-    return { localName: ns2.localName };
-  }
-  wellknownUri = namespaces.defaultUriByPrefix(prefix2);
-  uri2 = uri2 || wellknownUri || namespaces.uriByPrefix(prefix2);
-  if (!uri2) {
-    throw new Error("no namespace uri given for prefix <" + prefix2 + ">");
-  }
-  ns2 = namespaces.byUri(uri2);
-  if (!ns2 && !prefix2) {
-    ns2 = this.logNamespace({ uri: uri2 }, wellknownUri === uri2, true);
-  }
-  if (!ns2) {
-    newPrefix = prefix2;
-    idx = 1;
-    while (namespaces.uriByPrefix(newPrefix)) {
-      newPrefix = prefix2 + "_" + idx++;
-    }
-    ns2 = this.logNamespace({ prefix: newPrefix, uri: uri2 }, wellknownUri === uri2);
-  }
-  if (prefix2) {
-    namespaces.mapPrefix(prefix2, uri2);
-  }
-  return ns2;
-};
-ElementSerializer.prototype.parseAttributes = function(properties) {
-  var self2 = this, element = this.element;
-  forEach(properties, function(p6) {
-    var value = element.get(p6.name);
-    if (p6.isReference) {
-      if (!p6.isMany) {
-        value = value.id;
-      } else {
-        var values = [];
-        forEach(value, function(v6) {
-          values.push(v6.id);
-        });
-        value = values.join(" ");
-      }
-    }
-    self2.addAttribute(self2.nsAttributeName(p6), value);
-  });
-};
-ElementSerializer.prototype.addTagName = function(nsTagName) {
-  var actualNs = this.logNamespaceUsed(nsTagName);
-  this.getNamespaces().logUsed(actualNs);
-  return nsName(nsTagName);
-};
-ElementSerializer.prototype.addAttribute = function(name2, value) {
-  var attrs = this.attrs;
-  if (isString(value)) {
-    value = escapeAttr(value);
-  }
-  var idx = findIndex(attrs, function(element) {
-    return element.name.localName === name2.localName && element.name.uri === name2.uri && element.name.prefix === name2.prefix;
-  });
-  var attr2 = { name: name2, value };
-  if (idx !== -1) {
-    attrs.splice(idx, 1, attr2);
-  } else {
-    attrs.push(attr2);
-  }
-};
-ElementSerializer.prototype.serializeAttributes = function(writer) {
-  var attrs = this.attrs, namespaces = this.namespaces;
-  if (namespaces) {
-    attrs = getNsAttrs(namespaces).concat(attrs);
-  }
-  forEach(attrs, function(a5) {
-    writer.append(" ").append(nsName(a5.name)).append('="').append(a5.value).append('"');
-  });
-};
-ElementSerializer.prototype.serializeTo = function(writer) {
-  var firstBody = this.body[0], indent = firstBody && firstBody.constructor !== BodySerializer;
-  writer.appendIndent().append("<" + this.tagName);
-  this.serializeAttributes(writer);
-  writer.append(firstBody ? ">" : " />");
-  if (firstBody) {
-    if (indent) {
-      writer.appendNewLine().indent();
-    }
-    forEach(this.body, function(b3) {
-      b3.serializeTo(writer);
-    });
-    if (indent) {
-      writer.unindent().appendIndent();
-    }
-    writer.append("</" + this.tagName + ">");
-  }
-  writer.appendNewLine();
-};
-function TypeSerializer(parent, propertyDescriptor, serialization) {
-  ElementSerializer.call(this, parent, propertyDescriptor);
-  this.serialization = serialization;
-}
-inherits(TypeSerializer, ElementSerializer);
-TypeSerializer.prototype.parseNsAttributes = function(element) {
-  var attributes = ElementSerializer.prototype.parseNsAttributes.call(this, element).filter(
-    (attr2) => attr2.name !== this.serialization
-  );
-  var descriptor = element.$descriptor;
-  if (descriptor.name === this.propertyDescriptor.type) {
-    return attributes;
-  }
-  var typeNs = this.typeNs = this.nsTagName(descriptor);
-  this.getNamespaces().logUsed(this.typeNs);
-  var pkg = element.$model.getPackage(typeNs.uri), typePrefix = pkg.xml && pkg.xml.typePrefix || "";
-  this.addAttribute(
-    this.nsAttributeName(this.serialization),
-    (typeNs.prefix ? typeNs.prefix + ":" : "") + typePrefix + descriptor.ns.localName
-  );
-  return attributes;
-};
-TypeSerializer.prototype.isLocalNs = function(ns2) {
-  return ns2.uri === (this.typeNs || this.ns).uri;
-};
-function SavingWriter() {
-  this.value = "";
-  this.write = function(str) {
-    this.value += str;
-  };
-}
-function FormatingWriter(out, format) {
-  var indent = [""];
-  this.append = function(str) {
-    out.write(str);
-    return this;
-  };
-  this.appendNewLine = function() {
-    if (format) {
-      out.write("\n");
-    }
-    return this;
-  };
-  this.appendIndent = function() {
-    if (format) {
-      out.write(indent.join("  "));
-    }
-    return this;
-  };
-  this.indent = function() {
-    indent.push("");
-    return this;
-  };
-  this.unindent = function() {
-    indent.pop();
-    return this;
-  };
-}
-function Writer(options) {
-  options = assign2({ format: false, preamble: true }, options || {});
-  function toXML(tree, writer) {
-    var internalWriter = writer || new SavingWriter();
-    var formatingWriter = new FormatingWriter(internalWriter, options.format);
-    if (options.preamble) {
-      formatingWriter.append(XML_PREAMBLE);
-    }
-    var serializer = new ElementSerializer();
-    var model = tree.$model;
-    serializer.getNamespaces().mapDefaultPrefixes(getDefaultPrefixMappings(model));
-    serializer.build(tree).serializeTo(formatingWriter);
-    if (!writer) {
-      return internalWriter.value;
-    }
-  }
-  return {
-    toXML
-  };
-}
-function getDefaultPrefixMappings(model) {
-  const nsMap = model.config && model.config.nsMap || {};
-  const prefixMap = {};
-  for (const prefix2 in DEFAULT_NS_MAP) {
-    prefixMap[prefix2] = DEFAULT_NS_MAP[prefix2];
-  }
-  for (const uri2 in nsMap) {
-    const prefix2 = nsMap[uri2];
-    prefixMap[prefix2] = uri2;
-  }
-  for (const pkg of model.getPackages()) {
-    prefixMap[pkg.prefix] = pkg.uri;
-  }
-  return prefixMap;
-}
-
-// node_modules/bpmn-moddle/dist/index.js
-function BpmnModdle(packages2, options) {
-  Moddle.call(this, packages2, options);
-}
-BpmnModdle.prototype = Object.create(Moddle.prototype);
-BpmnModdle.prototype.fromXML = function(xmlStr, typeName, options) {
-  if (!isString(typeName)) {
-    options = typeName;
-    typeName = "bpmn:Definitions";
-  }
-  var reader = new Reader(assign2({ model: this, lax: true }, options));
-  var rootHandler = reader.handler(typeName);
-  return reader.fromXML(xmlStr, rootHandler);
-};
-BpmnModdle.prototype.toXML = function(element, options) {
-  var writer = new Writer(options);
-  return new Promise(function(resolve3, reject) {
-    try {
-      var result = writer.toXML(element);
-      return resolve3({
-        xml: result
-      });
-    } catch (err2) {
-      return reject(err2);
-    }
-  });
-};
-var name$5 = "BPMN20";
-var uri$5 = "http://www.omg.org/spec/BPMN/20100524/MODEL";
-var prefix$5 = "bpmn";
-var associations$5 = [];
-var types$5 = [
-  {
-    name: "Interface",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "operations",
-        type: "Operation",
-        isMany: true
-      },
-      {
-        name: "implementationRef",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "Operation",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "inMessageRef",
-        type: "Message",
-        isReference: true
-      },
-      {
-        name: "outMessageRef",
-        type: "Message",
-        isReference: true
-      },
-      {
-        name: "errorRef",
-        type: "Error",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "implementationRef",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "EndPoint",
-    superClass: [
-      "RootElement"
-    ]
-  },
-  {
-    name: "Auditing",
-    superClass: [
-      "BaseElement"
-    ]
-  },
-  {
-    name: "GlobalTask",
-    superClass: [
-      "CallableElement"
-    ],
-    properties: [
-      {
-        name: "resources",
-        type: "ResourceRole",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "Monitoring",
-    superClass: [
-      "BaseElement"
-    ]
-  },
-  {
-    name: "Performer",
-    superClass: [
-      "ResourceRole"
-    ]
-  },
-  {
-    name: "Process",
-    superClass: [
-      "FlowElementsContainer",
-      "CallableElement"
-    ],
-    properties: [
-      {
-        name: "processType",
-        type: "ProcessType",
-        isAttr: true
-      },
-      {
-        name: "isClosed",
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "auditing",
-        type: "Auditing"
-      },
-      {
-        name: "monitoring",
-        type: "Monitoring"
-      },
-      {
-        name: "properties",
-        type: "Property",
-        isMany: true
-      },
-      {
-        name: "laneSets",
-        isMany: true,
-        replaces: "FlowElementsContainer#laneSets",
-        type: "LaneSet"
-      },
-      {
-        name: "flowElements",
-        isMany: true,
-        replaces: "FlowElementsContainer#flowElements",
-        type: "FlowElement"
-      },
-      {
-        name: "artifacts",
-        type: "Artifact",
-        isMany: true
-      },
-      {
-        name: "resources",
-        type: "ResourceRole",
-        isMany: true
-      },
-      {
-        name: "correlationSubscriptions",
-        type: "CorrelationSubscription",
-        isMany: true
-      },
-      {
-        name: "supports",
-        type: "Process",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "definitionalCollaborationRef",
-        type: "Collaboration",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "isExecutable",
-        isAttr: true,
-        type: "Boolean"
-      }
-    ]
-  },
-  {
-    name: "LaneSet",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "lanes",
-        type: "Lane",
-        isMany: true
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "Lane",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "partitionElementRef",
-        type: "BaseElement",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "partitionElement",
-        type: "BaseElement"
-      },
-      {
-        name: "flowNodeRef",
-        type: "FlowNode",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "childLaneSet",
-        type: "LaneSet",
-        xml: {
-          serialize: "xsi:type"
-        }
-      }
-    ]
-  },
-  {
-    name: "GlobalManualTask",
-    superClass: [
-      "GlobalTask"
-    ]
-  },
-  {
-    name: "ManualTask",
-    superClass: [
-      "Task"
-    ]
-  },
-  {
-    name: "UserTask",
-    superClass: [
-      "Task"
-    ],
-    properties: [
-      {
-        name: "renderings",
-        type: "Rendering",
-        isMany: true
-      },
-      {
-        name: "implementation",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "Rendering",
-    superClass: [
-      "BaseElement"
-    ]
-  },
-  {
-    name: "HumanPerformer",
-    superClass: [
-      "Performer"
-    ]
-  },
-  {
-    name: "PotentialOwner",
-    superClass: [
-      "HumanPerformer"
-    ]
-  },
-  {
-    name: "GlobalUserTask",
-    superClass: [
-      "GlobalTask"
-    ],
-    properties: [
-      {
-        name: "implementation",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "renderings",
-        type: "Rendering",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "Gateway",
-    isAbstract: true,
-    superClass: [
-      "FlowNode"
-    ],
-    properties: [
-      {
-        name: "gatewayDirection",
-        type: "GatewayDirection",
-        "default": "Unspecified",
-        isAttr: true
-      }
-    ]
-  },
-  {
-    name: "EventBasedGateway",
-    superClass: [
-      "Gateway"
-    ],
-    properties: [
-      {
-        name: "instantiate",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "eventGatewayType",
-        type: "EventBasedGatewayType",
-        isAttr: true,
-        "default": "Exclusive"
-      }
-    ]
-  },
-  {
-    name: "ComplexGateway",
-    superClass: [
-      "Gateway"
-    ],
-    properties: [
-      {
-        name: "activationCondition",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      },
-      {
-        name: "default",
-        type: "SequenceFlow",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ExclusiveGateway",
-    superClass: [
-      "Gateway"
-    ],
-    properties: [
-      {
-        name: "default",
-        type: "SequenceFlow",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "InclusiveGateway",
-    superClass: [
-      "Gateway"
-    ],
-    properties: [
-      {
-        name: "default",
-        type: "SequenceFlow",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ParallelGateway",
-    superClass: [
-      "Gateway"
-    ]
-  },
-  {
-    name: "RootElement",
-    isAbstract: true,
-    superClass: [
-      "BaseElement"
-    ]
-  },
-  {
-    name: "Relationship",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "type",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "direction",
-        type: "RelationshipDirection",
-        isAttr: true
-      },
-      {
-        name: "source",
-        isMany: true,
-        isReference: true,
-        type: "Element"
-      },
-      {
-        name: "target",
-        isMany: true,
-        isReference: true,
-        type: "Element"
-      }
-    ]
-  },
-  {
-    name: "BaseElement",
-    isAbstract: true,
-    properties: [
-      {
-        name: "id",
-        isAttr: true,
-        type: "String",
-        isId: true
-      },
-      {
-        name: "documentation",
-        type: "Documentation",
-        isMany: true
-      },
-      {
-        name: "extensionDefinitions",
-        type: "ExtensionDefinition",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "extensionElements",
-        type: "ExtensionElements"
-      }
-    ]
-  },
-  {
-    name: "Extension",
-    properties: [
-      {
-        name: "mustUnderstand",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "definition",
-        type: "ExtensionDefinition",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ExtensionDefinition",
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "extensionAttributeDefinitions",
-        type: "ExtensionAttributeDefinition",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "ExtensionAttributeDefinition",
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "type",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "isReference",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "extensionDefinition",
-        type: "ExtensionDefinition",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ExtensionElements",
-    properties: [
-      {
-        name: "valueRef",
-        isAttr: true,
-        isReference: true,
-        type: "Element"
-      },
-      {
-        name: "values",
-        type: "Element",
-        isMany: true
-      },
-      {
-        name: "extensionAttributeDefinition",
-        type: "ExtensionAttributeDefinition",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Documentation",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "text",
-        type: "String",
-        isBody: true
-      },
-      {
-        name: "textFormat",
-        "default": "text/plain",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "Event",
-    isAbstract: true,
-    superClass: [
-      "FlowNode",
-      "InteractionNode"
-    ],
-    properties: [
-      {
-        name: "properties",
-        type: "Property",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "IntermediateCatchEvent",
-    superClass: [
-      "CatchEvent"
-    ]
-  },
-  {
-    name: "IntermediateThrowEvent",
-    superClass: [
-      "ThrowEvent"
-    ]
-  },
-  {
-    name: "EndEvent",
-    superClass: [
-      "ThrowEvent"
-    ]
-  },
-  {
-    name: "StartEvent",
-    superClass: [
-      "CatchEvent"
-    ],
-    properties: [
-      {
-        name: "isInterrupting",
-        "default": true,
-        isAttr: true,
-        type: "Boolean"
-      }
-    ]
-  },
-  {
-    name: "ThrowEvent",
-    isAbstract: true,
-    superClass: [
-      "Event"
-    ],
-    properties: [
-      {
-        name: "dataInputs",
-        type: "DataInput",
-        isMany: true
-      },
-      {
-        name: "dataInputAssociations",
-        type: "DataInputAssociation",
-        isMany: true
-      },
-      {
-        name: "inputSet",
-        type: "InputSet"
-      },
-      {
-        name: "eventDefinitions",
-        type: "EventDefinition",
-        isMany: true
-      },
-      {
-        name: "eventDefinitionRef",
-        type: "EventDefinition",
-        isMany: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "CatchEvent",
-    isAbstract: true,
-    superClass: [
-      "Event"
-    ],
-    properties: [
-      {
-        name: "parallelMultiple",
-        isAttr: true,
-        type: "Boolean",
-        "default": false
-      },
-      {
-        name: "dataOutputs",
-        type: "DataOutput",
-        isMany: true
-      },
-      {
-        name: "dataOutputAssociations",
-        type: "DataOutputAssociation",
-        isMany: true
-      },
-      {
-        name: "outputSet",
-        type: "OutputSet"
-      },
-      {
-        name: "eventDefinitions",
-        type: "EventDefinition",
-        isMany: true
-      },
-      {
-        name: "eventDefinitionRef",
-        type: "EventDefinition",
-        isMany: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "BoundaryEvent",
-    superClass: [
-      "CatchEvent"
-    ],
-    properties: [
-      {
-        name: "cancelActivity",
-        "default": true,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "attachedToRef",
-        type: "Activity",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "EventDefinition",
-    isAbstract: true,
-    superClass: [
-      "RootElement"
-    ]
-  },
-  {
-    name: "CancelEventDefinition",
-    superClass: [
-      "EventDefinition"
-    ]
-  },
-  {
-    name: "ErrorEventDefinition",
-    superClass: [
-      "EventDefinition"
-    ],
-    properties: [
-      {
-        name: "errorRef",
-        type: "Error",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "TerminateEventDefinition",
-    superClass: [
-      "EventDefinition"
-    ]
-  },
-  {
-    name: "EscalationEventDefinition",
-    superClass: [
-      "EventDefinition"
-    ],
-    properties: [
-      {
-        name: "escalationRef",
-        type: "Escalation",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Escalation",
-    properties: [
-      {
-        name: "structureRef",
-        type: "ItemDefinition",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "escalationCode",
-        isAttr: true,
-        type: "String"
-      }
-    ],
-    superClass: [
-      "RootElement"
-    ]
-  },
-  {
-    name: "CompensateEventDefinition",
-    superClass: [
-      "EventDefinition"
-    ],
-    properties: [
-      {
-        name: "waitForCompletion",
-        isAttr: true,
-        type: "Boolean",
-        "default": true
-      },
-      {
-        name: "activityRef",
-        type: "Activity",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "TimerEventDefinition",
-    superClass: [
-      "EventDefinition"
-    ],
-    properties: [
-      {
-        name: "timeDate",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      },
-      {
-        name: "timeCycle",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      },
-      {
-        name: "timeDuration",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      }
-    ]
-  },
-  {
-    name: "LinkEventDefinition",
-    superClass: [
-      "EventDefinition"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "target",
-        type: "LinkEventDefinition",
-        isReference: true
-      },
-      {
-        name: "source",
-        type: "LinkEventDefinition",
-        isMany: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "MessageEventDefinition",
-    superClass: [
-      "EventDefinition"
-    ],
-    properties: [
-      {
-        name: "messageRef",
-        type: "Message",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "operationRef",
-        type: "Operation",
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ConditionalEventDefinition",
-    superClass: [
-      "EventDefinition"
-    ],
-    properties: [
-      {
-        name: "condition",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      }
-    ]
-  },
-  {
-    name: "SignalEventDefinition",
-    superClass: [
-      "EventDefinition"
-    ],
-    properties: [
-      {
-        name: "signalRef",
-        type: "Signal",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Signal",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "structureRef",
-        type: "ItemDefinition",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "ImplicitThrowEvent",
-    superClass: [
-      "ThrowEvent"
-    ]
-  },
-  {
-    name: "DataState",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "ItemAwareElement",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "itemSubjectRef",
-        type: "ItemDefinition",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "dataState",
-        type: "DataState"
-      }
-    ]
-  },
-  {
-    name: "DataAssociation",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "sourceRef",
-        type: "ItemAwareElement",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "targetRef",
-        type: "ItemAwareElement",
-        isReference: true
-      },
-      {
-        name: "transformation",
-        type: "FormalExpression",
-        xml: {
-          serialize: "property"
-        }
-      },
-      {
-        name: "assignment",
-        type: "Assignment",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "DataInput",
-    superClass: [
-      "ItemAwareElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "isCollection",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "inputSetRef",
-        type: "InputSet",
-        isMany: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "inputSetWithOptional",
-        type: "InputSet",
-        isMany: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "inputSetWithWhileExecuting",
-        type: "InputSet",
-        isMany: true,
-        isVirtual: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "DataOutput",
-    superClass: [
-      "ItemAwareElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "isCollection",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "outputSetRef",
-        type: "OutputSet",
-        isMany: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "outputSetWithOptional",
-        type: "OutputSet",
-        isMany: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "outputSetWithWhileExecuting",
-        type: "OutputSet",
-        isMany: true,
-        isVirtual: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "InputSet",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "dataInputRefs",
-        type: "DataInput",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "optionalInputRefs",
-        type: "DataInput",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "whileExecutingInputRefs",
-        type: "DataInput",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "outputSetRefs",
-        type: "OutputSet",
-        isMany: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "OutputSet",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "dataOutputRefs",
-        type: "DataOutput",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "inputSetRefs",
-        type: "InputSet",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "optionalOutputRefs",
-        type: "DataOutput",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "whileExecutingOutputRefs",
-        type: "DataOutput",
-        isMany: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Property",
-    superClass: [
-      "ItemAwareElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "DataInputAssociation",
-    superClass: [
-      "DataAssociation"
-    ]
-  },
-  {
-    name: "DataOutputAssociation",
-    superClass: [
-      "DataAssociation"
-    ]
-  },
-  {
-    name: "InputOutputSpecification",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "dataInputs",
-        type: "DataInput",
-        isMany: true
-      },
-      {
-        name: "dataOutputs",
-        type: "DataOutput",
-        isMany: true
-      },
-      {
-        name: "inputSets",
-        type: "InputSet",
-        isMany: true
-      },
-      {
-        name: "outputSets",
-        type: "OutputSet",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "DataObject",
-    superClass: [
-      "FlowElement",
-      "ItemAwareElement"
-    ],
-    properties: [
-      {
-        name: "isCollection",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      }
-    ]
-  },
-  {
-    name: "InputOutputBinding",
-    properties: [
-      {
-        name: "inputDataRef",
-        type: "InputSet",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "outputDataRef",
-        type: "OutputSet",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "operationRef",
-        type: "Operation",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Assignment",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "from",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      },
-      {
-        name: "to",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      }
-    ]
-  },
-  {
-    name: "DataStore",
-    superClass: [
-      "RootElement",
-      "ItemAwareElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "capacity",
-        isAttr: true,
-        type: "Integer"
-      },
-      {
-        name: "isUnlimited",
-        "default": true,
-        isAttr: true,
-        type: "Boolean"
-      }
-    ]
-  },
-  {
-    name: "DataStoreReference",
-    superClass: [
-      "ItemAwareElement",
-      "FlowElement"
-    ],
-    properties: [
-      {
-        name: "dataStoreRef",
-        type: "DataStore",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "DataObjectReference",
-    superClass: [
-      "ItemAwareElement",
-      "FlowElement"
-    ],
-    properties: [
-      {
-        name: "dataObjectRef",
-        type: "DataObject",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ConversationLink",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "sourceRef",
-        type: "InteractionNode",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "targetRef",
-        type: "InteractionNode",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "ConversationAssociation",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "innerConversationNodeRef",
-        type: "ConversationNode",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "outerConversationNodeRef",
-        type: "ConversationNode",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "CallConversation",
-    superClass: [
-      "ConversationNode"
-    ],
-    properties: [
-      {
-        name: "calledCollaborationRef",
-        type: "Collaboration",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "participantAssociations",
-        type: "ParticipantAssociation",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "Conversation",
-    superClass: [
-      "ConversationNode"
-    ]
-  },
-  {
-    name: "SubConversation",
-    superClass: [
-      "ConversationNode"
-    ],
-    properties: [
-      {
-        name: "conversationNodes",
-        type: "ConversationNode",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "ConversationNode",
-    isAbstract: true,
-    superClass: [
-      "InteractionNode",
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "participantRef",
-        type: "Participant",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "messageFlowRefs",
-        type: "MessageFlow",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "correlationKeys",
-        type: "CorrelationKey",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "GlobalConversation",
-    superClass: [
-      "Collaboration"
-    ]
-  },
-  {
-    name: "PartnerEntity",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "participantRef",
-        type: "Participant",
-        isMany: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "PartnerRole",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "participantRef",
-        type: "Participant",
-        isMany: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "CorrelationProperty",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "correlationPropertyRetrievalExpression",
-        type: "CorrelationPropertyRetrievalExpression",
-        isMany: true
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "type",
-        type: "ItemDefinition",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Error",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "structureRef",
-        type: "ItemDefinition",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "errorCode",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "CorrelationKey",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "correlationPropertyRef",
-        type: "CorrelationProperty",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "Expression",
-    superClass: [
-      "BaseElement"
-    ],
-    isAbstract: false,
-    properties: [
-      {
-        name: "body",
-        isBody: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "FormalExpression",
-    superClass: [
-      "Expression"
-    ],
-    properties: [
-      {
-        name: "language",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "evaluatesToTypeRef",
-        type: "ItemDefinition",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Message",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "itemRef",
-        type: "ItemDefinition",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ItemDefinition",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "itemKind",
-        type: "ItemKind",
-        isAttr: true
-      },
-      {
-        name: "structureRef",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "isCollection",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "import",
-        type: "Import",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "FlowElement",
-    isAbstract: true,
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "auditing",
-        type: "Auditing"
-      },
-      {
-        name: "monitoring",
-        type: "Monitoring"
-      },
-      {
-        name: "categoryValueRef",
-        type: "CategoryValue",
-        isMany: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "SequenceFlow",
-    superClass: [
-      "FlowElement"
-    ],
-    properties: [
-      {
-        name: "isImmediate",
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "conditionExpression",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      },
-      {
-        name: "sourceRef",
-        type: "FlowNode",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "targetRef",
-        type: "FlowNode",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "FlowElementsContainer",
-    isAbstract: true,
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "laneSets",
-        type: "LaneSet",
-        isMany: true
-      },
-      {
-        name: "flowElements",
-        type: "FlowElement",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "CallableElement",
-    isAbstract: true,
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "ioSpecification",
-        type: "InputOutputSpecification",
-        xml: {
-          serialize: "property"
-        }
-      },
-      {
-        name: "supportedInterfaceRef",
-        type: "Interface",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "ioBinding",
-        type: "InputOutputBinding",
-        isMany: true,
-        xml: {
-          serialize: "property"
-        }
-      }
-    ]
-  },
-  {
-    name: "FlowNode",
-    isAbstract: true,
-    superClass: [
-      "FlowElement"
-    ],
-    properties: [
-      {
-        name: "incoming",
-        type: "SequenceFlow",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "outgoing",
-        type: "SequenceFlow",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "lanes",
-        type: "Lane",
-        isMany: true,
-        isVirtual: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "CorrelationPropertyRetrievalExpression",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "messagePath",
-        type: "FormalExpression"
-      },
-      {
-        name: "messageRef",
-        type: "Message",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "CorrelationPropertyBinding",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "dataPath",
-        type: "FormalExpression"
-      },
-      {
-        name: "correlationPropertyRef",
-        type: "CorrelationProperty",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Resource",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "resourceParameters",
-        type: "ResourceParameter",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "ResourceParameter",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "isRequired",
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "type",
-        type: "ItemDefinition",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "CorrelationSubscription",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "correlationKeyRef",
-        type: "CorrelationKey",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "correlationPropertyBinding",
-        type: "CorrelationPropertyBinding",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "MessageFlow",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "sourceRef",
-        type: "InteractionNode",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "targetRef",
-        type: "InteractionNode",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "messageRef",
-        type: "Message",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "MessageFlowAssociation",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "innerMessageFlowRef",
-        type: "MessageFlow",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "outerMessageFlowRef",
-        type: "MessageFlow",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "InteractionNode",
-    isAbstract: true,
-    properties: [
-      {
-        name: "incomingConversationLinks",
-        type: "ConversationLink",
-        isMany: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "outgoingConversationLinks",
-        type: "ConversationLink",
-        isMany: true,
-        isVirtual: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Participant",
-    superClass: [
-      "InteractionNode",
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "interfaceRef",
-        type: "Interface",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "participantMultiplicity",
-        type: "ParticipantMultiplicity"
-      },
-      {
-        name: "endPointRefs",
-        type: "EndPoint",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "processRef",
-        type: "Process",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ParticipantAssociation",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "innerParticipantRef",
-        type: "Participant",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "outerParticipantRef",
-        type: "Participant",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ParticipantMultiplicity",
-    properties: [
-      {
-        name: "minimum",
-        "default": 0,
-        isAttr: true,
-        type: "Integer"
-      },
-      {
-        name: "maximum",
-        "default": 1,
-        isAttr: true,
-        type: "Integer"
-      }
-    ],
-    superClass: [
-      "BaseElement"
-    ]
-  },
-  {
-    name: "Collaboration",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "isClosed",
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "participants",
-        type: "Participant",
-        isMany: true
-      },
-      {
-        name: "messageFlows",
-        type: "MessageFlow",
-        isMany: true
-      },
-      {
-        name: "artifacts",
-        type: "Artifact",
-        isMany: true
-      },
-      {
-        name: "conversations",
-        type: "ConversationNode",
-        isMany: true
-      },
-      {
-        name: "conversationAssociations",
-        type: "ConversationAssociation"
-      },
-      {
-        name: "participantAssociations",
-        type: "ParticipantAssociation",
-        isMany: true
-      },
-      {
-        name: "messageFlowAssociations",
-        type: "MessageFlowAssociation",
-        isMany: true
-      },
-      {
-        name: "correlationKeys",
-        type: "CorrelationKey",
-        isMany: true
-      },
-      {
-        name: "choreographyRef",
-        type: "Choreography",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "conversationLinks",
-        type: "ConversationLink",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "ChoreographyActivity",
-    isAbstract: true,
-    superClass: [
-      "FlowNode"
-    ],
-    properties: [
-      {
-        name: "participantRef",
-        type: "Participant",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "initiatingParticipantRef",
-        type: "Participant",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "correlationKeys",
-        type: "CorrelationKey",
-        isMany: true
-      },
-      {
-        name: "loopType",
-        type: "ChoreographyLoopType",
-        "default": "None",
-        isAttr: true
-      }
-    ]
-  },
-  {
-    name: "CallChoreography",
-    superClass: [
-      "ChoreographyActivity"
-    ],
-    properties: [
-      {
-        name: "calledChoreographyRef",
-        type: "Choreography",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "participantAssociations",
-        type: "ParticipantAssociation",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "SubChoreography",
-    superClass: [
-      "ChoreographyActivity",
-      "FlowElementsContainer"
-    ],
-    properties: [
-      {
-        name: "artifacts",
-        type: "Artifact",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "ChoreographyTask",
-    superClass: [
-      "ChoreographyActivity"
-    ],
-    properties: [
-      {
-        name: "messageFlowRef",
-        type: "MessageFlow",
-        isMany: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Choreography",
-    superClass: [
-      "Collaboration",
-      "FlowElementsContainer"
-    ]
-  },
-  {
-    name: "GlobalChoreographyTask",
-    superClass: [
-      "Choreography"
-    ],
-    properties: [
-      {
-        name: "initiatingParticipantRef",
-        type: "Participant",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "TextAnnotation",
-    superClass: [
-      "Artifact"
-    ],
-    properties: [
-      {
-        name: "text",
-        type: "String"
-      },
-      {
-        name: "textFormat",
-        "default": "text/plain",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "Group",
-    superClass: [
-      "Artifact"
-    ],
-    properties: [
-      {
-        name: "categoryValueRef",
-        type: "CategoryValue",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Association",
-    superClass: [
-      "Artifact"
-    ],
-    properties: [
-      {
-        name: "associationDirection",
-        type: "AssociationDirection",
-        isAttr: true
-      },
-      {
-        name: "sourceRef",
-        type: "BaseElement",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "targetRef",
-        type: "BaseElement",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "Category",
-    superClass: [
-      "RootElement"
-    ],
-    properties: [
-      {
-        name: "categoryValue",
-        type: "CategoryValue",
-        isMany: true
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "Artifact",
-    isAbstract: true,
-    superClass: [
-      "BaseElement"
-    ]
-  },
-  {
-    name: "CategoryValue",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "categorizedFlowElements",
-        type: "FlowElement",
-        isMany: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "value",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "Activity",
-    isAbstract: true,
-    superClass: [
-      "FlowNode"
-    ],
-    properties: [
-      {
-        name: "isForCompensation",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "default",
-        type: "SequenceFlow",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "ioSpecification",
-        type: "InputOutputSpecification",
-        xml: {
-          serialize: "property"
-        }
-      },
-      {
-        name: "boundaryEventRefs",
-        type: "BoundaryEvent",
-        isMany: true,
-        isReference: true
-      },
-      {
-        name: "properties",
-        type: "Property",
-        isMany: true
-      },
-      {
-        name: "dataInputAssociations",
-        type: "DataInputAssociation",
-        isMany: true
-      },
-      {
-        name: "dataOutputAssociations",
-        type: "DataOutputAssociation",
-        isMany: true
-      },
-      {
-        name: "startQuantity",
-        "default": 1,
-        isAttr: true,
-        type: "Integer"
-      },
-      {
-        name: "resources",
-        type: "ResourceRole",
-        isMany: true
-      },
-      {
-        name: "completionQuantity",
-        "default": 1,
-        isAttr: true,
-        type: "Integer"
-      },
-      {
-        name: "loopCharacteristics",
-        type: "LoopCharacteristics"
-      }
-    ]
-  },
-  {
-    name: "ServiceTask",
-    superClass: [
-      "Task"
-    ],
-    properties: [
-      {
-        name: "implementation",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "operationRef",
-        type: "Operation",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "SubProcess",
-    superClass: [
-      "Activity",
-      "FlowElementsContainer",
-      "InteractionNode"
-    ],
-    properties: [
-      {
-        name: "triggeredByEvent",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "artifacts",
-        type: "Artifact",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "LoopCharacteristics",
-    isAbstract: true,
-    superClass: [
-      "BaseElement"
-    ]
-  },
-  {
-    name: "MultiInstanceLoopCharacteristics",
-    superClass: [
-      "LoopCharacteristics"
-    ],
-    properties: [
-      {
-        name: "isSequential",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "behavior",
-        type: "MultiInstanceBehavior",
-        "default": "All",
-        isAttr: true
-      },
-      {
-        name: "loopCardinality",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      },
-      {
-        name: "loopDataInputRef",
-        type: "ItemAwareElement",
-        isReference: true
-      },
-      {
-        name: "loopDataOutputRef",
-        type: "ItemAwareElement",
-        isReference: true
-      },
-      {
-        name: "inputDataItem",
-        type: "DataInput",
-        xml: {
-          serialize: "property"
-        }
-      },
-      {
-        name: "outputDataItem",
-        type: "DataOutput",
-        xml: {
-          serialize: "property"
-        }
-      },
-      {
-        name: "complexBehaviorDefinition",
-        type: "ComplexBehaviorDefinition",
-        isMany: true
-      },
-      {
-        name: "completionCondition",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      },
-      {
-        name: "oneBehaviorEventRef",
-        type: "EventDefinition",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "noneBehaviorEventRef",
-        type: "EventDefinition",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "StandardLoopCharacteristics",
-    superClass: [
-      "LoopCharacteristics"
-    ],
-    properties: [
-      {
-        name: "testBefore",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "loopCondition",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      },
-      {
-        name: "loopMaximum",
-        type: "Integer",
-        isAttr: true
-      }
-    ]
-  },
-  {
-    name: "CallActivity",
-    superClass: [
-      "Activity",
-      "InteractionNode"
-    ],
-    properties: [
-      {
-        name: "calledElement",
-        type: "String",
-        isAttr: true
-      }
-    ]
-  },
-  {
-    name: "Task",
-    superClass: [
-      "Activity",
-      "InteractionNode"
-    ]
-  },
-  {
-    name: "SendTask",
-    superClass: [
-      "Task"
-    ],
-    properties: [
-      {
-        name: "implementation",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "operationRef",
-        type: "Operation",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "messageRef",
-        type: "Message",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ReceiveTask",
-    superClass: [
-      "Task"
-    ],
-    properties: [
-      {
-        name: "implementation",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "instantiate",
-        "default": false,
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "operationRef",
-        type: "Operation",
-        isAttr: true,
-        isReference: true
-      },
-      {
-        name: "messageRef",
-        type: "Message",
-        isAttr: true,
-        isReference: true
-      }
-    ]
-  },
-  {
-    name: "ScriptTask",
-    superClass: [
-      "Task"
-    ],
-    properties: [
-      {
-        name: "scriptFormat",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "script",
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "BusinessRuleTask",
-    superClass: [
-      "Task"
-    ],
-    properties: [
-      {
-        name: "implementation",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "AdHocSubProcess",
-    superClass: [
-      "SubProcess"
-    ],
-    properties: [
-      {
-        name: "completionCondition",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      },
-      {
-        name: "ordering",
-        type: "AdHocOrdering",
-        isAttr: true
-      },
-      {
-        name: "cancelRemainingInstances",
-        "default": true,
-        isAttr: true,
-        type: "Boolean"
-      }
-    ]
-  },
-  {
-    name: "Transaction",
-    superClass: [
-      "SubProcess"
-    ],
-    properties: [
-      {
-        name: "protocol",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "method",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "GlobalScriptTask",
-    superClass: [
-      "GlobalTask"
-    ],
-    properties: [
-      {
-        name: "scriptLanguage",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "script",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "GlobalBusinessRuleTask",
-    superClass: [
-      "GlobalTask"
-    ],
-    properties: [
-      {
-        name: "implementation",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "ComplexBehaviorDefinition",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "condition",
-        type: "FormalExpression"
-      },
-      {
-        name: "event",
-        type: "ImplicitThrowEvent"
-      }
-    ]
-  },
-  {
-    name: "ResourceRole",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "resourceRef",
-        type: "Resource",
-        isReference: true
-      },
-      {
-        name: "resourceParameterBindings",
-        type: "ResourceParameterBinding",
-        isMany: true
-      },
-      {
-        name: "resourceAssignmentExpression",
-        type: "ResourceAssignmentExpression"
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "ResourceParameterBinding",
-    properties: [
-      {
-        name: "expression",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      },
-      {
-        name: "parameterRef",
-        type: "ResourceParameter",
-        isAttr: true,
-        isReference: true
-      }
-    ],
-    superClass: [
-      "BaseElement"
-    ]
-  },
-  {
-    name: "ResourceAssignmentExpression",
-    properties: [
-      {
-        name: "expression",
-        type: "Expression",
-        xml: {
-          serialize: "xsi:type"
-        }
-      }
-    ],
-    superClass: [
-      "BaseElement"
-    ]
-  },
-  {
-    name: "Import",
-    properties: [
-      {
-        name: "importType",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "location",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "namespace",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "Definitions",
-    superClass: [
-      "BaseElement"
-    ],
-    properties: [
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "targetNamespace",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "expressionLanguage",
-        "default": "http://www.w3.org/1999/XPath",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "typeLanguage",
-        "default": "http://www.w3.org/2001/XMLSchema",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "imports",
-        type: "Import",
-        isMany: true
-      },
-      {
-        name: "extensions",
-        type: "Extension",
-        isMany: true
-      },
-      {
-        name: "rootElements",
-        type: "RootElement",
-        isMany: true
-      },
-      {
-        name: "diagrams",
-        isMany: true,
-        type: "bpmndi:BPMNDiagram"
-      },
-      {
-        name: "exporter",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "relationships",
-        type: "Relationship",
-        isMany: true
-      },
-      {
-        name: "exporterVersion",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  }
-];
-var enumerations$3 = [
-  {
-    name: "ProcessType",
-    literalValues: [
-      {
-        name: "None"
-      },
-      {
-        name: "Public"
-      },
-      {
-        name: "Private"
-      }
-    ]
-  },
-  {
-    name: "GatewayDirection",
-    literalValues: [
-      {
-        name: "Unspecified"
-      },
-      {
-        name: "Converging"
-      },
-      {
-        name: "Diverging"
-      },
-      {
-        name: "Mixed"
-      }
-    ]
-  },
-  {
-    name: "EventBasedGatewayType",
-    literalValues: [
-      {
-        name: "Parallel"
-      },
-      {
-        name: "Exclusive"
-      }
-    ]
-  },
-  {
-    name: "RelationshipDirection",
-    literalValues: [
-      {
-        name: "None"
-      },
-      {
-        name: "Forward"
-      },
-      {
-        name: "Backward"
-      },
-      {
-        name: "Both"
-      }
-    ]
-  },
-  {
-    name: "ItemKind",
-    literalValues: [
-      {
-        name: "Physical"
-      },
-      {
-        name: "Information"
-      }
-    ]
-  },
-  {
-    name: "ChoreographyLoopType",
-    literalValues: [
-      {
-        name: "None"
-      },
-      {
-        name: "Standard"
-      },
-      {
-        name: "MultiInstanceSequential"
-      },
-      {
-        name: "MultiInstanceParallel"
-      }
-    ]
-  },
-  {
-    name: "AssociationDirection",
-    literalValues: [
-      {
-        name: "None"
-      },
-      {
-        name: "One"
-      },
-      {
-        name: "Both"
-      }
-    ]
-  },
-  {
-    name: "MultiInstanceBehavior",
-    literalValues: [
-      {
-        name: "None"
-      },
-      {
-        name: "One"
-      },
-      {
-        name: "All"
-      },
-      {
-        name: "Complex"
-      }
-    ]
-  },
-  {
-    name: "AdHocOrdering",
-    literalValues: [
-      {
-        name: "Parallel"
-      },
-      {
-        name: "Sequential"
-      }
-    ]
-  }
-];
-var xml$1 = {
-  tagAlias: "lowerCase",
-  typePrefix: "t"
-};
-var BpmnPackage = {
-  name: name$5,
-  uri: uri$5,
-  prefix: prefix$5,
-  associations: associations$5,
-  types: types$5,
-  enumerations: enumerations$3,
-  xml: xml$1
-};
-var name$4 = "BPMNDI";
-var uri$4 = "http://www.omg.org/spec/BPMN/20100524/DI";
-var prefix$4 = "bpmndi";
-var types$4 = [
-  {
-    name: "BPMNDiagram",
-    properties: [
-      {
-        name: "plane",
-        type: "BPMNPlane",
-        redefines: "di:Diagram#rootElement"
-      },
-      {
-        name: "labelStyle",
-        type: "BPMNLabelStyle",
-        isMany: true
-      }
-    ],
-    superClass: [
-      "di:Diagram"
-    ]
-  },
-  {
-    name: "BPMNPlane",
-    properties: [
-      {
-        name: "bpmnElement",
-        isAttr: true,
-        isReference: true,
-        type: "bpmn:BaseElement",
-        redefines: "di:DiagramElement#modelElement"
-      }
-    ],
-    superClass: [
-      "di:Plane"
-    ]
-  },
-  {
-    name: "BPMNShape",
-    properties: [
-      {
-        name: "bpmnElement",
-        isAttr: true,
-        isReference: true,
-        type: "bpmn:BaseElement",
-        redefines: "di:DiagramElement#modelElement"
-      },
-      {
-        name: "isHorizontal",
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "isExpanded",
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "isMarkerVisible",
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "label",
-        type: "BPMNLabel"
-      },
-      {
-        name: "isMessageVisible",
-        isAttr: true,
-        type: "Boolean"
-      },
-      {
-        name: "participantBandKind",
-        type: "ParticipantBandKind",
-        isAttr: true
-      },
-      {
-        name: "choreographyActivityShape",
-        type: "BPMNShape",
-        isAttr: true,
-        isReference: true
-      }
-    ],
-    superClass: [
-      "di:LabeledShape"
-    ]
-  },
-  {
-    name: "BPMNEdge",
-    properties: [
-      {
-        name: "label",
-        type: "BPMNLabel"
-      },
-      {
-        name: "bpmnElement",
-        isAttr: true,
-        isReference: true,
-        type: "bpmn:BaseElement",
-        redefines: "di:DiagramElement#modelElement"
-      },
-      {
-        name: "sourceElement",
-        isAttr: true,
-        isReference: true,
-        type: "di:DiagramElement",
-        redefines: "di:Edge#source"
-      },
-      {
-        name: "targetElement",
-        isAttr: true,
-        isReference: true,
-        type: "di:DiagramElement",
-        redefines: "di:Edge#target"
-      },
-      {
-        name: "messageVisibleKind",
-        type: "MessageVisibleKind",
-        isAttr: true,
-        "default": "initiating"
-      }
-    ],
-    superClass: [
-      "di:LabeledEdge"
-    ]
-  },
-  {
-    name: "BPMNLabel",
-    properties: [
-      {
-        name: "labelStyle",
-        type: "BPMNLabelStyle",
-        isAttr: true,
-        isReference: true,
-        redefines: "di:DiagramElement#style"
-      }
-    ],
-    superClass: [
-      "di:Label"
-    ]
-  },
-  {
-    name: "BPMNLabelStyle",
-    properties: [
-      {
-        name: "font",
-        type: "dc:Font"
-      }
-    ],
-    superClass: [
-      "di:Style"
-    ]
-  }
-];
-var enumerations$2 = [
-  {
-    name: "ParticipantBandKind",
-    literalValues: [
-      {
-        name: "top_initiating"
-      },
-      {
-        name: "middle_initiating"
-      },
-      {
-        name: "bottom_initiating"
-      },
-      {
-        name: "top_non_initiating"
-      },
-      {
-        name: "middle_non_initiating"
-      },
-      {
-        name: "bottom_non_initiating"
-      }
-    ]
-  },
-  {
-    name: "MessageVisibleKind",
-    literalValues: [
-      {
-        name: "initiating"
-      },
-      {
-        name: "non_initiating"
-      }
-    ]
-  }
-];
-var associations$4 = [];
-var BpmnDiPackage = {
-  name: name$4,
-  uri: uri$4,
-  prefix: prefix$4,
-  types: types$4,
-  enumerations: enumerations$2,
-  associations: associations$4
-};
-var name$3 = "DC";
-var uri$3 = "http://www.omg.org/spec/DD/20100524/DC";
-var prefix$3 = "dc";
-var types$3 = [
-  {
-    name: "Boolean"
-  },
-  {
-    name: "Integer"
-  },
-  {
-    name: "Real"
-  },
-  {
-    name: "String"
-  },
-  {
-    name: "Font",
-    properties: [
-      {
-        name: "name",
-        type: "String",
-        isAttr: true
-      },
-      {
-        name: "size",
-        type: "Real",
-        isAttr: true
-      },
-      {
-        name: "isBold",
-        type: "Boolean",
-        isAttr: true
-      },
-      {
-        name: "isItalic",
-        type: "Boolean",
-        isAttr: true
-      },
-      {
-        name: "isUnderline",
-        type: "Boolean",
-        isAttr: true
-      },
-      {
-        name: "isStrikeThrough",
-        type: "Boolean",
-        isAttr: true
-      }
-    ]
-  },
-  {
-    name: "Point",
-    properties: [
-      {
-        name: "x",
-        type: "Real",
-        "default": "0",
-        isAttr: true
-      },
-      {
-        name: "y",
-        type: "Real",
-        "default": "0",
-        isAttr: true
-      }
-    ]
-  },
-  {
-    name: "Bounds",
-    properties: [
-      {
-        name: "x",
-        type: "Real",
-        "default": "0",
-        isAttr: true
-      },
-      {
-        name: "y",
-        type: "Real",
-        "default": "0",
-        isAttr: true
-      },
-      {
-        name: "width",
-        type: "Real",
-        isAttr: true
-      },
-      {
-        name: "height",
-        type: "Real",
-        isAttr: true
-      }
-    ]
-  }
-];
-var associations$3 = [];
-var DcPackage = {
-  name: name$3,
-  uri: uri$3,
-  prefix: prefix$3,
-  types: types$3,
-  associations: associations$3
-};
-var name$2 = "DI";
-var uri$2 = "http://www.omg.org/spec/DD/20100524/DI";
-var prefix$2 = "di";
-var types$2 = [
-  {
-    name: "DiagramElement",
-    isAbstract: true,
-    properties: [
-      {
-        name: "id",
-        isAttr: true,
-        isId: true,
-        type: "String"
-      },
-      {
-        name: "extension",
-        type: "Extension"
-      },
-      {
-        name: "owningDiagram",
-        type: "Diagram",
-        isReadOnly: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "owningElement",
-        type: "DiagramElement",
-        isReadOnly: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "modelElement",
-        isReadOnly: true,
-        isVirtual: true,
-        isReference: true,
-        type: "Element"
-      },
-      {
-        name: "style",
-        type: "Style",
-        isReadOnly: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "ownedElement",
-        type: "DiagramElement",
-        isReadOnly: true,
-        isMany: true,
-        isVirtual: true
-      }
-    ]
-  },
-  {
-    name: "Node",
-    isAbstract: true,
-    superClass: [
-      "DiagramElement"
-    ]
-  },
-  {
-    name: "Edge",
-    isAbstract: true,
-    superClass: [
-      "DiagramElement"
-    ],
-    properties: [
-      {
-        name: "source",
-        type: "DiagramElement",
-        isReadOnly: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "target",
-        type: "DiagramElement",
-        isReadOnly: true,
-        isVirtual: true,
-        isReference: true
-      },
-      {
-        name: "waypoint",
-        isUnique: false,
-        isMany: true,
-        type: "dc:Point",
-        xml: {
-          serialize: "xsi:type"
-        }
-      }
-    ]
-  },
-  {
-    name: "Diagram",
-    isAbstract: true,
-    properties: [
-      {
-        name: "id",
-        isAttr: true,
-        isId: true,
-        type: "String"
-      },
-      {
-        name: "rootElement",
-        type: "DiagramElement",
-        isReadOnly: true,
-        isVirtual: true
-      },
-      {
-        name: "name",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "documentation",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "resolution",
-        isAttr: true,
-        type: "Real"
-      },
-      {
-        name: "ownedStyle",
-        type: "Style",
-        isReadOnly: true,
-        isMany: true,
-        isVirtual: true
-      }
-    ]
-  },
-  {
-    name: "Shape",
-    isAbstract: true,
-    superClass: [
-      "Node"
-    ],
-    properties: [
-      {
-        name: "bounds",
-        type: "dc:Bounds"
-      }
-    ]
-  },
-  {
-    name: "Plane",
-    isAbstract: true,
-    superClass: [
-      "Node"
-    ],
-    properties: [
-      {
-        name: "planeElement",
-        type: "DiagramElement",
-        subsettedProperty: "DiagramElement-ownedElement",
-        isMany: true
-      }
-    ]
-  },
-  {
-    name: "LabeledEdge",
-    isAbstract: true,
-    superClass: [
-      "Edge"
-    ],
-    properties: [
-      {
-        name: "ownedLabel",
-        type: "Label",
-        isReadOnly: true,
-        subsettedProperty: "DiagramElement-ownedElement",
-        isMany: true,
-        isVirtual: true
-      }
-    ]
-  },
-  {
-    name: "LabeledShape",
-    isAbstract: true,
-    superClass: [
-      "Shape"
-    ],
-    properties: [
-      {
-        name: "ownedLabel",
-        type: "Label",
-        isReadOnly: true,
-        subsettedProperty: "DiagramElement-ownedElement",
-        isMany: true,
-        isVirtual: true
-      }
-    ]
-  },
-  {
-    name: "Label",
-    isAbstract: true,
-    superClass: [
-      "Node"
-    ],
-    properties: [
-      {
-        name: "bounds",
-        type: "dc:Bounds"
-      }
-    ]
-  },
-  {
-    name: "Style",
-    isAbstract: true,
-    properties: [
-      {
-        name: "id",
-        isAttr: true,
-        isId: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "Extension",
-    properties: [
-      {
-        name: "values",
-        isMany: true,
-        type: "Element"
-      }
-    ]
-  }
-];
-var associations$2 = [];
-var xml2 = {
-  tagAlias: "lowerCase"
-};
-var DiPackage = {
-  name: name$2,
-  uri: uri$2,
-  prefix: prefix$2,
-  types: types$2,
-  associations: associations$2,
-  xml: xml2
-};
-var name$1 = "bpmn.io colors for BPMN";
-var uri$1 = "http://bpmn.io/schema/bpmn/biocolor/1.0";
-var prefix$1 = "bioc";
-var types$1 = [
-  {
-    name: "ColoredShape",
-    "extends": [
-      "bpmndi:BPMNShape"
-    ],
-    properties: [
-      {
-        name: "stroke",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "fill",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "ColoredEdge",
-    "extends": [
-      "bpmndi:BPMNEdge"
-    ],
-    properties: [
-      {
-        name: "stroke",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "fill",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  }
-];
-var enumerations$1 = [];
-var associations$1 = [];
-var BiocPackage = {
-  name: name$1,
-  uri: uri$1,
-  prefix: prefix$1,
-  types: types$1,
-  enumerations: enumerations$1,
-  associations: associations$1
-};
-var name = "BPMN in Color";
-var uri = "http://www.omg.org/spec/BPMN/non-normative/color/1.0";
-var prefix = "color";
-var types = [
-  {
-    name: "ColoredLabel",
-    "extends": [
-      "bpmndi:BPMNLabel"
-    ],
-    properties: [
-      {
-        name: "color",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "ColoredShape",
-    "extends": [
-      "bpmndi:BPMNShape"
-    ],
-    properties: [
-      {
-        name: "background-color",
-        isAttr: true,
-        type: "String"
-      },
-      {
-        name: "border-color",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  },
-  {
-    name: "ColoredEdge",
-    "extends": [
-      "bpmndi:BPMNEdge"
-    ],
-    properties: [
-      {
-        name: "border-color",
-        isAttr: true,
-        type: "String"
-      }
-    ]
-  }
-];
-var enumerations = [];
-var associations = [];
-var BpmnInColorPackage = {
-  name,
-  uri,
-  prefix,
-  types,
-  enumerations,
-  associations
-};
-var packages = {
-  bpmn: BpmnPackage,
-  bpmndi: BpmnDiPackage,
-  dc: DcPackage,
-  di: DiPackage,
-  bioc: BiocPackage,
-  color: BpmnInColorPackage
-};
-function SimpleBpmnModdle(additionalPackages, options) {
-  const pks = assign2({}, packages, additionalPackages);
-  return new BpmnModdle(pks, options);
-}
-
-// node_modules/path-intersection/intersect.js
-var math = Math;
-var PI = math.PI;
-var mmin = math.min;
-var mmax = math.max;
-var pow = math.pow;
-var abs2 = math.abs;
-var isArray3 = Array.isArray || function(o5) {
-  return o5 instanceof Array;
-};
-
-// node_modules/diagram-js/lib/layout/LayoutUtil.js
-function asTRBL(bounds) {
-  return {
-    top: bounds.y,
-    right: bounds.x + (bounds.width || 0),
-    bottom: bounds.y + (bounds.height || 0),
-    left: bounds.x
-  };
-}
-function getOrientation(rect2, reference, padding) {
-  padding = padding || 0;
-  if (!isObject2(padding)) {
-    padding = { x: padding, y: padding };
-  }
-  var rectOrientation = asTRBL(rect2), referenceOrientation = asTRBL(reference);
-  var top4 = rectOrientation.bottom + padding.y <= referenceOrientation.top, right4 = rectOrientation.left - padding.x >= referenceOrientation.right, bottom4 = rectOrientation.top - padding.y >= referenceOrientation.bottom, left4 = rectOrientation.right + padding.x <= referenceOrientation.left;
-  var vertical = top4 ? "top" : bottom4 ? "bottom" : null, horizontal = left4 ? "left" : right4 ? "right" : null;
-  if (horizontal && vertical) {
-    return vertical + "-" + horizontal;
-  } else {
-    return horizontal || vertical || "intersect";
-  }
-}
-
-// src/io/bpmn/shapes.ts
-var BPMN_TO_SHAPE = {
-  // Events — base position; importer overlays extra.trigger/throwing.
-  startEvent: "bpmn-event-start",
-  endEvent: "bpmn-event-end",
-  intermediateThrowEvent: "bpmn-event-intermediate",
-  intermediateCatchEvent: "bpmn-event-intermediate",
-  boundaryEvent: "bpmn-event-intermediate",
-  // Gateways
-  exclusiveGateway: "bpmn-gateway-x",
-  parallelGateway: "bpmn-gateway-parallel",
-  inclusiveGateway: "bpmn-gateway-inclusive",
-  eventBasedGateway: "bpmn-gateway-event",
-  complexGateway: "bpmn-gateway-complex",
-  // Tasks — subtype preserved
-  task: "bpmn-task",
-  userTask: "bpmn-task-user",
-  serviceTask: "bpmn-task-service",
-  scriptTask: "bpmn-task-script",
-  sendTask: "bpmn-task-send",
-  receiveTask: "bpmn-task-receive",
-  manualTask: "bpmn-task-manual",
-  businessRuleTask: "bpmn-task-rule",
-  // Activities — sibling types
-  callActivity: "bpmn-call-activity",
-  subProcess: "bpmn-subprocess",
-  transaction: "bpmn-transaction",
-  // Data artifacts
-  dataObjectReference: "bpmn-data-object",
-  dataStoreReference: "bpmn-data-store",
-  dataInput: "bpmn-data-input",
-  dataOutput: "bpmn-data-output",
-  // Misc
-  textAnnotation: "bpmn-annotation",
-  group: "bpmn-group",
-  participant: "bpmn-pool",
-  lane: "bpmn-lane"
-};
-var SHAPE_TO_BPMN = {
-  // Events — unified Đợt A kinds
-  "bpmn-event-start": "startEvent",
-  "bpmn-event-intermediate": "intermediateThrowEvent",
-  "bpmn-event-end": "endEvent",
-  // Legacy kinds — accepted if migration shim is bypassed
-  "bpmn-start": "startEvent",
-  "bpmn-start-message": "startEvent",
-  "bpmn-start-timer": "startEvent",
-  "bpmn-intermediate": "intermediateThrowEvent",
-  "bpmn-intermediate-message": "intermediateCatchEvent",
-  "bpmn-intermediate-timer": "intermediateCatchEvent",
-  "bpmn-end": "endEvent",
-  "bpmn-end-message": "endEvent",
-  "bpmn-end-terminate": "endEvent",
-  // Gateways
-  "bpmn-gateway-x": "exclusiveGateway",
-  "bpmn-gateway-parallel": "parallelGateway",
-  "bpmn-gateway-inclusive": "inclusiveGateway",
-  "bpmn-gateway-event": "eventBasedGateway",
-  "bpmn-gateway-complex": "complexGateway",
-  // Tasks
-  "bpmn-task": "task",
-  "bpmn-task-user": "userTask",
-  "bpmn-task-service": "serviceTask",
-  "bpmn-task-script": "scriptTask",
-  "bpmn-task-send": "sendTask",
-  "bpmn-task-receive": "receiveTask",
-  "bpmn-task-manual": "manualTask",
-  "bpmn-task-rule": "businessRuleTask",
-  // Activities
-  "bpmn-subprocess": "subProcess",
-  "bpmn-transaction": "transaction",
-  "bpmn-event-subprocess": "subProcess",
-  // export.ts sets triggeredByEvent=true
-  "bpmn-call-activity": "callActivity",
-  // Data artifacts
-  "bpmn-data-object": "dataObjectReference",
-  "bpmn-data-collection": "dataObjectReference",
-  // export.ts sets isCollection=true
-  "bpmn-data-input": "dataInput",
-  "bpmn-data-output": "dataOutput",
-  "bpmn-data-store": "dataStoreReference",
-  // Misc
-  "bpmn-annotation": "textAnnotation",
-  "bpmn-group": "group",
-  "bpmn-pool": "participant",
-  "bpmn-lane": "lane"
-};
-var EVENT_DEF_TO_TRIGGER = {
-  messageEventDefinition: "message",
-  timerEventDefinition: "timer",
-  signalEventDefinition: "signal",
-  errorEventDefinition: "error",
-  escalationEventDefinition: "escalation",
-  compensateEventDefinition: "compensation",
-  conditionalEventDefinition: "conditional",
-  linkEventDefinition: "link",
-  cancelEventDefinition: "cancel",
-  terminateEventDefinition: "terminate"
-};
-var TRIGGER_TO_EVENT_DEF = Object.fromEntries(
-  Object.entries(EVENT_DEF_TO_TRIGGER).map(([k5, v6]) => [v6, k5])
-);
-
-// src/io/bpmn/import.ts
-function bpmnExtras(fn2, tagLc) {
-  var _a3, _b2, _c, _d;
-  const out = {};
-  const defRaw = (_c = (_b2 = (_a3 = fn2.eventDefinitions) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.$type) == null ? void 0 : _c.replace(/^bpmn:/, "");
-  const defLc = defRaw ? defRaw.charAt(0).toLowerCase() + defRaw.slice(1) : void 0;
-  if (defLc && EVENT_DEF_TO_TRIGGER[defLc]) out.trigger = EVENT_DEF_TO_TRIGGER[defLc];
-  if (tagLc === "intermediateThrowEvent" || tagLc === "endEvent") out.throwing = true;
-  if (tagLc === "boundaryEvent") {
-    out.interrupting = fn2.cancelActivity !== false;
-    if ((_d = fn2.attachedToRef) == null ? void 0 : _d.id) out.attachedTo = fn2.attachedToRef.id;
-  } else if (fn2.isInterrupting === false) {
-    out.interrupting = false;
-  }
-  const markers = [];
-  const loop3 = fn2.loopCharacteristics;
-  if (loop3) {
-    const lt3 = loop3.$type.replace(/^bpmn:/, "");
-    if (lt3 === "MultiInstanceLoopCharacteristics") markers.push(loop3.isSequential ? "mi-seq" : "mi-par");
-    else if (lt3 === "StandardLoopCharacteristics") markers.push("loop");
-  }
-  if (fn2.isForCompensation) markers.push("compensation");
-  if (markers.length > 0) out.markers = markers;
-  if (tagLc === "subProcess" && fn2.triggeredByEvent) out.kindOverride = "bpmn-event-subprocess";
-  return out;
-}
-var FLOW_NODE_TYPES = /* @__PURE__ */ new Set([
-  "bpmn:StartEvent",
-  "bpmn:EndEvent",
-  "bpmn:IntermediateThrowEvent",
-  "bpmn:IntermediateCatchEvent",
-  "bpmn:BoundaryEvent",
-  "bpmn:ExclusiveGateway",
-  "bpmn:ParallelGateway",
-  "bpmn:InclusiveGateway",
-  "bpmn:EventBasedGateway",
-  "bpmn:ComplexGateway",
-  "bpmn:Task",
-  "bpmn:UserTask",
-  "bpmn:ServiceTask",
-  "bpmn:ScriptTask",
-  "bpmn:SendTask",
-  "bpmn:ReceiveTask",
-  "bpmn:ManualTask",
-  "bpmn:BusinessRuleTask",
-  "bpmn:CallActivity",
-  "bpmn:SubProcess",
-  "bpmn:Transaction",
-  // Đợt F — data artifacts + annotations + groups round-trip through canvas
-  "bpmn:DataObjectReference",
-  "bpmn:DataStoreReference",
-  "bpmn:DataInput",
-  "bpmn:DataOutput",
-  "bpmn:TextAnnotation",
-  "bpmn:Group"
-]);
-function portFor(wp, b3) {
-  const o5 = getOrientation({ x: wp.x, y: wp.y, width: 0, height: 0 }, b3, 0);
-  let side;
-  let pos;
-  if (o5.indexOf("top") === 0) {
-    side = "top";
-    pos = b3.width > 0 ? (wp.x - b3.x) / b3.width : 0.5;
-  } else if (o5.indexOf("bottom") === 0) {
-    side = "bottom";
-    pos = b3.width > 0 ? (wp.x - b3.x) / b3.width : 0.5;
-  } else if (o5 === "left") {
-    side = "left";
-    pos = b3.height > 0 ? (wp.y - b3.y) / b3.height : 0.5;
-  } else if (o5 === "right") {
-    side = "right";
-    pos = b3.height > 0 ? (wp.y - b3.y) / b3.height : 0.5;
-  } else {
-    const dT = Math.abs(wp.y - b3.y);
-    const dB = Math.abs(wp.y - (b3.y + b3.height));
-    const dL = Math.abs(wp.x - b3.x);
-    const dR = Math.abs(wp.x - (b3.x + b3.width));
-    const m6 = Math.min(dT, dB, dL, dR);
-    if (m6 === dT) {
-      side = "top";
-      pos = b3.width > 0 ? (wp.x - b3.x) / b3.width : 0.5;
-    } else if (m6 === dB) {
-      side = "bottom";
-      pos = b3.width > 0 ? (wp.x - b3.x) / b3.width : 0.5;
-    } else if (m6 === dL) {
-      side = "left";
-      pos = b3.height > 0 ? (wp.y - b3.y) / b3.height : 0.5;
-    } else {
-      side = "right";
-      pos = b3.height > 0 ? (wp.y - b3.y) / b3.height : 0.5;
-    }
-  }
-  if (pos < 0.375) return `${side}-1`;
-  if (pos > 0.625) return `${side}-2`;
-  return side;
-}
-function diColours(attrs) {
-  if (!attrs) return {};
-  const fill2 = attrs["color:background-color"] || attrs["background-color"] || attrs["bioc:fill"] || attrs["fill"];
-  const stroke3 = attrs["color:border-color"] || attrs["border-color"] || attrs["bioc:stroke"] || attrs["stroke"];
-  return { fill: fill2, stroke: stroke3 };
-}
-var moddleSingleton = null;
-function moddle() {
-  if (!moddleSingleton) moddleSingleton = new SimpleBpmnModdle();
-  return moddleSingleton;
-}
-var MAX_BPMN_BYTES = 4 * 1024 * 1024;
-async function importBpmn(raw2) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w;
-  if (raw2.length > MAX_BPMN_BYTES) {
-    throw new Error(`BPMN file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 4 MB.`);
-  }
-  const { rootElement: definitions, warnings: parserWarnings } = await moddle().fromXML(raw2, "bpmn:Definitions");
-  const warnings = parserWarnings.map(
-    (w5) => {
-      var _a4;
-      return typeof w5 === "string" ? w5 : (_a4 = w5.message) != null ? _a4 : String(w5);
-    }
-  );
-  const flowNodes = [];
-  const sequenceFlows = [];
-  const collectFlow = (parent) => {
-    var _a4;
-    for (const fe3 of (_a4 = parent.flowElements) != null ? _a4 : []) {
-      if (FLOW_NODE_TYPES.has(fe3.$type)) flowNodes.push(fe3);
-      else if (fe3.$type === "bpmn:SequenceFlow") sequenceFlows.push(fe3);
-      if (fe3.flowElements) collectFlow(fe3);
-    }
-  };
-  for (const root2 of (_a3 = definitions.rootElements) != null ? _a3 : []) collectFlow(root2);
-  const diShapes = /* @__PURE__ */ new Map();
-  const diEdges = /* @__PURE__ */ new Map();
-  for (const dia of (_b2 = definitions.diagrams) != null ? _b2 : []) {
-    for (const pe3 of (_c = dia.plane.planeElement) != null ? _c : []) {
-      const refId = (_d = pe3.bpmnElement) == null ? void 0 : _d.id;
-      if (!refId) continue;
-      if (pe3.$type === "bpmndi:BPMNShape") diShapes.set(refId, pe3);
-      else if (pe3.$type === "bpmndi:BPMNEdge") diEdges.set(refId, pe3);
-    }
-  }
-  const model = { nodes: [], edges: [] };
-  for (const fn2 of flowNodes) {
-    const id = fn2.id;
-    const tag = fn2.$type.replace(/^bpmn:/, "");
-    const tagLc = tag.charAt(0).toLowerCase() + tag.slice(1);
-    const extras = bpmnExtras(fn2, tagLc);
-    const shape = (_f = (_e3 = extras.kindOverride) != null ? _e3 : BPMN_TO_SHAPE[tagLc]) != null ? _f : "bpmn-task";
-    const di = diShapes.get(id);
-    const bounds = di == null ? void 0 : di.bounds;
-    const x4 = (_g = bounds == null ? void 0 : bounds.x) != null ? _g : 100;
-    const y5 = (_h = bounds == null ? void 0 : bounds.y) != null ? _h : 100;
-    const width2 = (_i = bounds == null ? void 0 : bounds.width) != null ? _i : tagLc.endsWith("Event") ? 36 : 100;
-    const height2 = (_j = bounds == null ? void 0 : bounds.height) != null ? _j : tagLc.endsWith("Event") ? 36 : 60;
-    const { fill: fill2, stroke: stroke3 } = diColours(di == null ? void 0 : di.$attrs);
-    const style2 = {};
-    if (fill2) style2.fill = fill2;
-    if (stroke3) style2.stroke = stroke3;
-    model.nodes.push({
-      id,
-      shape,
-      x: x4,
-      y: y5,
-      width: width2,
-      height: height2,
-      label: ((_k = fn2.name) != null ? _k : "").replace(/&#10;/g, "\n"),
-      attrs: {
-        __source: { format: "bpmn", sourceId: id, tag: tagLc },
-        ...Object.keys(style2).length ? { style: style2 } : {},
-        // Đợt F — BPMN semantics preserved in NodeExtra for canvas + round-trip
-        ...extras.trigger ? { trigger: extras.trigger } : {},
-        ...extras.throwing !== void 0 ? { throwing: extras.throwing } : {},
-        ...extras.interrupting !== void 0 ? { interrupting: extras.interrupting } : {},
-        ...extras.attachedTo ? { attachedTo: extras.attachedTo } : {},
-        ...extras.markers ? { markers: extras.markers } : {}
-      }
-    });
-    if (!di) warnings.push(`BPMN flow node "${id}" thi\u1EBFu BPMNShape DI \u2014 \u0111\u1EB7t v\u1ECB tr\xED m\u1EB7c \u0111\u1ECBnh.`);
-  }
-  const nodeBox2 = /* @__PURE__ */ new Map();
-  for (const n3 of model.nodes) nodeBox2.set(n3.id, { x: n3.x, y: n3.y, width: n3.width, height: n3.height });
-  for (const sf of sequenceFlows) {
-    const id = sf.id;
-    const sourceId = (_l = sf.sourceRef) == null ? void 0 : _l.id;
-    const targetId = (_m = sf.targetRef) == null ? void 0 : _m.id;
-    if (!sourceId || !targetId) continue;
-    const di = diEdges.get(id);
-    const wps = (_n2 = di == null ? void 0 : di.waypoint) != null ? _n2 : [];
-    const vertices = wps.length > 2 ? wps.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y })) : void 0;
-    const srcBox = nodeBox2.get(sourceId);
-    const tgtBox = nodeBox2.get(targetId);
-    const sourceAnchor = wps.length >= 2 && srcBox ? { dx: wps[0].x - srcBox.x, dy: wps[0].y - srcBox.y } : void 0;
-    const targetAnchor = wps.length >= 2 && tgtBox ? { dx: wps[wps.length - 1].x - tgtBox.x, dy: wps[wps.length - 1].y - tgtBox.y } : void 0;
-    const sourcePort = sourceAnchor ? void 0 : wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : void 0;
-    const targetPort = targetAnchor ? void 0 : wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : void 0;
-    let labelPos;
-    const lb = (_o = di == null ? void 0 : di.label) == null ? void 0 : _o.bounds;
-    if (lb && wps.length >= 2) {
-      const labelCx = lb.x + lb.width / 2;
-      const labelCy = lb.y + lb.height / 2;
-      let totalLen = 0;
-      const segLens = [];
-      for (let i6 = 1; i6 < wps.length; i6++) {
-        const dx = wps[i6].x - wps[i6 - 1].x, dy = wps[i6].y - wps[i6 - 1].y;
-        const l5 = Math.sqrt(dx * dx + dy * dy);
-        segLens.push(l5);
-        totalLen += l5;
-      }
-      let cumLen = 0, midX = wps[0].x, midY = wps[0].y;
-      for (let i6 = 0; i6 < segLens.length; i6++) {
-        if (cumLen + segLens[i6] >= totalLen / 2) {
-          const t5 = totalLen > 0 ? (totalLen / 2 - cumLen) / segLens[i6] : 0;
-          midX = wps[i6].x + (wps[i6 + 1].x - wps[i6].x) * t5;
-          midY = wps[i6].y + (wps[i6 + 1].y - wps[i6].y) * t5;
-          break;
-        }
-        cumLen += segLens[i6];
-      }
-      labelPos = { distance: 0.5, offset: { x: labelCx - midX, y: labelCy - midY } };
-    }
-    model.edges.push({
-      id,
-      source: sourceId,
-      sourcePort,
-      sourceAnchor,
-      target: targetId,
-      targetPort,
-      targetAnchor,
-      label: ((_p = sf.name) != null ? _p : "").replace(/&#10;/g, "\n") || void 0,
-      labelPos,
-      vertices,
-      router: "normal"
-    });
-  }
-  const defs = definitions;
-  const processById = /* @__PURE__ */ new Map();
-  for (const root2 of (_q = defs.rootElements) != null ? _q : []) {
-    if (root2.$type === "bpmn:Process" && root2.id) processById.set(root2.id, root2);
-  }
-  const pools = [];
-  const HEADER = 30;
-  const LANE_HEAD = 24;
-  const PAD = 30;
-  for (const root2 of (_r = defs.rootElements) != null ? _r : []) {
-    if (root2.$type !== "bpmn:Collaboration") continue;
-    for (const part of (_s = root2.participants) != null ? _s : []) {
-      const proc = ((_t3 = part.processRef) == null ? void 0 : _t3.id) ? processById.get(part.processRef.id) : void 0;
-      const lanes = ((_u = proc == null ? void 0 : proc.laneSets) != null ? _u : []).flatMap((ls) => {
-        var _a4;
-        return (_a4 = ls.lanes) != null ? _a4 : [];
-      });
-      const laneAttrs = lanes.map((ln3) => {
-        var _a4, _b3;
-        return { id: (_a4 = ln3.id) != null ? _a4 : "", label: (_b3 = ln3.name) != null ? _b3 : "" };
-      });
-      let px2, py, pw, ph;
-      const partDi = part.id ? diShapes.get(part.id) : void 0;
-      if (partDi == null ? void 0 : partDi.bounds) {
-        ({ x: px2, y: py, width: pw, height: ph } = partDi.bounds);
-      } else {
-        const members = model.nodes.filter((n3) => {
-          var _a4, _b3, _c2;
-          const sid = (_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.sourceId;
-          return sid && ((_c2 = proc == null ? void 0 : proc.flowElements) == null ? void 0 : _c2.some((fe3) => fe3.id === sid));
-        });
-        const box = members.length ? members : model.nodes;
-        if (!box.length) continue;
-        const minX = Math.min(...box.map((n3) => n3.x));
-        const minY = Math.min(...box.map((n3) => n3.y));
-        const maxX = Math.max(...box.map((n3) => n3.x + n3.width));
-        const maxY = Math.max(...box.map((n3) => n3.y + n3.height));
-        px2 = minX - HEADER - LANE_HEAD - PAD;
-        py = minY - PAD;
-        pw = maxX - minX + HEADER + LANE_HEAD + PAD * 2;
-        ph = maxY - minY + PAD * 2;
-      }
-      pools.push({
-        id: (_v = part.id) != null ? _v : `pool_${pools.length}`,
-        shape: "bpmn-pool",
-        x: px2,
-        y: py,
-        width: pw,
-        height: ph,
-        label: (_w = part.name) != null ? _w : "",
-        attrs: {
-          lanes: laneAttrs.length ? laneAttrs : void 0,
-          __source: { format: "bpmn", sourceId: part.id, kind: "pool" }
-        }
-      });
-    }
-  }
-  if (pools.length) model.nodes.unshift(...pools);
-  const sourceMeta = { format: "bpmn", payload: { raw: raw2 } };
-  return { model, warnings, sourceMeta };
-}
+// src/io/registry.ts
+init_import();
 
 // src/io/bpmn/export.ts
+init_dist5();
+init_shapes();
 var moddleSingleton2 = null;
 function moddle2() {
   if (!moddleSingleton2) moddleSingleton2 = new SimpleBpmnModdle();
@@ -82981,6 +83600,39 @@ function shapeToBpmnType(shape, attrs) {
   if (shape === "bpmn-event-intermediate" && (attrs == null ? void 0 : attrs.attachedTo)) return "bpmn:BoundaryEvent";
   const tag = (_a3 = SHAPE_TO_BPMN[shape]) != null ? _a3 : "task";
   return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
+}
+function edgeKindOf(e4) {
+  var _a3;
+  return (_a3 = e4.kind) != null ? _a3 : "sequence";
+}
+function bpmnTypeForEdgeKind(kind) {
+  if (kind === "message") return "bpmn:MessageFlow";
+  if (kind === "association") return "bpmn:Association";
+  return "bpmn:SequenceFlow";
+}
+function applyEdgeExtras(m6, fe3, kind, attrs) {
+  if (kind === "sequence") {
+    if (attrs == null ? void 0 : attrs.condition) {
+      const ce3 = m6.create("bpmn:FormalExpression", { body: attrs.condition });
+      fe3.conditionExpression = ce3;
+    } else {
+      delete fe3.conditionExpression;
+    }
+  }
+  if (kind === "association") {
+    if (attrs == null ? void 0 : attrs.associationDirection) {
+      fe3.associationDirection = attrs.associationDirection;
+    } else {
+      delete fe3.associationDirection;
+    }
+  }
+}
+function findCollaboration(defs) {
+  var _a3;
+  for (const root2 of (_a3 = defs.rootElements) != null ? _a3 : []) {
+    if (root2.$type === "bpmn:Collaboration") return root2;
+  }
+  return null;
 }
 function applyBpmnExtras(m6, fe3, shape, attrs) {
   var _a3;
@@ -83017,6 +83669,90 @@ function applyBpmnExtras(m6, fe3, shape, attrs) {
   if (shape === "bpmn-data-collection") {
     fe3.isCollection = true;
   }
+  if (typeof attrs.bpmnDoc === "string" && attrs.bpmnDoc.trim()) {
+    const doc = m6.create("bpmn:Documentation", { text: attrs.bpmnDoc.trim() });
+    fe3.documentation = [doc];
+  } else {
+    delete fe3.documentation;
+  }
+  if (attrs.camunda && Object.keys(attrs.camunda).length) {
+    const existing = fe3.extensionElements;
+    if (existing == null ? void 0 : existing.values) {
+      for (const v6 of existing.values) {
+        for (const [k5, val] of Object.entries(attrs.camunda)) {
+          if (k5 in v6) v6[k5] = val;
+        }
+      }
+    }
+  }
+}
+function escAttr(value) {
+  return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[ch]);
+}
+function patchCamundaXml(xml3, model) {
+  var _a3, _b2, _c, _d;
+  const nodes = model.nodes.filter((n3) => {
+    var _a4, _b3, _c2;
+    const attrs = (_a4 = n3.attrs) != null ? _a4 : {};
+    return attrs.camunda && Object.keys(attrs.camunda).length > 0 || ((_c2 = (_b3 = attrs.bpmnProps) == null ? void 0 : _b3.length) != null ? _c2 : 0) > 0;
+  });
+  if (!nodes.length) return xml3;
+  let out = xml3;
+  if (!/\sxmlns:camunda=/.test(out)) {
+    out = out.replace(/<bpmn:definitions\b([^>]*)>/, `<bpmn:definitions$1 xmlns:camunda="http://camunda.org/schema/1.0/bpmn">`);
+  }
+  for (const n3 of nodes) {
+    const attrs = (_a3 = n3.attrs) != null ? _a3 : {};
+    const camunda = (_b2 = attrs.camunda) != null ? _b2 : {};
+    const props = (_d = (_c = attrs.bpmnProps) == null ? void 0 : _c.filter((p6) => p6.name)) != null ? _d : [];
+    const id = escAttr(n3.id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const tagRe = new RegExp(`<bpmn:([A-Za-z]+)\\b([^>]*)\\bid="${id}"([^>]*)>`);
+    const match = tagRe.exec(out);
+    if (!match) continue;
+    const [full, tagName2, beforeId, afterId] = match;
+    let open2 = full;
+    for (const [key, value] of Object.entries(camunda)) {
+      if (!value) continue;
+      const attrName = `camunda:${key}`;
+      const attrRe = new RegExp(`\\s${attrName}="[^"]*"`);
+      const encoded = ` ${attrName}="${escAttr(String(value))}"`;
+      open2 = attrRe.test(open2) ? open2.replace(attrRe, encoded) : open2.replace(/\/?>$/, `${encoded}$&`);
+    }
+    if (open2 !== full) out = out.slice(0, match.index) + open2 + out.slice(match.index + full.length);
+    if (!props.length) continue;
+    const rematch = new RegExp(`<bpmn:${tagName2}\\b[^>]*\\bid="${id}"[^>]*>`).exec(out);
+    if (!rematch) continue;
+    const currentOpen = rematch[0];
+    const propsXml = `<camunda:properties>${props.map((p6) => {
+      var _a4;
+      return `<camunda:property name="${escAttr(p6.name)}" value="${escAttr((_a4 = p6.value) != null ? _a4 : "")}" />`;
+    }).join("")}</camunda:properties>`;
+    if (currentOpen.endsWith("/>")) {
+      const expanded = currentOpen.replace(/\s*\/>$/, `><bpmn:extensionElements>${propsXml}</bpmn:extensionElements></bpmn:${tagName2}>`);
+      out = out.slice(0, rematch.index) + expanded + out.slice(rematch.index + currentOpen.length);
+      continue;
+    }
+    const closeRe = new RegExp(`</bpmn:${tagName2}>`);
+    const close = closeRe.exec(out.slice(rematch.index + currentOpen.length));
+    if (!close) continue;
+    const blockStart = rematch.index;
+    const blockEnd = rematch.index + currentOpen.length + close.index + close[0].length;
+    const block2 = out.slice(blockStart, blockEnd);
+    let nextBlock;
+    if (/<bpmn:extensionElements\b[\s\S]*?<\/bpmn:extensionElements>/.test(block2)) {
+      nextBlock = block2.replace(
+        /<camunda:properties\b[\s\S]*?<\/camunda:properties>/,
+        propsXml
+      );
+      if (nextBlock === block2) {
+        nextBlock = block2.replace(/<bpmn:extensionElements\b[^>]*>/, (m0) => `${m0}${propsXml}`);
+      }
+    } else {
+      nextBlock = block2.replace(currentOpen, `${currentOpen}<bpmn:extensionElements>${propsXml}</bpmn:extensionElements>`);
+    }
+    out = out.slice(0, blockStart) + nextBlock + out.slice(blockEnd);
+  }
+  return out;
 }
 function findParticipant(defs, id) {
   var _a3, _b2;
@@ -83039,24 +83775,29 @@ var POOL_HEADER = 30;
 var LANE_HEADER = 30;
 var POOL_MARGIN = 40;
 async function exportBpmn(model, meta) {
-  var _a3, _b2;
+  var _a3, _b2, _c, _d;
   const m6 = moddle2();
   if ((meta == null ? void 0 : meta.format) === "bpmn") {
     const raw2 = String((_b2 = (_a3 = meta.payload) == null ? void 0 : _a3.raw) != null ? _b2 : "");
-    if (raw2) return patchExisting(raw2, model, m6);
+    const diagramIndex = Number((_d = (_c = meta.payload) == null ? void 0 : _c.diagramIndex) != null ? _d : 0);
+    if (raw2) return patchExisting(raw2, model, m6, Number.isFinite(diagramIndex) ? diagramIndex : 0);
   }
   return emitMinimal(model, m6);
 }
-async function patchExisting(raw2, model, m6) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r;
+async function patchExisting(raw2, model, m6, diagramIndex = 0) {
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F;
   const { rootElement: defs } = await m6.fromXML(raw2, "bpmn:Definitions");
   const definitions = defs;
   const diShape = /* @__PURE__ */ new Map();
   const diEdge = /* @__PURE__ */ new Map();
   let mainPlane = null;
-  for (const dia of (_a3 = definitions.diagrams) != null ? _a3 : []) {
-    if (!mainPlane) mainPlane = dia.plane;
-    for (const pe3 of (_b2 = dia.plane.planeElement) != null ? _b2 : []) {
+  const diagrams = (_a3 = definitions.diagrams) != null ? _a3 : [];
+  if (diagrams.length) {
+    mainPlane = diagrams[Math.max(0, Math.min(diagramIndex, diagrams.length - 1))].plane;
+  }
+  if (!mainPlane && diagrams[0]) mainPlane = diagrams[0].plane;
+  if (mainPlane) {
+    for (const pe3 of (_b2 = mainPlane.planeElement) != null ? _b2 : []) {
       const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_c = pe3.bpmnElement) == null ? void 0 : _c.id;
       if (!refId) continue;
       if (pe3.$type === "bpmndi:BPMNShape") diShape.set(refId, pe3);
@@ -83067,59 +83808,155 @@ async function patchExisting(raw2, model, m6) {
   const process2 = (_e3 = ((_d = definitions.rootElements) != null ? _d : []).find((r4) => r4.$type === "bpmn:Process")) != null ? _e3 : null;
   if (!process2) throw new Error("BPMN export: source document has no bpmn:Process.");
   const flowById = /* @__PURE__ */ new Map();
+  const containerOf = /* @__PURE__ */ new Map();
   const collect = (parent) => {
-    var _a4;
+    var _a4, _b3;
     for (const fe3 of (_a4 = parent.flowElements) != null ? _a4 : []) {
-      if (fe3.id) flowById.set(fe3.id, fe3);
+      if (fe3.id) {
+        flowById.set(fe3.id, fe3);
+        containerOf.set(fe3.id, parent);
+      }
       if (fe3.flowElements) collect(fe3);
+    }
+    for (const ar of (_b3 = parent.artifacts) != null ? _b3 : []) {
+      if (ar.id && ar.$type === "bpmn:Association") {
+        flowById.set(ar.id, ar);
+        containerOf.set(ar.id, parent);
+      }
     }
   };
   collect(process2);
+  const collaboration = findCollaboration(definitions);
+  if (collaboration) {
+    for (const mf of (_f = collaboration.messageFlows) != null ? _f : []) {
+      if (mf.id) flowById.set(mf.id, mf);
+    }
+  }
   const modelNodeIds = new Set(model.nodes.map((n3) => n3.id));
   const modelEdgeIds = new Set(model.edges.map((e4) => e4.id));
+  const modelEdgeKind = new Map(model.edges.map((e4) => [e4.id, edgeKindOf(e4)]));
+  const modelSequenceEdgeIds = new Set(model.edges.filter((e4) => edgeKindOf(e4) === "sequence").map((e4) => e4.id));
+  const modelAssociationEdgeIds = new Set(model.edges.filter((e4) => edgeKindOf(e4) === "association").map((e4) => e4.id));
+  const modelMessageEdgeIds = new Set(model.edges.filter((e4) => edgeKindOf(e4) === "message").map((e4) => e4.id));
   for (const n3 of model.nodes) {
-    const srcKind = (_g = (_f = n3.attrs) == null ? void 0 : _f.__source) == null ? void 0 : _g.kind;
+    const srcKind = (_h = (_g = n3.attrs) == null ? void 0 : _g.__source) == null ? void 0 : _h.kind;
     if (srcKind === "pool") continue;
+    const targetContainer = n3.parentId && flowById.get(n3.parentId) || process2;
     let di = diShape.get(n3.id);
     if (di == null ? void 0 : di.bounds) {
       di.bounds.x = n3.x;
       di.bounds.y = n3.y;
       di.bounds.width = n3.width;
       di.bounds.height = n3.height;
-      di.label = void 0;
+      const nLabel = nodeLabelBoundsFromModel(m6, n3);
+      di.label = nLabel ? { bounds: nLabel } : void 0;
+      const collapsed = ((_i = n3.attrs) == null ? void 0 : _i.collapsed) === true;
+      di.isExpanded = !collapsed;
+      const bpmnFill = (_j = n3.attrs) == null ? void 0 : _j.bpmnFill;
+      const bpmnStroke = (_k = n3.attrs) == null ? void 0 : _k.bpmnStroke;
+      const shapeAttrs = (_l = di.$attrs) != null ? _l : di.$attrs = {};
+      if (bpmnFill) shapeAttrs["bioc:fill"] = bpmnFill;
+      else {
+        delete shapeAttrs["bioc:fill"];
+        delete shapeAttrs["color:background-color"];
+      }
+      if (bpmnStroke) shapeAttrs["bioc:stroke"] = bpmnStroke;
+      else {
+        delete shapeAttrs["bioc:stroke"];
+        delete shapeAttrs["color:border-color"];
+      }
     } else {
-      const fe3 = m6.create(shapeToBpmnType(n3.shape, n3.attrs), { id: n3.id, name: (_h = n3.label) != null ? _h : "" });
-      applyBpmnExtras(m6, fe3, n3.shape, (_i = n3.attrs) != null ? _i : {});
-      ((_j = process2.flowElements) != null ? _j : process2.flowElements = []).push(fe3);
+      const fe3 = m6.create(shapeToBpmnType(n3.shape, n3.attrs), { id: n3.id, name: (_m = n3.label) != null ? _m : "" });
+      applyBpmnExtras(m6, fe3, n3.shape, (_n2 = n3.attrs) != null ? _n2 : {});
+      ((_o = targetContainer.flowElements) != null ? _o : targetContainer.flowElements = []).push(fe3);
+      flowById.set(n3.id, fe3);
+      containerOf.set(n3.id, targetContainer);
       di = m6.create("bpmndi:BPMNShape", {
         bpmnElement: fe3,
         bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height })
       });
-      ((_k = mainPlane.planeElement) != null ? _k : mainPlane.planeElement = []).push(di);
+      ((_p = mainPlane.planeElement) != null ? _p : mainPlane.planeElement = []).push(di);
       diShape.set(n3.id, di);
     }
     const existing = flowById.get(n3.id);
+    const curContainer = containerOf.get(n3.id);
+    if (existing && curContainer && curContainer !== targetContainer) {
+      curContainer.flowElements = ((_q = curContainer.flowElements) != null ? _q : []).filter((fe3) => fe3.id !== n3.id);
+      ((_r = targetContainer.flowElements) != null ? _r : targetContainer.flowElements = []).push(existing);
+      containerOf.set(n3.id, targetContainer);
+    }
     if (existing) {
       if (typeof n3.label === "string") existing.name = n3.label;
-      applyBpmnExtras(m6, existing, n3.shape, (_l = n3.attrs) != null ? _l : {});
+      applyBpmnExtras(m6, existing, n3.shape, (_s = n3.attrs) != null ? _s : {});
     }
   }
   const refIdOf = (r4) => typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.id;
   const referenced = /* @__PURE__ */ new Set();
-  for (const fe3 of (_m = process2.flowElements) != null ? _m : []) {
-    if (fe3.$type !== "bpmn:SequenceFlow") continue;
-    if (!modelEdgeIds.has(fe3.id)) continue;
+  const collectRefs = (fe3) => {
+    if (!fe3.id || !modelEdgeIds.has(fe3.id)) return;
     const src = refIdOf(fe3.sourceRef);
     const tgt = refIdOf(fe3.targetRef);
     if (src) referenced.add(src);
     if (tgt) referenced.add(tgt);
+  };
+  for (const fe3 of (_t3 = process2.flowElements) != null ? _t3 : []) {
+    if (fe3.$type === "bpmn:SequenceFlow") collectRefs(fe3);
   }
-  process2.flowElements = ((_n2 = process2.flowElements) != null ? _n2 : []).filter((fe3) => {
-    if (fe3.$type === "bpmn:SequenceFlow") return modelEdgeIds.has(fe3.id);
-    return modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
-  });
+  for (const ar of (_u = process2.artifacts) != null ? _u : []) {
+    if (ar.$type === "bpmn:Association") collectRefs(ar);
+  }
+  if (collaboration) {
+    for (const mf of (_v = collaboration.messageFlows) != null ? _v : []) collectRefs(mf);
+  }
+  const filterFlowElements = (parent) => {
+    var _a4;
+    parent.flowElements = ((_a4 = parent.flowElements) != null ? _a4 : []).filter((fe3) => {
+      if (fe3.$type === "bpmn:SequenceFlow") return modelSequenceEdgeIds.has(fe3.id);
+      const survives = modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
+      return survives;
+    });
+    for (const fe3 of parent.flowElements) {
+      if (fe3.flowElements) filterFlowElements(fe3);
+    }
+  };
+  filterFlowElements(process2);
+  {
+    const byLaneId = /* @__PURE__ */ new Map();
+    for (const n3 of model.nodes) {
+      if (!n3.laneId) continue;
+      const arr = (_w = byLaneId.get(n3.laneId)) != null ? _w : [];
+      arr.push(n3.id);
+      byLaneId.set(n3.laneId, arr);
+    }
+    const walkLanesForRewrite = (lanes) => {
+      var _a4;
+      for (const ln3 of lanes != null ? lanes : []) {
+        const child = (_a4 = ln3.childLaneSet) == null ? void 0 : _a4.lanes;
+        if (child == null ? void 0 : child.length) {
+          walkLanesForRewrite(child);
+          continue;
+        }
+        const ids = ln3.id ? byLaneId.get(ln3.id) : void 0;
+        if (!(ids == null ? void 0 : ids.length)) {
+          ln3.flowNodeRef = [];
+          continue;
+        }
+        ln3.flowNodeRef = ids.map((id) => flowById.get(id)).filter((fe3) => !!fe3);
+      }
+    };
+    for (const ls of (_x = process2.laneSets) != null ? _x : []) walkLanesForRewrite(ls.lanes);
+  }
+  if (process2.artifacts) {
+    process2.artifacts = process2.artifacts.filter((ar) => {
+      if (ar.$type === "bpmn:Association") return modelAssociationEdgeIds.has(ar.id);
+      return true;
+    });
+  }
+  if (collaboration == null ? void 0 : collaboration.messageFlows) {
+    collaboration.messageFlows = collaboration.messageFlows.filter((mf) => modelMessageEdgeIds.has(mf.id));
+  }
   const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
-  mainPlane.planeElement = ((_o = mainPlane.planeElement) != null ? _o : []).filter((pe3) => {
+  mainPlane.planeElement = ((_y = mainPlane.planeElement) != null ? _y : []).filter((pe3) => {
     var _a4;
     const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
     if (!refId) return true;
@@ -83135,36 +83972,67 @@ async function patchExisting(raw2, model, m6) {
     const srcNode = model.nodes.find((n3) => n3.id === e4.source);
     const tgtNode = model.nodes.find((n3) => n3.id === e4.target);
     if (!srcNode || !tgtNode) continue;
+    const kind = edgeKindOf(e4);
     let de3 = diEdge.get(e4.id);
     const wps = buildWaypoints(e4, srcNode, tgtNode, m6);
+    let sf = flowById.get(e4.id);
+    if (!sf) {
+      const sourceFe = flowById.get(e4.source);
+      const targetFe = flowById.get(e4.target);
+      sf = m6.create(bpmnTypeForEdgeKind(kind), {
+        id: e4.id,
+        name: (_z = e4.label) != null ? _z : "",
+        sourceRef: sourceFe,
+        targetRef: targetFe
+      });
+      if (kind === "message") {
+        if (!collaboration) {
+          sf.$type = "bpmn:SequenceFlow";
+          ((_A = process2.flowElements) != null ? _A : process2.flowElements = []).push(sf);
+        } else {
+          ((_B = collaboration.messageFlows) != null ? _B : collaboration.messageFlows = []).push(sf);
+        }
+      } else if (kind === "association") {
+        ((_C = process2.artifacts) != null ? _C : process2.artifacts = []).push(sf);
+      } else {
+        ((_D = process2.flowElements) != null ? _D : process2.flowElements = []).push(sf);
+      }
+      flowById.set(e4.id, sf);
+    } else if (typeof e4.label === "string") {
+      sf.name = e4.label;
+    }
+    applyEdgeExtras(m6, sf, kind, e4.attrs);
     if (de3) {
       de3.waypoint = wps;
-      de3.label = void 0;
+      const lb = edgeLabelBoundsFromModel(m6, e4, wps);
+      de3.label = lb ? m6.create("bpmndi:BPMNLabel", { bounds: lb }) : void 0;
     } else {
-      let sf = flowById.get(e4.id);
-      if (!sf) {
-        const sourceFe = flowById.get(e4.source);
-        const targetFe = flowById.get(e4.target);
-        sf = m6.create("bpmn:SequenceFlow", {
-          id: e4.id,
-          name: (_p = e4.label) != null ? _p : "",
-          sourceRef: sourceFe,
-          targetRef: targetFe
-        });
-        ((_q = process2.flowElements) != null ? _q : process2.flowElements = []).push(sf);
-      } else if (typeof e4.label === "string") {
-        sf.name = e4.label;
-      }
-      de3 = m6.create("bpmndi:BPMNEdge", { bpmnElement: sf, waypoint: wps });
-      ((_r = mainPlane.planeElement) != null ? _r : mainPlane.planeElement = []).push(de3);
+      const lb = edgeLabelBoundsFromModel(m6, e4, wps);
+      de3 = m6.create("bpmndi:BPMNEdge", {
+        bpmnElement: sf,
+        waypoint: wps,
+        ...lb ? { label: m6.create("bpmndi:BPMNLabel", { bounds: lb }) } : {}
+      });
+      ((_E = mainPlane.planeElement) != null ? _E : mainPlane.planeElement = []).push(de3);
       diEdge.set(e4.id, de3);
     }
   }
+  for (const n3 of model.nodes) {
+    const fe3 = flowById.get(n3.id);
+    if (fe3 && fe3.default) delete fe3.default;
+  }
+  for (const e4 of model.edges) {
+    if (!((_F = e4.attrs) == null ? void 0 : _F.isDefault)) continue;
+    if (edgeKindOf(e4) !== "sequence") continue;
+    const srcFe = flowById.get(e4.source);
+    const edgeFe = flowById.get(e4.id);
+    if (srcFe && edgeFe) srcFe.default = edgeFe;
+  }
   const { xml: xml3 } = await m6.toXML(definitions, { format: true });
-  return xml3;
+  return patchCamundaXml(xml3, model);
 }
 function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m6) {
-  var _a3, _b2, _c;
+  var _a3, _b2, _c, _d;
   const pools = model.nodes.filter((n3) => {
     var _a4, _b3;
     return ((_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
@@ -83197,16 +84065,18 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m6
         bpmnElement: part != null ? part : m6.create("bpmn:Participant", { id: pool.id }),
         bounds: m6.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
       });
-      pdi.isHorizontal = true;
+      const isHorizontal = ((_a3 = pool.attrs) == null ? void 0 : _a3.poolHorizontal) !== false;
+      pdi.isHorizontal = isHorizontal;
       diShape.set(pool.id, pdi);
       prefix2.push(pdi);
     }
-    const lanes = (_b2 = (_a3 = pool.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
+    const lanes = (_c = (_b2 = pool.attrs) == null ? void 0 : _b2.lanes) != null ? _c : [];
     const laneX = poolX + POOL_HEADER;
     const laneW = poolW - POOL_HEADER;
     if (lanes.length) {
       const bands = laneBands(lanes, process2, model, poolY, poolH);
       lanes.forEach((ln3, i6) => {
+        var _a4;
         if (!ln3.id) return;
         const band = bands[i6];
         let ldi = diShape.get(ln3.id);
@@ -83221,13 +84091,14 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m6
             bpmnElement: laneEl != null ? laneEl : m6.create("bpmn:Lane", { id: ln3.id }),
             bounds: m6.create("dc:Bounds", { x: laneX, y: band.y, width: laneW, height: band.h })
           });
-          ldi.isHorizontal = true;
+          const isHorizontal = ((_a4 = pool.attrs) == null ? void 0 : _a4.poolHorizontal) !== false;
+          ldi.isHorizontal = isHorizontal;
           diShape.set(ln3.id, ldi);
           prefix2.push(ldi);
         }
       });
     }
-    if (prefix2.length) ((_c = mainPlane.planeElement) != null ? _c : mainPlane.planeElement = []).unshift(...prefix2);
+    if (prefix2.length) ((_d = mainPlane.planeElement) != null ? _d : mainPlane.planeElement = []).unshift(...prefix2);
   }
 }
 function laneBands(lanes, process2, model, poolY, poolH) {
@@ -83268,8 +84139,58 @@ function buildWaypoints(e4, src, tgt, m6) {
   const mid = ((_a3 = e4.vertices) != null ? _a3 : []).map((v6) => point(v6.x, v6.y));
   return [start, ...mid, end];
 }
+function pointAtDistance(wps, distance) {
+  if (!wps.length) return { x: 0, y: 0 };
+  if (wps.length === 1) return { x: wps[0].x, y: wps[0].y };
+  const total = wps.slice(1).reduce((sum, p6, i6) => sum + Math.hypot(p6.x - wps[i6].x, p6.y - wps[i6].y), 0);
+  const target = Math.max(0, Math.min(1, distance)) * total;
+  let walked = 0;
+  for (let i6 = 1; i6 < wps.length; i6++) {
+    const a5 = wps[i6 - 1], b3 = wps[i6];
+    const seg = Math.hypot(b3.x - a5.x, b3.y - a5.y);
+    if (walked + seg >= target) {
+      const t5 = seg === 0 ? 0 : (target - walked) / seg;
+      return { x: a5.x + (b3.x - a5.x) * t5, y: a5.y + (b3.y - a5.y) * t5 };
+    }
+    walked += seg;
+  }
+  return { x: wps[wps.length - 1].x, y: wps[wps.length - 1].y };
+}
+function edgeLabelBoundsFromModel(m6, edge, wps) {
+  var _a3, _b2, _c, _d;
+  if (!edge.labelPos && !edge.label) return void 0;
+  const distance = (_b2 = (_a3 = edge.labelPos) == null ? void 0 : _a3.distance) != null ? _b2 : 0.5;
+  const base = pointAtDistance(wps, distance);
+  let dx = 0, dy = 0;
+  const off = (_c = edge.labelPos) == null ? void 0 : _c.offset;
+  if (typeof off === "number") dy = off;
+  else if (off && typeof off.x === "number" && typeof off.y === "number") {
+    dx = off.x;
+    dy = off.y;
+  }
+  const textLen = ((_d = edge.label) != null ? _d : "").length;
+  const width2 = Math.max(30, Math.min(300, textLen * 7 + 18));
+  const height2 = 20;
+  return m6.create("dc:Bounds", {
+    x: base.x + dx - width2 / 2,
+    y: base.y + dy - height2 / 2,
+    width: width2,
+    height: height2
+  });
+}
+function nodeLabelBoundsFromModel(m6, node2) {
+  var _a3, _b2, _c, _d;
+  const off = (_a3 = node2.attrs) == null ? void 0 : _a3.labelOffset;
+  if (!off || !off.x && !off.y) return void 0;
+  const textLen = ((_b2 = node2.label) != null ? _b2 : "").length;
+  const width2 = Math.max(30, Math.min(320, textLen * 7 + 18));
+  const height2 = 20;
+  const cx = node2.x + node2.width / 2 + ((_c = off.x) != null ? _c : 0);
+  const cy = node2.y + node2.height / 2 + ((_d = off.y) != null ? _d : 0);
+  return m6.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
+}
 async function emitMinimal(model, m6) {
-  var _a3, _b2, _c, _d, _e3;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h;
   const defs = m6.create("bpmn:Definitions", {
     id: "Definitions_Export",
     targetNamespace: "http://omniboard.local/bpmn"
@@ -83284,19 +84205,38 @@ async function emitMinimal(model, m6) {
   for (const n3 of model.nodes) {
     const fe3 = m6.create(shapeToBpmnType(n3.shape, n3.attrs), { id: n3.id, name: (_b2 = n3.label) != null ? _b2 : "" });
     applyBpmnExtras(m6, fe3, n3.shape, (_c = n3.attrs) != null ? _c : {});
-    process2.flowElements.push(fe3);
     feById.set(n3.id, fe3);
+  }
+  for (const n3 of model.nodes) {
+    const fe3 = feById.get(n3.id);
+    const parent = n3.parentId ? feById.get(n3.parentId) : void 0;
+    const container = parent != null ? parent : process2;
+    ((_d = container.flowElements) != null ? _d : container.flowElements = []).push(fe3);
   }
   const sfById = /* @__PURE__ */ new Map();
   for (const e4 of model.edges) {
-    const sf = m6.create("bpmn:SequenceFlow", {
+    const kind = edgeKindOf(e4);
+    const typeStr = kind === "message" ? "bpmn:SequenceFlow" : bpmnTypeForEdgeKind(kind);
+    const sf = m6.create(typeStr, {
       id: e4.id,
-      name: (_d = e4.label) != null ? _d : "",
+      name: (_e3 = e4.label) != null ? _e3 : "",
       sourceRef: feById.get(e4.source),
       targetRef: feById.get(e4.target)
     });
-    process2.flowElements.push(sf);
+    applyEdgeExtras(m6, sf, kind === "message" ? "sequence" : kind, e4.attrs);
+    if (kind === "association") {
+      ((_f = process2.artifacts) != null ? _f : process2.artifacts = []).push(sf);
+    } else {
+      process2.flowElements.push(sf);
+    }
     sfById.set(e4.id, sf);
+  }
+  for (const e4 of model.edges) {
+    if (!((_g = e4.attrs) == null ? void 0 : _g.isDefault)) continue;
+    if (edgeKindOf(e4) !== "sequence") continue;
+    const srcFe = feById.get(e4.source);
+    const edgeFe = sfById.get(e4.id);
+    if (srcFe && edgeFe) srcFe.default = edgeFe;
   }
   const plane = m6.create("bpmndi:BPMNPlane", {
     id: "Plane_Export",
@@ -83304,10 +84244,12 @@ async function emitMinimal(model, m6) {
     planeElement: []
   });
   for (const n3 of model.nodes) {
+    const nLabel = nodeLabelBoundsFromModel(m6, n3);
     plane.planeElement.push(m6.create("bpmndi:BPMNShape", {
       id: n3.id + "_di",
       bpmnElement: feById.get(n3.id),
-      bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height })
+      bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height }),
+      ...nLabel ? { label: m6.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {}
     }));
   }
   for (const e4 of model.edges) {
@@ -83315,16 +84257,19 @@ async function emitMinimal(model, m6) {
     const tgt = model.nodes.find((n3) => n3.id === e4.target);
     const sf = sfById.get(e4.id);
     if (!src || !tgt || !sf) continue;
+    const waypoints = buildWaypoints(e4, src, tgt, m6);
+    const eLabel = edgeLabelBoundsFromModel(m6, e4, waypoints);
     plane.planeElement.push(m6.create("bpmndi:BPMNEdge", {
       id: e4.id + "_di",
       bpmnElement: sf,
-      waypoint: buildWaypoints(e4, src, tgt, m6)
+      waypoint: waypoints,
+      ...eLabel ? { label: m6.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}
     }));
   }
   const dia = m6.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-  ((_e3 = defs.diagrams) != null ? _e3 : defs.diagrams = []).push(dia);
+  ((_h = defs.diagrams) != null ? _h : defs.diagrams = []).push(dia);
   const { xml: xml3 } = await m6.toXML(defs, { format: true });
-  return xml3;
+  return patchCamundaXml(xml3, model);
 }
 
 // src/io/dbml/import.ts
@@ -83567,12 +84512,395 @@ function detectByContent(raw2) {
   }
   return null;
 }
-async function importFromFile(filename, raw2) {
+async function importFromFile(filename, raw2, options) {
   const byExt = findByExtension(filename);
   const fmt = byExt != null ? byExt : detectByContent(raw2);
   if (!fmt) throw new Error(`Kh\xF4ng nh\u1EADn di\u1EC7n \u0111\u01B0\u1EE3c \u0111\u1ECBnh d\u1EA1ng c\u1EE7a "${filename}".`);
-  return await fmt.importer(raw2);
+  return await fmt.importer(raw2, options);
 }
+
+// src/ui/PropertiesPanel.tsx
+var import_obsidian = require("obsidian");
+var OMNIBOARD_PROPERTIES_VIEW_TYPE = "omniboard-properties";
+var BOARD_VIEW_TYPE = "omniboard-board";
+var SELECTION_EVENT = "omniboard-selection-change";
+function emitOmniboardSelectionChange() {
+  window.dispatchEvent(new CustomEvent(SELECTION_EVENT));
+}
+function el2(tag, cls, text4) {
+  const node2 = document.createElement(tag);
+  if (cls) node2.className = cls;
+  if (text4 !== void 0) node2.textContent = text4;
+  return node2;
+}
+function cleanObject(obj) {
+  return Object.fromEntries(Object.entries(obj).filter(([, v6]) => v6 !== void 0 && v6 !== ""));
+}
+function isBpmnActivity(kind) {
+  return kind.startsWith("bpmn-task") || kind === "bpmn-subprocess" || kind === "bpmn-transaction" || kind === "bpmn-adhoc-subprocess" || kind === "bpmn-event-subprocess" || kind === "bpmn-call-activity";
+}
+var OmniboardPropertiesView = class extends import_obsidian.ItemView {
+  constructor(leaf) {
+    super(leaf);
+    this.onSelection = () => this.render();
+  }
+  getViewType() {
+    return OMNIBOARD_PROPERTIES_VIEW_TYPE;
+  }
+  getDisplayText() {
+    return "Omniboard Properties";
+  }
+  getIcon() {
+    return "sliders-horizontal";
+  }
+  async onOpen() {
+    this.contentEl.addClass("omniboard-properties-view");
+    window.addEventListener(SELECTION_EVENT, this.onSelection);
+    this.render();
+  }
+  async onClose() {
+    window.removeEventListener(SELECTION_EVENT, this.onSelection);
+  }
+  activeCanvas() {
+    var _a3, _b2, _c, _d, _e3, _f, _g;
+    const active = (_a3 = this.app.workspace.activeLeaf) == null ? void 0 : _a3.view;
+    if (((_b2 = active == null ? void 0 : active.getViewType) == null ? void 0 : _b2.call(active)) === BOARD_VIEW_TYPE) return (_d = (_c = active.getCanvas) == null ? void 0 : _c.call(active)) != null ? _d : null;
+    const leaf = this.app.workspace.getLeavesOfType(BOARD_VIEW_TYPE)[0];
+    return (_g = (_f = (_e3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _e3.getCanvas) == null ? void 0 : _f.call(_e3)) != null ? _g : null;
+  }
+  render() {
+    var _a3;
+    this.contentEl.empty();
+    const canvas = this.activeCanvas();
+    const snap2 = (_a3 = canvas == null ? void 0 : canvas.getSelectedNodeSnapshot()) != null ? _a3 : null;
+    if (!canvas || !snap2) {
+      this.contentEl.createDiv({
+        cls: "obp-empty",
+        text: "Ch\u1ECDn m\u1ED9t node tr\xEAn Omniboard \u0111\u1EC3 ch\u1EC9nh BPMN metadata, m\xE0u DI v\xE0 Camunda extensions."
+      });
+      return;
+    }
+    this.renderNode(canvas, snap2);
+  }
+  renderNode(canvas, snap2) {
+    var _a3, _b2, _c;
+    const title2 = this.contentEl.createDiv({ cls: "obp-title" });
+    title2.createSpan({ cls: "obp-kind", text: snap2.kind });
+    title2.createEl("strong", { text: snap2.label || snap2.id });
+    const saveAttrs = (attrs) => canvas.patchSelectedNode({ attrs });
+    const section = (name2) => {
+      const s5 = this.contentEl.createDiv({ cls: "lk-psec" });
+      s5.createDiv({ cls: "lk-psec-h", text: name2 });
+      return s5;
+    };
+    const field = (parent, label, control) => {
+      const wrap = parent.createDiv({ cls: "lk-pfield" });
+      wrap.createEl("label", { text: label });
+      wrap.appendChild(control);
+    };
+    const textInput = (value, placeholder, onInput) => {
+      const input = el2("input", "lk-pinput");
+      input.value = value;
+      input.placeholder = placeholder;
+      input.oninput = () => onInput(input.value);
+      return input;
+    };
+    const content5 = section("Content");
+    field(content5, "Label", textInput(snap2.label, "Label", (value) => canvas.patchSelectedNode({ label: value })));
+    if (!snap2.kind.startsWith("bpmn-")) {
+      this.contentEl.createDiv({ cls: "obp-empty", text: "Properties leaf currently exposes BPMN-specific metadata." });
+      return;
+    }
+    const color = section("BPMN DI Color");
+    const colorRow = (key, label) => {
+      var _a4;
+      const row = el2("div", "lk-prow2");
+      const sw = el2("div", "lk-pswatch");
+      const current = String((_a4 = snap2.attrs[key]) != null ? _a4 : "");
+      sw.style.background = current || "transparent";
+      const input = textInput(current, "#ffffff", (value) => {
+        sw.style.background = value.trim() || "transparent";
+        saveAttrs({ [key]: value.trim() || void 0 });
+      });
+      row.appendChild(sw);
+      row.appendChild(input);
+      field(color, label, row);
+    };
+    colorRow("bpmnFill", "Fill");
+    colorRow("bpmnStroke", "Stroke");
+    if (snap2.kind === "bpmn-event-start" || snap2.kind === "bpmn-event-intermediate" || snap2.kind === "bpmn-event-end") {
+      const event = section("Event");
+      const select = el2("select", "lk-pinput");
+      const triggers = ["", "message", "timer", "signal", "error", "escalation", "compensation", "conditional", "link", "cancel", "terminate", "multiple", "parallel-multiple"];
+      for (const trigger of triggers) {
+        const option = document.createElement("option");
+        option.value = trigger;
+        option.textContent = trigger || "(none)";
+        option.selected = snap2.attrs.trigger === trigger || !snap2.attrs.trigger && trigger === "";
+        select.appendChild(option);
+      }
+      select.onchange = () => saveAttrs({ trigger: select.value || void 0 });
+      field(event, "Trigger", select);
+    }
+    if (isBpmnActivity(snap2.kind)) {
+      const activity = section("Activity");
+      const markers = Array.isArray(snap2.attrs.markers) ? snap2.attrs.markers.map(String) : [];
+      const loop3 = el2("select", "lk-pinput");
+      for (const [value, label] of [["", "None"], ["loop", "Standard loop"], ["mi-par", "Multi-instance parallel"], ["mi-seq", "Multi-instance sequential"]]) {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        option.selected = markers.includes(value);
+        loop3.appendChild(option);
+      }
+      loop3.onchange = () => {
+        const rest = markers.filter((m6) => m6 !== "loop" && m6 !== "mi-par" && m6 !== "mi-seq");
+        saveAttrs({ markers: loop3.value ? [...rest, loop3.value] : rest });
+      };
+      field(activity, "Loop type", loop3);
+      const comp = el2("input");
+      comp.type = "checkbox";
+      comp.checked = markers.includes("compensation");
+      comp.onchange = () => {
+        const rest = markers.filter((m6) => m6 !== "compensation");
+        saveAttrs({ markers: comp.checked ? [...rest, "compensation"] : rest });
+      };
+      field(activity, "isForCompensation", comp);
+    }
+    const docs = section("Documentation");
+    const doc = el2("textarea", "lk-pinput obp-textarea");
+    doc.rows = 5;
+    doc.value = String((_a3 = snap2.attrs.bpmnDoc) != null ? _a3 : "");
+    doc.oninput = () => saveAttrs({ bpmnDoc: doc.value.trim() || void 0 });
+    docs.appendChild(doc);
+    const cam = section("Camunda Extension Elements");
+    const currentCamunda = snap2.attrs.camunda && typeof snap2.attrs.camunda === "object" ? snap2.attrs.camunda : {};
+    const camundaFields = ["assignee", "candidateUsers", "candidateGroups", "formKey", "dueDate", "priority"];
+    for (const key of camundaFields) {
+      field(cam, key, textInput((_b2 = currentCamunda[key]) != null ? _b2 : "", key, (value) => {
+        saveAttrs({ camunda: cleanObject({ ...currentCamunda, [key]: value.trim() }) });
+      }));
+    }
+    const props = Array.isArray(snap2.attrs.bpmnProps) ? snap2.attrs.bpmnProps : [];
+    const propsHost = cam.createDiv({ cls: "obp-kv" });
+    const renderPropRows = () => {
+      var _a4;
+      propsHost.empty();
+      const current = Array.isArray((_a4 = canvas.getSelectedNodeSnapshot()) == null ? void 0 : _a4.attrs.bpmnProps) ? canvas.getSelectedNodeSnapshot().attrs.bpmnProps : props;
+      current.forEach((prop2, index3) => {
+        const row = propsHost.createDiv({ cls: "lk-prow2" });
+        const name2 = textInput(prop2.name, "name", (value2) => {
+          const next = current.map((p6, i6) => i6 === index3 ? { ...p6, name: value2.trim() } : p6).filter((p6) => p6.name);
+          saveAttrs({ bpmnProps: next.length ? next : void 0 });
+        });
+        const value = textInput(prop2.value, "value", (v6) => {
+          const next = current.map((p6, i6) => i6 === index3 ? { ...p6, value: v6 } : p6).filter((p6) => p6.name);
+          saveAttrs({ bpmnProps: next.length ? next : void 0 });
+        });
+        row.appendChild(name2);
+        row.appendChild(value);
+      });
+    };
+    renderPropRows();
+    const add = el2("button", "lk-padd", "+ Add camunda:property");
+    add.onclick = () => {
+      var _a4;
+      const current = Array.isArray((_a4 = canvas.getSelectedNodeSnapshot()) == null ? void 0 : _a4.attrs.bpmnProps) ? canvas.getSelectedNodeSnapshot().attrs.bpmnProps : [];
+      saveAttrs({ bpmnProps: [...current, { name: "property", value: "" }] });
+      this.render();
+    };
+    cam.appendChild(add);
+    const raw2 = section("Raw Metadata JSON");
+    const json = el2("textarea", "lk-pinput obp-textarea");
+    json.rows = 8;
+    json.value = JSON.stringify({
+      documentation: (_c = snap2.attrs.bpmnDoc) != null ? _c : "",
+      camunda: currentCamunda,
+      bpmnProps: props
+    }, null, 2);
+    json.onchange = () => {
+      var _a4;
+      try {
+        const parsed = JSON.parse(json.value);
+        saveAttrs({
+          bpmnDoc: parsed.documentation || void 0,
+          camunda: parsed.camunda ? cleanObject(parsed.camunda) : void 0,
+          bpmnProps: ((_a4 = parsed.bpmnProps) == null ? void 0 : _a4.filter((p6) => p6.name)) || void 0
+        });
+      } catch (e4) {
+        json.addClass("obp-invalid");
+      }
+    };
+    raw2.appendChild(json);
+  }
+};
+
+// src/ui/BpmnIssuesView.ts
+var import_obsidian2 = require("obsidian");
+
+// src/io/bpmn/validator.ts
+function nodeById(model) {
+  return new Map(model.nodes.map((n3) => [n3.id, n3]));
+}
+function incomingByNode(model) {
+  var _a3;
+  const map = /* @__PURE__ */ new Map();
+  for (const e4 of model.edges) {
+    const arr = (_a3 = map.get(e4.target)) != null ? _a3 : [];
+    arr.push(e4);
+    map.set(e4.target, arr);
+  }
+  return map;
+}
+function outgoingByNode(model) {
+  var _a3;
+  const map = /* @__PURE__ */ new Map();
+  for (const e4 of model.edges) {
+    const arr = (_a3 = map.get(e4.source)) != null ? _a3 : [];
+    arr.push(e4);
+    map.set(e4.source, arr);
+  }
+  return map;
+}
+function poolIdOf(node2) {
+  var _a3, _b2, _c;
+  const src = (_b2 = (_a3 = node2.attrs) == null ? void 0 : _a3.__source) == null ? void 0 : _b2.poolId;
+  if (src) return src;
+  const own = (_c = node2.attrs) == null ? void 0 : _c.poolId;
+  return typeof own === "string" ? own : void 0;
+}
+function validateBpmnModel(model) {
+  var _a3, _b2, _c, _d, _e3;
+  const issues = [];
+  const byId = nodeById(model);
+  const inMap = incomingByNode(model);
+  const outMap = outgoingByNode(model);
+  const mk = (severity, code, message, targetType, targetId) => {
+    issues.push({ id: `${code}:${targetType}:${targetId}`, severity, code, message, targetType, targetId });
+  };
+  for (const n3 of model.nodes) {
+    const incoming = (_a3 = inMap.get(n3.id)) != null ? _a3 : [];
+    const outgoing = (_b2 = outMap.get(n3.id)) != null ? _b2 : [];
+    if (n3.shape === "bpmn-event-start" && outgoing.length === 0) {
+      mk("error", "START_NO_OUTGOING", "Start event should have at least one outgoing flow.", "node", n3.id);
+    }
+    if (n3.shape === "bpmn-event-end" && incoming.length === 0) {
+      mk("error", "END_NO_INCOMING", "End event should have at least one incoming flow.", "node", n3.id);
+    }
+    if (n3.shape === "bpmn-subprocess" || n3.shape === "bpmn-transaction" || n3.shape === "bpmn-adhoc-subprocess" || n3.shape === "bpmn-event-subprocess") {
+      const hasChildren = model.nodes.some((child) => child.parentId === n3.id);
+      if (!hasChildren) mk("warn", "SUBPROCESS_EMPTY", "Subprocess has no child flow elements.", "node", n3.id);
+    }
+    if (n3.shape === "bpmn-event-intermediate") {
+      const attached = (_c = n3.attrs) == null ? void 0 : _c.attachedTo;
+      if (typeof attached === "string" && !byId.has(attached)) {
+        mk("error", "BOUNDARY_NO_HOST", "Boundary event has attachedToRef that does not exist.", "node", n3.id);
+      }
+    }
+    if (n3.shape === "bpmn-gateway-event") {
+      for (const e4 of outgoing) {
+        const tgt = byId.get(e4.target);
+        const isCatchEvent = (tgt == null ? void 0 : tgt.shape) === "bpmn-event-intermediate" && ((_d = tgt.attrs) == null ? void 0 : _d.throwing) !== true;
+        if (!isCatchEvent) {
+          mk("warn", "EVENT_GW_TARGET_NON_CATCH", "Event-based gateway should lead to a catching intermediate event.", "edge", e4.id);
+        }
+      }
+    }
+    if (n3.shape === "bpmn-gateway-x" || n3.shape === "bpmn-gateway-inclusive") {
+      if (outgoing.length > 1) {
+        const hasDefault = outgoing.some((e4) => {
+          var _a4;
+          return ((_a4 = e4.attrs) == null ? void 0 : _a4.isDefault) === true;
+        });
+        const conditionalCount = outgoing.filter((e4) => {
+          var _a4;
+          return typeof ((_a4 = e4.attrs) == null ? void 0 : _a4.condition) === "string" && e4.attrs.condition.trim();
+        }).length;
+        if (!hasDefault && conditionalCount < outgoing.length) {
+          mk("warn", "GATEWAY_MISSING_DEFAULT_OR_CONDITIONS", "Gateway split should provide default flow or conditions on all branches.", "node", n3.id);
+        }
+      }
+    }
+  }
+  for (const e4 of model.edges) {
+    const src = byId.get(e4.source);
+    const tgt = byId.get(e4.target);
+    if (!src || !tgt) continue;
+    if (((_e3 = e4.kind) != null ? _e3 : "sequence") === "sequence") {
+      const srcPool = poolIdOf(src);
+      const tgtPool = poolIdOf(tgt);
+      if (srcPool && tgtPool && srcPool !== tgtPool) {
+        mk("error", "SEQUENCE_CROSSES_POOL", "SequenceFlow cannot cross pool boundaries; use MessageFlow.", "edge", e4.id);
+      }
+    }
+  }
+  return issues;
+}
+
+// src/ui/BpmnIssuesView.ts
+var OMNIBOARD_ISSUES_VIEW_TYPE = "omniboard-bpmn-issues";
+var BOARD_VIEW_TYPE2 = "omniboard-board";
+var ISSUE_EVENT = "omniboard-bpmn-issues-refresh";
+function emitBpmnIssuesRefresh() {
+  window.dispatchEvent(new CustomEvent(ISSUE_EVENT));
+}
+var BpmnIssuesView = class extends import_obsidian2.ItemView {
+  constructor(leaf) {
+    super(leaf);
+    this.onRefresh = () => this.render();
+  }
+  getViewType() {
+    return OMNIBOARD_ISSUES_VIEW_TYPE;
+  }
+  getDisplayText() {
+    return "BPMN Issues";
+  }
+  getIcon() {
+    return "alert-triangle";
+  }
+  async onOpen() {
+    this.contentEl.addClass("omniboard-issues-view");
+    window.addEventListener(ISSUE_EVENT, this.onRefresh);
+    this.render();
+  }
+  async onClose() {
+    window.removeEventListener(ISSUE_EVENT, this.onRefresh);
+  }
+  boardView() {
+    var _a3, _b2, _c, _d;
+    const active = (_a3 = this.app.workspace.activeLeaf) == null ? void 0 : _a3.view;
+    if (((_b2 = active == null ? void 0 : active.getViewType) == null ? void 0 : _b2.call(active)) === BOARD_VIEW_TYPE2) return active;
+    return (_d = (_c = this.app.workspace.getLeavesOfType(BOARD_VIEW_TYPE2)[0]) == null ? void 0 : _c.view) != null ? _d : null;
+  }
+  render() {
+    var _a3, _b2;
+    this.contentEl.empty();
+    const board = this.boardView();
+    const canvas = (_b2 = (_a3 = board == null ? void 0 : board.getCanvas) == null ? void 0 : _a3.call(board)) != null ? _b2 : null;
+    if (!canvas) {
+      this.contentEl.createDiv({ cls: "obp-empty", text: "M\u1EDF m\u1ED9t Omniboard BPMN \u0111\u1EC3 xem semantic issues." });
+      return;
+    }
+    const model = canvas.getModel();
+    const issues = validateBpmnModel(model);
+    const head = this.contentEl.createDiv({ cls: "obp-title" });
+    head.createSpan({ cls: "obp-kind", text: "BPMN Validator" });
+    head.createEl("strong", { text: `${issues.length} issues` });
+    if (!issues.length) {
+      this.contentEl.createDiv({ cls: "obp-empty", text: "Kh\xF4ng ph\xE1t hi\u1EC7n l\u1ED7i semantic." });
+      return;
+    }
+    for (const i6 of issues) {
+      const row = this.contentEl.createEl("button", { cls: `obi-row ${i6.severity}` });
+      row.type = "button";
+      row.createSpan({ cls: "obi-code", text: i6.code });
+      row.createSpan({ cls: "obi-msg", text: i6.message });
+      row.onclick = () => {
+        if (board == null ? void 0 : board.focusCellId) board.focusCellId(i6.targetId);
+      };
+    }
+  }
+};
 
 // src/view/BoardView.ts
 registerAllShapes();
@@ -83583,14 +84911,74 @@ function noticeFrag(kind, text4) {
   wrap.addClass(`da-notice-${kind}`);
   const iconEl = wrap.createSpan({ cls: "da-notice-icon" });
   const icon = kind === "success" ? "check-circle-2" : kind === "warn" ? "alert-triangle" : kind === "error" ? "x-circle" : "info";
-  (0, import_obsidian.setIcon)(iconEl, icon);
+  (0, import_obsidian3.setIcon)(iconEl, icon);
   wrap.createSpan({ cls: "da-notice-text", text: text4 });
   frag.appendChild(wrap);
   return frag;
 }
 function notify(kind, text4, timeout) {
-  return new import_obsidian.Notice(noticeFrag(kind, text4), timeout);
+  return new import_obsidian3.Notice(noticeFrag(kind, text4), timeout);
 }
+var DiagramPickerModal = class extends import_obsidian3.Modal {
+  constructor(view, diagrams, onPick, onCancel) {
+    super(view.app);
+    this.diagrams = diagrams;
+    this.onPick = onPick;
+    this.onCancel = onCancel;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    this.modalEl.addClass("omniboard-diagram-picker");
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "Select BPMN Diagram" });
+    contentEl.createEl("p", { text: `This file contains ${this.diagrams.length} diagrams. Pick one to import.` });
+    const sorted = [...this.diagrams].sort((a5, b3) => {
+      var _a3, _b2;
+      return ((_a3 = b3.elementCount) != null ? _a3 : 0) - ((_b2 = a5.elementCount) != null ? _b2 : 0);
+    });
+    const list = contentEl.createDiv({ cls: "obp-kv" });
+    const base = sorted.slice(0, 8);
+    const more = sorted.slice(8);
+    const mkBtn = (d4) => {
+      var _a3;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "obi-row";
+      btn.innerHTML = `<span class="obi-code">#${d4.index + 1} \u2022 ${(_a3 = d4.elementCount) != null ? _a3 : 0} elements</span><span class="obi-msg">${d4.id}${d4.planeRef ? ` \u2014 plane: ${d4.planeRef}` : ""}</span>`;
+      btn.onclick = () => {
+        this.onPick(d4.index);
+        this.close();
+      };
+      return btn;
+    };
+    for (const d4 of base) list.appendChild(mkBtn(d4));
+    if (more.length) {
+      const moreBtn = document.createElement("button");
+      moreBtn.type = "button";
+      moreBtn.className = "lk-flyout-more";
+      moreBtn.textContent = `Load more (${more.length})`;
+      moreBtn.onclick = () => {
+        const frag = document.createDocumentFragment();
+        for (const d4 of more) frag.appendChild(mkBtn(d4));
+        list.insertBefore(frag, moreBtn);
+        moreBtn.remove();
+      };
+      list.appendChild(moreBtn);
+    }
+    const actions = contentEl.createDiv({ cls: "lk-prow2" });
+    const cancel = document.createElement("button");
+    cancel.className = "lk-padd";
+    cancel.textContent = "Cancel";
+    cancel.onclick = () => {
+      this.onCancel();
+      this.close();
+    };
+    actions.appendChild(cancel);
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
 async function saveToLocal(data2, suggestedName, mimeType) {
   var _a3, _b2;
   const blob = data2 instanceof Blob ? data2 : new Blob([data2], { type: mimeType });
@@ -83621,10 +85009,10 @@ async function saveToLocal(data2, suggestedName, mimeType) {
   setTimeout(() => URL.revokeObjectURL(url), 1e3);
   return suggestedName;
 }
-var BOARD_VIEW_TYPE = "omniboard-board";
+var BOARD_VIEW_TYPE3 = "omniboard-board";
 var EMPTY_MODEL = { nodes: [], edges: [] };
-var BoardView = class extends import_obsidian.TextFileView {
-  constructor(leaf) {
+var BoardView = class extends import_obsidian3.TextFileView {
+  constructor(leaf, plugin) {
     super(leaf);
     this.canvas = null;
     this.host = null;
@@ -83633,9 +85021,10 @@ var BoardView = class extends import_obsidian.TextFileView {
     this.rawData = "";
     this.invalidFormat = false;
     this.pendingSourceMeta = null;
+    this.plugin = plugin;
   }
   getViewType() {
-    return BOARD_VIEW_TYPE;
+    return BOARD_VIEW_TYPE3;
   }
   getDisplayText() {
     var _a3, _b2;
@@ -83651,24 +85040,29 @@ var BoardView = class extends import_obsidian.TextFileView {
     this.buildTopBar();
     this.host = this.contentEl.createDiv({ cls: "da-board-host" });
     this.host.style.cssText = "position:relative; flex:1; min-height:0;";
-    this.canvas = new OmniboardCanvas(this.host, SHAPE_CATEGORIES, () => this.requestSave());
+    this.canvas = new OmniboardCanvas(this.host, SHAPE_CATEGORIES, () => {
+      this.requestSave();
+      emitBpmnIssuesRefresh();
+    });
+    this.canvas.setSelectionChangeHandler(emitOmniboardSelectionChange);
     this.canvas.loadModel(this.model);
+    emitBpmnIssuesRefresh();
   }
   buildTopBar() {
     var _a3, _b2;
     const bar = this.contentEl.createDiv({ cls: "da-topbar" });
     const close = bar.createEl("button", { cls: "da-tb-close" });
-    (0, import_obsidian.setIcon)(close, "x");
+    (0, import_obsidian3.setIcon)(close, "x");
     close.createSpan({ text: "\u0110\xF3ng" });
     close.onclick = () => this.leaf.detach();
     const badge = bar.createDiv({ cls: "da-tb-badge" });
-    (0, import_obsidian.setIcon)(badge, "shapes");
+    (0, import_obsidian3.setIcon)(badge, "shapes");
     badge.createSpan({ text: "BOARD" });
     this.boardTitleEl = bar.createDiv({ cls: "da-tb-title", text: (_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Board" });
     bar.createDiv({ cls: "da-tb-grow" });
     const iconBtn = (icon, tip, fn2) => {
       const b3 = bar.createEl("button", { cls: "da-tb-ic" });
-      (0, import_obsidian.setIcon)(b3, icon);
+      (0, import_obsidian3.setIcon)(b3, icon);
       b3.setAttribute("aria-label", tip);
       b3.title = tip;
       b3.onclick = fn2;
@@ -83690,8 +85084,10 @@ var BoardView = class extends import_obsidian.TextFileView {
       var _a4;
       return (_a4 = this.canvas) == null ? void 0 : _a4.deleteSelection();
     });
+    iconBtn("sliders-horizontal", "BPMN properties", () => this.openPropertiesLeaf());
+    iconBtn("alert-triangle", "BPMN issues", () => this.openIssuesLeaf());
     const layoutBtn = iconBtn("workflow", "T\u1EF1 s\u1EAFp x\u1EBFp (auto layout)", () => {
-      const m6 = new import_obsidian.Menu();
+      const m6 = new import_obsidian3.Menu();
       m6.addItem((i6) => i6.setTitle("S\u1EAFp x\u1EBFp ngang \u2192").setIcon("arrow-right").onClick(() => {
         var _a4;
         return (_a4 = this.canvas) == null ? void 0 : _a4.autoLayout("LR");
@@ -83706,25 +85102,48 @@ var BoardView = class extends import_obsidian.TextFileView {
     bar.createDiv({ cls: "da-tb-divider" });
     iconBtn("file-text", "M\u1EDF d\u01B0\u1EDBi d\u1EA1ng Markdown", () => this.openAsMarkdown());
     const imp = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian.setIcon)(imp, "upload");
+    (0, import_obsidian3.setIcon)(imp, "upload");
     imp.setAttribute("aria-label", "Import");
     imp.title = "Import (BPMN / DBML)";
     imp.onclick = () => this.openImportPicker();
     const exp = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian.setIcon)(exp, "download");
+    (0, import_obsidian3.setIcon)(exp, "download");
     exp.setAttribute("aria-label", "Export");
     exp.title = "Export (SVG / PNG / BPMN / DBML)";
     exp.onclick = (e4) => this.showExportMenu(e4);
     const save = bar.createEl("button", { cls: "da-tb-save" });
-    (0, import_obsidian.setIcon)(save, "check");
+    (0, import_obsidian3.setIcon)(save, "check");
     save.createSpan({ text: "L\u01B0u & \u0111\xF3ng" });
     save.onclick = async () => {
       await this.save();
       this.leaf.detach();
     };
   }
+  getCanvas() {
+    return this.canvas;
+  }
+  focusCellId(id) {
+    var _a3, _b2;
+    return (_b2 = (_a3 = this.canvas) == null ? void 0 : _a3.focusCellById(id)) != null ? _b2 : false;
+  }
+  async openPropertiesLeaf() {
+    const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_PROPERTIES_VIEW_TYPE)[0];
+    const leaf = existing != null ? existing : this.app.workspace.getRightLeaf(false);
+    if (!leaf) return;
+    await leaf.setViewState({ type: OMNIBOARD_PROPERTIES_VIEW_TYPE, active: true });
+    this.app.workspace.revealLeaf(leaf);
+    emitOmniboardSelectionChange();
+  }
+  async openIssuesLeaf() {
+    const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_ISSUES_VIEW_TYPE)[0];
+    const leaf = existing != null ? existing : this.app.workspace.getRightLeaf(false);
+    if (!leaf) return;
+    await leaf.setViewState({ type: OMNIBOARD_ISSUES_VIEW_TYPE, active: true });
+    this.app.workspace.revealLeaf(leaf);
+    emitBpmnIssuesRefresh();
+  }
   showExportMenu(e4) {
-    const menu = new import_obsidian.Menu();
+    const menu = new import_obsidian3.Menu();
     menu.addItem((i6) => i6.setTitle("SVG").setIcon("file-code").onClick(() => this.handleExportSvg()));
     menu.addSeparator();
     [1, 2, 4].forEach(
@@ -83807,6 +85226,7 @@ var BoardView = class extends import_obsidian.TextFileView {
       const current = JSON.stringify(this.canvas.getModel());
       if (JSON.stringify(parsed) === current) return;
       this.canvas.loadModel(this.model);
+      emitBpmnIssuesRefresh();
     }
   }
   // view → Obsidian (on save)
@@ -83843,13 +85263,27 @@ var BoardView = class extends import_obsidian.TextFileView {
     input.accept = exts.join(",");
     input.style.display = "none";
     input.onchange = async () => {
-      var _a3;
+      var _a3, _b2;
       const file = (_a3 = input.files) == null ? void 0 : _a3[0];
       input.remove();
       if (!file) return;
       try {
         const raw2 = await file.text();
-        const result = await importFromFile(file.name, raw2);
+        let result;
+        if (/\.(bpmn|bpmn2|xml)$/i.test(file.name) && /xmlns[^=]*=["']http:\/\/www\.omg\.org\/spec\/BPMN/i.test(raw2.slice(0, 4096))) {
+          const { inspectBpmnDiagrams: inspectBpmnDiagrams2 } = await Promise.resolve().then(() => (init_import(), import_exports));
+          const { diagramCount, diagrams } = await inspectBpmnDiagrams2(raw2);
+          let diagramIndex = 0;
+          if (diagramCount > 1) {
+            diagramIndex = (_b2 = await new Promise((resolve3) => {
+              new DiagramPickerModal(this, diagrams, (idx) => resolve3(idx), () => resolve3(null)).open();
+            })) != null ? _b2 : -1;
+            if (diagramIndex < 0) return;
+          }
+          result = await importFromFile(file.name, raw2, { diagramIndex });
+        } else {
+          result = await importFromFile(file.name, raw2);
+        }
         const { added } = this.canvas.mergeModel(result.model);
         this.pendingSourceMeta = result.sourceMeta;
         this.requestSave();
@@ -83860,6 +85294,7 @@ var BoardView = class extends import_obsidian.TextFileView {
         if (result.warnings.length) {
           for (const w5 of result.warnings.slice(0, 5)) notify("warn", w5, 6e3);
         }
+        emitBpmnIssuesRefresh();
       } catch (err2) {
         notify("error", `Import l\u1ED7i: ${err2.message}`, 8e3);
       }
@@ -83873,8 +85308,21 @@ var BoardView = class extends import_obsidian.TextFileView {
     const fmt = findById(formatId);
     if (!fmt) return;
     try {
+      const model = this.canvas.getModel();
+      if (fmt.id === "bpmn" && this.plugin.settings.validateBpmnBeforeExport) {
+        const issues = validateBpmnModel(model);
+        const errors = issues.filter((i6) => i6.severity === "error");
+        const warns = issues.filter((i6) => i6.severity === "warn");
+        if (errors.length) {
+          notify("error", `BPMN export b\u1ECB ch\u1EB7n: ${errors.length} l\u1ED7i semantic.`);
+          for (const i6 of errors.slice(0, 6)) notify("error", `[${i6.code}] ${i6.message}`, 8e3);
+          for (const i6 of warns.slice(0, 3)) notify("warn", `[${i6.code}] ${i6.message}`, 6e3);
+          return;
+        }
+        for (const i6 of warns.slice(0, 6)) notify("warn", `[${i6.code}] ${i6.message}`, 6e3);
+      }
       const meta = (_a3 = this.pendingSourceMeta) != null ? _a3 : (await Promise.resolve().then(() => (init_boardSerde(), boardSerde_exports))).deserializeSourceMeta(this.rawData);
-      const text4 = await fmt.exporter(this.canvas.getModel(), meta);
+      const text4 = await fmt.exporter(model, meta);
       const ext = fmt.extensions[0];
       const mime = ext === "bpmn" || ext === "bpmn2" ? "application/xml" : ext === "dbml" ? "text/plain" : "text/plain";
       const saved = await saveToLocal(text4, this.suggestedName("." + ext), mime);
@@ -83890,9 +85338,11 @@ var BoardView = class extends import_obsidian.TextFileView {
     await this.leaf.setViewState({ type: "markdown", state: { file: this.file.path } });
   }
   async onClose() {
-    var _a3;
-    (_a3 = this.canvas) == null ? void 0 : _a3.destroy();
+    var _a3, _b2;
+    (_a3 = this.canvas) == null ? void 0 : _a3.setSelectionChangeHandler(null);
+    (_b2 = this.canvas) == null ? void 0 : _b2.destroy();
     this.canvas = null;
+    emitBpmnIssuesRefresh();
   }
 };
 
@@ -84182,7 +85632,7 @@ var AdapterRegistry = class {
 };
 
 // src/core/modal.ts
-var import_obsidian2 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 
 // src/core/theme.ts
 function readObsidianTheme() {
@@ -84206,7 +85656,7 @@ function readObsidianTheme() {
 }
 
 // src/core/modal.ts
-var EditModal = class extends import_obsidian2.Modal {
+var EditModal = class extends import_obsidian4.Modal {
   constructor(app, adapter, source, onCommit) {
     super(app);
     this.adapter = adapter;
@@ -84273,11 +85723,12 @@ function DiagramCard({ adapter, source, theme, onEdit }) {
 }
 
 // src/settings.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 var DEFAULT_SETTINGS = {
-  defaultLayout: "LR"
+  defaultLayout: "LR",
+  validateBpmnBeforeExport: true
 };
-var DiagramsSettingTab = class extends import_obsidian3.PluginSettingTab {
+var DiagramsSettingTab = class extends import_obsidian5.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -84286,9 +85737,15 @@ var DiagramsSettingTab = class extends import_obsidian3.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     containerEl.createEl("h2", { text: "Diagrams" });
-    new import_obsidian3.Setting(containerEl).setName("Default flow layout").setDesc("Direction used when auto-laying out new flow-style diagrams.").addDropdown(
+    new import_obsidian5.Setting(containerEl).setName("Default flow layout").setDesc("Direction used when auto-laying out new flow-style diagrams.").addDropdown(
       (d4) => d4.addOption("LR", "Left \u2192 Right").addOption("TB", "Top \u2192 Bottom").setValue(this.plugin.settings.defaultLayout).onChange(async (v6) => {
         this.plugin.settings.defaultLayout = v6;
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian5.Setting(containerEl).setName("Validate BPMN before export").setDesc("Run semantic BPMN checks and block BPMN export when errors are present.").addToggle(
+      (t5) => t5.setValue(this.plugin.settings.validateBpmnBeforeExport).onChange(async (v6) => {
+        this.plugin.settings.validateBpmnBeforeExport = v6;
         await this.plugin.saveSettings();
       })
     );
@@ -84799,7 +86256,7 @@ var ALL_ADAPTERS = [
   mindmapAdapter,
   mermaidAdapter
 ];
-var DiagramsPlugin = class extends import_obsidian4.Plugin {
+var DiagramsPlugin = class extends import_obsidian6.Plugin {
   constructor() {
     super(...arguments);
     this.registry = new AdapterRegistry();
@@ -84807,23 +86264,25 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
   }
   async onload() {
     await this.loadSettings();
-    this.registerView(BOARD_VIEW_TYPE, (leaf) => new BoardView(leaf));
+    this.registerView(BOARD_VIEW_TYPE3, (leaf) => new BoardView(leaf, this));
+    this.registerView(OMNIBOARD_PROPERTIES_VIEW_TYPE, (leaf) => new OmniboardPropertiesView(leaf));
+    this.registerView(OMNIBOARD_ISSUES_VIEW_TYPE, (leaf) => new BpmnIssuesView(leaf));
     this.registerEvent(
       this.app.workspace.on("file-open", (file) => void this.maybeSwapToBoardView(file))
     );
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file, source) => {
         var _a3;
-        if (!(file instanceof import_obsidian4.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        if (!(file instanceof import_obsidian6.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
         const leaf = this.findLeafForFile(file);
-        const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE;
+        const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE3;
         menu.addItem((item) => {
           var _a4, _b2;
           (_b2 = (_a4 = item.setTitle(inBoardView ? "Open as Markdown" : "Open as Omniboard").setIcon(inBoardView ? "file-text" : "shapes")).setSection) == null ? void 0 : _b2.call(_a4, "pane").onClick(async () => {
             const target = leaf != null ? leaf : this.app.workspace.getLeaf("tab");
             if (!leaf) await target.openFile(file);
             await target.setViewState({
-              type: inBoardView ? "markdown" : BOARD_VIEW_TYPE,
+              type: inBoardView ? "markdown" : BOARD_VIEW_TYPE3,
               state: { file: file.path }
             });
           });
@@ -84847,7 +86306,7 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
       checkCallback: (checking) => {
         var _a3;
         const leaf = this.app.workspace.activeLeaf;
-        if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== BOARD_VIEW_TYPE) return false;
+        if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== BOARD_VIEW_TYPE3) return false;
         if (checking) return true;
         void leaf.view.openAsMarkdown();
         return true;
@@ -84863,12 +86322,34 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
         const file = leaf.view.file;
         if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return false;
         if (checking) return true;
-        void leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
+        void leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: file.path } });
         return true;
       }
     });
-    this.registerMarkdownPostProcessor((el2, ctx) => {
-      el2.querySelectorAll('.internal-embed[src$=".omniboard.md"]').forEach(
+    this.addCommand({
+      id: "open-omniboard-properties",
+      name: "Open Omniboard BPMN properties",
+      callback: async () => {
+        const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_PROPERTIES_VIEW_TYPE)[0];
+        const leaf = existing != null ? existing : this.app.workspace.getRightLeaf(false);
+        if (!leaf) return;
+        await leaf.setViewState({ type: OMNIBOARD_PROPERTIES_VIEW_TYPE, active: true });
+        this.app.workspace.revealLeaf(leaf);
+      }
+    });
+    this.addCommand({
+      id: "open-omniboard-bpmn-issues",
+      name: "Open Omniboard BPMN issues",
+      callback: async () => {
+        const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_ISSUES_VIEW_TYPE)[0];
+        const leaf = existing != null ? existing : this.app.workspace.getRightLeaf(false);
+        if (!leaf) return;
+        await leaf.setViewState({ type: OMNIBOARD_ISSUES_VIEW_TYPE, active: true });
+        this.app.workspace.revealLeaf(leaf);
+      }
+    });
+    this.registerMarkdownPostProcessor((el3, ctx) => {
+      el3.querySelectorAll('.internal-embed[src$=".omniboard.md"]').forEach(
         (node2) => void this.renderBoardEmbed(node2, ctx.sourcePath)
       );
     });
@@ -84890,14 +86371,14 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
     const d4 = /* @__PURE__ */ new Date();
     const pad = (n3) => String(n3).padStart(2, "0");
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
-    const path2 = (0, import_obsidian4.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
+    const path2 = (0, import_obsidian6.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
     const content5 = serializeBoard({ nodes: [], edges: [] });
     try {
       return await this.app.vault.create(path2, content5);
     } catch (e4) {
       const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing instanceof import_obsidian4.TFile) return existing;
-      new import_obsidian4.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
+      if (existing instanceof import_obsidian6.TFile) return existing;
+      new import_obsidian6.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
       return null;
     }
   }
@@ -84913,8 +86394,8 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
     const ok = await this.hasOmniboardFrontmatter(file);
     if (!ok) return;
     const leaf = this.findLeafForFile(file);
-    if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE) return;
-    await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
+    if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE3) return;
+    await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: file.path } });
   }
   /** Resolve the marker frontmatter. metadataCache may not have indexed the
    *  file yet (freshly created / vault sync), so fall back to a quick raw read. */
@@ -84962,7 +86443,7 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
-    if (!(file instanceof import_obsidian4.TFile)) return;
+    if (!(file instanceof import_obsidian6.TFile)) return;
     host.dataset.daRendered = "1";
     host.empty();
     host.addClass("da-embed");
@@ -84971,7 +86452,7 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
     head.createSpan({ cls: "da-embed-ttl", text: file.basename });
     const meta = head.createSpan({ cls: "da-embed-meta" });
     const open2 = head.createEl("button", { cls: "da-embed-open" });
-    (0, import_obsidian4.setIcon)(open2, "external-link");
+    (0, import_obsidian6.setIcon)(open2, "external-link");
     open2.createSpan({ text: "M\u1EDF" });
     open2.onclick = (e4) => {
       e4.preventDefault();
@@ -84996,9 +86477,9 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
   }
   /** Insert from the ribbon menu — needs to find the active markdown editor itself. */
   insertDiagramIntoActiveEditor(adapter) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian6.MarkdownView);
     if (!view) {
-      new import_obsidian4.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
+      new import_obsidian6.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
       return;
     }
     this.insertDiagram(view.editor, adapter);
@@ -85006,31 +86487,31 @@ var DiagramsPlugin = class extends import_obsidian4.Plugin {
   registerCodeBlock(adapter) {
     this.registerMarkdownCodeBlockProcessor(
       adapter.codeBlockLanguage,
-      (source, el2, ctx) => {
+      (source, el3, ctx) => {
         const theme = readObsidianTheme();
-        const mount = el2.createDiv({ cls: "diagrams-card-mount" });
+        const mount = el3.createDiv({ cls: "diagrams-card-mount" });
         R3(
           k3(DiagramCard, {
             adapter,
             source,
             theme,
-            onEdit: () => this.openEditor(adapter, source, el2, ctx)
+            onEdit: () => this.openEditor(adapter, source, el3, ctx)
           }),
           mount
         );
       }
     );
   }
-  openEditor(adapter, source, el2, ctx) {
+  openEditor(adapter, source, el3, ctx) {
     new EditModal(this.app, adapter, source, (newText) => {
-      this.replaceCodeBlock(el2, ctx, adapter.codeBlockLanguage, newText);
+      this.replaceCodeBlock(el3, ctx, adapter.codeBlockLanguage, newText);
     }).open();
   }
   /** Rewrite the fenced block that produced `el` with new content. */
-  replaceCodeBlock(el2, ctx, lang, newText) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
+  replaceCodeBlock(el3, ctx, lang, newText) {
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian6.MarkdownView);
     if (!view) return;
-    const info = ctx.getSectionInfo(el2);
+    const info = ctx.getSectionInfo(el3);
     if (!info) return;
     const editor = view.editor;
     const fence = "```";

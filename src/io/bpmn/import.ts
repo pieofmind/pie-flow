@@ -1,7 +1,7 @@
 import { BpmnModdle } from "bpmn-moddle";
 import { getOrientation } from "diagram-js/lib/layout/LayoutUtil";
 import type { CanvasModel } from "../../canvas/types";
-import type { ImportResult, SourceMeta } from "../types";
+import type { ImportOptions, ImportResult, SourceMeta } from "../types";
 import { BPMN_TO_SHAPE, EVENT_DEF_TO_TRIGGER } from "./shapes";
 
 /** BPMN extra attrs Đợt F — populated from moddle tree (eventDefinitions,
@@ -16,6 +16,19 @@ interface BpmnElementShape {
   attachedToRef?: { id: string };
   triggeredByEvent?: boolean;
   isForCompensation?: boolean;
+  // Phase D — documentation + extensionElements
+  documentation?: Array<{ text?: string }>;
+  extensionElements?: {
+    values?: Array<{
+      $type: string;
+      $instanceOf?: (t: string) => boolean;
+      assignee?: string; candidateUsers?: string; candidateGroups?: string;
+      formKey?: string; dueDate?: string; priority?: string;
+      executionListener?: unknown[]; taskListener?: unknown[];
+      properties?: { values?: Array<{ name?: string; value?: string }> };
+      [key: string]: unknown;
+    }>;
+  };
 }
 /** Derive Đợt A BPMN extras from a flow node's moddle attrs. Pure — no side effects. */
 function bpmnExtras(fn: BpmnElementShape, tagLc: string): {
@@ -73,7 +86,7 @@ const FLOW_NODE_TYPES = new Set([
   "bpmn:EventBasedGateway", "bpmn:ComplexGateway",
   "bpmn:Task", "bpmn:UserTask", "bpmn:ServiceTask", "bpmn:ScriptTask",
   "bpmn:SendTask", "bpmn:ReceiveTask", "bpmn:ManualTask", "bpmn:BusinessRuleTask",
-  "bpmn:CallActivity", "bpmn:SubProcess", "bpmn:Transaction",
+  "bpmn:CallActivity", "bpmn:SubProcess", "bpmn:Transaction", "bpmn:AdHocSubProcess",
   // Đợt F — data artifacts + annotations + groups round-trip through canvas
   "bpmn:DataObjectReference", "bpmn:DataStoreReference",
   "bpmn:DataInput", "bpmn:DataOutput",
@@ -86,27 +99,43 @@ interface ModdleElement {
   $type: string;
   id?: string;
   name?: string;
-  sourceRef?: ModdleElement;
+  sourceRef?: ModdleElement | Array<ModdleElement | string>;
   targetRef?: ModdleElement;
   flowElements?: ModdleElement[];
   rootElements?: ModdleElement[];
   diagrams?: ModdleDiagram[];
   // Collaboration → participants (pools). Participant.processRef → Process.
   participants?: ModdleElement[];
+  // Collaboration → messageFlows. MessageFlow has sourceRef/targetRef like SequenceFlow.
+  messageFlows?: ModdleElement[];
+  // Process → artifacts → Association / TextAnnotation / Group.
+  artifacts?: ModdleElement[];
   processRef?: ModdleElement;
   // Process → laneSets → lanes; Lane.flowNodeRef → member flow nodes.
   laneSets?: ModdleElement[];
   lanes?: ModdleElement[];
   flowNodeRef?: ModdleElement[];
+  // Activity-local data associations (DataInputAssociation / DataOutputAssociation)
+  dataInputAssociations?: ModdleElement[];
+  dataOutputAssociations?: ModdleElement[];
+  // SequenceFlow extras (Phase A)
+  conditionExpression?: { body?: string; $type?: string };
+  default?: ModdleElement | string;
+  // Association extras (Phase A)
+  associationDirection?: "None" | "One" | "Both";
   $attrs?: Record<string, string>;
 }
-interface ModdleDiagram { plane: { planeElement?: ModdleDiElement[] } }
+interface ModdleDiagram { plane: { planeElement?: ModdleDiElement[]; bpmnElement?: ModdleElement } }
 interface ModdleDiElement {
   $type: string;
   bpmnElement?: ModdleElement;
   bounds?: ModdleBounds;
   waypoint?: ModdlePoint[];
   label?: { bounds?: ModdleBounds };
+  isExpanded?: boolean;
+  // bioc namespace props — moddle resolves `bioc:fill` → `.fill` directly.
+  fill?: string;
+  stroke?: string;
   $attrs?: Record<string, string>;
 }
 
@@ -141,13 +170,21 @@ function portFor(wp: ModdlePoint, b: ModdleBounds): string {
   return side;
 }
 
-/** Pull custom fill/stroke from BPMN DI attrs — bpmn.io writes either
- *  `color:background-color` / `color:border-color` (BPMN-in-Color spec) or its
- *  legacy `bioc:fill` / `bioc:stroke`. We accept both. */
-function diColours(attrs: Record<string, string> | undefined): { fill?: string; stroke?: string } {
-  if (!attrs) return {};
-  const fill = attrs["color:background-color"] || attrs["background-color"] || attrs["bioc:fill"] || attrs["fill"];
-  const stroke = attrs["color:border-color"] || attrs["border-color"] || attrs["bioc:stroke"] || attrs["stroke"];
+/** Pull custom fill/stroke from BPMN DI shape element.
+ *  bpmn.io writes colors in two ways:
+ *  1. bioc namespace: `<bpmndi:BPMNShape bioc:fill="..." bioc:stroke="...">` → moddle parses
+ *     these into direct properties (`pe.fill`, `pe.stroke`) on the DI element, NOT in $attrs.
+ *  2. BPMN-in-Color spec: `color:background-color` / `color:border-color` → still in $attrs. */
+function diColours(di: { $attrs?: Record<string, string>; fill?: string; stroke?: string } | undefined): { fill?: string; stroke?: string } {
+  if (!di) return {};
+  const attrs = di.$attrs ?? {};
+  // bioc: namespace — moddle puts these as direct props after namespace resolution
+  const fill = (di.fill as string | undefined)
+    || attrs["color:background-color"] || attrs["background-color"]
+    || attrs["bioc:fill"] || attrs["fill"];
+  const stroke = (di.stroke as string | undefined)
+    || attrs["color:border-color"] || attrs["border-color"]
+    || attrs["bioc:stroke"] || attrs["stroke"];
   return { fill, stroke };
 }
 
@@ -157,12 +194,60 @@ function moddle(): BpmnModdle {
   return moddleSingleton;
 }
 
+/** Phase D — Extract Camunda-specific properties from a flow element.
+ *  bpmn-moddle without camunda extension keeps camunda:assignee etc. in `$attrs`
+ *  as `"camunda:assignee"` keys. extensionElements.values items keep children
+ *  in `$children` (not `.values` / `.properties`).
+ *  Returns a flat object merged into node.attrs:
+ *  - `camunda` : known scalar keys (assignee, formKey, candidateUsers, etc.)
+ *  - `bpmnProps`: array of {name, value} from <camunda:property> children */
+function parseCamundaExt(ext: BpmnElementShape["extensionElements"], nodeAttrs?: Record<string, string>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const camunda: Record<string, string> = {};
+  const bpmnProps: Array<{ name: string; value: string }> = [];
+  // Path 1: known camunda attrs in $attrs (without camunda extension registered)
+  const CAMUNDA_ATTRS: Record<string, string> = {
+    "camunda:assignee": "assignee", "camunda:candidateUsers": "candidateUsers",
+    "camunda:candidateGroups": "candidateGroups", "camunda:formKey": "formKey",
+    "camunda:dueDate": "dueDate", "camunda:priority": "priority",
+  };
+  for (const [rawKey, shortKey] of Object.entries(CAMUNDA_ATTRS)) {
+    const val = nodeAttrs?.[rawKey];
+    if (typeof val === "string" && val) camunda[shortKey] = val;
+  }
+  // Path 2: extensionElements (may have $children array per moddle)
+  if (ext?.values?.length) {
+    for (const v of ext.values) {
+      const children = (v as unknown as { $children?: Array<{ $type?: string; name?: string; value?: string }> }).$children ?? [];
+      for (const child of children) {
+        if (child.$type === "camunda:property" && typeof child.name === "string") {
+          bpmnProps.push({ name: child.name, value: String(child.value ?? "") });
+        }
+      }
+    }
+  }
+  if (Object.keys(camunda).length) out.camunda = camunda;
+  if (bpmnProps.length) out.bpmnProps = bpmnProps;
+  return out;
+}
+
 /** Hard cap on import size — guards the UI thread against parsing huge XML
  *  trees synchronously. 4 MB covers any realistic hand-authored BPMN diagram
  *  (enterprise files we've seen top out around 1 MB). */
 const MAX_BPMN_BYTES = 4 * 1024 * 1024;
 
-export async function importBpmn(raw: string): Promise<ImportResult> {
+export async function inspectBpmnDiagrams(raw: string): Promise<{ diagramCount: number; diagrams: Array<{ index: number; id: string; planeRef?: string; elementCount: number }> }> {
+  const { rootElement: definitions } = await moddle().fromXML(raw, "bpmn:Definitions");
+  const diagrams = ((definitions as ModdleElement).diagrams ?? []).map((d, index) => ({
+    index,
+    id: (d as unknown as { id?: string }).id ?? `Diagram_${index + 1}`,
+    planeRef: d.plane?.bpmnElement?.id,
+    elementCount: d.plane?.planeElement?.length ?? 0,
+  }));
+  return { diagramCount: diagrams.length, diagrams };
+}
+
+export async function importBpmn(raw: string, options?: ImportOptions): Promise<ImportResult> {
   if (raw.length > MAX_BPMN_BYTES) {
     throw new Error(`BPMN file quá lớn (${(raw.length / 1024 / 1024).toFixed(1)} MB). Giới hạn: 4 MB.`);
   }
@@ -172,29 +257,109 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
   );
 
   // Walk every root element (process / collaboration) and collect flow nodes +
-  // sequence flows recursively (subprocesses nest flowElements).
+  // sequence flows + associations recursively (subprocesses nest flowElements).
+  // MessageFlows are collected separately from any Collaboration root.
+  // Phase B — `parentId` tracks subprocess containment: only set when the
+  // direct ancestor is a flow-node container (subProcess / transaction /
+  // adhocSubProcess), NOT the top-level bpmn:Process (which is the diagram root).
   const flowNodes: ModdleElement[] = [];
+  const flowNodeParentId = new Map<string, string>();
   const sequenceFlows: ModdleElement[] = [];
-  const collectFlow = (parent: ModdleElement): void => {
+  const associations: ModdleElement[] = [];
+  const messageFlows: ModdleElement[] = [];
+  const collectFlow = (parent: ModdleElement, parentSubprocessId?: string): void => {
     for (const fe of parent.flowElements ?? []) {
-      if (FLOW_NODE_TYPES.has(fe.$type)) flowNodes.push(fe);
-      else if (fe.$type === "bpmn:SequenceFlow") sequenceFlows.push(fe);
-      // Recurse into subprocesses (still capture the subprocess itself if it's a flow node)
-      if (fe.flowElements) collectFlow(fe);
+      if (FLOW_NODE_TYPES.has(fe.$type)) {
+        flowNodes.push(fe);
+        if (parentSubprocessId && fe.id) flowNodeParentId.set(fe.id, parentSubprocessId);
+        // Data associations are attached to activities/events, not process.artifacts.
+        for (const da of fe.dataInputAssociations ?? []) associations.push(da);
+        for (const da of fe.dataOutputAssociations ?? []) associations.push(da);
+      } else if (fe.$type === "bpmn:SequenceFlow") sequenceFlows.push(fe);
+      // Recurse into subprocesses (and Transaction / AdHocSubProcess).
+      if (fe.flowElements) {
+        const isContainer = fe.$type === "bpmn:SubProcess" || fe.$type === "bpmn:Transaction" || fe.$type === "bpmn:AdHocSubProcess";
+        collectFlow(fe, isContainer && fe.id ? fe.id : parentSubprocessId);
+      }
+    }
+    // Artifacts live alongside flowElements on Process / SubProcess.
+    for (const ar of parent.artifacts ?? []) {
+      if (ar.$type === "bpmn:Association") associations.push(ar);
     }
   };
-  for (const root of (definitions as ModdleElement).rootElements ?? []) collectFlow(root);
+  for (const root of (definitions as ModdleElement).rootElements ?? []) {
+    collectFlow(root);
+    if (root.$type === "bpmn:Collaboration") {
+      for (const mf of root.messageFlows ?? []) messageFlows.push(mf);
+    }
+  }
+  // Phase B — Lane membership. Walk every Process.laneSets.lanes and map each
+  // flowNodeRef → lane.id. Nested lanes (childLaneSet) recurse to leaves so
+  // deeply-nested membership still resolves to the innermost containing lane.
+  const flowNodeLaneId = new Map<string, string>();
+  const walkLanes = (lanes: ModdleElement[] | undefined): void => {
+    for (const ln of lanes ?? []) {
+      const childLanes = (ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes;
+      if (childLanes?.length) { walkLanes(childLanes); continue; }
+      const laneId = ln.id;
+      if (!laneId) continue;
+      for (const ref of ln.flowNodeRef ?? []) {
+        const refId = typeof ref === "string" ? ref : (ref as ModdleElement).id;
+        if (refId) flowNodeLaneId.set(refId, laneId);
+      }
+    }
+  };
+  for (const root of (definitions as ModdleElement).rootElements ?? []) {
+    if (root.$type !== "bpmn:Process") continue;
+    for (const ls of root.laneSets ?? []) walkLanes(ls.lanes);
+  }
+
+  // Multi-diagram support (Phase F): pick the plane that contains the most
+  // BPMN elements we actually import (flow nodes + flows + participants/lanes).
+  const candidateIds = new Set<string>();
+  for (const n of flowNodes) if (n.id) candidateIds.add(n.id);
+  for (const e of sequenceFlows) if (e.id) candidateIds.add(e.id);
+  for (const e of associations) if (e.id) candidateIds.add(e.id);
+  for (const e of messageFlows) if (e.id) candidateIds.add(e.id);
+  for (const root of (definitions as ModdleElement).rootElements ?? []) {
+    if (root.$type !== "bpmn:Collaboration") continue;
+    for (const p of root.participants ?? []) if (p.id) candidateIds.add(p.id);
+  }
+  for (const root of (definitions as ModdleElement).rootElements ?? []) {
+    if (root.$type !== "bpmn:Process") continue;
+    for (const ls of root.laneSets ?? []) {
+      for (const ln of ls.lanes ?? []) if (ln.id) candidateIds.add(ln.id);
+    }
+  }
+  const diagrams = (definitions as ModdleElement).diagrams ?? [];
+  let chosenDiagramIndex = 0;
+  const requested = options?.diagramIndex;
+  if (typeof requested === "number" && requested >= 0 && requested < diagrams.length) {
+    chosenDiagramIndex = requested;
+  } else {
+    let bestScore = -1;
+    diagrams.forEach((dia, idx) => {
+      let score = 0;
+      for (const pe of dia.plane.planeElement ?? []) {
+        const id = pe.bpmnElement?.id;
+        if (id && candidateIds.has(id)) score++;
+      }
+      if (score > bestScore) { bestScore = score; chosenDiagramIndex = idx; }
+    });
+  }
+  if (diagrams.length > 1) {
+    warnings.push(`BPMN có ${diagrams.length} diagrams; đang import plane #${chosenDiagramIndex + 1} (nhiều phần tử nhất).`);
+  }
+  const chosenPlane = diagrams[chosenDiagramIndex]?.plane;
 
   // Map BPMN element id → DI shape / edge so we can pull bounds + waypoints.
   const diShapes = new Map<string, ModdleDiElement>();
   const diEdges = new Map<string, ModdleDiElement>();
-  for (const dia of (definitions as ModdleElement).diagrams ?? []) {
-    for (const pe of dia.plane.planeElement ?? []) {
+  for (const pe of chosenPlane?.planeElement ?? []) {
       const refId = pe.bpmnElement?.id;
       if (!refId) continue;
       if (pe.$type === "bpmndi:BPMNShape") diShapes.set(refId, pe);
       else if (pe.$type === "bpmndi:BPMNEdge") diEdges.set(refId, pe);
-    }
   }
 
   const model: CanvasModel = { nodes: [], edges: [] };
@@ -212,7 +377,13 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
     const y = bounds?.y ?? 100;
     const width = bounds?.width ?? (tagLc.endsWith("Event") ? 36 : 100);
     const height = bounds?.height ?? (tagLc.endsWith("Event") ? 36 : 60);
-    const { fill, stroke } = diColours(di?.$attrs);
+    const nodeLabelOffset = di?.label?.bounds
+      ? {
+          x: (di.label.bounds.x + di.label.bounds.width / 2) - (x + width / 2),
+          y: (di.label.bounds.y + di.label.bounds.height / 2) - (y + height / 2),
+        }
+      : undefined;
+    const { fill, stroke } = diColours(di);
     const style: Record<string, string> = {};
     if (fill) style.fill = fill;
     if (stroke) style.stroke = stroke;
@@ -221,7 +392,21 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
       shape,
       x, y, width, height,
       label: (fn.name ?? "").replace(/&#10;/g, "\n"),
+      ...(flowNodeParentId.get(id) ? { parentId: flowNodeParentId.get(id) } : {}),
+      ...(flowNodeLaneId.get(id) ? { laneId: flowNodeLaneId.get(id) } : {}),
       attrs: {
+        // Phase C — preserve DI.isExpanded so collapse state survives round-trip.
+        ...(di?.isExpanded === false ? { collapsed: true } : {}),
+        // Phase D — bioc/color-spec explicit fill/stroke stored separately so
+        // the panel can write back named DI attrs (not just canvas node style).
+        ...(fill ? { bpmnFill: fill } : {}),
+        ...(stroke ? { bpmnStroke: stroke } : {}),
+        // Phase D — documentation text (first <bpmn:documentation> element body).
+        ...((fn as unknown as BpmnElementShape).documentation?.[0]?.text
+          ? { bpmnDoc: (fn as unknown as BpmnElementShape).documentation![0].text! }
+          : {}),
+        // Phase D — Camunda attrs (in $attrs) + extensionElements property values.
+        ...parseCamundaExt((fn as unknown as BpmnElementShape).extensionElements, fn.$attrs),
         __source: { format: "bpmn", sourceId: id, tag: tagLc },
         ...(Object.keys(style).length ? { style } : {}),
         // Đợt F — BPMN semantics preserved in NodeExtra for canvas + round-trip
@@ -230,6 +415,7 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
         ...(extras.interrupting !== undefined ? { interrupting: extras.interrupting } : {}),
         ...(extras.attachedTo ? { attachedTo: extras.attachedTo } : {}),
         ...(extras.markers ? { markers: extras.markers } : {}),
+        ...(nodeLabelOffset ? { labelOffset: nodeLabelOffset } : {}),
       },
     });
     if (!di) warnings.push(`BPMN flow node "${id}" thiếu BPMNShape DI — đặt vị trí mặc định.`);
@@ -240,21 +426,19 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
   const nodeBox = new Map<string, ModdleBounds>();
   for (const n of model.nodes) nodeBox.set(n.id, { x: n.x, y: n.y, width: n.width, height: n.height });
 
-  // Edges — vertices + ports + label position.
-  for (const sf of sequenceFlows) {
-    const id = sf.id!;
-    const sourceId = sf.sourceRef?.id;
-    const targetId = sf.targetRef?.id;
-    if (!sourceId || !targetId) continue;
+  // Edges — vertices + ports + label position. Phase A: handle SequenceFlow,
+  // MessageFlow, and Association uniformly through `buildEdge`.
+  type EdgeKind = "sequence" | "message" | "association";
+  const buildEdge = (fe: ModdleElement, kind: EdgeKind): CanvasModel["edges"][number] | null => {
+    const id = fe.id;
+    const sourceId = Array.isArray(fe.sourceRef)
+      ? ((typeof fe.sourceRef[0] === "string" ? fe.sourceRef[0] : fe.sourceRef[0]?.id) ?? undefined)
+      : fe.sourceRef?.id;
+    const targetId = fe.targetRef?.id;
+    if (!id || !sourceId || !targetId) return null;
     const di = diEdges.get(id);
     const wps = di?.waypoint ?? [];
-    // Internal vertices only — X6 already has source/target endpoints.
     const vertices = wps.length > 2 ? wps.slice(1, -1).map((p) => ({ x: p.x, y: p.y })) : undefined;
-    // bpmn.io-style precise anchoring: pin each endpoint to the exact
-    // (dx, dy) offset of the BPMN waypoint from the node's top-left corner —
-    // unlimited positions per side, not snapped to a 12-port grid. Falls
-    // back to the legacy port string (for tests / sparse files) only when
-    // no waypoint geometry is available.
     const srcBox = nodeBox.get(sourceId);
     const tgtBox = nodeBox.get(targetId);
     const sourceAnchor = wps.length >= 2 && srcBox
@@ -265,16 +449,11 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
       : undefined;
     const sourcePort = sourceAnchor ? undefined : (wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : undefined);
     const targetPort = targetAnchor ? undefined : (wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : undefined);
-    // BPMN DI may pin the edge label at a specific position via BPMNLabel.bounds.
-    // Convert it to X6's label distance/offset: distance = 0.5 (centre along edge)
-    // + offset = label bbox centre minus the edge's geometric midpoint. Lossy but
-    // matches the visual placement bpmn.io renders.
     let labelPos: { distance?: number; offset?: { x: number; y: number } } | undefined;
     const lb = di?.label?.bounds;
     if (lb && wps.length >= 2) {
       const labelCx = lb.x + lb.width / 2;
       const labelCy = lb.y + lb.height / 2;
-      // Midpoint of the polyline (rough — average of all waypoints' midpoint).
       let totalLen = 0;
       const segLens: number[] = [];
       for (let i = 1; i < wps.length; i++) {
@@ -294,7 +473,15 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
       }
       labelPos = { distance: 0.5, offset: { x: labelCx - midX, y: labelCy - midY } };
     }
-    model.edges.push({
+    // Phase A — SequenceFlow conditionExpression body + Association direction.
+    const edgeAttrs: { condition?: string; isDefault?: boolean; associationDirection?: "None"|"One"|"Both" } = {};
+    if (kind === "sequence" && fe.conditionExpression?.body) {
+      edgeAttrs.condition = fe.conditionExpression.body;
+    }
+    if (kind === "association" && fe.associationDirection && fe.associationDirection !== "None") {
+      edgeAttrs.associationDirection = fe.associationDirection;
+    }
+    return {
       id,
       source: sourceId,
       sourcePort,
@@ -302,11 +489,39 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
       target: targetId,
       targetPort,
       targetAnchor,
-      label: (sf.name ?? "").replace(/&#10;/g, "\n") || undefined,
+      label: (fe.name ?? "").replace(/&#10;/g, "\n") || undefined,
       labelPos,
       vertices,
       router: "normal",
-    });
+      ...(kind !== "sequence" ? { kind } : {}),
+      ...(Object.keys(edgeAttrs).length ? { attrs: edgeAttrs } : {}),
+    };
+  };
+  for (const sf of sequenceFlows) {
+    const edge = buildEdge(sf, "sequence");
+    if (edge) model.edges.push(edge);
+  }
+  for (const mf of messageFlows) {
+    const edge = buildEdge(mf, "message");
+    if (edge) model.edges.push(edge);
+  }
+  for (const ar of associations) {
+    const edge = buildEdge(ar, "association");
+    if (edge) model.edges.push(edge);
+  }
+  // Mark default-flow edges. The `default` attribute lives on the source
+  // gateway/activity, not the flow itself — resolve here so downstream
+  // consumers (export, validator, canvas styling) only need to read edge.attrs.
+  const defaultEdgeIds = new Set<string>();
+  for (const fn of flowNodes) {
+    const def = fn.default;
+    const defId = typeof def === "string" ? def : def?.id;
+    if (defId) defaultEdgeIds.add(defId);
+  }
+  for (const edge of model.edges) {
+    if (defaultEdgeIds.has(edge.id)) {
+      edge.attrs = { ...(edge.attrs ?? {}), isDefault: true };
+    }
   }
 
   // ── Pools (participants) + lanes ──────────────────────────────────────────
@@ -324,10 +539,12 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
   const HEADER = 30;   // vertical pool title strip
   const LANE_HEAD = 24; // lane title strip
   const PAD = 30;
+  const flowNodePoolId = new Map<string, string>();
   for (const root of defs.rootElements ?? []) {
     if (root.$type !== "bpmn:Collaboration") continue;
     for (const part of root.participants ?? []) {
-      const proc = part.processRef?.id ? processById.get(part.processRef.id) : undefined;
+      const processRefId = part.processRef?.id;
+      const proc = processRefId ? processById.get(processRefId) : undefined;
       const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
       const laneAttrs = lanes.map((ln) => ({ id: ln.id ?? "", label: ln.name ?? "" }));
 
@@ -353,6 +570,15 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
         pw = (maxX - minX) + HEADER + LANE_HEAD + PAD * 2;
         ph = (maxY - minY) + PAD * 2;
       }
+      if (proc?.flowElements && part.id) {
+        for (const fe of proc.flowElements) {
+          if (fe.id) flowNodePoolId.set(fe.id, part.id);
+        }
+      }
+      const isHorizontal = part.id ? ((diShapes.get(part.id) as { isHorizontal?: boolean } | undefined)?.isHorizontal !== false) : true;
+      // `processRef` may exist as an unresolved reference object without `id`.
+      // Treat participants without a concrete processRef id as black-box pools.
+      const isBlackBox = !processRefId;
       pools.push({
         id: part.id ?? `pool_${pools.length}`,
         shape: "bpmn-pool",
@@ -360,14 +586,22 @@ export async function importBpmn(raw: string): Promise<ImportResult> {
         label: part.name ?? "",
         attrs: {
           lanes: laneAttrs.length ? laneAttrs : undefined,
+          poolHorizontal: isHorizontal,
+          blackBox: isBlackBox,
           __source: { format: "bpmn", sourceId: part.id, kind: "pool" },
         },
       });
     }
   }
+  for (const n of model.nodes) {
+    const pid = flowNodePoolId.get(n.id);
+    if (pid) {
+      n.attrs = { ...(n.attrs ?? {}), poolId: pid, __source: { ...((n.attrs?.__source as Record<string, unknown> | undefined) ?? {}), poolId: pid } };
+    }
+  }
   // Pools first → rendered at the back, flow nodes float on top.
   if (pools.length) model.nodes.unshift(...pools);
 
-  const sourceMeta: SourceMeta = { format: "bpmn", payload: { raw } };
+  const sourceMeta: SourceMeta = { format: "bpmn", payload: { raw, diagramIndex: chosenDiagramIndex } };
   return { model, warnings, sourceMeta };
 }

@@ -15,7 +15,11 @@ export interface ImportResult {
   sourceMeta: SourceMeta;
 }
 
-export type Importer = (raw: string) => Promise<ImportResult> | ImportResult;
+export interface ImportOptions {
+  diagramIndex?: number;
+}
+
+export type Importer = (raw: string, options?: ImportOptions) => Promise<ImportResult> | ImportResult;
 export type Exporter = (model: CanvasModel, meta?: SourceMeta | null) => Promise<string> | string;
 
 export interface FormatDescriptor {

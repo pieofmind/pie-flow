@@ -1,0 +1,90 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>BPMN Phase C E2E</title>
+<style>body{margin:0;font-family:system-ui;background:#FFF4DE}#host{width:1280px;height:720px;border:1px solid #ccc}#log{padding:8px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;background:#fff;max-height:300px;overflow:auto}.pass{color:#0a0}.fail{color:#c00;font-weight:600}</style>
+<link rel="stylesheet" href="../styles.css"/></head><body>
+<div id="host" class="da-board-view"></div><div id="log"></div>
+<script src="../harness/harness.js?v=phaseC2"></script>
+<script>
+const log = document.getElementById('log');
+const w = (s, c='') => { const d=document.createElement('div'); if(c)d.className=c; d.textContent=s; log.appendChild(d); };
+const results = [];
+async function run(name, fn) {
+  try { const out = await fn(); results.push({name, ok:true, info: out||''}); w(`✅ ${name}  ${out||''}`, 'pass'); }
+  catch(e) { results.push({name, ok:false, err: String(e?.message||e)}); w(`❌ ${name}  ${e?.message||e}`, 'fail'); }
+}
+const a = (c, m) => { if (!c) throw new Error(m); };
+
+const H = '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="d" targetNamespace="x">';
+
+const ADHOC = H + `<bpmn:process id="P"><bpmn:adHocSubProcess id="ah" name="Brainstorm"/></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="ah"><dc:Bounds x="100" y="100" width="240" height="120"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const COLLAPSED = H + `<bpmn:process id="P"><bpmn:subProcess id="sp" name="Collapsed task"/></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="sp" isExpanded="false"><dc:Bounds x="100" y="100" width="120" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const NESTED = H + `<bpmn:process id="P"><bpmn:subProcess id="sp1" name="Outer"><bpmn:subProcess id="sp2" name="Inner"><bpmn:task id="leaf" name="L"/></bpmn:subProcess></bpmn:subProcess></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="sp1" isExpanded="true"><dc:Bounds x="60" y="60" width="500" height="280"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="sp2" isExpanded="true"><dc:Bounds x="160" y="120" width="320" height="180"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="leaf"><dc:Bounds x="220" y="180" width="120" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const NONINT = H + `<bpmn:process id="P"><bpmn:task id="host" name="Order"/><bpmn:boundaryEvent id="bnd" attachedToRef="host" cancelActivity="false"><bpmn:timerEventDefinition/></bpmn:boundaryEvent></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="host"><dc:Bounds x="100" y="100" width="120" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="bnd"><dc:Bounds x="180" y="160" width="36" height="36"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+async function runAll() {
+  await run('C1 import ad-hoc subprocess → bpmn-adhoc-subprocess shape', async () => {
+    await window.__import.bpmn(ADHOC);
+    const m = window.__ob.getModel();
+    const ah = m.nodes.find(n=>n.id==='ah');
+    a(ah?.shape === 'bpmn-adhoc-subprocess', `shape=${ah?.shape}`);
+    return ah.shape;
+  });
+
+  await run('C2 ad-hoc round-trip → bpmn:adHocSubProcess in XML', async () => {
+    const r = await window.__import.bpmn(ADHOC);
+    const xml = await window.__export.bpmn(window.__ob.getModel(), r.sourceMeta);
+    a(/<bpmn:adHocSubProcess[^>]*id="ah"/.test(xml), 'adHocSubProcess preserved');
+    return 'ok';
+  });
+
+  await run('C3 isExpanded=false → attrs.collapsed=true', async () => {
+    await window.__import.bpmn(COLLAPSED);
+    const m = window.__ob.getModel();
+    const sp = m.nodes.find(n=>n.id==='sp');
+    a(sp?.attrs?.collapsed === true, `collapsed=${sp?.attrs?.collapsed}`);
+    return 'collapsed';
+  });
+
+  await run('C4 isExpanded round-trip — toggling reflects in XML', async () => {
+    const r = await window.__import.bpmn(NESTED);
+    const m = window.__ob.getModel();
+    // User collapses sp2
+    const sp2 = m.nodes.find(n=>n.id==='sp2');
+    sp2.attrs = { ...(sp2.attrs||{}), collapsed: true };
+    const xml = await window.__export.bpmn(m, r.sourceMeta);
+    a(/<bpmndi:BPMNShape[^>]*bpmnElement="sp2"[^>]*isExpanded="false"/.test(xml),
+       `sp2 should be isExpanded="false": ${xml.match(/bpmnElement="sp2"[^>]*/)?.[0]}`);
+    return 'sp2 collapsed';
+  });
+
+  await run('C5 nested subprocess z-order — sp2 above sp1', async () => {
+    await window.__import.bpmn(NESTED);
+    const ob = window.__ob;
+    const sp1 = ob.graph.getCellById('sp1');
+    const sp2 = ob.graph.getCellById('sp2');
+    const leaf = ob.graph.getCellById('leaf');
+    const z1 = sp1.getZIndex();
+    const z2 = sp2.getZIndex();
+    a(z2 > z1, `sp2 z=${z2} should be > sp1 z=${z1}`);
+    a(leaf.getParent()?.id === 'sp2', `leaf parent=${leaf.getParent()?.id}`);
+    return `sp1.z=${z1} < sp2.z=${z2}`;
+  });
+
+  await run('C6 non-interrupting boundary — interrupting=false in model + DOM class', async () => {
+    await window.__import.bpmn(NONINT);
+    await new Promise(r => setTimeout(r, 200));
+    const m = window.__ob.getModel();
+    const bnd = m.nodes.find(n=>n.id==='bnd');
+    a(bnd?.attrs?.interrupting === false, `model interrupting=${bnd?.attrs?.interrupting}`);
+    const dashed = document.querySelector('.bp-event.is-non-interrupting');
+    a(!!dashed, 'CSS class .bp-event.is-non-interrupting not rendered');
+    return `dashed boundary, attachedTo=${bnd.attrs.attachedTo}`;
+  });
+
+  const passed = results.filter(r=>r.ok).length;
+  w('', '');
+  w(`SUMMARY: ${passed}/${results.length} passed`, passed===results.length ? 'pass' : 'fail');
+  window.__results = { passed, failed: results.length-passed, total: results.length, results };
+}
+runAll().then(()=>{ window.__done = true; });
+</script></body></html>

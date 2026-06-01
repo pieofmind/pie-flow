@@ -28,6 +28,7 @@ export const BPMN_TO_SHAPE: Record<string, string> = {
   callActivity: "bpmn-call-activity",
   subProcess: "bpmn-subprocess",
   transaction: "bpmn-transaction",
+  adHocSubProcess: "bpmn-adhoc-subprocess",
   // Data artifacts
   dataObjectReference: "bpmn-data-object",
   dataStoreReference: "bpmn-data-store",
@@ -75,6 +76,7 @@ export const SHAPE_TO_BPMN: Record<string, string> = {
   "bpmn-subprocess": "subProcess",
   "bpmn-transaction": "transaction",
   "bpmn-event-subprocess": "subProcess", // export.ts sets triggeredByEvent=true
+  "bpmn-adhoc-subprocess": "adHocSubProcess",
   "bpmn-call-activity": "callActivity",
   // Data artifacts
   "bpmn-data-object": "dataObjectReference",

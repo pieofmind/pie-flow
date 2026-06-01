@@ -148,6 +148,7 @@ export const SHAPE_CATEGORIES: ShapeCategory[] = [
       // Remaining activities
       { shape: "bpmn-transaction", label: "Transaction", w: 200, h: 120, advanced: true },
       { shape: "bpmn-event-subprocess", label: "Event sub-process", w: 200, h: 120, advanced: true },
+      { shape: "bpmn-adhoc-subprocess", label: "Ad-hoc sub-process", w: 200, h: 120, advanced: true },
       { shape: "bpmn-call-activity", label: "Call activity", w: 120, h: 60, advanced: true },
       // Data artifacts
       { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
@@ -246,6 +247,7 @@ const ICONS: Record<string, string> = {
   // Đợt B — Activities
   "bpmn-transaction": I(`<rect x="3" y="8" width="26" height="16" rx="4" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="5.5" y="10.5" width="21" height="11" rx="2.5" fill="none" stroke="#1565c0" stroke-width="1.2"/>`),
   "bpmn-event-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M16 12v8M12 16h8" stroke="#1565c0" stroke-width="1.2"/>`),
+  "bpmn-adhoc-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="2"/><path d="M11 18 q1.5 -2.5 3 0 t3 0 t3 0" fill="none" stroke="#1565c0" stroke-width="1.4"/>`),
   "bpmn-call-activity": I(`<rect x="4" y="10" width="24" height="12" rx="3" fill="#fff" stroke="#1565c0" stroke-width="3"/>`),
   // Đợt B — Data artifacts
   "bpmn-data-collection": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/><path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`),

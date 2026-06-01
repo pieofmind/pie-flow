@@ -497,6 +497,94 @@
 .lk-pswatch { width: 26px; height: 26px; border-radius: 7px; cursor: pointer; border: 2px solid transparent; box-shadow: inset 0 0 0 1px var(--pg-border); }
 .lk-pswatch.on { border-color: var(--pg-text); }
 
+/* Obsidian right-sidebar BPMN properties leaf */
+.omniboard-properties-view {
+  padding: 0;
+  overflow-y: auto;
+  background: var(--pg-surface);
+}
+.omniboard-properties-view .obp-title {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 16px; border-bottom: 1px solid var(--pg-border);
+}
+.omniboard-properties-view .obp-title strong {
+  font-size: 15px; color: var(--pg-text);
+}
+.omniboard-properties-view .obp-kind {
+  font-size: 10px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--pg-text-soft);
+}
+.omniboard-properties-view .obp-empty {
+  padding: 20px 16px; color: var(--pg-text-soft);
+  font-size: 13px; line-height: 1.5;
+}
+.omniboard-properties-view .obp-textarea {
+  resize: vertical; min-height: 90px;
+}
+.omniboard-properties-view .obp-invalid {
+  border-color: #d33 !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #d33 20%, transparent) !important;
+}
+.omniboard-properties-view .obp-kv {
+  display: flex; flex-direction: column; gap: 8px; margin: 8px 0;
+}
+.omniboard-diagram-picker .obp-kv {
+  display: flex; flex-direction: column; gap: 8px; margin: 8px 0;
+}
+.omniboard-diagram-picker .obi-row {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--pg-border);
+  background: var(--pg-bg);
+  color: var(--pg-text);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  cursor: pointer;
+}
+.omniboard-diagram-picker .obi-row:hover {
+  background: var(--pg-hover);
+  border-color: var(--pg-border-strong);
+}
+.omniboard-diagram-picker .obi-row .obi-code {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--pg-text-soft);
+}
+.omniboard-diagram-picker .obi-row .obi-msg {
+  font-size: 12px;
+}
+.omniboard-issues-view .obi-row {
+  width: calc(100% - 24px);
+  margin: 8px 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--pg-border);
+  background: var(--pg-bg);
+  color: var(--pg-text);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  cursor: pointer;
+}
+.omniboard-issues-view .obi-row.warn { border-color: #d29a25; }
+.omniboard-issues-view .obi-row.error { border-color: #cb4b4b; }
+.omniboard-issues-view .obi-row .obi-code {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--pg-text-soft);
+}
+.omniboard-issues-view .obi-row .obi-msg {
+  font-size: 12px;
+}
+
 /* shift canvas chrome so it doesn't sit under the right props panel */
 .lk-canvas-help { margin-right: 0; }
 
@@ -736,6 +824,13 @@
 /* Đợt B — sibling Activity types (Transaction / Event sub-process / Call activity) */
 .lk-root .bp-frame.is-transaction { box-shadow: inset 0 0 0 2.5px var(--pg-surface), inset 0 0 0 4px var(--pg-border-strong), var(--sh-sm); }
 .lk-root .bp-frame.is-event-sub { border-style: dashed; }
+/* Phase D — BPMN properties panel additions */
+.lk-root .lk-ptextarea { width: 100%; box-sizing: border-box; padding: 6px; border-radius: 6px; border: 1px solid var(--pg-border); background: var(--pg-surface); color: var(--pg-text); font-size: 12px; resize: vertical; }
+.lk-root .lk-pselect { width: 100%; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--pg-border); background: var(--pg-surface); color: var(--pg-text); font-size: 12px; }
+.lk-root .lk-pcolor { flex: 1; }
+.lk-root .lk-pcolor-swatch { width: 20px; height: 20px; border-radius: 4px; border: 1px solid var(--pg-border); flex-shrink: 0; }
+/* Đợt C — Ad-hoc sub-process: tilde marker bottom-right of the frame */
+.lk-root .bp-frame.is-adhoc .bp-adhoc-mark { position: absolute; bottom: 4px; right: 10px; font-size: 18px; line-height: 1; color: var(--pg-text-muted); font-weight: 600; pointer-events: none; }
 .lk-root .bp-task.is-call { border-width: 3px; }
 /* Đợt A — Event interrupting flag (boundary / event-subprocess start) */
 .lk-root .bp-event.is-non-interrupting { border-style: dashed !important; }
@@ -762,12 +857,17 @@
 .lk-root .bp-pool { width: 100%; height: 100%; box-sizing: border-box; display: flex; flex-direction: row;
   border: 1.6px solid var(--pg-border-strong); background: transparent; box-shadow: var(--sh-sm);
   overflow: hidden; border-radius: 6px; }
+.lk-root .bp-pool.is-vertical { flex-direction: column; }
 .lk-root .bp-pool-head { width: 30px; flex: 0 0 auto;
   background: color-mix(in srgb, var(--pg-accent) 8%, var(--pg-surface));
   border-right: 1.6px solid var(--pg-border-strong);
   display: flex; align-items: center; justify-content: center;
   writing-mode: vertical-rl; transform: rotate(180deg);
   font-size: 13px; font-weight: 700; color: var(--pg-text); padding: 6px 0; cursor: text; }
+.lk-root .bp-pool.is-vertical .bp-pool-head {
+  width: auto; height: 30px; writing-mode: horizontal-tb; transform: none;
+  border-right: none; border-bottom: 1.6px solid var(--pg-border-strong);
+}
 .lk-root .bp-pool-body { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
 .lk-root .bp-pool-lane { flex: 1 1 auto; display: flex; flex-direction: row; min-height: 60px;
   border-bottom: 1.4px solid var(--pg-border-strong); }
@@ -778,6 +878,14 @@
   writing-mode: vertical-rl; transform: rotate(180deg);
   font-size: 11px; font-weight: 700; color: var(--pg-text-muted); padding: 6px 0; cursor: text; }
 .lk-root .bp-pool-lane-body { flex: 1 1 auto; min-width: 0; position: relative; }
+.lk-root .bp-pool.is-blackbox .bp-pool-body { display: none; }
+.lk-root .bp-pool-blackbox-body {
+  flex: 1 1 auto; min-width: 0;
+  display: grid; place-items: center;
+  color: var(--pg-text-muted);
+  font-size: 11px; letter-spacing: .03em;
+  background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--pg-accent) 6%, transparent) 0 8px, transparent 8px 16px);
+}
 
 /* Sequence — extended lifelines / destroy / combined fragments */
 .lk-root .sq-destroy { width: 100%; height: 100%; display: grid; place-items: center; color: #C2603F; font-size: 28px; font-weight: 800; }

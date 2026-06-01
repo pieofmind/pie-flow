@@ -3,10 +3,12 @@ import type DiagramsPlugin from "./main";
 
 export interface DiagramsSettings {
   defaultLayout: "LR" | "TB";
+  validateBpmnBeforeExport: boolean;
 }
 
 export const DEFAULT_SETTINGS: DiagramsSettings = {
   defaultLayout: "LR",
+  validateBpmnBeforeExport: true,
 };
 
 export class DiagramsSettingTab extends PluginSettingTab {
@@ -32,6 +34,18 @@ export class DiagramsSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.defaultLayout)
           .onChange(async (v) => {
             this.plugin.settings.defaultLayout = v as "LR" | "TB";
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Validate BPMN before export")
+      .setDesc("Run semantic BPMN checks and block BPMN export when errors are present.")
+      .addToggle((t) =>
+        t
+          .setValue(this.plugin.settings.validateBpmnBeforeExport)
+          .onChange(async (v) => {
+            this.plugin.settings.validateBpmnBeforeExport = v;
             await this.plugin.saveSettings();
           })
       );

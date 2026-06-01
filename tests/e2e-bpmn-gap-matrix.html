@@ -1,0 +1,115 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>BPMN Gap Matrix (Fail Fast)</title>
+<style>
+body{margin:0;font-family:system-ui;background:#FFF4DE}
+#host{width:1280px;height:720px;border:1px solid #ccc}
+#log{padding:8px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;background:#fff;max-height:340px;overflow:auto}
+.pass{color:#0a0}.fail{color:#c00;font-weight:600}.skip{color:#666}
+</style>
+<link rel="stylesheet" href="../styles.css"/></head><body>
+<div id="host" class="da-board-view"></div><div id="log"></div>
+<script src="../harness/harness.js?v=gapM1"></script>
+<script>
+const log = document.getElementById('log');
+const w = (s, c='') => { const d=document.createElement('div'); if(c)d.className=c; d.textContent=s; log.appendChild(d); };
+const results = [];
+const FAIL_FAST = true;
+const a = (c, m) => { if (!c) throw new Error(m); };
+
+const H = '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="d" targetNamespace="x">';
+
+const XML_GATEWAY = H + `<bpmn:process id="P"><bpmn:exclusiveGateway id="g" default="fd"/><bpmn:task id="ta"/><bpmn:task id="tb"/><bpmn:sequenceFlow id="fc" sourceRef="g" targetRef="ta"><bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">\${ok}</bpmn:conditionExpression></bpmn:sequenceFlow><bpmn:sequenceFlow id="fd" sourceRef="g" targetRef="tb"/></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="g"><dc:Bounds x="120" y="120" width="50" height="50"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="ta"><dc:Bounds x="260" y="60" width="100" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="tb"><dc:Bounds x="260" y="180" width="100" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNEdge bpmnElement="fc"><di:waypoint x="170" y="135"/><di:waypoint x="260" y="90"/></bpmndi:BPMNEdge><bpmndi:BPMNEdge bpmnElement="fd"><di:waypoint x="170" y="155"/><di:waypoint x="260" y="210"/></bpmndi:BPMNEdge></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_MESSAGE = H + `<bpmn:collaboration id="C"><bpmn:participant id="pA" processRef="PA"/><bpmn:participant id="pB" processRef="PB"/><bpmn:messageFlow id="mf" sourceRef="tA" targetRef="tB"/></bpmn:collaboration><bpmn:process id="PA"><bpmn:task id="tA"/></bpmn:process><bpmn:process id="PB"><bpmn:task id="tB"/></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="C"><bpmndi:BPMNShape bpmnElement="pA" isHorizontal="true"><dc:Bounds x="40" y="40" width="700" height="140"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="pB" isHorizontal="true"><dc:Bounds x="40" y="220" width="700" height="140"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="tA"><dc:Bounds x="180" y="80" width="100" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="tB"><dc:Bounds x="180" y="270" width="100" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNEdge bpmnElement="mf"><di:waypoint x="230" y="140"/><di:waypoint x="230" y="270"/></bpmndi:BPMNEdge></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_ASSOC = H + `<bpmn:process id="P"><bpmn:task id="t"/><bpmn:textAnnotation id="an"><bpmn:text>Note</bpmn:text></bpmn:textAnnotation><bpmn:association id="as" sourceRef="an" targetRef="t" associationDirection="One"/></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="t"><dc:Bounds x="300" y="160" width="120" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="an"><dc:Bounds x="80" y="80" width="180" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNEdge bpmnElement="as"><di:waypoint x="170" y="140"/><di:waypoint x="300" y="190"/></bpmndi:BPMNEdge></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_NESTED = H + `<bpmn:process id="P"><bpmn:subProcess id="sp1"><bpmn:task id="inner1"/><bpmn:subProcess id="sp2"><bpmn:task id="inner2"/></bpmn:subProcess></bpmn:subProcess></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="sp1" isExpanded="true"><dc:Bounds x="200" y="50" width="400" height="200"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="inner1"><dc:Bounds x="240" y="100" width="100" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="sp2" isExpanded="true"><dc:Bounds x="380" y="100" width="200" height="120"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="inner2"><dc:Bounds x="420" y="140" width="100" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_LANE = H + `<bpmn:collaboration id="C"><bpmn:participant id="pool1" processRef="P"/></bpmn:collaboration><bpmn:process id="P"><bpmn:laneSet><bpmn:lane id="L1"><bpmn:flowNodeRef>t1</bpmn:flowNodeRef></bpmn:lane><bpmn:lane id="L2"><bpmn:flowNodeRef>t2</bpmn:flowNodeRef></bpmn:lane></bpmn:laneSet><bpmn:task id="t1"/><bpmn:task id="t2"/></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="C"><bpmndi:BPMNShape bpmnElement="pool1" isHorizontal="true"><dc:Bounds x="40" y="40" width="700" height="300"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="L1" isHorizontal="true"><dc:Bounds x="80" y="40" width="660" height="150"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="L2" isHorizontal="true"><dc:Bounds x="80" y="190" width="660" height="150"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="t1"><dc:Bounds x="200" y="80" width="100" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="t2"><dc:Bounds x="200" y="240" width="100" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_BLACKBOX_VERTICAL = H + `<bpmn:collaboration id="C"><bpmn:participant id="p1"/></bpmn:collaboration><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="C"><bpmndi:BPMNShape bpmnElement="p1" isHorizontal="false"><dc:Bounds x="100" y="50" width="280" height="420"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_DOC_CAMUNDA = '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="d" targetNamespace="x"><bpmn:process id="P"><bpmn:userTask id="t" camunda:assignee="john" camunda:formKey="forms/review"><bpmn:documentation>Doc body</bpmn:documentation><bpmn:extensionElements><camunda:properties><camunda:property name="priority" value="high"/></camunda:properties></bpmn:extensionElements></bpmn:userTask></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="t"><dc:Bounds x="100" y="100" width="120" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>';
+const XML_MULTI_DIAGRAM = H + `<bpmn:process id="P"><bpmn:task id="t"/></bpmn:process><bpmndi:BPMNDiagram id="d1"><bpmndi:BPMNPlane bpmnElement="P"></bpmndi:BPMNPlane></bpmndi:BPMNDiagram><bpmndi:BPMNDiagram id="d2"><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="t"><dc:Bounds x="42" y="24" width="120" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_DATA_ASSOC = H + `<bpmn:process id="P"><bpmn:dataObjectReference id="d1"/><bpmn:task id="t"><bpmn:dataInputAssociation id="dia1"><bpmn:sourceRef>d1</bpmn:sourceRef><bpmn:targetRef>t</bpmn:targetRef></bpmn:dataInputAssociation></bpmn:task></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="t"><dc:Bounds x="280" y="160" width="120" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="d1"><dc:Bounds x="100" y="120" width="50" height="70"/></bpmndi:BPMNShape><bpmndi:BPMNEdge bpmnElement="dia1"><di:waypoint x="150" y="155"/><di:waypoint x="280" y="190"/></bpmndi:BPMNEdge></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_LABEL_BOUNDS = H + `<bpmn:process id="P"><bpmn:task id="a" name="A"/><bpmn:task id="b" name="B"/><bpmn:sequenceFlow id="f1" sourceRef="a" targetRef="b" name="hello"/></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="a"><dc:Bounds x="80" y="120" width="120" height="60"/><bpmndi:BPMNLabel><dc:Bounds x="110" y="200" width="60" height="20"/></bpmndi:BPMNLabel></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="b"><dc:Bounds x="320" y="120" width="120" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNEdge bpmnElement="f1"><di:waypoint x="200" y="150"/><di:waypoint x="320" y="150"/><bpmndi:BPMNLabel><dc:Bounds x="235" y="120" width="70" height="20"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_SUBPROCESS_COLLAPSED = H + `<bpmn:process id="P"><bpmn:subProcess id="sp"><bpmn:task id="inner"/></bpmn:subProcess></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="sp" isExpanded="false"><dc:Bounds x="100" y="100" width="160" height="80"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="inner"><dc:Bounds x="120" y="120" width="100" height="40"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_LINK_PAIR = H + `<bpmn:process id="P"><bpmn:intermediateThrowEvent id="lt" name="L"><bpmn:linkEventDefinition/></bpmn:intermediateThrowEvent><bpmn:intermediateCatchEvent id="lc" name="L"><bpmn:linkEventDefinition/></bpmn:intermediateCatchEvent></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="lt"><dc:Bounds x="120" y="120" width="36" height="36"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="lc"><dc:Bounds x="260" y="120" width="36" height="36"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+const XML_GROUP_CATEGORY = H + `<bpmn:process id="P"><bpmn:group id="g1" categoryValueRef="cv1"/></bpmn:process><bpmn:category id="cat1"><bpmn:categoryValue id="cv1" value="Risk"/></bpmn:category><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="g1"><dc:Bounds x="100" y="100" width="260" height="120"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+const CASES = [
+  { id: "EDGE-MESSAGE-FLOW", level: "implemented", fn: async () => { await window.__import.bpmn(XML_MESSAGE); const mf = window.__ob.getModel().edges.find(e => e.id === "mf"); a(mf?.kind === "message", `kind=${mf?.kind}`); } },
+  { id: "EDGE-ASSOCIATION", level: "implemented", fn: async () => { await window.__import.bpmn(XML_ASSOC); const as = window.__ob.getModel().edges.find(e => e.id === "as"); a(as?.kind === "association", `kind=${as?.kind}`); a(as?.attrs?.associationDirection === "One", `dir=${as?.attrs?.associationDirection}`); } },
+  { id: "EDGE-CONDITIONAL-DEFAULT", level: "implemented", fn: async () => { const r = await window.__import.bpmn(XML_GATEWAY); const m = window.__ob.getModel(); a(m.edges.find(e=>e.id==="fc")?.attrs?.condition?.includes("ok"), "missing condition"); a(m.edges.find(e=>e.id==="fd")?.attrs?.isDefault === true, "missing default"); const xml = await window.__export.bpmn(m, r.sourceMeta); a(/conditionExpression/.test(xml), "condition not serialized"); a(/default="fd"/.test(xml), "default not serialized"); } },
+  { id: "CONTAINMENT-SUBPROCESS", level: "implemented", fn: async () => { await window.__import.bpmn(XML_NESTED); const m = window.__ob.getModel(); a(m.nodes.find(n=>n.id==="inner1")?.parentId === "sp1", "inner1 parent mismatch"); a(m.nodes.find(n=>n.id==="inner2")?.parentId === "sp2", "inner2 parent mismatch"); } },
+  { id: "SUBPROCESS-EXPAND-COLLAPSE", level: "implemented", fn: async () => { const r = await window.__import.bpmn(XML_SUBPROCESS_COLLAPSED); const m = window.__ob.getModel(); const sp = m.nodes.find(n=>n.id==="sp"); a(sp?.attrs?.collapsed === true, `collapsed=${sp?.attrs?.collapsed}`); sp.attrs.collapsed = false; const xml = await window.__export.bpmn(m, r.sourceMeta); a(/bpmnElement="sp"[^>]*isExpanded="true"/.test(xml), "isExpanded not toggled true"); } },
+  { id: "SWIMLANE-LANE-MEMBERSHIP", level: "implemented", fn: async () => { const r = await window.__import.bpmn(XML_LANE); const m = window.__ob.getModel(); a(m.nodes.find(n=>n.id==="t1")?.laneId === "L1", "t1 lane"); m.nodes.find(n=>n.id==="t1").laneId = "L2"; const xml = await window.__export.bpmn(m, r.sourceMeta); a(/<bpmn:lane[^>]*id="L2"[\s\S]*flowNodeRef[\s\S]*t1/.test(xml), "flowNodeRef not rebuilt"); } },
+  { id: "POOL-VERTICAL-BLACKBOX", level: "implemented", fn: async () => { await window.__import.bpmn(XML_BLACKBOX_VERTICAL); const p = window.__ob.getModel().nodes.find(n=>n.id==="p1"); a(p?.attrs?.blackBox === true, "blackbox missing"); a(p?.attrs?.poolHorizontal === false, "vertical missing"); } },
+  { id: "META-DOC-EXTENSIONS", level: "implemented", fn: async () => { await window.__import.bpmn(XML_DOC_CAMUNDA); const t = window.__ob.getModel().nodes.find(n=>n.id==="t"); a(t?.attrs?.bpmnDoc === "Doc body", "doc missing"); a(t?.attrs?.camunda?.assignee === "john", "assignee missing"); } },
+  { id: "DI-MULTI-DIAGRAM", level: "implemented", fn: async () => { const r = await window.__import.bpmn(XML_MULTI_DIAGRAM); a((r.sourceMeta?.payload?.diagramIndex ?? -1) === 1, `diagramIndex=${r.sourceMeta?.payload?.diagramIndex}`); } },
+  { id: "DI-LABEL-BOUNDS", level: "implemented", fn: async () => {
+    const r = await window.__import.bpmn(XML_LABEL_BOUNDS);
+    const m = window.__ob.getModel();
+    const aNode = m.nodes.find(n => n.id === "a");
+    const f1 = m.edges.find(e => e.id === "f1");
+    a(!!aNode?.attrs?.labelOffset, "node labelOffset missing on import");
+    a(!!f1?.labelPos, "edge labelPos missing on import");
+    const xml = await window.__export.bpmn(m);
+    a(/<bpmndi:BPMNShape[^>]*bpmnElement="a"[\s\S]*?<bpmndi:BPMNLabel>/.test(xml), "node BPMNLabel not exported");
+    a(/<bpmndi:BPMNEdge[^>]*bpmnElement="f1"[\s\S]*?<bpmndi:BPMNLabel>/.test(xml), "edge BPMNLabel not exported");
+  } },
+  { id: "DATA-DATAASSOCIATION", level: "implemented", fn: async () => { await window.__import.bpmn(XML_DATA_ASSOC); const m = window.__ob.getModel(); const hasDataAssoc = m.edges.some(e => (e.kind === "association" || e.kind === "data-association") && e.id === "dia1"); a(hasDataAssoc, "DataAssociation not mapped to canvas edge"); } },
+  // Not-yet-supported probes (signal only, do not fail gate)
+  { id: "NYS-IO-SPEC-RICH-EDITOR", level: "not-yet-supported", fn: async () => { await window.__import.bpmn(XML_DATA_ASSOC); const t = window.__ob.getModel().nodes.find(n=>n.id==="t"); return !!(t?.attrs?.ioSpecification || t?.attrs?.dataInputs || t?.attrs?.dataOutputs); } },
+  { id: "NYS-LINK-PAIRING-UX", level: "not-yet-supported", fn: async () => { await window.__import.bpmn(XML_LINK_PAIR); const hasHint = !!document.querySelector('.lk-link-pair-hint,[data-role="link-pair-hint"]'); return hasHint; } },
+  { id: "NYS-GROUP-CATEGORYVALUE", level: "not-yet-supported", fn: async () => { const r = await window.__import.bpmn(XML_GROUP_CATEGORY); const xml = await window.__export.bpmn(window.__ob.getModel(), r.sourceMeta); return /categoryValueRef=/.test(xml); } },
+  { id: "NYS-QUICKFIX-REPLACE-MENU", level: "not-yet-supported", fn: async () => { const hasQuickFix = !!document.querySelector('.lk-replace-menu,[data-role=\"bpmn-quickfix\"]'); return hasQuickFix; } },
+];
+
+async function runAll() {
+  let failedAt = null;
+  for (let i = 0; i < CASES.length; i++) {
+    const tc = CASES[i];
+    if (failedAt && tc.level === "implemented") {
+      results.push({ id: tc.id, ok: false, skipped: true });
+      w(`⏭️  ${tc.id}  skipped (fail-fast after ${failedAt})`, "skip");
+      continue;
+    }
+    try {
+      const probe = await tc.fn();
+      if (tc.level === "not-yet-supported") {
+        results.push({ id: tc.id, level: tc.level, ok: true, probe: !!probe });
+        w(`ℹ️ ${tc.id}  observed=${!!probe}`, "skip");
+      } else {
+        results.push({ id: tc.id, level: tc.level, ok: true });
+        w(`✅ ${tc.id}`, "pass");
+      }
+    } catch (e) {
+      const err = String(e?.message || e);
+      if (tc.level === "not-yet-supported") {
+        results.push({ id: tc.id, level: tc.level, ok: true, probe: false, note: err });
+        w(`ℹ️ ${tc.id}  observed=false (${err})`, "skip");
+      } else {
+        results.push({ id: tc.id, level: tc.level, ok: false, err });
+        w(`❌ ${tc.id}  ${err}`, "fail");
+        failedAt = tc.id;
+        if (FAIL_FAST) break;
+      }
+    }
+  }
+  if (failedAt) {
+    for (const tc of CASES.slice(results.length).filter((x) => x.level === "implemented")) {
+      results.push({ id: tc.id, ok: false, skipped: true });
+      w(`⏭️  ${tc.id}  skipped (fail-fast after ${failedAt})`, "skip");
+    }
+  }
+  const impl = results.filter((r) => (r.level ?? "implemented") === "implemented");
+  const nys = results.filter((r) => r.level === "not-yet-supported");
+  const passed = impl.filter(r => r.ok).length;
+  const failed = impl.filter(r => !r.ok && !r.skipped).length;
+  const skipped = results.filter(r => r.skipped).length;
+  const nysObservedSupported = nys.filter((r) => r.probe === true).length;
+  const nysObservedUnsupported = nys.filter((r) => r.probe === false).length;
+  window.__results = { passed, failed, skipped, total: impl.length, failedAt, results, nysObservedSupported, nysObservedUnsupported, nysTotal: nys.length };
+  w("", "");
+  w(`SUMMARY (implemented): ${passed} passed / ${failed} failed / ${skipped} skipped`, failed ? "fail" : "pass");
+  w(`SUMMARY (not-yet-supported probes): supported=${nysObservedSupported} unsupported=${nysObservedUnsupported} total=${nys.length}`, "skip");
+  window.__done = true;
+}
+runAll();
+</script></body></html>

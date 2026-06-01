@@ -68,6 +68,8 @@ export interface NodeExtra {
   cols?: ErdCol[]; fields?: string[]; methods?: string[]; who?: string;
   labelOffset?: { x: number; y: number };
   lanes?: Array<{ id: string; label: string }>;  // BPMN pool lanes (top→bottom)
+  poolHorizontal?: boolean;
+  blackBox?: boolean;
   // ── BPMN 2.0 extras (Đợt A, 2026-06-01) ──
   /** Event trigger type (OMG): message, timer, signal, error, escalation, compensation,
    *  conditional, link, cancel, terminate, multiple, parallel-multiple. Empty = "none/plain". */
@@ -82,6 +84,10 @@ export interface NodeExtra {
   /** Activity markers stacked at the bottom of a task/sub-process (multi-select):
    *  "loop" | "mi-par" | "mi-seq" | "adhoc" | "compensation" | "subprocess". */
   markers?: BpmnMarker[];
+  /** BPMN DI.isExpanded flag (Phase C). Sub-process / Transaction / Event-sub.
+   *  true (default) → render frame with children in-place. false → render as a
+   *  task-sized collapsed box with a [+] marker. Round-trips to BPMNShape.isExpanded. */
+  collapsed?: boolean;
 }
 
 export type BpmnTrigger =
@@ -340,6 +346,7 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
     case "bpmn-subprocess": return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L || "Sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
     case "bpmn-transaction": return `<div class="bp-frame bp-sub is-transaction"><span class="bp-frame-lbl">${L || "Transaction"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
     case "bpmn-event-subprocess": return `<div class="bp-frame bp-sub is-event-sub"><span class="bp-frame-lbl">${L || "Event sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
+    case "bpmn-adhoc-subprocess": return `<div class="bp-frame bp-sub is-adhoc"><span class="bp-frame-lbl">${L || "Ad-hoc sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}<span class="bp-adhoc-mark">∼</span></div>`;
     case "bpmn-call-activity": return `<div class="bp-task is-call">${nl(L) || "Call activity"}${renderMarkers(extra?.markers)}</div>`;
     // Data artifacts (Đợt A — Collection/Input/Output)
     case "bpmn-data-object": return `<div class="bp-dataobj"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L}</span></div>`;
@@ -403,7 +410,12 @@ function bpGateway(mark: string, label: string, extra?: NodeExtra): string {
 }
 /** BPMN Pool with N lanes (composite). Default: 1 lane "Lane 1" when extra.lanes empty. */
 function bpPool(label: string, extra?: NodeExtra): string {
+  if (extra?.blackBox) {
+    const orient = extra.poolHorizontal === false ? " is-vertical" : "";
+    return `<div class="bp-pool is-blackbox${orient}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-blackbox-body"><span>Black-box participant</span></div></div>`;
+  }
   const lanes = extra?.lanes?.length ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
+  const orient = extra?.poolHorizontal === false ? " is-vertical" : "";
   const laneHtml = lanes.map((ln) => `<div class="bp-pool-lane" data-lane-id="${esc(ln.id)}"><div class="bp-pool-lane-head">${esc(ln.label)}</div><div class="bp-pool-lane-body"></div></div>`).join("");
-  return `<div class="bp-pool"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
+  return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
 }

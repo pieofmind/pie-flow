@@ -7,6 +7,8 @@ import { AdapterRegistry } from "./core/registry";
 import { EditModal } from "./core/modal";
 import { readObsidianTheme } from "./core/theme";
 import { DiagramCard } from "./ui/DiagramCard";
+import { OMNIBOARD_PROPERTIES_VIEW_TYPE, OmniboardPropertiesView } from "./ui/PropertiesPanel";
+import { BpmnIssuesView, OMNIBOARD_ISSUES_VIEW_TYPE } from "./ui/BpmnIssuesView";
 import type { DiagramAdapter } from "./core/adapter";
 import { DiagramsSettings, DEFAULT_SETTINGS, DiagramsSettingTab } from "./settings";
 
@@ -39,7 +41,9 @@ export default class DiagramsPlugin extends Plugin {
 
     // ── Excalidraw-style board: shares the .md extension with Obsidian, but
     // auto-swaps to the board view when the file's frontmatter marks it as one.
-    this.registerView(BOARD_VIEW_TYPE, (leaf) => new BoardView(leaf));
+    this.registerView(BOARD_VIEW_TYPE, (leaf) => new BoardView(leaf, this));
+    this.registerView(OMNIBOARD_PROPERTIES_VIEW_TYPE, (leaf) => new OmniboardPropertiesView(leaf));
+    this.registerView(OMNIBOARD_ISSUES_VIEW_TYPE, (leaf) => new BpmnIssuesView(leaf));
     this.registerEvent(
       this.app.workspace.on("file-open", (file) => void this.maybeSwapToBoardView(file))
     );
@@ -106,6 +110,30 @@ export default class DiagramsPlugin extends Plugin {
         if (checking) return true;
         void leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
         return true;
+      },
+    });
+
+    this.addCommand({
+      id: "open-omniboard-properties",
+      name: "Open Omniboard BPMN properties",
+      callback: async () => {
+        const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_PROPERTIES_VIEW_TYPE)[0];
+        const leaf = existing ?? this.app.workspace.getRightLeaf(false);
+        if (!leaf) return;
+        await leaf.setViewState({ type: OMNIBOARD_PROPERTIES_VIEW_TYPE, active: true });
+        this.app.workspace.revealLeaf(leaf);
+      },
+    });
+
+    this.addCommand({
+      id: "open-omniboard-bpmn-issues",
+      name: "Open Omniboard BPMN issues",
+      callback: async () => {
+        const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_ISSUES_VIEW_TYPE)[0];
+        const leaf = existing ?? this.app.workspace.getRightLeaf(false);
+        if (!leaf) return;
+        await leaf.setViewState({ type: OMNIBOARD_ISSUES_VIEW_TYPE, active: true });
+        this.app.workspace.revealLeaf(leaf);
       },
     });
 

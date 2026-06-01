@@ -8,11 +8,14 @@ registerAllShapes();
 const host = document.getElementById("host")!;
 const canvas = new OmniboardCanvas(host, SHAPE_CATEGORIES, () => {});
 (window as any).__import = {
-  bpmn: async (raw: string) => { const r = await importBpmn(raw); canvas.loadModel(r.model); return { nodes: r.model.nodes.length, edges: r.model.edges.length, warnings: r.warnings }; },
+  bpmn: async (raw: string) => { const r = await importBpmn(raw); canvas.loadModel(r.model); return { nodes: r.model.nodes.length, edges: r.model.edges.length, warnings: r.warnings, sourceMeta: r.sourceMeta }; },
   dbml: (raw: string) => { const r = importDbml(raw); canvas.loadModel(r.model); return { nodes: r.model.nodes.length, edges: r.model.edges.length, warnings: r.warnings }; },
 };
 (window as any).__export = {
-  bpmn: async (model: unknown) => exportBpmn(model as Parameters<typeof exportBpmn>[0]),
+  bpmn: async (model: unknown, meta?: unknown) => exportBpmn(
+    model as Parameters<typeof exportBpmn>[0],
+    meta as Parameters<typeof exportBpmn>[1],
+  ),
 };
 canvas.loadModel({ nodes: [
   { id: "p", shape: "fc-process", x: 50, y: 120, width: 130, height: 56, label: "Xử lý" },

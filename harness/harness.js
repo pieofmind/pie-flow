@@ -6,6 +6,7 @@
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
   var __esm = (fn2, res) => function __init() {
     return fn2 && (res = (0, fn2[__getOwnPropNames(fn2)[0]])(fn2 = 0)), res;
   };
@@ -32,6 +33,7 @@
     isNodeMode || !mod3 || !mod3.__esModule ? __defProp(target, "default", { value: mod3, enumerable: true }) : target,
     mod3
   ));
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
   // node_modules/mousetrap/mousetrap.js
   var require_mousetrap = __commonJS({
@@ -813,7 +815,7 @@
       wblk = function(dat, out, final, syms, lf, df, eb, li, bs, bl, p4) {
         wbits(out, p4++, final);
         ++lf[256];
-        var _a2 = hTree(lf, 15), dlt = _a2.t, mlb = _a2.l;
+        var _a3 = hTree(lf, 15), dlt = _a3.t, mlb = _a3.l;
         var _b2 = hTree(df, 15), ddt = _b2.t, mdb = _b2.l;
         var _c = lc(dlt), lclt = _c.c, nlc = _c.n;
         var _d = lc(ddt), lcdt = _d.c, ndc = _d.n;
@@ -1158,31 +1160,6 @@
       };
       IOBuffer = class _IOBuffer {
         /**
-         * Reference to the internal ArrayBuffer object.
-         */
-        buffer;
-        /**
-         * Byte length of the internal ArrayBuffer.
-         */
-        byteLength;
-        /**
-         * Byte offset of the internal ArrayBuffer.
-         */
-        byteOffset;
-        /**
-         * Byte length of the internal ArrayBuffer.
-         */
-        length;
-        /**
-         * The current offset of the buffer's pointer.
-         */
-        offset;
-        lastWrittenByte;
-        littleEndian;
-        _data;
-        _mark;
-        _marks;
-        /**
          * Create a new IOBuffer.
          * @param data - The data to construct the IOBuffer with.
          * If data is a number, it will be the new buffer's length<br>
@@ -1193,6 +1170,31 @@
          * @returns A new IOBuffer instance.
          */
         constructor(data2 = defaultByteLength, options = {}) {
+          /**
+           * Reference to the internal ArrayBuffer object.
+           */
+          __publicField(this, "buffer");
+          /**
+           * Byte length of the internal ArrayBuffer.
+           */
+          __publicField(this, "byteLength");
+          /**
+           * Byte offset of the internal ArrayBuffer.
+           */
+          __publicField(this, "byteOffset");
+          /**
+           * Byte length of the internal ArrayBuffer.
+           */
+          __publicField(this, "length");
+          /**
+           * The current offset of the buffer's pointer.
+           */
+          __publicField(this, "offset");
+          __publicField(this, "lastWrittenByte");
+          __publicField(this, "littleEndian");
+          __publicField(this, "_data");
+          __publicField(this, "_mark");
+          __publicField(this, "_marks");
           let dataIsGiven = false;
           if (typeof data2 === "number") {
             data2 = new ArrayBuffer(data2);
@@ -6296,26 +6298,26 @@
       init_text2();
       init_internalTypes();
       PngDecoder = class extends IOBuffer {
-        _checkCrc;
-        _inflator;
-        _png;
-        _apng;
-        _end;
-        _hasPalette;
-        _palette;
-        _hasTransparency;
-        _transparency;
-        _compressionMethod;
-        _filterMethod;
-        _interlaceMethod;
-        _colorType;
-        _isAnimated;
-        _numberOfFrames;
-        _numberOfPlays;
-        _frames;
-        _writingDataChunks;
         constructor(data2, options = {}) {
           super(data2);
+          __publicField(this, "_checkCrc");
+          __publicField(this, "_inflator");
+          __publicField(this, "_png");
+          __publicField(this, "_apng");
+          __publicField(this, "_end");
+          __publicField(this, "_hasPalette");
+          __publicField(this, "_palette");
+          __publicField(this, "_hasTransparency");
+          __publicField(this, "_transparency");
+          __publicField(this, "_compressionMethod");
+          __publicField(this, "_filterMethod");
+          __publicField(this, "_interlaceMethod");
+          __publicField(this, "_colorType");
+          __publicField(this, "_isAnimated");
+          __publicField(this, "_numberOfFrames");
+          __publicField(this, "_numberOfPlays");
+          __publicField(this, "_frames");
+          __publicField(this, "_writingDataChunks");
           const { checkCrc: checkCrc2 = false } = options;
           this._checkCrc = checkCrc2;
           this._inflator = new Inflate_1();
@@ -6696,10 +6698,11 @@
           }
         }
         decodeImage() {
+          var _a3;
           if (this._inflator.err) {
             throw new Error(`Error while decompressing the data: ${this._inflator.err}`);
           }
-          const data2 = this._isAnimated ? (this._frames?.at(0)).data : this._inflator.result;
+          const data2 = this._isAnimated ? ((_a3 = this._frames) == null ? void 0 : _a3.at(0)).data : this._inflator.result;
           if (this._filterMethod !== FilterMethod.ADAPTIVE) {
             throw new Error(`Filter method ${this._filterMethod} not supported`);
           }
@@ -7479,7 +7482,7 @@
           if (!options) {
             options = { lineBreak: "normal", wordBreak: "normal" };
           }
-          var _a2 = codePointsToCharacterClasses(codePoints, options.lineBreak), indicies = _a2[0], classTypes = _a2[1], isLetterNumber = _a2[2];
+          var _a3 = codePointsToCharacterClasses(codePoints, options.lineBreak), indicies = _a3[0], classTypes = _a3[1], isLetterNumber = _a3[2];
           if (options.wordBreak === "break-all" || options.wordBreak === "break-word") {
             classTypes = classTypes.map(function(type) {
               return [NU, AL, SA].indexOf(type) !== -1 ? ID : type;
@@ -7507,7 +7510,7 @@
         );
         var LineBreaker = function(str, options) {
           var codePoints = toCodePoints$1(str);
-          var _a2 = cssFormattedClasses(codePoints, options), indicies = _a2[0], classTypes = _a2[1], forbiddenBreakpoints = _a2[2];
+          var _a3 = cssFormattedClasses(codePoints, options), indicies = _a3[0], classTypes = _a3[1], forbiddenBreakpoints = _a3[2];
           var length2 = codePoints.length;
           var lastEnd = 0;
           var nextIndex = 0;
@@ -8149,7 +8152,7 @@
               return [stringToNumber(repr), type];
             };
             Tokenizer2.prototype.consumeNumericToken = function() {
-              var _a2 = this.consumeNumber(), number = _a2[0], flags = _a2[1];
+              var _a3 = this.consumeNumber(), number = _a3[0], flags = _a3[1];
               var c1 = this.peekCodePoint(0);
               var c22 = this.peekCodePoint(1);
               var c32 = this.peekCodePoint(2);
@@ -8538,7 +8541,7 @@
         var rgb = function(_context, args) {
           var tokens = args.filter(nonFunctionArgSeparator);
           if (tokens.length === 3) {
-            var _a2 = tokens.map(getTokenColorValue), r2 = _a2[0], g2 = _a2[1], b2 = _a2[2];
+            var _a3 = tokens.map(getTokenColorValue), r2 = _a3[0], g2 = _a3[1], b2 = _a3[2];
             return pack(r2, g2, b2, 1);
           }
           if (tokens.length === 4) {
@@ -8814,8 +8817,8 @@
               gapBegin = null;
             }
           }
-          return stops.map(function(_a2, i5) {
-            var color2 = _a2.color;
+          return stops.map(function(_a3, i5) {
+            var color2 = _a3.color;
             return { color: color2, stop: Math.max(Math.min(1, processStops[i5] / lineLength), 0) };
           });
         };
@@ -8878,7 +8881,7 @@
                 rx = ry = Math.min(distance(x3, y3), distance(x3, y3 - height2), distance(x3 - width2, y3), distance(x3 - width2, y3 - height2));
               } else if (gradient.shape === 1) {
                 var c4 = Math.min(Math.abs(y3), Math.abs(y3 - height2)) / Math.min(Math.abs(x3), Math.abs(x3 - width2));
-                var _a2 = findCorner(width2, height2, x3, y3, true), cx = _a2[0], cy = _a2[1];
+                var _a3 = findCorner(width2, height2, x3, y3, true), cx = _a3[0], cy = _a3[1];
                 rx = distance(cx - x3, (cy - y3) / c4);
                 ry = c4 * rx;
               }
@@ -10347,7 +10350,7 @@
           /** @class */
           function() {
             function CSSParsedDeclaration2(context, declaration) {
-              var _a2, _b2;
+              var _a3, _b2;
               this.animationDuration = parse2(context, duration, declaration.animationDuration);
               this.backgroundClip = parse2(context, backgroundClip, declaration.backgroundClip);
               this.backgroundColor = parse2(context, backgroundColor, declaration.backgroundColor);
@@ -10404,7 +10407,7 @@
               this.paintOrder = parse2(context, paintOrder, declaration.paintOrder);
               this.position = parse2(context, position2, declaration.position);
               this.textAlign = parse2(context, textAlign, declaration.textAlign);
-              this.textDecorationColor = parse2(context, textDecorationColor, (_a2 = declaration.textDecorationColor) !== null && _a2 !== void 0 ? _a2 : declaration.color);
+              this.textDecorationColor = parse2(context, textDecorationColor, (_a3 = declaration.textDecorationColor) !== null && _a3 !== void 0 ? _a3 : declaration.color);
               this.textDecorationLine = parse2(context, textDecorationLine, (_b2 = declaration.textDecorationLine) !== null && _b2 !== void 0 ? _b2 : declaration.textDecoration);
               this.textShadow = parse2(context, textShadow, declaration.textShadow);
               this.textTransform = parse2(context, textTransform, declaration.textTransform);
@@ -12013,8 +12016,8 @@
               var iframeLoad = iframeLoader(iframe).then(function() {
                 return __awaiter(_this, void 0, void 0, function() {
                   var onclone, referenceElement;
-                  return __generator(this, function(_a2) {
-                    switch (_a2.label) {
+                  return __generator(this, function(_a3) {
+                    switch (_a3.label) {
                       case 0:
                         this.scrolledElements.forEach(restoreNodeScroll);
                         if (cloneWindow) {
@@ -12032,14 +12035,14 @@
                         if (!(documentClone.fonts && documentClone.fonts.ready)) return [3, 2];
                         return [4, documentClone.fonts.ready];
                       case 1:
-                        _a2.sent();
-                        _a2.label = 2;
+                        _a3.sent();
+                        _a3.label = 2;
                       case 2:
                         if (!/(AppleWebKit)/g.test(navigator.userAgent)) return [3, 4];
                         return [4, imagesReady(documentClone)];
                       case 3:
-                        _a2.sent();
-                        _a2.label = 4;
+                        _a3.sent();
+                        _a3.label = 4;
                       case 4:
                         if (typeof onclone === "function") {
                           return [2, Promise.resolve().then(function() {
@@ -12120,7 +12123,7 @@
               return node2.cloneNode(false);
             };
             DocumentCloner2.prototype.createCanvasClone = function(canvas2) {
-              var _a2;
+              var _a3;
               if (this.options.inlineImages && canvas2.ownerDocument) {
                 var img = canvas2.ownerDocument.createElement("img");
                 try {
@@ -12140,7 +12143,7 @@
                   if (!this.options.allowTaint && ctx) {
                     clonedCtx.putImageData(ctx.getImageData(0, 0, canvas2.width, canvas2.height), 0, 0);
                   } else {
-                    var gl = (_a2 = canvas2.getContext("webgl2")) !== null && _a2 !== void 0 ? _a2 : canvas2.getContext("webgl");
+                    var gl = (_a3 = canvas2.getContext("webgl2")) !== null && _a3 !== void 0 ? _a3 : canvas2.getContext("webgl");
                     if (gl) {
                       var attribs = gl.getContextAttributes();
                       if ((attribs === null || attribs === void 0 ? void 0 : attribs.preserveDrawingBuffer) === false) {
@@ -12277,7 +12280,7 @@
                       anonymousReplacedElement.appendChild(document2.createTextNode(node2.getAttribute(attr2[0].value) || ""));
                     }
                   } else if (token.name === "counter") {
-                    var _a2 = token.values.filter(nonFunctionArgSeparator), counter = _a2[0], counterStyle = _a2[1];
+                    var _a3 = token.values.filter(nonFunctionArgSeparator), counter = _a3[0], counterStyle = _a3[1];
                     if (counter && isIdentToken(counter)) {
                       var counterState = _this.counters.getCounterValue(counter.value);
                       var counterType = counterStyle && isIdentToken(counterStyle) ? listStyleType.parse(_this.context, counterStyle.value) : 3;
@@ -12422,8 +12425,8 @@
             ownerDocument.defaultView.scrollTo(x3, y3);
           }
         };
-        var restoreNodeScroll = function(_a2) {
-          var element = _a2[0], x3 = _a2[1], y3 = _a2[2];
+        var restoreNodeScroll = function(_a3) {
+          var element = _a3[0], x3 = _a3[1], y3 = _a3[2];
           element.scrollLeft = x3;
           element.scrollTop = y3;
         };
@@ -12495,8 +12498,8 @@
               return __awaiter(this, void 0, void 0, function() {
                 var isSameOrigin, useCORS, useProxy, src;
                 var _this = this;
-                return __generator(this, function(_a2) {
-                  switch (_a2.label) {
+                return __generator(this, function(_a3) {
+                  switch (_a3.label) {
                     case 0:
                       isSameOrigin = CacheStorage.isSameOrigin(key);
                       useCORS = !isInlineImage(key) && this._options.useCORS === true && FEATURES.SUPPORT_CORS_IMAGES && !isSameOrigin;
@@ -12511,8 +12514,8 @@
                       if (!useProxy) return [3, 2];
                       return [4, this.proxy(src)];
                     case 1:
-                      src = _a2.sent();
-                      _a2.label = 2;
+                      src = _a3.sent();
+                      _a3.label = 2;
                     case 2:
                       this.context.logger.debug("Added image " + key.substring(0, 256));
                       return [4, new Promise(function(resolve3, reject) {
@@ -12537,7 +12540,7 @@
                         }
                       })];
                     case 3:
-                      return [2, _a2.sent()];
+                      return [2, _a3.sent()];
                   }
                 });
               });
@@ -12667,7 +12670,7 @@
             function BoundCurves2(element) {
               var styles = element.styles;
               var bounds = element.bounds;
-              var _a2 = getAbsoluteValueForTuple(styles.borderTopLeftRadius, bounds.width, bounds.height), tlh = _a2[0], tlv = _a2[1];
+              var _a3 = getAbsoluteValueForTuple(styles.borderTopLeftRadius, bounds.width, bounds.height), tlh = _a3[0], tlv = _a3[1];
               var _b2 = getAbsoluteValueForTuple(styles.borderTopRightRadius, bounds.width, bounds.height), trh = _b2[0], trv = _b2[1];
               var _c = getAbsoluteValueForTuple(styles.borderBottomRightRadius, bounds.width, bounds.height), brh = _c[0], brv = _c[1];
               var _d = getAbsoluteValueForTuple(styles.borderBottomLeftRadius, bounds.width, bounds.height), blh = _d[0], blv = _d[1];
@@ -13177,8 +13180,8 @@
         var hasIntrinsicValue = function(value) {
           return typeof value === "number";
         };
-        var calculateBackgroundSize = function(size, _a2, bounds) {
-          var intrinsicWidth = _a2[0], intrinsicHeight = _a2[1], intrinsicProportion = _a2[2];
+        var calculateBackgroundSize = function(size, _a3, bounds) {
+          var intrinsicWidth = _a3[0], intrinsicHeight = _a3[1], intrinsicProportion = _a3[2];
           var first = size[0], second = size[1];
           if (!first) {
             return [0, 0];
@@ -13253,8 +13256,8 @@
           }
           return value;
         };
-        var calculateBackgroundRepeatPath = function(repeat, _a2, _b2, backgroundPositioningArea, backgroundPaintingArea) {
-          var x3 = _a2[0], y3 = _a2[1];
+        var calculateBackgroundRepeatPath = function(repeat, _a3, _b2, backgroundPositioningArea, backgroundPaintingArea) {
+          var x3 = _a3[0], y3 = _a3[1];
           var width2 = _b2[0], height2 = _b2[1];
           switch (repeat) {
             case 2:
@@ -13406,15 +13409,15 @@
             CanvasRenderer2.prototype.renderStack = function(stack) {
               return __awaiter(this, void 0, void 0, function() {
                 var styles;
-                return __generator(this, function(_a2) {
-                  switch (_a2.label) {
+                return __generator(this, function(_a3) {
+                  switch (_a3.label) {
                     case 0:
                       styles = stack.element.container.styles;
                       if (!styles.isVisible()) return [3, 2];
                       return [4, this.renderStackContent(stack)];
                     case 1:
-                      _a2.sent();
-                      _a2.label = 2;
+                      _a3.sent();
+                      _a3.label = 2;
                     case 2:
                       return [
                         2
@@ -13426,8 +13429,8 @@
             };
             CanvasRenderer2.prototype.renderNode = function(paint) {
               return __awaiter(this, void 0, void 0, function() {
-                return __generator(this, function(_a2) {
-                  switch (_a2.label) {
+                return __generator(this, function(_a3) {
+                  switch (_a3.label) {
                     case 0:
                       if (contains2(
                         paint.container.flags,
@@ -13439,11 +13442,11 @@
                       if (!paint.container.styles.isVisible()) return [3, 3];
                       return [4, this.renderNodeBackgroundAndBorders(paint)];
                     case 1:
-                      _a2.sent();
+                      _a3.sent();
                       return [4, this.renderNodeContent(paint)];
                     case 2:
-                      _a2.sent();
-                      _a2.label = 3;
+                      _a3.sent();
+                      _a3.label = 3;
                     case 3:
                       return [
                         2
@@ -13479,10 +13482,10 @@
             };
             CanvasRenderer2.prototype.renderTextNode = function(text4, styles) {
               return __awaiter(this, void 0, void 0, function() {
-                var _a2, font, fontFamily2, fontSize2, _b2, baseline, middle, paintOrder2;
+                var _a3, font, fontFamily2, fontSize2, _b2, baseline, middle, paintOrder2;
                 var _this = this;
                 return __generator(this, function(_c) {
-                  _a2 = this.createFontStyle(styles), font = _a2[0], fontFamily2 = _a2[1], fontSize2 = _a2[2];
+                  _a3 = this.createFontStyle(styles), font = _a3[0], fontFamily2 = _a3[1], fontSize2 = _a3[2];
                   this.ctx.font = font;
                   this.ctx.direction = styles.direction === 1 ? "rtl" : "ltr";
                   this.ctx.textAlign = "left";
@@ -13560,7 +13563,7 @@
             };
             CanvasRenderer2.prototype.renderNodeContent = function(paint) {
               return __awaiter(this, void 0, void 0, function() {
-                var container, curves, styles, _i, _a2, child, image2, image2, iframeRenderer, canvas2, size, _b2, fontFamily2, fontSize2, baseline, bounds, x3, textBounds, img, image2, url, fontFamily2, bounds;
+                var container, curves, styles, _i, _a3, child, image2, image2, iframeRenderer, canvas2, size, _b2, fontFamily2, fontSize2, baseline, bounds, x3, textBounds, img, image2, url, fontFamily2, bounds;
                 return __generator(this, function(_c) {
                   switch (_c.label) {
                     case 0:
@@ -13571,11 +13574,11 @@
                       container = paint.container;
                       curves = paint.curves;
                       styles = container.styles;
-                      _i = 0, _a2 = container.textNodes;
+                      _i = 0, _a3 = container.textNodes;
                       _c.label = 1;
                     case 1:
-                      if (!(_i < _a2.length)) return [3, 4];
-                      child = _a2[_i];
+                      if (!(_i < _a3.length)) return [3, 4];
+                      child = _a3[_i];
                       return [4, this.renderTextNode(child, styles)];
                     case 2:
                       _c.sent();
@@ -13740,7 +13743,7 @@
             };
             CanvasRenderer2.prototype.renderStackContent = function(stack) {
               return __awaiter(this, void 0, void 0, function() {
-                var _i, _a2, child, _b2, _c, child, _d, _e3, child, _f, _g, child, _h, _j, child, _k, _l, child, _m, _o, child;
+                var _i, _a3, child, _b2, _c, child, _d, _e3, child, _f, _g, child, _h, _j, child, _k, _l, child, _m, _o, child;
                 return __generator(this, function(_p) {
                   switch (_p.label) {
                     case 0:
@@ -13754,11 +13757,11 @@
                       return [4, this.renderNodeBackgroundAndBorders(stack.element)];
                     case 1:
                       _p.sent();
-                      _i = 0, _a2 = stack.negativeZIndex;
+                      _i = 0, _a3 = stack.negativeZIndex;
                       _p.label = 2;
                     case 2:
-                      if (!(_i < _a2.length)) return [3, 5];
-                      child = _a2[_i];
+                      if (!(_i < _a3.length)) return [3, 5];
+                      child = _a3[_i];
                       return [4, this.renderStack(child)];
                     case 3:
                       _p.sent();
@@ -13893,11 +13896,11 @@
               this.ctx.translate(-offsetX, -offsetY);
             };
             CanvasRenderer2.prototype.resizeImage = function(image2, width2, height2) {
-              var _a2;
+              var _a3;
               if (image2.width === width2 && image2.height === height2) {
                 return image2;
               }
-              var ownerDocument = (_a2 = this.canvas.ownerDocument) !== null && _a2 !== void 0 ? _a2 : document;
+              var ownerDocument = (_a3 = this.canvas.ownerDocument) !== null && _a3 !== void 0 ? _a3 : document;
               var canvas2 = ownerDocument.createElement("canvas");
               canvas2.width = Math.max(1, width2);
               canvas2.height = Math.max(1, height2);
@@ -13907,7 +13910,7 @@
             };
             CanvasRenderer2.prototype.renderBackgroundImage = function(container) {
               return __awaiter(this, void 0, void 0, function() {
-                var index3, _loop_1, this_1, _i, _a2, backgroundImage2;
+                var index3, _loop_1, this_1, _i, _a3, backgroundImage2;
                 return __generator(this, function(_b2) {
                   switch (_b2.label) {
                     case 0:
@@ -14004,11 +14007,11 @@
                         });
                       };
                       this_1 = this;
-                      _i = 0, _a2 = container.styles.backgroundImage.slice(0).reverse();
+                      _i = 0, _a3 = container.styles.backgroundImage.slice(0).reverse();
                       _b2.label = 1;
                     case 1:
-                      if (!(_i < _a2.length)) return [3, 4];
-                      backgroundImage2 = _a2[_i];
+                      if (!(_i < _a3.length)) return [3, 4];
+                      backgroundImage2 = _a3[_i];
                       return [5, _loop_1(backgroundImage2)];
                     case 2:
                       _b2.sent();
@@ -14027,7 +14030,7 @@
             };
             CanvasRenderer2.prototype.renderSolidBorder = function(color2, side, curvePoints) {
               return __awaiter(this, void 0, void 0, function() {
-                return __generator(this, function(_a2) {
+                return __generator(this, function(_a3) {
                   this.path(parsePathForBorder(curvePoints, side));
                   this.ctx.fillStyle = asString(color2);
                   this.ctx.fill();
@@ -14041,13 +14044,13 @@
             CanvasRenderer2.prototype.renderDoubleBorder = function(color2, width2, side, curvePoints) {
               return __awaiter(this, void 0, void 0, function() {
                 var outerPaths, innerPaths;
-                return __generator(this, function(_a2) {
-                  switch (_a2.label) {
+                return __generator(this, function(_a3) {
+                  switch (_a3.label) {
                     case 0:
                       if (!(width2 < 3)) return [3, 2];
                       return [4, this.renderSolidBorder(color2, side, curvePoints)];
                     case 1:
-                      _a2.sent();
+                      _a3.sent();
                       return [
                         2
                         /*return*/
@@ -14072,8 +14075,8 @@
               return __awaiter(this, void 0, void 0, function() {
                 var styles, hasBackground, borders, backgroundPaintingArea, side, _i, borders_1, border;
                 var _this = this;
-                return __generator(this, function(_a2) {
-                  switch (_a2.label) {
+                return __generator(this, function(_a3) {
+                  switch (_a3.label) {
                     case 0:
                       this.applyEffects(paint.getEffects(
                         2
@@ -14098,7 +14101,7 @@
                       }
                       return [4, this.renderBackgroundImage(paint.container)];
                     case 1:
-                      _a2.sent();
+                      _a3.sent();
                       this.ctx.restore();
                       styles.boxShadow.slice(0).reverse().forEach(function(shadow) {
                         _this.ctx.save();
@@ -14122,11 +14125,11 @@
                         _this.ctx.fill();
                         _this.ctx.restore();
                       });
-                      _a2.label = 2;
+                      _a3.label = 2;
                     case 2:
                       side = 0;
                       _i = 0, borders_1 = borders;
-                      _a2.label = 3;
+                      _a3.label = 3;
                     case 3:
                       if (!(_i < borders_1.length)) return [3, 13];
                       border = borders_1[_i];
@@ -14141,7 +14144,7 @@
                         /* DASHED */
                       )];
                     case 4:
-                      _a2.sent();
+                      _a3.sent();
                       return [3, 11];
                     case 5:
                       if (!(border.style === 3)) return [3, 7];
@@ -14154,22 +14157,22 @@
                         /* DOTTED */
                       )];
                     case 6:
-                      _a2.sent();
+                      _a3.sent();
                       return [3, 11];
                     case 7:
                       if (!(border.style === 4)) return [3, 9];
                       return [4, this.renderDoubleBorder(border.color, border.width, side, paint.curves)];
                     case 8:
-                      _a2.sent();
+                      _a3.sent();
                       return [3, 11];
                     case 9:
                       return [4, this.renderSolidBorder(border.color, side, paint.curves)];
                     case 10:
-                      _a2.sent();
-                      _a2.label = 11;
+                      _a3.sent();
+                      _a3.label = 11;
                     case 11:
                       side++;
-                      _a2.label = 12;
+                      _a3.label = 12;
                     case 12:
                       _i++;
                       return [3, 3];
@@ -14185,7 +14188,7 @@
             CanvasRenderer2.prototype.renderDashedDottedBorder = function(color2, width2, side, curvePoints, style2) {
               return __awaiter(this, void 0, void 0, function() {
                 var strokePaths, boxPaths, startX, startY, endX, endY, length2, dashLength, spaceLength, useLineDash, multiplier, numberOfDashes, minSpace, maxSpace, path1, path2, path1, path2;
-                return __generator(this, function(_a2) {
+                return __generator(this, function(_a3) {
                   this.ctx.save();
                   strokePaths = parsePathForBorderStroke(curvePoints, side);
                   boxPaths = parsePathForBorder(curvePoints, side);
@@ -14280,8 +14283,8 @@
             CanvasRenderer2.prototype.render = function(element) {
               return __awaiter(this, void 0, void 0, function() {
                 var stack;
-                return __generator(this, function(_a2) {
-                  switch (_a2.label) {
+                return __generator(this, function(_a3) {
+                  switch (_a3.label) {
                     case 0:
                       if (this.options.backgroundColor) {
                         this.ctx.fillStyle = asString(this.options.backgroundColor);
@@ -14290,7 +14293,7 @@
                       stack = parseStackingContexts(element);
                       return [4, this.renderStack(stack)];
                     case 1:
-                      _a2.sent();
+                      _a3.sent();
                       this.applyEffects([]);
                       return [2, this.canvas];
                   }
@@ -14359,13 +14362,13 @@
             ForeignObjectRenderer2.prototype.render = function(element) {
               return __awaiter(this, void 0, void 0, function() {
                 var svg3, img;
-                return __generator(this, function(_a2) {
-                  switch (_a2.label) {
+                return __generator(this, function(_a3) {
+                  switch (_a3.label) {
                     case 0:
                       svg3 = createForeignObjectSVG(this.options.width * this.options.scale, this.options.height * this.options.scale, this.options.scale, this.options.scale, element);
                       return [4, loadSerializedSVG(svg3)];
                     case 1:
-                      img = _a2.sent();
+                      img = _a3.sent();
                       if (this.options.backgroundColor) {
                         this.ctx.fillStyle = asString(this.options.backgroundColor);
                         this.ctx.fillRect(0, 0, this.options.width * this.options.scale, this.options.height * this.options.scale);
@@ -14392,8 +14395,8 @@
         var Logger = (
           /** @class */
           function() {
-            function Logger2(_a2) {
-              var id = _a2.id, enabled = _a2.enabled;
+            function Logger2(_a3) {
+              var id = _a3.id, enabled = _a3.enabled;
               this.id = id;
               this.enabled = enabled;
               this.start = Date.now();
@@ -14459,11 +14462,11 @@
           /** @class */
           function() {
             function Context3(options, windowBounds) {
-              var _a2;
+              var _a3;
               this.windowBounds = windowBounds;
               this.instanceName = "#" + Context3.instanceCount++;
               this.logger = new Logger({ id: this.instanceName, enabled: options.logging });
-              this.cache = (_a2 = options.cache) !== null && _a2 !== void 0 ? _a2 : new Cache2(this, options);
+              this.cache = (_a3 = options.cache) !== null && _a3 !== void 0 ? _a3 : new Cache2(this, options);
             }
             Context3.instanceCount = 1;
             return Context3;
@@ -14480,7 +14483,7 @@
         }
         var renderElement = function(element, opts) {
           return __awaiter(void 0, void 0, void 0, function() {
-            var ownerDocument, defaultView, resourceOptions, contextOptions, windowOptions, windowBounds, context, foreignObjectRendering, cloneOptions, documentCloner, clonedElement, container, _a2, width2, height2, left4, top4, backgroundColor2, renderOptions, canvas2, renderer, root2, renderer;
+            var ownerDocument, defaultView, resourceOptions, contextOptions, windowOptions, windowBounds, context, foreignObjectRendering, cloneOptions, documentCloner, clonedElement, container, _a3, width2, height2, left4, top4, backgroundColor2, renderOptions, canvas2, renderer, root2, renderer;
             var _b2, _c, _d, _e3, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t3;
             return __generator(this, function(_u) {
               switch (_u.label) {
@@ -14528,7 +14531,7 @@
                   return [4, documentCloner.toIFrame(ownerDocument, windowBounds)];
                 case 1:
                   container = _u.sent();
-                  _a2 = isBodyElement(clonedElement) || isHTMLElement2(clonedElement) ? parseDocumentSize(clonedElement.ownerDocument) : parseBounds(context, clonedElement), width2 = _a2.width, height2 = _a2.height, left4 = _a2.left, top4 = _a2.top;
+                  _a3 = isBodyElement(clonedElement) || isHTMLElement2(clonedElement) ? parseDocumentSize(clonedElement.ownerDocument) : parseBounds(context, clonedElement), width2 = _a3.width, height2 = _a3.height, left4 = _a3.left, top4 = _a3.top;
                   backgroundColor2 = parseBackgroundColor(context, clonedElement, opts.backgroundColor);
                   renderOptions = {
                     canvas: opts.canvas,
@@ -20826,10 +20829,10 @@
         var paInitial = aSum * mulSum >>> shgSum;
         pixels[yi + 3] = paInitial;
         if (paInitial !== 0) {
-          var _a2 = 255 / paInitial;
-          pixels[yi] = (rSum * mulSum >>> shgSum) * _a2;
-          pixels[yi + 1] = (gSum * mulSum >>> shgSum) * _a2;
-          pixels[yi + 2] = (bSum * mulSum >>> shgSum) * _a2;
+          var _a22 = 255 / paInitial;
+          pixels[yi] = (rSum * mulSum >>> shgSum) * _a22;
+          pixels[yi + 1] = (gSum * mulSum >>> shgSum) * _a22;
+          pixels[yi + 2] = (bSum * mulSum >>> shgSum) * _a22;
         } else {
           pixels[yi] = pixels[yi + 1] = pixels[yi + 2] = 0;
         }
@@ -47703,12 +47706,12 @@
       }
     return t3;
   };
-  var block = (_a2) => {
-    var { size, width: width2, height: height2, offset: offset3, open: open2 } = _a2, attrs = __rest2(_a2, ["size", "width", "height", "offset", "open"]);
+  var block = (_a3) => {
+    var { size, width: width2, height: height2, offset: offset3, open: open2 } = _a3, attrs = __rest2(_a3, ["size", "width", "height", "offset", "open"]);
     return createClassicMarker({ size, width: width2, height: height2, offset: offset3 }, open2 === true, true, void 0, attrs);
   };
-  var classic = (_a2) => {
-    var { size, width: width2, height: height2, offset: offset3, factor } = _a2, attrs = __rest2(_a2, ["size", "width", "height", "offset", "factor"]);
+  var classic = (_a3) => {
+    var { size, width: width2, height: height2, offset: offset3, factor } = _a3, attrs = __rest2(_a3, ["size", "width", "height", "offset", "factor"]);
     return createClassicMarker({ size, width: width2, height: height2, offset: offset3 }, false, false, factor, attrs);
   };
   function createClassicMarker(options, open2, full, factor = 3 / 4, attrs = {}) {
@@ -47747,8 +47750,8 @@
       }
     return t3;
   };
-  var diamond = (_a2) => {
-    var { size, width: width2, height: height2, offset: offset3 } = _a2, attrs = __rest3(_a2, ["size", "width", "height", "offset"]);
+  var diamond = (_a3) => {
+    var { size, width: width2, height: height2, offset: offset3 } = _a3, attrs = __rest3(_a3, ["size", "width", "height", "offset"]);
     const s3 = size || 10;
     const w3 = width2 || s3;
     const h3 = height2 || s3;
@@ -47769,8 +47772,8 @@
       }
     return t3;
   };
-  var path = (_a2) => {
-    var { d: d2, offsetX, offsetY } = _a2, attrs = __rest4(_a2, ["d", "offsetX", "offsetY"]);
+  var path = (_a3) => {
+    var { d: d2, offsetX, offsetY } = _a3, attrs = __rest4(_a3, ["d", "offsetX", "offsetY"]);
     return Object.assign(Object.assign({}, attrs), { tagName: "path", d: normalize2(d2, offsetX, offsetY) });
   };
 
@@ -47786,8 +47789,8 @@
       }
     return t3;
   };
-  var cross = (_a2) => {
-    var { size, width: width2, height: height2, offset: offset3 } = _a2, attrs = __rest5(_a2, ["size", "width", "height", "offset"]);
+  var cross = (_a3) => {
+    var { size, width: width2, height: height2, offset: offset3 } = _a3, attrs = __rest5(_a3, ["size", "width", "height", "offset"]);
     const s3 = size || 10;
     const w3 = width2 || s3;
     const h3 = height2 || s3;
@@ -47808,8 +47811,8 @@
       }
     return t3;
   };
-  var async = (_a2) => {
-    var { width: width2, height: height2, offset: offset3, open: open2, flip } = _a2, attrs = __rest6(_a2, ["width", "height", "offset", "open", "flip"]);
+  var async = (_a3) => {
+    var { width: width2, height: height2, offset: offset3, open: open2, flip } = _a3, attrs = __rest6(_a3, ["width", "height", "offset", "open", "flip"]);
     let h3 = height2 || 6;
     const w3 = width2 || 10;
     const opened = open2 === true;
@@ -47845,13 +47848,13 @@
       }
     return t3;
   };
-  var circle = (_a2) => {
-    var { r: r2 } = _a2, attrs = __rest7(_a2, ["r"]);
+  var circle = (_a3) => {
+    var { r: r2 } = _a3, attrs = __rest7(_a3, ["r"]);
     const radius = r2 || 5;
     return Object.assign(Object.assign({ cx: radius }, attrs), { tagName: "circle", r: radius });
   };
-  var circlePlus = (_a2) => {
-    var { r: r2 } = _a2, attrs = __rest7(_a2, ["r"]);
+  var circlePlus = (_a3) => {
+    var { r: r2 } = _a3, attrs = __rest7(_a3, ["r"]);
     const radius = r2 || 5;
     const path2 = new Path();
     path2.moveTo(radius, 0).lineTo(radius, radius * 2);
@@ -47876,8 +47879,8 @@
       }
     return t3;
   };
-  var ellipse = (_a2) => {
-    var { rx, ry } = _a2, attrs = __rest8(_a2, ["rx", "ry"]);
+  var ellipse = (_a3) => {
+    var { rx, ry } = _a3, attrs = __rest8(_a3, ["rx", "ry"]);
     const radiusX = rx || 5;
     const radiusy = ry || 5;
     return Object.assign(Object.assign({ cx: radiusX }, attrs), { tagName: "ellipse", rx: radiusX, ry: radiusy });
@@ -47983,7 +47986,7 @@
   var connection = {
     qualify: isEdgeView,
     set(val, args) {
-      var _a2, _b2, _c, _d;
+      var _a3, _b2, _c, _d;
       const view = args.view;
       const reverse = val.reverse || false;
       const stubs = val.stubs || 0;
@@ -48017,7 +48020,7 @@
             length2 = len - stubs * 2;
           }
           const path2 = view.getConnection();
-          d2 = (_d = (_c = (_b2 = (_a2 = path2 === null || path2 === void 0 ? void 0 : path2.divideAtLength(offset3)) === null || _a2 === void 0 ? void 0 : _a2[1]) === null || _b2 === void 0 ? void 0 : _b2.divideAtLength(length2)) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.serialize();
+          d2 = (_d = (_c = (_b2 = (_a3 = path2 === null || path2 === void 0 ? void 0 : path2.divideAtLength(offset3)) === null || _a3 === void 0 ? void 0 : _a3[1]) === null || _b2 === void 0 ? void 0 : _b2.divideAtLength(length2)) === null || _c === void 0 ? void 0 : _c[0]) === null || _d === void 0 ? void 0 : _d.serialize();
         }
       }
       return { d: d2 || view.getConnectionPathData() };
@@ -48599,8 +48602,8 @@
   function lineLayout(portsPositionArgs, p1, p22, groupPositionArgs) {
     const line2 = new Line(p1, p22);
     const length2 = portsPositionArgs.length;
-    return portsPositionArgs.map((_a2, index3) => {
-      var { strict } = _a2, offset3 = __rest10(_a2, ["strict"]);
+    return portsPositionArgs.map((_a3, index3) => {
+      var { strict } = _a3, offset3 = __rest10(_a3, ["strict"]);
       const ratio2 = strict || groupPositionArgs.strict ? (index3 + 1) / (length2 + 1) : (index3 + 0.5) / length2;
       const p4 = line2.pointAt(ratio2);
       if (offset3.dx || offset3.dy) {
@@ -51014,7 +51017,7 @@
     onRender() {
       main_exports3.addClass(this.container, this.prefixClassName("cell-tool-boundary"));
       if (this.options.attrs) {
-        const _a2 = this.options.attrs, { class: className3 } = _a2, attrs = __rest12(_a2, ["class"]);
+        const _a3 = this.options.attrs, { class: className3 } = _a3, attrs = __rest12(_a3, ["class"]);
         main_exports3.attr(this.container, main_exports3.kebablizeAttrs(attrs));
         if (className3) {
           main_exports3.addClass(this.container, className3);
@@ -52048,7 +52051,7 @@
     }
     init() {
       if (this.options.attrs) {
-        const _a2 = this.options.attrs, { class: className3 } = _a2, attrs = __rest13(_a2, ["class"]);
+        const _a3 = this.options.attrs, { class: className3 } = _a3, attrs = __rest13(_a3, ["class"]);
         this.setAttrs(attrs, this.container);
         if (className3) {
           main_exports3.addClass(this.container, className3);
@@ -55296,8 +55299,8 @@
       const childrenIds = this.store.get("children");
       if (childrenIds && childrenIds.length && this.model) {
         const children2 = childrenIds.map((id) => {
-          var _a2;
-          return (_a2 = this.model) === null || _a2 === void 0 ? void 0 : _a2.getCell(id);
+          var _a3;
+          return (_a3 = this.model) === null || _a3 === void 0 ? void 0 : _a3.getCell(id);
         }).filter((cell) => cell != null);
         this._children = children2;
         return [...children2];
@@ -55858,8 +55861,8 @@
   })(Cell || (Cell = {}));
   (function(Cell2) {
     Cell2.config({
-      propHooks(_a2) {
-        var { tools } = _a2, metadata = __rest15(_a2, ["tools"]);
+      propHooks(_a3) {
+        var { tools } = _a3, metadata = __rest15(_a3, ["tools"]);
         if (tools) {
           metadata.tools = Cell2.normalizeTools(tools);
         }
@@ -56234,8 +56237,8 @@
         }
         this.transition("position", translatedPosition, Object.assign(Object.assign({}, options.transition), { interp: Interp.object }));
         this.eachChild((child) => {
-          var _a2;
-          const excluded = (_a2 = options.exclude) === null || _a2 === void 0 ? void 0 : _a2.includes(child);
+          var _a3;
+          const excluded = (_a3 = options.exclude) === null || _a3 === void 0 ? void 0 : _a3.includes(child);
           if (!excluded) {
             child.translate(tx, ty, options);
           }
@@ -56244,8 +56247,8 @@
         this.startBatch("translate", options);
         this.store.set("position", translatedPosition, options);
         this.eachChild((child) => {
-          var _a2;
-          const excluded = (_a2 = options.exclude) === null || _a2 === void 0 ? void 0 : _a2.includes(child);
+          var _a3;
+          const excluded = (_a3 = options.exclude) === null || _a3 === void 0 ? void 0 : _a3.includes(child);
           if (!excluded) {
             child.translate(tx, ty, options);
           }
@@ -56652,8 +56655,8 @@
   })(Node2 || (Node2 = {}));
   (function(Node4) {
     Node4.config({
-      propHooks(_a2) {
-        var { ports } = _a2, metadata = __rest16(_a2, ["ports"]);
+      propHooks(_a3) {
+        var { ports } = _a3, metadata = __rest16(_a3, ["ports"]);
         if (ports) {
           metadata.ports = Array.isArray(ports) ? { items: ports } : ports;
         }
@@ -60315,7 +60318,7 @@
     update(options = {}) {
       this.cleanCache();
       this.updateConnection(options);
-      const _a2 = this.cell.getAttrs(), { text: text4 } = _a2, attrs = __rest23(_a2, ["text"]);
+      const _a3 = this.cell.getAttrs(), { text: text4 } = _a3, attrs = __rest23(_a3, ["text"]);
       if (attrs != null) {
         this.updateAttrs(this.container, attrs, {
           selectors: this.selectors
@@ -63366,8 +63369,8 @@
       return (eventTypes === null || eventTypes === void 0 ? void 0 : eventTypes.includes("leftMouseDown")) && e2.button === 0 || (eventTypes === null || eventTypes === void 0 ? void 0 : eventTypes.includes("mouseWheelDown")) && e2.button === 1;
     }
     allowMouseWheel(e2) {
-      var _a2;
-      return this.pannable && !e2.ctrlKey && ((_a2 = this.widgetOptions.eventTypes) === null || _a2 === void 0 ? void 0 : _a2.includes("mouseWheel"));
+      var _a3;
+      return this.pannable && !e2.ctrlKey && ((_a3 = this.widgetOptions.eventTypes) === null || _a3 === void 0 ? void 0 : _a3.includes("mouseWheel"));
     }
     autoPanning(x3, y3) {
       const buffer = 10;
@@ -64283,8 +64286,8 @@
           overflow: "visible",
           orient: markerOrient != null ? markerOrient : "auto",
           markerUnits: markerUnits || "userSpaceOnUse"
-        }, children2 ? children2.map((_a2) => {
-          var { tagName: tagName3 } = _a2, other = __rest26(_a2, ["tagName"]);
+        }, children2 ? children2.map((_a3) => {
+          var { tagName: tagName3 } = _a3, other = __rest26(_a3, ["tagName"]);
           return Vector.create(`${tagName3}` || "path", main_exports3.kebablizeAttrs(Object.assign(Object.assign({}, attrs), other)));
         }) : [Vector.create(tagName2 || "path", main_exports3.kebablizeAttrs(attrs))]);
         this.defs.appendChild(pathMarker.node);
@@ -65251,8 +65254,8 @@
       }
       const aboutToChangePlugins = this.getPlugins(postPlugins);
       aboutToChangePlugins === null || aboutToChangePlugins === void 0 ? void 0 : aboutToChangePlugins.forEach((plugin) => {
-        var _a2;
-        (_a2 = plugin === null || plugin === void 0 ? void 0 : plugin.enable) === null || _a2 === void 0 ? void 0 : _a2.call(plugin);
+        var _a3;
+        (_a3 = plugin === null || plugin === void 0 ? void 0 : plugin.enable) === null || _a3 === void 0 ? void 0 : _a3.call(plugin);
       });
       return this;
     }
@@ -65263,15 +65266,15 @@
       }
       const aboutToChangePlugins = this.getPlugins(postPlugins);
       aboutToChangePlugins === null || aboutToChangePlugins === void 0 ? void 0 : aboutToChangePlugins.forEach((plugin) => {
-        var _a2;
-        (_a2 = plugin === null || plugin === void 0 ? void 0 : plugin.disable) === null || _a2 === void 0 ? void 0 : _a2.call(plugin);
+        var _a3;
+        (_a3 = plugin === null || plugin === void 0 ? void 0 : plugin.disable) === null || _a3 === void 0 ? void 0 : _a3.call(plugin);
       });
       return this;
     }
     isPluginEnabled(pluginName) {
-      var _a2;
+      var _a3;
       const pluginIns = this.getPlugin(pluginName);
-      return (_a2 = pluginIns === null || pluginIns === void 0 ? void 0 : pluginIns.isEnabled) === null || _a2 === void 0 ? void 0 : _a2.call(pluginIns);
+      return (_a3 = pluginIns === null || pluginIns === void 0 ? void 0 : pluginIns.isEnabled) === null || _a3 === void 0 ? void 0 : _a3.call(pluginIns);
     }
     disposePlugins(plugins) {
       let postPlugins = plugins;
@@ -67171,7 +67174,7 @@
     }
     // #endregion
     get commonOptions() {
-      const _a2 = this.options, { enabled } = _a2, others = __rest28(_a2, ["enabled"]);
+      const _a3 = this.options, { enabled } = _a3, others = __rest28(_a3, ["enabled"]);
       return others;
     }
     notify(name2, args) {
@@ -67674,7 +67677,7 @@
      * system itself.
      */
     consolidateCommands() {
-      var _a2;
+      var _a3;
       const lastCommandGroup = this.undoStack[this.undoStack.length - 1];
       const penultimateCommandGroup = this.undoStack[this.undoStack.length - 2];
       if (!Array.isArray(lastCommandGroup)) {
@@ -67685,8 +67688,8 @@
         return;
       }
       if (!lastCommandGroup.every((cmd) => {
-        var _a3;
-        return cmd.batch && ((_a3 = cmd.options) === null || _a3 === void 0 ? void 0 : _a3.ui);
+        var _a4;
+        return cmd.batch && ((_a4 = cmd.options) === null || _a4 === void 0 ? void 0 : _a4.ui);
       })) {
         return;
       }
@@ -67694,7 +67697,7 @@
         return;
       }
       const maybePositionChange = penultimateCommandGroup[0];
-      if (maybePositionChange.event !== "cell:change:position" || !((_a2 = maybePositionChange.options) === null || _a2 === void 0 ? void 0 : _a2.ui)) {
+      if (maybePositionChange.event !== "cell:change:position" || !((_a3 = maybePositionChange.options) === null || _a3 === void 0 ? void 0 : _a3.ui)) {
         return;
       }
       penultimateCommandGroup.push(...lastCommandGroup);
@@ -67946,9 +67949,9 @@
       return false;
     }
     isInputEvent(e2) {
-      var _a2;
+      var _a3;
       const target = e2.target;
-      const tagName2 = (_a2 = target === null || target === void 0 ? void 0 : target.tagName) === null || _a2 === void 0 ? void 0 : _a2.toLowerCase();
+      const tagName2 = (_a3 = target === null || target === void 0 ? void 0 : target.tagName) === null || _a3 === void 0 ? void 0 : _a3.toLowerCase();
       let isInput = ["input", "textarea"].includes(tagName2);
       if (main_exports3.attr(target, "contenteditable") === "true") {
         isInput = true;
@@ -69699,8 +69702,8 @@
       ports: makePorts()
     }, true);
   }
-  var esc = (s3) => String(s3 ?? "").replace(/[&<>"']/g, (c4) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c4]);
-  var cssSafe = (v4) => String(v4 ?? "").replace(/["'<>\\]/g, "");
+  var esc = (s3) => String(s3 != null ? s3 : "").replace(/[&<>"']/g, (c4) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c4]);
+  var cssSafe = (v4) => String(v4 != null ? v4 : "").replace(/["'<>\\]/g, "");
   var px = (v4) => Number(v4) || 0;
   var nl = (s3) => s3.replace(/\n/g, "<br>");
   function defaultErdCols() {
@@ -69776,11 +69779,12 @@
     cancel: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 6 6 6-6 2 2-6 6 6 6-2 2-6-6-6 6-2-2 6-6-6-6Z"/></svg>`
   };
   function trigIcon(trigger, filled) {
+    var _a3;
     if (!trigger) return "";
     const t3 = trigger;
     if (t3 === "terminate") return TRIG_OUT.terminate;
     if (filled && TRIG_FILL[t3]) return TRIG_FILL[t3];
-    return TRIG_OUT[t3] ?? "";
+    return (_a3 = TRIG_OUT[t3]) != null ? _a3 : "";
   }
   var MARKER_ICON = {
     loop: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9a4 4 0 1 0 1-3M5 5V3M5 5H3"/></svg>`,
@@ -69818,6 +69822,7 @@
     return `<div class="uml">${name2}${comps}</div>`;
   }
   function nodeHtmlBase(kind, label, extra) {
+    var _a3, _b2, _c, _d, _e3, _f;
     const L3 = esc(label);
     switch (kind) {
       case "bs-rect":
@@ -69862,7 +69867,7 @@
       case "fc-connector":
         return `<div class="fc round" style="font-size:11px">${L3}</div>`;
       case "erd-entity":
-        return erdHtml(label, extra?.cols ?? defaultErdCols());
+        return erdHtml(label, (_a3 = extra == null ? void 0 : extra.cols) != null ? _a3 : defaultErdCols());
       case "erd-relationship":
         return `<div class="fc diamond">${L3}</div>`;
       case "erd-attribute":
@@ -69870,12 +69875,12 @@
       case "erd-key":
         return `<div class="fc round" style="text-decoration:underline;font-weight:700">${L3}</div>`;
       case "uml-class": {
-        const u3 = extra?.fields || extra?.methods ? extra : defaultUml(kind);
-        return umlHtml(label, u3.fields ?? [], u3.methods ?? []);
+        const u3 = (extra == null ? void 0 : extra.fields) || (extra == null ? void 0 : extra.methods) ? extra : defaultUml(kind);
+        return umlHtml(label, (_b2 = u3.fields) != null ? _b2 : [], (_c = u3.methods) != null ? _c : []);
       }
       case "uml-interface": {
-        const u3 = extra?.fields || extra?.methods ? extra : defaultUml(kind);
-        return umlHtml(label || "Interface", u3.fields ?? [], u3.methods ?? [], "\xABinterface\xBB");
+        const u3 = (extra == null ? void 0 : extra.fields) || (extra == null ? void 0 : extra.methods) ? extra : defaultUml(kind);
+        return umlHtml(label || "Interface", (_d = u3.fields) != null ? _d : [], (_e3 = u3.methods) != null ? _e3 : [], "\xABinterface\xBB");
       }
       case "uml-actor":
         return `<div style="width:100%;height:100%;display:grid;place-items:center;color:var(--pg-text);position:relative">
@@ -69900,7 +69905,7 @@
       case "sq-actor":
         return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${ACTOR}</div><div class="sq-actor-lbl">${L3 || "Actor"}</div></div>${SQ_LINE}</div>`;
       case "sq-participant": {
-        const who = extra?.who ?? "";
+        const who = (_f = extra == null ? void 0 : extra.who) != null ? _f : "";
         return `<div class="sq-life"><div class="sq-head sq-pill">${L3 || "Participant"}${who ? `<span class="sq-who">${esc(who)}</span>` : ""}</div>${SQ_LINE}</div>`;
       }
       case "sq-activation":
@@ -69974,13 +69979,15 @@
       case "bpmn-task-rule":
         return bpTask(L3, "rule", extra);
       case "bpmn-subprocess":
-        return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L3 || "Sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
+        return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L3 || "Sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
       case "bpmn-transaction":
-        return `<div class="bp-frame bp-sub is-transaction"><span class="bp-frame-lbl">${L3 || "Transaction"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
+        return `<div class="bp-frame bp-sub is-transaction"><span class="bp-frame-lbl">${L3 || "Transaction"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
       case "bpmn-event-subprocess":
-        return `<div class="bp-frame bp-sub is-event-sub"><span class="bp-frame-lbl">${L3 || "Event sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
+        return `<div class="bp-frame bp-sub is-event-sub"><span class="bp-frame-lbl">${L3 || "Event sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
+      case "bpmn-adhoc-subprocess":
+        return `<div class="bp-frame bp-sub is-adhoc"><span class="bp-frame-lbl">${L3 || "Ad-hoc sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}<span class="bp-adhoc-mark">\u223C</span></div>`;
       case "bpmn-call-activity":
-        return `<div class="bp-task is-call">${nl(L3) || "Call activity"}${renderMarkers(extra?.markers)}</div>`;
+        return `<div class="bp-task is-call">${nl(L3) || "Call activity"}${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
       case "bpmn-data-object":
         return `<div class="bp-dataobj"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L3}</span></div>`;
       case "bpmn-data-collection":
@@ -70014,29 +70021,36 @@
     return `<div class="sq-frag"><span class="sq-frag-tab">${esc(tag)}</span>${label ? `<span class="sq-frag-cond">[${esc(label)}]</span>` : ""}${divider ? `<div class="sq-frag-div"></div>` : ""}</div>`;
   }
   function lblStyle(extra) {
-    const o3 = extra?.labelOffset;
+    const o3 = extra == null ? void 0 : extra.labelOffset;
     if (!o3) return "";
     return ` style="margin:${px(o3.y)}px 0 0 ${px(o3.x)}px"`;
   }
   function bpEvent(kind, label, icon, extra) {
+    var _a3;
     const pos = kind;
-    const filledByPos = pos === "end" || extra?.throwing === true;
-    const trigIc = extra?.trigger ? trigIcon(extra.trigger, filledByPos) : null;
-    const inner = trigIc ?? icon ?? (pos === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`));
-    const interrupt = extra?.interrupting === false ? " is-non-interrupting" : "";
+    const filledByPos = pos === "end" || (extra == null ? void 0 : extra.throwing) === true;
+    const trigIc = (extra == null ? void 0 : extra.trigger) ? trigIcon(extra.trigger, filledByPos) : null;
+    const inner = (_a3 = trigIc != null ? trigIc : icon) != null ? _a3 : pos === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`);
+    const interrupt = (extra == null ? void 0 : extra.interrupting) === false ? " is-non-interrupting" : "";
     return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
   }
   function bpTask(label, iconKey, extra) {
     const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
-    return `<div class="bp-task">${icon}${nl(label)}${renderMarkers(extra?.markers)}</div>`;
+    return `<div class="bp-task">${icon}${nl(label)}${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
   }
   function bpGateway(mark, label, extra) {
     return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : ""}</div>`;
   }
   function bpPool(label, extra) {
-    const lanes = extra?.lanes?.length ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
+    var _a3;
+    if (extra == null ? void 0 : extra.blackBox) {
+      const orient2 = extra.poolHorizontal === false ? " is-vertical" : "";
+      return `<div class="bp-pool is-blackbox${orient2}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-blackbox-body"><span>Black-box participant</span></div></div>`;
+    }
+    const lanes = ((_a3 = extra == null ? void 0 : extra.lanes) == null ? void 0 : _a3.length) ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
+    const orient = (extra == null ? void 0 : extra.poolHorizontal) === false ? " is-vertical" : "";
     const laneHtml = lanes.map((ln3) => `<div class="bp-pool-lane" data-lane-id="${esc(ln3.id)}"><div class="bp-pool-lane-head">${esc(ln3.label)}</div><div class="bp-pool-lane-body"></div></div>`).join("");
-    return `<div class="bp-pool"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
+    return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
   }
 
   // src/canvas/shapes/index.ts
@@ -70185,6 +70199,7 @@
         // Remaining activities
         { shape: "bpmn-transaction", label: "Transaction", w: 200, h: 120, advanced: true },
         { shape: "bpmn-event-subprocess", label: "Event sub-process", w: 200, h: 120, advanced: true },
+        { shape: "bpmn-adhoc-subprocess", label: "Ad-hoc sub-process", w: 200, h: 120, advanced: true },
         { shape: "bpmn-call-activity", label: "Call activity", w: 120, h: 60, advanced: true },
         // Data artifacts
         { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
@@ -70282,6 +70297,7 @@
     // Đợt B — Activities
     "bpmn-transaction": I(`<rect x="3" y="8" width="26" height="16" rx="4" fill="#fff" stroke="#1565c0" stroke-width="2"/><rect x="5.5" y="10.5" width="21" height="11" rx="2.5" fill="none" stroke="#1565c0" stroke-width="1.2"/>`),
     "bpmn-event-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="1.6" stroke-dasharray="3 2"/><path d="M16 12v8M12 16h8" stroke="#1565c0" stroke-width="1.2"/>`),
+    "bpmn-adhoc-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="2"/><path d="M11 18 q1.5 -2.5 3 0 t3 0 t3 0" fill="none" stroke="#1565c0" stroke-width="1.4"/>`),
     "bpmn-call-activity": I(`<rect x="4" y="10" width="24" height="12" rx="3" fill="#fff" stroke="#1565c0" stroke-width="3"/>`),
     // Đợt B — Data artifacts
     "bpmn-data-collection": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/><path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`),
@@ -70295,7 +70311,8 @@
     "bpmn-lane": I(`<rect x="4" y="9" width="24" height="14" fill="none" stroke="#546e7a" stroke-width="2"/><rect x="4" y="9" width="6" height="14" fill="#eceff1" stroke="#546e7a" stroke-width="2"/>`)
   };
   function shapeIcon(shape, seed) {
-    if (seed?.trigger) {
+    var _a3, _b2, _c, _d, _e3;
+    if (seed == null ? void 0 : seed.trigger) {
       const map = {
         "bpmn-event-start": {
           message: "bpmn-start-message",
@@ -70310,7 +70327,7 @@
           terminate: "bpmn-end-terminate"
         }
       };
-      const alias = map[shape]?.[seed.trigger];
+      const alias = (_a3 = map[shape]) == null ? void 0 : _a3[seed.trigger];
       if (alias && ICONS[alias]) return ICONS[alias];
       const borderByPos = {
         "bpmn-event-start": `<circle cx="16" cy="16" r="9" fill="#e7f9ed" stroke="#2e7d32" stroke-width="2"/>`,
@@ -70322,7 +70339,7 @@
         "bpmn-event-intermediate": "#f57f17",
         "bpmn-event-end": "#c62828"
       };
-      const c4 = color[shape] ?? "#666";
+      const c4 = (_b2 = color[shape]) != null ? _b2 : "#666";
       const glyph = {
         signal: `<path d="M16 11 22 21 10 21Z" fill="none" stroke="${c4}" stroke-width="1.4"/>`,
         error: `<path d="M9 21 13 13l3 4 3-4 3 8" fill="none" stroke="${c4}" stroke-width="1.5"/>`,
@@ -70335,10 +70352,10 @@
         "parallel-multiple": `<path d="M16 11v10M11 16h10" stroke="${c4}" stroke-width="1.8"/>`,
         terminate: `<circle cx="16" cy="16" r="5" fill="${c4}"/>`
       };
-      const g2 = glyph[seed.trigger] ?? "";
-      return `<svg viewBox="0 0 32 32" fill="none">${borderByPos[shape] ?? ""}${g2}</svg>`;
+      const g2 = (_c = glyph[seed.trigger]) != null ? _c : "";
+      return `<svg viewBox="0 0 32 32" fill="none">${(_d = borderByPos[shape]) != null ? _d : ""}${g2}</svg>`;
     }
-    return ICONS[shape] ?? I(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
+    return (_e3 = ICONS[shape]) != null ? _e3 : I(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
   }
 
   // src/canvas/staticRender.ts
@@ -70358,7 +70375,7 @@
           text4 += t3 + "\n";
         }
         if (ours) return text4;
-      } catch {
+      } catch (e2) {
       }
     }
     return "";
@@ -70404,10 +70421,11 @@
     const bend = horizFirst ? { x: p22.x, y: p1.y } : { x: p1.x, y: p22.y };
     return `M ${s3.x} ${s3.y} L ${p1.x} ${p1.y} L ${bend.x} ${bend.y} L ${p22.x} ${p22.y} L ${t3.x} ${t3.y}`;
   }
-  var esc2 = (s3) => String(s3 ?? "").replace(/[&<>"]/g, (c4) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c4]);
+  var esc2 = (s3) => String(s3 != null ? s3 : "").replace(/[&<>"]/g, (c4) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c4]);
   function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
-    const nodes = model.nodes ?? [];
-    const edges = model.edges ?? [];
+    var _a3, _b2;
+    const nodes = (_a3 = model.nodes) != null ? _a3 : [];
+    const edges = (_b2 = model.edges) != null ? _b2 : [];
     const byId = new Map(nodes.map((n2) => [n2.id, n2]));
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const n2 of nodes) {
@@ -70434,11 +70452,12 @@
       return line2 + label;
     }).join("");
     const nodeSvg = nodes.map((n2) => {
-      const style2 = n2.attrs?.style ?? {};
+      var _a4, _b3, _c, _d, _e3;
+      const style2 = (_b3 = (_a4 = n2.attrs) == null ? void 0 : _a4.style) != null ? _b3 : {};
       const extra = {
-        cols: n2.attrs?.cols,
-        fields: n2.attrs?.fields,
-        methods: n2.attrs?.methods
+        cols: (_c = n2.attrs) == null ? void 0 : _c.cols,
+        fields: (_d = n2.attrs) == null ? void 0 : _d.fields,
+        methods: (_e3 = n2.attrs) == null ? void 0 : _e3.methods
       };
       const inner = nodeHtml(n2.shape, n2.label, style2, extra);
       const num = (v4) => Number(v4) || 0;
@@ -72172,7 +72191,8 @@
     Graph.registerConnector(
       "seq-msg",
       function(sourcePoint, targetPoint, _routePoints, _args, view) {
-        const yOverride = view?.cell?.getData?.()?.y;
+        var _a3, _b2, _c;
+        const yOverride = (_c = (_b2 = (_a3 = view == null ? void 0 : view.cell) == null ? void 0 : _a3.getData) == null ? void 0 : _b2.call(_a3)) == null ? void 0 : _c.y;
         const y3 = typeof yOverride === "number" ? yOverride : sourcePoint.y;
         return `M ${sourcePoint.x} ${y3} L ${targetPoint.x} ${y3}`;
       },
@@ -72229,6 +72249,7 @@
     "bpmn-subprocess",
     "bpmn-transaction",
     "bpmn-event-subprocess",
+    "bpmn-adhoc-subprocess",
     "bpmn-lane",
     "bpmn-pool",
     "bpmn-annotation",
@@ -72242,6 +72263,7 @@
     "bpmn-subprocess",
     "bpmn-transaction",
     "bpmn-event-subprocess",
+    "bpmn-adhoc-subprocess",
     "bpmn-lane",
     "bpmn-pool",
     "bpmn-group"
@@ -72382,7 +72404,8 @@
     const head = style2.end === "none" ? "" : style2.end === "arrow-open" ? `<path d="M20 4 27 9 20 14" fill="none" stroke="currentColor" stroke-width="1.8"/>` : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
     return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
   }
-  var OmniboardCanvas = class _OmniboardCanvas {
+  var _a2;
+  var _OmniboardCanvas = class _OmniboardCanvas {
     constructor(root2, categories, onChange) {
       this.edgeBar = null;
       this.edgeBarDebounce = null;
@@ -72394,6 +72417,7 @@
       this.propsBody = null;
       this.propsPanel = null;
       this.propsFab = null;
+      this.selectionChangeHandler = null;
       this.zoomLabel = null;
       this.minimap = null;
       this.minimapSvg = null;
@@ -72427,7 +72451,7 @@
       // (position:absolute, clip-path, transform, %-height flex all jump to 0,0). We hide
       // the foreignObject visuals on mobile and render each node into a real <div> overlay
       // (where that CSS works), positioned to match. Interaction stays on the SVG hit rect.
-      this.isMobile = typeof document !== "undefined" && !!document.body?.classList.contains("is-mobile");
+      this.isMobile = typeof document !== "undefined" && !!((_a2 = document.body) == null ? void 0 : _a2.classList.contains("is-mobile"));
       this.htmlLayer = null;
       this.htmlNodes = /* @__PURE__ */ new Map();
       this.flyout = null;
@@ -72463,7 +72487,7 @@
           this.dragBatch = true;
           try {
             this.graphMount.setPointerCapture(e2.pointerId);
-          } catch {
+          } catch (e3) {
           }
           e2.preventDefault();
           return;
@@ -72500,7 +72524,7 @@
         if (!d2 || e2.pointerId !== d2.id) return;
         try {
           this.graphMount.releasePointerCapture(e2.pointerId);
-        } catch {
+        } catch (e3) {
         }
         if (this.dragBatch) {
           this.graph.stopBatch("move");
@@ -72523,7 +72547,7 @@
         this.panStart = { px: e2.clientX, py: e2.clientY, tx: t3.tx, ty: t3.ty, id: e2.pointerId };
         try {
           this.graphMount.setPointerCapture(e2.pointerId);
-        } catch {
+        } catch (e3) {
         }
         this.graphMount.style.cursor = "grabbing";
         e2.preventDefault();
@@ -72539,7 +72563,7 @@
         if (!this.panStart || e2.pointerId !== this.panStart.id) return;
         try {
           this.graphMount.releasePointerCapture(e2.pointerId);
-        } catch {
+        } catch (e3) {
         }
         this.panStart = null;
         if (this.tool === "pan") this.graphMount.style.cursor = "grab";
@@ -72641,7 +72665,8 @@
           // attempt at mousedown so the click bubbles up to the normal selection
           // pipeline.
           validateMagnet: ({ magnet }) => {
-            return !!magnet && magnet.classList?.contains("x6-port-body");
+            var _a3;
+            return !!magnet && ((_a3 = magnet.classList) == null ? void 0 : _a3.contains("x6-port-body"));
           }
         },
         highlighting: {
@@ -72742,7 +72767,10 @@
       const s3 = parent.getSize();
       const gap = 80;
       const onSide = (cx) => side === "right" ? cx >= p4.x + s3.width / 2 : cx < p4.x + s3.width / 2;
-      const existingChildren = this.graph.getEdges().filter((e2) => e2.getSourceCellId() === parent.id).map((e2) => this.graph.getCellById(e2.getTargetCellId() ?? "")).filter((c4) => !!c4 && c4.isNode()).filter((c4) => onSide(c4.getPosition().x + c4.getSize().width / 2));
+      const existingChildren = this.graph.getEdges().filter((e2) => e2.getSourceCellId() === parent.id).map((e2) => {
+        var _a3;
+        return this.graph.getCellById((_a3 = e2.getTargetCellId()) != null ? _a3 : "");
+      }).filter((c4) => !!c4 && c4.isNode()).filter((c4) => onSide(c4.getPosition().x + c4.getSize().width / 2));
       const baseY = p4.y + s3.height / 2 - def.h / 2;
       const stackY = existingChildren.length ? Math.max(...existingChildren.map((c4) => c4.getPosition().y + c4.getSize().height)) + 14 : baseY;
       const childX = side === "right" ? p4.x + s3.width + gap : p4.x - gap - def.w;
@@ -72761,7 +72789,7 @@
     /** Returns "left" or "right" based on where the parent of `node` sits. Defaults to right when no parent. */
     mindmapOutwardSide(node2) {
       const incoming = this.graph.getEdges().find((e2) => e2.getTargetCellId() === node2.id);
-      const parentId = incoming?.getSourceCellId();
+      const parentId = incoming == null ? void 0 : incoming.getSourceCellId();
       if (!parentId) return "right";
       const parent = this.graph.getCellById(parentId);
       if (!parent || !parent.isNode()) return "right";
@@ -72779,7 +72807,7 @@
       const newY = dir === "below" ? p4.y + s3.height + 14 : p4.y - def.h - 14;
       const sibling = this.addHtmlNode(kind, p4.x, newY, def.w, def.h, def.label);
       const incoming = this.graph.getEdges().find((e2) => e2.getTargetCellId() === node2.id);
-      const parentId = incoming?.getSourceCellId();
+      const parentId = incoming == null ? void 0 : incoming.getSourceCellId();
       if (parentId) {
         const edge = this.graph.addEdge({
           source: { cell: parentId },
@@ -72890,18 +72918,38 @@
       mk("left", left4 - gap, midY, "Th\xEAm node b\xEAn tr\xE1i");
       this.padLayer.style.display = "block";
     }
-    /** Shared "Insert shape" grid (skips mindmap kinds). */
-    buildShapeGrid(onPick, onlyCats) {
+    /** Shared "Insert shape" grid (skips mindmap kinds).
+     *  `withLoadMore=true` keeps advanced palette items collapsed behind a button,
+     *  mirroring the left toolbar flyout behavior for dense BPMN sets. */
+    buildShapeGrid(onPick, onlyCats, withLoadMore = false) {
       const grid = el("div", "lk-shape-grid");
+      const common2 = [];
+      const advanced = [];
       for (const cat of this.categories) {
         if (onlyCats && !onlyCats.includes(cat.title)) continue;
         for (const item of cat.items) {
           if (item.shape.startsWith("mm-")) continue;
-          const cell = el("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
-          cell.title = item.label;
-          cell.onclick = () => onPick(item);
-          grid.appendChild(cell);
+          if (withLoadMore && item.advanced) advanced.push(item);
+          else common2.push(item);
         }
+      }
+      const mkCell = (item) => {
+        const cell = el("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
+        cell.title = item.label;
+        cell.onclick = () => onPick(item);
+        return cell;
+      };
+      for (const item of common2) grid.appendChild(mkCell(item));
+      if (withLoadMore && advanced.length > 0) {
+        const more = el("button", "lk-flyout-more", `Load more (${advanced.length})`);
+        more.onclick = () => {
+          var _a3;
+          const frag = document.createDocumentFragment();
+          for (const item of advanced) frag.appendChild(mkCell(item));
+          (_a3 = more.parentElement) == null ? void 0 : _a3.insertBefore(frag, more);
+          more.remove();
+        };
+        grid.appendChild(more);
       }
       return grid;
     }
@@ -72933,14 +72981,15 @@
      *  spec again afterwards (the recursive-relayout freeze came from doing this
      *  inside change:* / node:moved handlers, not from the mutation itself). */
     pinDropAnchor(edge, which) {
-      const sId = edge.getSourceCellId() ?? void 0;
-      const tId = edge.getTargetCellId() ?? void 0;
+      var _a3, _b2, _c;
+      const sId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
+      const tId = (_b2 = edge.getTargetCellId()) != null ? _b2 : void 0;
       if (this.isSeqLifeline(sId) || this.isSeqLifeline(tId)) return;
       if (this.isMindmapNode(sId) || this.isMindmapNode(tId)) return;
       const id = which === "source" ? sId : tId;
       if (!id) return;
       const node2 = this.graph.getCellById(id);
-      if (!node2?.isNode?.()) return;
+      if (!((_c = node2 == null ? void 0 : node2.isNode) == null ? void 0 : _c.call(node2))) return;
       const c4 = this.lastPointerClient;
       if (!c4) return;
       const p4 = this.graph.clientToLocal(c4.x, c4.y);
@@ -72972,6 +73021,7 @@
     }
     /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
     handleDragToBlank(edge) {
+      var _a3;
       const srcId = edge.getSourceCellId();
       const src = srcId ? this.graph.getCellById(srcId) : null;
       if (!src || !src.isNode()) {
@@ -72979,7 +73029,7 @@
         return;
       }
       const pt2 = edge.getTargetPoint();
-      const srcPort = edge.getSource()?.port;
+      const srcPort = (_a3 = edge.getSource()) == null ? void 0 : _a3.port;
       for (const n2 of this.graph.getNodes()) {
         if (n2.id === src.id) continue;
         const b2 = n2.getBBox();
@@ -73011,7 +73061,7 @@
         this.graph.resetSelection([created]);
         this.editLabel(created);
         this.onChange();
-      }, this.categoriesFor(src)));
+      }, this.categoriesFor(src), true));
       const sc = this.graph.scale().sx;
       const tr2 = this.graph.translate();
       this.showPopupAt(wrap, pt2.x * sc + tr2.tx, pt2.y * sc + tr2.ty);
@@ -73138,11 +73188,12 @@
      */
     enableLabelDrag() {
       this.root.addEventListener("pointerdown", (e2) => {
+        var _a3, _b2, _c;
         const t3 = e2.target;
-        const lbl = t3?.closest?.(".bp-elabel");
+        const lbl = (_a3 = t3 == null ? void 0 : t3.closest) == null ? void 0 : _a3.call(t3, ".bp-elabel");
         if (!lbl) return;
         const nodeEl = lbl.closest(".x6-node");
-        const cellId = nodeEl?.getAttribute("data-cell-id");
+        const cellId = nodeEl == null ? void 0 : nodeEl.getAttribute("data-cell-id");
         if (!cellId) return;
         const node2 = this.graph.getCellById(cellId);
         if (!node2 || !node2.isNode()) return;
@@ -73150,7 +73201,7 @@
         e2.stopPropagation();
         lbl.classList.add("is-dragging");
         const start = { x: e2.clientX, y: e2.clientY };
-        const base = node2.getData()?.labelOffset ?? { x: 0, y: 0 };
+        const base = (_c = (_b2 = node2.getData()) == null ? void 0 : _b2.labelOffset) != null ? _c : { x: 0, y: 0 };
         const scale2 = this.graph.scale().sx;
         const mv = (ev) => {
           const dx = (ev.clientX - start.x) / scale2;
@@ -73180,6 +73231,7 @@
      * Routes through X6's node:dblclick + node:click events for cross-build reliability.
      */
     tryEditChildLabel(target, node2) {
+      var _a3, _b2, _c, _d, _e3, _f, _g, _h;
       if (!target) return false;
       const poolHead = target.closest(".bp-pool-head");
       if (poolHead) {
@@ -73188,7 +73240,7 @@
       }
       const laneHead = target.closest(".bp-pool-lane-head");
       if (laneHead) {
-        const laneId = laneHead.closest(".bp-pool-lane")?.getAttribute("data-lane-id");
+        const laneId = (_a3 = laneHead.closest(".bp-pool-lane")) == null ? void 0 : _a3.getAttribute("data-lane-id");
         if (laneId) {
           this.editLaneLabel(node2, laneId, laneHead);
           return true;
@@ -73206,7 +73258,7 @@
       }
       const erdKey = target.closest(".erd-col .kk");
       if (erdKey) {
-        const idx = +(erdKey.closest(".erd-col")?.getAttribute("data-col-idx") ?? "-1");
+        const idx = +((_c = (_b2 = erdKey.closest(".erd-col")) == null ? void 0 : _b2.getAttribute("data-col-idx")) != null ? _c : "-1");
         if (idx >= 0) {
           this.pickErdKey(node2, idx, erdKey);
           return true;
@@ -73214,7 +73266,7 @@
       }
       const cname = target.closest(".erd-col .cname");
       if (cname) {
-        const idx = +(cname.closest(".erd-col")?.getAttribute("data-col-idx") ?? "-1");
+        const idx = +((_e3 = (_d = cname.closest(".erd-col")) == null ? void 0 : _d.getAttribute("data-col-idx")) != null ? _e3 : "-1");
         if (idx >= 0) {
           this.editErdCell(node2, idx, "name", cname);
           return true;
@@ -73222,7 +73274,7 @@
       }
       const ctype = target.closest(".erd-col .ctype");
       if (ctype) {
-        const idx = +(ctype.closest(".erd-col")?.getAttribute("data-col-idx") ?? "-1");
+        const idx = +((_g = (_f = ctype.closest(".erd-col")) == null ? void 0 : _f.getAttribute("data-col-idx")) != null ? _g : "-1");
         if (idx >= 0) {
           this.editErdCell(node2, idx, "type", ctype);
           return true;
@@ -73230,7 +73282,7 @@
       }
       const ln3 = target.closest(".uml-comp .ln");
       if (ln3) {
-        const idx = +(ln3.getAttribute("data-line-idx") ?? "-1");
+        const idx = +((_h = ln3.getAttribute("data-line-idx")) != null ? _h : "-1");
         const comp = ln3.getAttribute("data-line-comp");
         if (idx >= 0 && comp) {
           this.editUmlLine(node2, comp, idx, ln3);
@@ -73279,9 +73331,10 @@
     }
     /** Inline edit data.who for sequence participants. */
     editWho(node2, anchor3) {
+      var _a3, _b2;
       const r2 = anchor3.getBoundingClientRect();
       const rr2 = this.root.getBoundingClientRect();
-      const cur = node2.getData()?.who ?? "";
+      const cur = (_b2 = (_a3 = node2.getData()) == null ? void 0 : _a3.who) != null ? _b2 : "";
       this.inlineEdit({
         left: r2.left - rr2.left,
         top: r2.top - rr2.top,
@@ -73300,8 +73353,9 @@
     }
     /** Inline edit an ERD column field (name or type). */
     editErdCell(node2, idx, field, anchor3) {
+      var _a3;
       const ex = this.nodeExtra(node2);
-      const cols = (ex.cols ?? []).slice();
+      const cols = ((_a3 = ex.cols) != null ? _a3 : []).slice();
       if (idx < 0 || idx >= cols.length) return;
       const r2 = anchor3.getBoundingClientRect();
       const rr2 = this.root.getBoundingClientRect();
@@ -73321,8 +73375,9 @@
     }
     /** Open a small menu over an ERD key cell to set its marker (PK / FK / none). */
     pickErdKey(node2, idx, anchor3) {
+      var _a3;
       const ex = this.nodeExtra(node2);
-      const cols = (ex.cols ?? []).slice();
+      const cols = ((_a3 = ex.cols) != null ? _a3 : []).slice();
       if (idx < 0 || idx >= cols.length) return;
       const cur = cols[idx].k;
       const menu = el("div", "lk-context-menu lk-key-menu");
@@ -73336,7 +73391,8 @@
         item.appendChild(el("span", "kk " + (o3.k.toLowerCase() || "none"), o3.k || "\u2014"));
         item.appendChild(el("span", void 0, o3.label));
         item.onclick = () => {
-          const next = (this.nodeExtra(node2).cols ?? []).slice();
+          var _a4;
+          const next = ((_a4 = this.nodeExtra(node2).cols) != null ? _a4 : []).slice();
           if (idx < next.length) {
             next[idx] = { ...next[idx], k: o3.k };
             node2.setData({ ...node2.getData(), cols: next });
@@ -73351,8 +73407,9 @@
     }
     /** Inline edit a UML field/method line. */
     editUmlLine(node2, comp, idx, anchor3) {
+      var _a3;
       const ex = this.nodeExtra(node2);
-      const arr = ((comp === "fields" ? ex.fields : ex.methods) ?? []).slice();
+      const arr = ((_a3 = comp === "fields" ? ex.fields : ex.methods) != null ? _a3 : []).slice();
       if (idx < 0 || idx >= arr.length) return;
       const r2 = anchor3.getBoundingClientRect();
       const rr2 = this.root.getBoundingClientRect();
@@ -73449,15 +73506,16 @@
         delete edge.__selVertsUserChanged;
       });
       const onEndpointMoved = ({ edge }) => {
-        if (this.isSeqLifeline(edge.getSourceCellId() ?? void 0) || this.isSeqLifeline(edge.getTargetCellId() ?? void 0)) return;
-        if (this.isMindmapNode(edge.getSourceCellId() ?? void 0) || this.isMindmapNode(edge.getTargetCellId() ?? void 0)) return;
+        var _a3, _b2, _c, _d;
+        if (this.isSeqLifeline((_a3 = edge.getSourceCellId()) != null ? _a3 : void 0) || this.isSeqLifeline((_b2 = edge.getTargetCellId()) != null ? _b2 : void 0)) return;
+        if (this.isMindmapNode((_c = edge.getSourceCellId()) != null ? _c : void 0) || this.isMindmapNode((_d = edge.getTargetCellId()) != null ? _d : void 0)) return;
         if (edge.getVertices().length) edge.setVertices([]);
         this.scheduleEdgeBar(edge);
       };
       this.graph.on("edge:change:source", onEndpointMoved);
       this.graph.on("edge:change:target", onEndpointMoved);
       this.graph.on("edge:change:vertices", ({ edge, options }) => {
-        const tid = options?.toolId;
+        const tid = options == null ? void 0 : options.toolId;
         if (tid !== "auto-segments" && tid !== "auto-segments-revert") {
           edge.__selVertsUserChanged = true;
         }
@@ -73486,7 +73544,8 @@
         this.refreshContextPad();
       });
       this.graph.on("node:change:position", ({ node: node2, current, previous, options }) => {
-        if (options?.["__boundary_follow"]) return;
+        var _a3;
+        if (options == null ? void 0 : options["__boundary_follow"]) return;
         if (!current || !previous) return;
         const dx = current.x - previous.x;
         const dy = current.y - previous.y;
@@ -73494,7 +73553,7 @@
         const movedId = node2.id;
         for (const child of this.graph.getNodes()) {
           if (child.id === movedId) continue;
-          if (child.getData()?.attachedTo !== movedId) continue;
+          if (((_a3 = child.getData()) == null ? void 0 : _a3.attachedTo) !== movedId) continue;
           const p4 = child.getPosition();
           child.setPosition(p4.x + dx, p4.y + dy, { "__boundary_follow": true });
         }
@@ -73526,8 +73585,9 @@
         this.editLabel(node2);
       });
       this.graph.on("node:click", ({ node: node2, e: e2 }) => {
+        var _a3;
         if (this.lastSelectedAt.get(node2.id) === void 0) return;
-        const sinceSel = Date.now() - (this.lastSelectedAt.get(node2.id) ?? 0);
+        const sinceSel = Date.now() - ((_a3 = this.lastSelectedAt.get(node2.id)) != null ? _a3 : 0);
         if (sinceSel < 80) return;
         if (this.tryEditChildLabel(e2.target, node2)) e2.stopPropagation();
       });
@@ -73573,7 +73633,8 @@
       const view = this.graph.findViewByCell(node2);
       if (!view) return;
       view.container.querySelectorAll(".x6-port circle").forEach((c4) => {
-        const id = c4.getAttribute("port") ?? "";
+        var _a3;
+        const id = (_a3 = c4.getAttribute("port")) != null ? _a3 : "";
         const isCardinal = id === "top" || id === "right" || id === "bottom" || id === "left";
         c4.style.visibility = visible && isCardinal ? "visible" : "hidden";
       });
@@ -73582,6 +73643,7 @@
     // Compact icon rail (Omniboard-style): one icon per category; hover reveals a
     // flyout grid of that category's shapes (draggable onto the canvas).
     buildLeftToolbar() {
+      var _a3;
       const rail = el("div", "lk-rail");
       const sel = el("div", "lk-rail-item is-active");
       sel.innerHTML = CURSOR_ICON;
@@ -73617,7 +73679,7 @@
       };
       for (const cat of this.categories) {
         const item = el("div", "lk-rail-item");
-        item.innerHTML = shapeIcon(REP[cat.title] ?? cat.items[0].shape);
+        item.innerHTML = shapeIcon((_a3 = REP[cat.title]) != null ? _a3 : cat.items[0].shape);
         item.title = cat.title;
         item.onmouseenter = () => this.openFlyout(cat, item);
         item.onmouseleave = () => this.scheduleFlyoutClose();
@@ -73626,29 +73688,13 @@
       }
       this.root.appendChild(rail);
     }
-    static {
-      // Representative shape icon for each diagram category (rail + mobile bar).
-      this.CAT_REP = {
-        "C\u01A1 b\u1EA3n": "bs-rect",
-        "Flowchart": "fc-decision",
-        "ERD": "erd-entity",
-        "UML": "uml-class",
-        "State": "st-state",
-        "Sequence": "sq-actor",
-        "Mindmap": "mm-root",
-        "BPMN": "bpmn-gateway-x"
-      };
-    }
-    static {
-      // Diagram categories that get a dedicated button on the mobile bottom bar (rest → "Sơ đồ khác" sheet).
-      this.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
-    }
     /**
      * Mobile toolbar (Excalidraw-style): one bottom bar in the thumb zone.
      * Tools (select / pan / arrow) · quick shapes (Flowchart, BPMN) · "Sơ đồ khác"
      * sheet for the rest · fit-to-frame. Zoom +/- is omitted — pinch handles zoom.
      */
     buildMobileToolbar() {
+      var _a3;
       const FIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>`;
       const MORE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;
       const bar = el("div", "lk-mbar");
@@ -73672,7 +73718,7 @@
       for (const title2 of _OmniboardCanvas.QUICK_CATS) {
         const cat = byTitle(title2);
         if (!cat) continue;
-        const b2 = btn(shapeIcon(_OmniboardCanvas.CAT_REP[title2] ?? cat.items[0].shape), title2, () => {
+        const b2 = btn(shapeIcon((_a3 = _OmniboardCanvas.CAT_REP[title2]) != null ? _a3 : cat.items[0].shape), title2, () => {
         });
         b2.onclick = () => this.openFlyout(cat, b2);
       }
@@ -73689,6 +73735,7 @@
     }
     /** Bottom-sheet of the remaining diagram categories (mobile "Sơ đồ khác"). */
     openMoreSheet(anchor3) {
+      var _a3;
       this.cancelFlyoutClose();
       this.closeFlyoutNow();
       const rest = this.categories.filter((c4) => !_OmniboardCanvas.QUICK_CATS.includes(c4.title));
@@ -73699,7 +73746,7 @@
         const cell = el(
           "div",
           "lk-flyout-cell",
-          `${shapeIcon(_OmniboardCanvas.CAT_REP[cat.title] ?? cat.items[0].shape)}<span class="lbl">${cat.title}</span>`
+          `${shapeIcon((_a3 = _OmniboardCanvas.CAT_REP[cat.title]) != null ? _a3 : cat.items[0].shape)}<span class="lbl">${cat.title}</span>`
         );
         cell.style.cursor = "pointer";
         cell.onclick = () => this.openFlyout(cat, anchor3);
@@ -73759,12 +73806,13 @@
      * there is no Space key) and node interaction is suspended so drags always pan.
      */
     setTool(tool) {
+      var _a3, _b2, _c, _d;
       this.tool = tool;
       const pan = tool === "pan";
       this.graph.options.interacting = pan ? false : this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true };
       const g2 = this.graph;
-      if (pan) g2.disableRubberband?.();
-      else g2.enableRubberband?.();
+      if (pan) (_a3 = g2.disableRubberband) == null ? void 0 : _a3.call(g2);
+      else (_b2 = g2.enableRubberband) == null ? void 0 : _b2.call(g2);
       if (pan) this.graph.cleanSelection();
       const m4 = this.graphMount;
       m4.removeEventListener("pointerdown", this.onPanDown);
@@ -73790,8 +73838,8 @@
         m4.style.cursor = "";
         this.panStart = null;
       }
-      this.railSelect?.classList.toggle("is-active", !pan);
-      this.railHand?.classList.toggle("is-active", pan);
+      (_c = this.railSelect) == null ? void 0 : _c.classList.toggle("is-active", !pan);
+      (_d = this.railHand) == null ? void 0 : _d.classList.toggle("is-active", pan);
     }
     /**
      * Node under a client point — geometric bbox test, NOT elementFromPoint.
@@ -73800,13 +73848,14 @@
      * nodes became unselectable. Bbox containment works regardless. Topmost wins.
      */
     nodeAtPoint(x3, y3) {
+      var _a3, _b2;
       const p4 = this.graph.clientToLocal(x3, y3);
       let hit = null;
       let hitZ = -Infinity;
       for (const n2 of this.graph.getNodes()) {
         const b2 = n2.getBBox();
         if (p4.x >= b2.x && p4.x <= b2.x + b2.width && p4.y >= b2.y && p4.y <= b2.y + b2.height) {
-          const z3 = n2.getZIndex?.() ?? 0;
+          const z3 = (_b2 = (_a3 = n2.getZIndex) == null ? void 0 : _a3.call(n2)) != null ? _b2 : 0;
           if (z3 >= hitZ) {
             hit = n2;
             hitZ = z3;
@@ -73821,12 +73870,13 @@
      * tap, so accept anything within ~14 screen px. Closest edge wins.
      */
     edgeAtPoint(x3, y3) {
+      var _a3;
       const p4 = this.graph.clientToLocal(x3, y3);
       let best = null;
       let bestD = 14 / (this.graph.scale().sx || 1);
       for (const edge of this.graph.getEdges()) {
         const view = this.graph.findViewByCell(edge);
-        const cp = view?.getClosestPoint?.(p4);
+        const cp = (_a3 = view == null ? void 0 : view.getClosestPoint) == null ? void 0 : _a3.call(view, p4);
         if (!cp) continue;
         const d2 = Math.hypot(cp.x - p4.x, cp.y - p4.y);
         if (d2 <= bestD) {
@@ -73895,9 +73945,10 @@
       if (advanced.length > 0) {
         const more = el("button", "lk-flyout-more", `Load more (${advanced.length})`);
         more.onclick = () => {
+          var _a3;
           const frag = document.createDocumentFragment();
           for (const it3 of advanced) frag.appendChild(mkCell(it3));
-          more.parentElement?.insertBefore(frag, more);
+          (_a3 = more.parentElement) == null ? void 0 : _a3.insertBefore(frag, more);
           more.remove();
           this.positionFlyout(fly, anchor3);
         };
@@ -73927,7 +73978,8 @@
       fly.style.top = Math.min(Math.max(8, ir2.top - rr2.top - 6), Math.max(8, maxTop)) + "px";
     }
     closeFlyoutNow() {
-      this.flyout?.remove();
+      var _a3;
+      (_a3 = this.flyout) == null ? void 0 : _a3.remove();
       this.flyout = null;
     }
     cancelFlyoutClose() {
@@ -73962,7 +74014,7 @@
       move(e2);
       try {
         source.setPointerCapture(e2.pointerId);
-      } catch {
+      } catch (e3) {
       }
       const end = (ev) => {
         source.removeEventListener("pointermove", move);
@@ -73970,7 +74022,7 @@
         source.removeEventListener("pointercancel", end);
         try {
           source.releasePointerCapture(ev.pointerId);
-        } catch {
+        } catch (e3) {
         }
         ghost.remove();
         const onCanvas = this.pointInGraph(ev.clientX, ev.clientY);
@@ -74112,6 +74164,7 @@
       this.refreshMinimap();
     }
     refreshMinimap() {
+      var _a3, _b2;
       const box = this.minimap, svg3 = this.minimapSvg, vp = this.minimapVp;
       if (!box || !svg3 || !vp) return;
       const nodes = this.graph.getNodes();
@@ -74131,7 +74184,7 @@
       for (const n2 of nodes) {
         const p4 = n2.getPosition();
         const s3 = n2.getSize();
-        const st3 = n2.getData()?.style ?? {};
+        const st3 = (_b2 = (_a3 = n2.getData()) == null ? void 0 : _a3.style) != null ? _b2 : {};
         const fill2 = st3.fill && st3.fill !== "transparent" ? st3.fill : "#cdd6df";
         html3 += `<rect x="${(ox + (p4.x - bb.x) * scale2).toFixed(1)}" y="${(oy + (p4.y - bb.y) * scale2).toFixed(1)}" width="${Math.max(2, s3.width * scale2).toFixed(1)}" height="${Math.max(2, s3.height * scale2).toFixed(1)}" rx="1.5" fill="${fill2}"/>`;
       }
@@ -74176,8 +74229,54 @@
       this.togglePropsPanel(false);
     }
     togglePropsPanel(open2) {
-      this.propsPanel?.classList.toggle("open", open2);
+      var _a3;
+      (_a3 = this.propsPanel) == null ? void 0 : _a3.classList.toggle("open", open2);
       if (this.propsFab) this.propsFab.style.display = open2 ? "none" : "grid";
+    }
+    setSelectionChangeHandler(handler) {
+      this.selectionChangeHandler = handler;
+    }
+    notifySelectionChanged() {
+      var _a3;
+      (_a3 = this.selectionChangeHandler) == null ? void 0 : _a3.call(this);
+    }
+    getSelectedNodeSnapshot() {
+      var _a3;
+      const nodes = this.graph.getSelectedCells().filter((c4) => c4.isNode());
+      if (nodes.length !== 1) return null;
+      const node2 = nodes[0];
+      const p4 = node2.getPosition();
+      const s3 = node2.getSize();
+      return {
+        id: node2.id,
+        kind: this.nodeKind(node2),
+        label: this.nodeLabel(node2),
+        attrs: { ...(_a3 = node2.getData()) != null ? _a3 : {} },
+        style: this.nodeStyle(node2),
+        position: { x: p4.x, y: p4.y },
+        size: { width: s3.width, height: s3.height }
+      };
+    }
+    patchSelectedNode(patch) {
+      var _a3, _b2, _c, _d;
+      const nodes = this.graph.getSelectedCells().filter((c4) => c4.isNode());
+      if (nodes.length !== 1) return;
+      const node2 = nodes[0];
+      if (patch.label !== void 0) node2.setData({ ...node2.getData(), label: patch.label });
+      if (patch.attrs) node2.setData({ ...node2.getData(), ...patch.attrs });
+      if (patch.style) this.setStyle(node2, patch.style);
+      if (patch.position) {
+        const p4 = node2.getPosition();
+        node2.setPosition((_a3 = patch.position.x) != null ? _a3 : p4.x, (_b2 = patch.position.y) != null ? _b2 : p4.y);
+      }
+      if (patch.size) {
+        const s3 = node2.getSize();
+        node2.resize((_c = patch.size.width) != null ? _c : s3.width, (_d = patch.size.height) != null ? _d : s3.height);
+      }
+      this.rerender(node2);
+      this.onChange();
+      this.refreshProps();
+      this.notifySelectionChanged();
     }
     refreshProps() {
       const body = this.propsBody;
@@ -74188,6 +74287,7 @@
         const empty3 = el("div", "lk-props-empty");
         empty3.innerHTML = `<div class="lk-props-empty-ic">\u25C7</div>Ch\u1ECDn m\u1ED9t ph\u1EA7n t\u1EED tr\xEAn canvas \u0111\u1EC3 ch\u1EC9nh n\u1ED9i dung, m\xE0u v\xE0 v\u1ECB tr\xED.`;
         body.appendChild(empty3);
+        this.notifySelectionChanged();
         return;
       }
       const node2 = nodes[0];
@@ -74216,6 +74316,7 @@
       const kind = this.nodeKind(node2);
       if (kind === "erd-entity") this.buildErdEditor(node2, body);
       else if (kind === "uml-class" || kind === "uml-interface") this.buildUmlEditor(node2, body);
+      if (kind.startsWith("bpmn-")) this.buildBpmnPropsEditor(node2, body);
       const s22 = sec("Ki\u1EC3u");
       const swatchRow = (key) => {
         const row = el("div", "lk-pswatches");
@@ -74271,6 +74372,180 @@
       sizeRow.appendChild(mkNum(size.width, (v4) => node2.resize(v4, node2.getSize().height)));
       sizeRow.appendChild(mkNum(size.height, (v4) => node2.resize(node2.getSize().width, v4)));
       field(s3, "R\u1ED9ng / Cao", sizeRow);
+      this.notifySelectionChanged();
+    }
+    // ── BPMN Properties editor (Phase D) ──────────────────────────────────────
+    buildBpmnPropsEditor(node2, body) {
+      var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
+      const kind = this.nodeKind(node2);
+      const ex = this.nodeExtra(node2);
+      const d2 = (_a3 = node2.getData()) != null ? _a3 : {};
+      const sec = (title2) => {
+        const s3 = el("div", "lk-psec");
+        s3.appendChild(el("div", "lk-psec-h", title2));
+        body.appendChild(s3);
+        return s3;
+      };
+      const field = (parent, label, control) => {
+        const f3 = el("div", "lk-pfield");
+        f3.appendChild(el("label", void 0, label));
+        f3.appendChild(control);
+        parent.appendChild(f3);
+      };
+      const save = (patch) => {
+        node2.setData({ ...node2.getData(), ...patch });
+        this.rerender(node2);
+        this.onChange();
+      };
+      const bpmnFill = d2.bpmnFill;
+      const bpmnStroke = d2.bpmnStroke;
+      if (!kind.endsWith("-lane") && !kind.endsWith("-pool")) {
+        const sColor = sec("M\xE0u BPMN");
+        const makeColor = (label, key, cur) => {
+          const wrap = el("div", "lk-prow2");
+          const inp = el("input", "lk-pinput lk-pcolor");
+          inp.type = "text";
+          inp.placeholder = "#ffffff";
+          inp.value = cur != null ? cur : "";
+          inp.oninput = () => {
+            save({ [key]: inp.value.trim() || void 0 });
+          };
+          const swatch = el("div", "lk-pswatch lk-pcolor-swatch");
+          swatch.style.background = cur != null ? cur : "transparent";
+          inp.addEventListener("input", () => {
+            swatch.style.background = inp.value.trim() || "transparent";
+          });
+          wrap.appendChild(swatch);
+          wrap.appendChild(inp);
+          field(sColor, label, wrap);
+        };
+        makeColor("Fill", "bpmnFill", bpmnFill);
+        makeColor("Stroke", "bpmnStroke", bpmnStroke);
+      }
+      if (kind === "bpmn-event-start" || kind === "bpmn-event-intermediate" || kind === "bpmn-event-end") {
+        const sTrig = sec("Trigger s\u1EF1 ki\u1EC7n");
+        const TRIGGERS = [
+          "(none)",
+          "message",
+          "timer",
+          "signal",
+          "error",
+          "escalation",
+          "compensation",
+          "conditional",
+          "link",
+          "cancel",
+          "terminate",
+          "multiple",
+          "parallel-multiple"
+        ];
+        const sel = el("select", "lk-pselect");
+        for (const t3 of TRIGGERS) {
+          const opt = document.createElement("option");
+          opt.value = t3 === "(none)" ? "" : t3;
+          opt.textContent = t3;
+          if (((_b2 = ex.trigger) != null ? _b2 : "") === opt.value) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        sel.onchange = () => {
+          save({ trigger: sel.value || void 0 });
+        };
+        field(sTrig, "Trigger", sel);
+        if (kind === "bpmn-event-intermediate") {
+          const thrChk = el("input");
+          thrChk.type = "checkbox";
+          thrChk.checked = ex.throwing === true;
+          thrChk.onchange = () => {
+            save({ throwing: thrChk.checked });
+          };
+          field(sTrig, "Throwing", thrChk);
+        }
+      }
+      const isActivity = kind.startsWith("bpmn-task") || kind === "bpmn-subprocess" || kind === "bpmn-transaction" || kind === "bpmn-adhoc-subprocess" || kind === "bpmn-event-subprocess" || kind === "bpmn-call-activity";
+      if (isActivity) {
+        const sLoop = sec("\u0110\u1EB7c t\xEDnh v\xF2ng l\u1EB7p");
+        const LOOP_OPTS = [
+          ["", "Kh\xF4ng"],
+          ["loop", "V\xF2ng l\u1EB7p"],
+          ["mi-par", "Multi-instance //"],
+          ["mi-seq", "Multi-instance \u2261"]
+        ];
+        const sel = el("select", "lk-pselect");
+        const curLoop = (_d = (_c = ex.markers) == null ? void 0 : _c.find((m4) => m4 === "loop" || m4 === "mi-par" || m4 === "mi-seq")) != null ? _d : "";
+        for (const [v4, l3] of LOOP_OPTS) {
+          const opt = document.createElement("option");
+          opt.value = v4;
+          opt.textContent = l3;
+          if (curLoop === v4) opt.selected = true;
+          sel.appendChild(opt);
+        }
+        sel.onchange = () => {
+          var _a4;
+          const other = ((_a4 = ex.markers) != null ? _a4 : []).filter((m4) => m4 !== "loop" && m4 !== "mi-par" && m4 !== "mi-seq");
+          save({ markers: sel.value ? [...other, sel.value] : other });
+        };
+        field(sLoop, "Ki\u1EC3u", sel);
+        const compChk = el("input");
+        compChk.type = "checkbox";
+        compChk.checked = ((_e3 = ex.markers) != null ? _e3 : []).includes("compensation");
+        compChk.onchange = () => {
+          var _a4;
+          const others = ((_a4 = ex.markers) != null ? _a4 : []).filter((m4) => m4 !== "compensation");
+          save({ markers: compChk.checked ? [...others, "compensation"] : others });
+        };
+        field(sLoop, "Compensation", compChk);
+      }
+      const sDocs = sec("M\xF4 t\u1EA3 (documentation)");
+      const docTa = el("textarea", "lk-ptextarea");
+      docTa.rows = 4;
+      docTa.placeholder = "Nh\u1EADp m\xF4 t\u1EA3 ph\u1EA7n t\u1EED BPMN...";
+      docTa.value = (_f = d2.bpmnDoc) != null ? _f : "";
+      docTa.oninput = () => {
+        save({ bpmnDoc: docTa.value.trim() || void 0 });
+      };
+      sDocs.appendChild(docTa);
+      const camunda = (_g = d2.camunda) != null ? _g : {};
+      const CAMUNDA_FIELDS = [
+        ["assignee", "Assignee"],
+        ["candidateUsers", "Candidate users"],
+        ["candidateGroups", "Candidate groups"],
+        ["formKey", "Form key"],
+        ["dueDate", "Due date"],
+        ["priority", "Priority"]
+      ];
+      const hasCamundaData = CAMUNDA_FIELDS.some(([k3]) => camunda[k3]);
+      if (hasCamundaData || kind === "bpmn-task-user") {
+        const sCam = sec("Camunda");
+        for (const [key, label] of CAMUNDA_FIELDS) {
+          const inp = el("input", "lk-pinput");
+          inp.value = (_h = camunda[key]) != null ? _h : "";
+          inp.placeholder = label;
+          inp.oninput = () => {
+            const updated = { ...camunda, [key]: inp.value.trim() || void 0 };
+            save({ camunda: Object.fromEntries(Object.entries(updated).filter(([, v4]) => v4 !== void 0)) });
+          };
+          field(sCam, label, inp);
+        }
+      }
+      const bpmnProps = (_i = d2.bpmnProps) != null ? _i : [];
+      if (bpmnProps.length) {
+        const sProps = sec("Properties");
+        for (const p4 of bpmnProps) {
+          const row = el("div", "lk-prow2");
+          const kIn = el("input", "lk-pinput");
+          kIn.value = p4.name;
+          kIn.readOnly = true;
+          const vIn = el("input", "lk-pinput");
+          vIn.value = p4.value;
+          vIn.oninput = () => {
+            const updated = bpmnProps.map((q3) => q3.name === p4.name ? { ...q3, value: vIn.value } : q3);
+            save({ bpmnProps: updated });
+          };
+          row.appendChild(kIn);
+          row.appendChild(vIn);
+          sProps.appendChild(row);
+        }
+      }
     }
     // ── ERD column / UML member editors (right panel) ────────────────────────
     buildErdEditor(node2, body) {
@@ -74278,7 +74553,10 @@
       sec.appendChild(el("div", "lk-psec-h", "C\u1ED9t"));
       const list = el("div");
       sec.appendChild(list);
-      const cols = () => this.nodeExtra(node2).cols ?? [];
+      const cols = () => {
+        var _a3;
+        return (_a3 = this.nodeExtra(node2).cols) != null ? _a3 : [];
+      };
       const render = () => {
         list.innerHTML = "";
         cols().forEach((c4, i3) => list.appendChild(this.erdRow(node2, c4, i3, render)));
@@ -74294,7 +74572,10 @@
     }
     erdRow(node2, col, idx, rerenderList) {
       const row = el("div", "lk-erd-row");
-      const cols = () => this.nodeExtra(node2).cols ?? [];
+      const cols = () => {
+        var _a3;
+        return (_a3 = this.nodeExtra(node2).cols) != null ? _a3 : [];
+      };
       const update = (patch) => this.setExtra(node2, { cols: cols().map((c4, i3) => i3 === idx ? { ...c4, ...patch } : c4) });
       const ksel = el("select", "lk-pinput");
       ["", "PK", "FK"].forEach((k3) => {
@@ -74331,7 +74612,10 @@
         sec.appendChild(el("div", "lk-psec-h", title2));
         const list = el("div");
         sec.appendChild(list);
-        const arr = () => this.nodeExtra(node2)[key] ?? [];
+        const arr = () => {
+          var _a3;
+          return (_a3 = this.nodeExtra(node2)[key]) != null ? _a3 : [];
+        };
         const render = () => {
           list.innerHTML = "";
           arr().forEach((line2, i3) => list.appendChild(this.umlRow(node2, key, line2, i3, render)));
@@ -74350,7 +74634,10 @@
     }
     umlRow(node2, key, line2, idx, rerenderList) {
       const row = el("div", "lk-erd-row");
-      const arr = () => this.nodeExtra(node2)[key] ?? [];
+      const arr = () => {
+        var _a3;
+        return (_a3 = this.nodeExtra(node2)[key]) != null ? _a3 : [];
+      };
       const inp = el("input", "lk-pinput");
       inp.value = line2;
       inp.style.flex = "1";
@@ -74368,6 +74655,7 @@
     }
     // ── Contextual toolbar above selected node ──────────────────────────────
     refreshContextBar() {
+      var _a3, _b2;
       const nodes = this.graph.getSelectedCells().filter((c4) => c4.isNode());
       if (nodes.length !== 1) {
         this.contextBar.style.display = "none";
@@ -74404,9 +74692,9 @@
       const kindNow = this.nodeKind(node2);
       if (kindNow === "bpmn-event-start" || kindNow === "bpmn-event-intermediate" || kindNow === "bpmn-event-end") {
         this.contextBar.appendChild(el("div", "lk-cb-sep"));
-        const cur = this.nodeExtra(node2).trigger ?? "none";
+        const cur = (_a3 = this.nodeExtra(node2).trigger) != null ? _a3 : "none";
         this.contextBar.appendChild(mkBtn(
-          `<span style="font-size:11px;font-weight:600">${BPMN_TRIGGER_LABEL[cur] ?? "Trigger"}</span><span class="lk-cb-caret">\u25BE</span>`,
+          `<span style="font-size:11px;font-weight:600">${(_b2 = BPMN_TRIGGER_LABEL[cur]) != null ? _b2 : "Trigger"}</span><span class="lk-cb-caret">\u25BE</span>`,
           "Trigger s\u1EF1 ki\u1EC7n",
           (ev) => this.openBpmnTriggerPopup(node2, ev.currentTarget)
         ));
@@ -74486,7 +74774,8 @@
     }
     /** Mobile: pin a toolbar as a centered strip directly above the bottom bar. */
     dockBarAboveMbar(bar) {
-      const gap = (this.mbar?.offsetHeight || 54) + 8;
+      var _a3;
+      const gap = (((_a3 = this.mbar) == null ? void 0 : _a3.offsetHeight) || 54) + 8;
       bar.style.left = "50%";
       bar.style.transform = "translateX(-50%)";
       bar.style.top = "auto";
@@ -74529,9 +74818,10 @@
         const st3 = this.nodeStyle(node2);
         const wRow = el("div", "lk-line-row");
         [1, 2, 3].forEach((bw, i3) => {
+          var _a3;
           const b2 = el(
             "div",
-            "lk-line-cell" + ((st3.borderWidth ?? 1) === bw ? " on" : ""),
+            "lk-line-cell" + (((_a3 = st3.borderWidth) != null ? _a3 : 1) === bw ? " on" : ""),
             `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="${bw}"/></svg>`
           );
           b2.title = ["M\u1EA3nh", "V\u1EEBa", "\u0110\u1EADm"][i3];
@@ -74546,9 +74836,10 @@
         wrap.appendChild(wRow);
         const dRow = el("div", "lk-line-row");
         [["solid", ""], ["dashed", "5 3"], ["dotted", "1.5 3"]].forEach(([key2, dash]) => {
+          var _a3;
           const b2 = el(
             "div",
-            "lk-line-cell" + ((st3.borderDash ?? "solid") === key2 ? " on" : ""),
+            "lk-line-cell" + (((_a3 = st3.borderDash) != null ? _a3 : "solid") === key2 ? " on" : ""),
             `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ""}/></svg>`
           );
           b2.title = key2;
@@ -74566,6 +74857,7 @@
     }
     /** Modern HSV picker: draggable saturation/value square + hue slider + synced hex. */
     openColorWheel(initial, onPick, anchor3) {
+      var _a3;
       const wrap = el("div", "lk-wheel");
       const sv = el("div", "lk-wheel-sv");
       const svThumb = el("div", "lk-wheel-sv-thumb");
@@ -74580,7 +74872,7 @@
       wrap.appendChild(sv);
       wrap.appendChild(hue);
       wrap.appendChild(hex);
-      const rgb0 = hexToRgb(initial) ?? { r: 94, g: 143, b: 185 };
+      const rgb0 = (_a3 = hexToRgb(initial)) != null ? _a3 : { r: 94, g: 143, b: 185 };
       let { h: h3, s: s3, v: v4 } = rgbToHsv(rgb0.r, rgb0.g, rgb0.b);
       const render = (emit = true) => {
         sv.style.background = `linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(${h3} 100% 50%))`;
@@ -74632,6 +74924,7 @@
     }
     /** Typography popover: font size · B/I/U/S · align · text color. */
     openTextPopup(node2, anchor3) {
+      var _a3;
       const st3 = this.nodeStyle(node2);
       const wrap = el("div", "lk-line-popup");
       const szRow = el("div", "lk-line-row lk-fs-row");
@@ -74641,7 +74934,7 @@
       szIn.min = "6";
       szIn.max = "96";
       szIn.step = "1";
-      szIn.value = String(st3.fontSize ?? 13);
+      szIn.value = String((_a3 = st3.fontSize) != null ? _a3 : 13);
       const inc = el("div", "lk-line-cell lk-fs-btn", "+");
       const apply4 = (v4) => {
         const clamped = Math.max(6, Math.min(96, Math.round(v4) || 13));
@@ -74688,7 +74981,8 @@
         right: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg>`
       };
       [["left", "Tr\xE1i"], ["center", "Gi\u1EEFa"], ["right", "Ph\u1EA3i"]].forEach(([al, title2]) => {
-        const b2 = el("div", "lk-line-cell" + ((st3.align ?? "center") === al ? " on" : ""), ALIGN_SVG[al]);
+        var _a4;
+        const b2 = el("div", "lk-line-cell" + (((_a4 = st3.align) != null ? _a4 : "center") === al ? " on" : ""), ALIGN_SVG[al]);
         b2.title = title2;
         b2.onclick = () => {
           this.setStyle(node2, { align: al });
@@ -74783,7 +75077,7 @@
         // MUST survive the load→getModel round-trip — otherwise re-saving the
         // board (e.g. when opened on another device) drops it and the pool/lane
         // identity + export fidelity are lost.
-        data: { kind, label, style: style2 ?? {}, ...ex, ...source !== void 0 ? { __source: source } : {} },
+        data: { kind, label, style: style2 != null ? style2 : {}, ...ex, ...source !== void 0 ? { __source: source } : {} },
         attrs: { content: { html: nodeHtml(kind, label, style2, ex), class: "hn" } }
       });
       if (kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf") {
@@ -74806,30 +75100,38 @@
     mergeExtra(kind, data2) {
       const seed = this.seedExtra(kind);
       const out = { ...seed };
-      if (data2?.cols) out.cols = data2.cols;
-      if (data2?.fields) out.fields = data2.fields;
-      if (data2?.methods) out.methods = data2.methods;
-      if (data2?.who !== void 0) out.who = data2.who;
-      if (data2?.labelOffset) out.labelOffset = data2.labelOffset;
-      if (data2?.lanes && data2.lanes.length > 0) out.lanes = data2.lanes;
-      if (data2?.trigger) out.trigger = data2.trigger;
-      if (data2?.throwing !== void 0) out.throwing = data2.throwing;
-      if (data2?.interrupting !== void 0) out.interrupting = data2.interrupting;
-      if (data2?.attachedTo) out.attachedTo = data2.attachedTo;
-      if (data2?.markers && data2.markers.length > 0) out.markers = data2.markers;
+      if (data2 == null ? void 0 : data2.cols) out.cols = data2.cols;
+      if (data2 == null ? void 0 : data2.fields) out.fields = data2.fields;
+      if (data2 == null ? void 0 : data2.methods) out.methods = data2.methods;
+      if ((data2 == null ? void 0 : data2.who) !== void 0) out.who = data2.who;
+      if (data2 == null ? void 0 : data2.labelOffset) out.labelOffset = data2.labelOffset;
+      if (data2 == null ? void 0 : data2.lanes) out.lanes = data2.lanes;
+      if ((data2 == null ? void 0 : data2.poolHorizontal) !== void 0) out.poolHorizontal = data2.poolHorizontal;
+      if ((data2 == null ? void 0 : data2.blackBox) !== void 0) out.blackBox = data2.blackBox;
+      if (out.blackBox) delete out.lanes;
+      if (data2 == null ? void 0 : data2.trigger) out.trigger = data2.trigger;
+      if ((data2 == null ? void 0 : data2.throwing) !== void 0) out.throwing = data2.throwing;
+      if ((data2 == null ? void 0 : data2.interrupting) !== void 0) out.interrupting = data2.interrupting;
+      if (data2 == null ? void 0 : data2.attachedTo) out.attachedTo = data2.attachedTo;
+      if ((data2 == null ? void 0 : data2.markers) && data2.markers.length > 0) out.markers = data2.markers;
+      if ((data2 == null ? void 0 : data2.collapsed) !== void 0) out.collapsed = data2.collapsed;
       return out;
     }
     nodeKind(n2) {
-      return n2.getData()?.kind ?? "bs-rect";
+      var _a3, _b2;
+      return (_b2 = (_a3 = n2.getData()) == null ? void 0 : _a3.kind) != null ? _b2 : "bs-rect";
     }
     nodeLabel(n2) {
-      return n2.getData()?.label ?? "";
+      var _a3, _b2;
+      return (_b2 = (_a3 = n2.getData()) == null ? void 0 : _a3.label) != null ? _b2 : "";
     }
     nodeStyle(n2) {
-      return n2.getData()?.style ?? {};
+      var _a3, _b2;
+      return (_b2 = (_a3 = n2.getData()) == null ? void 0 : _a3.style) != null ? _b2 : {};
     }
     nodeExtra(n2) {
-      const d2 = n2.getData() ?? {};
+      var _a3;
+      const d2 = (_a3 = n2.getData()) != null ? _a3 : {};
       return {
         cols: d2.cols,
         fields: d2.fields,
@@ -74841,7 +75143,10 @@
         throwing: d2.throwing,
         interrupting: d2.interrupting,
         attachedTo: d2.attachedTo,
-        markers: d2.markers
+        markers: d2.markers,
+        collapsed: d2.collapsed,
+        poolHorizontal: d2.poolHorizontal,
+        blackBox: d2.blackBox
       };
     }
     rerender(n2) {
@@ -74899,6 +75204,7 @@
       this.placeHtmlNode(node2);
     }
     placeHtmlNode(node2) {
+      var _a3, _b2;
       const div = this.htmlNodes.get(node2.id);
       if (!div) return;
       const p4 = node2.position();
@@ -74907,7 +75213,7 @@
       div.style.top = p4.y + "px";
       div.style.width = sz.width + "px";
       div.style.height = sz.height + "px";
-      div.style.zIndex = String(node2.getZIndex?.() ?? 1);
+      div.style.zIndex = String((_b2 = (_a3 = node2.getZIndex) == null ? void 0 : _a3.call(node2)) != null ? _b2 : 1);
     }
     removeHtmlNode(id) {
       const div = this.htmlNodes.get(id);
@@ -74929,12 +75235,13 @@
       this.onChange();
     }
     autoHeight(n2) {
+      var _a3, _b2, _c, _d, _e3, _f;
       const kind = this.nodeKind(n2);
       const ex = this.nodeExtra(n2);
       let h3 = 0;
-      if (kind === "erd-entity") h3 = 34 + (ex.cols?.length ?? 0) * 25;
+      if (kind === "erd-entity") h3 = 34 + ((_b2 = (_a3 = ex.cols) == null ? void 0 : _a3.length) != null ? _b2 : 0) * 25;
       else if (kind === "uml-class" || kind === "uml-interface") {
-        const f3 = ex.fields?.length ?? 0, m4 = ex.methods?.length ?? 0;
+        const f3 = (_d = (_c = ex.fields) == null ? void 0 : _c.length) != null ? _d : 0, m4 = (_f = (_e3 = ex.methods) == null ? void 0 : _e3.length) != null ? _f : 0;
         h3 = 38 + (f3 ? 14 + f3 * 20 : 0) + (m4 ? 14 + m4 * 20 : 0);
       } else return;
       n2.resize(n2.getSize().width, Math.max(h3, 44), { silent: false });
@@ -74949,12 +75256,14 @@
     // ── BPMN Đợt D — Trigger / Marker / Interrupting pickers ────────────────
     /** Open the trigger picker for an event node (popup grid of 12 OMG triggers). */
     openBpmnTriggerPopup(node2, anchor3) {
+      var _a3;
       const list = el("div", "lk-line-list");
-      const cur = this.nodeExtra(node2).trigger ?? "none";
+      const cur = (_a3 = this.nodeExtra(node2).trigger) != null ? _a3 : "none";
       for (const t3 of BPMN_TRIGGERS) {
         const row = el("button", "lk-line-row" + (t3 === cur ? " on" : ""), `<span>${BPMN_TRIGGER_LABEL[t3]}</span>`);
         row.onclick = () => {
-          const data2 = node2.getData() ?? {};
+          var _a4;
+          const data2 = (_a4 = node2.getData()) != null ? _a4 : {};
           const nextTrigger = t3 === "none" ? void 0 : t3;
           node2.setData({ ...data2, trigger: nextTrigger });
           this.rerender(node2);
@@ -74968,7 +75277,8 @@
     }
     /** Toggle Interrupting ↔ Non-Interrupting on event nodes (boundary / event-subprocess start). */
     toggleEventInterrupting(node2) {
-      const data2 = node2.getData() ?? {};
+      var _a3;
+      const data2 = (_a3 = node2.getData()) != null ? _a3 : {};
       const cur = data2.interrupting !== false;
       node2.setData({ ...data2, interrupting: !cur ? void 0 : false });
       this.rerender(node2);
@@ -74980,7 +75290,8 @@
      *  sets extra.attachedTo. Snaps the event onto the activity's right edge by
      *  default so it visually overlaps per OMG. */
     toggleBoundaryAttach(node2) {
-      const data2 = node2.getData() ?? {};
+      var _a3;
+      const data2 = (_a3 = node2.getData()) != null ? _a3 : {};
       if (data2.attachedTo) {
         node2.setData({ ...data2, attachedTo: void 0 });
         this.rerender(node2);
@@ -75022,14 +75333,16 @@
     }
     /** Open the activity-marker picker (multi-select: loop / MI-par / MI-seq / ad-hoc / compensation). */
     openBpmnMarkerPopup(node2, anchor3) {
+      var _a3;
       const list = el("div", "lk-line-list");
-      const cur = new Set(this.nodeExtra(node2).markers ?? []);
+      const cur = new Set((_a3 = this.nodeExtra(node2).markers) != null ? _a3 : []);
       for (const mk of BPMN_MARKERS) {
         const on2 = cur.has(mk);
         const row = el("button", "lk-line-row" + (on2 ? " on" : ""), `<span>${on2 ? "\u2611" : "\u2610"} ${BPMN_MARKER_LABEL[mk]}</span>`);
         row.onclick = () => {
-          const data2 = node2.getData() ?? {};
-          const next = new Set(data2.markers ?? []);
+          var _a4, _b2;
+          const data2 = (_a4 = node2.getData()) != null ? _a4 : {};
+          const next = new Set((_b2 = data2.markers) != null ? _b2 : []);
           if (on2) next.delete(mk);
           else next.add(mk);
           if (mk === "mi-par" && !on2) next.delete("mi-seq");
@@ -75054,8 +75367,9 @@
       return "l" + Math.random().toString(36).slice(2, 8);
     }
     addLaneToPool(node2, where) {
+      var _a3;
       const ex = this.nodeExtra(node2);
-      const lanes = [...ex.lanes ?? [{ id: "l1", label: "Lane 1" }]];
+      const lanes = [...(_a3 = ex.lanes) != null ? _a3 : [{ id: "l1", label: "Lane 1" }]];
       const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}` };
       if (where === "above") lanes.unshift(next);
       else lanes.push(next);
@@ -75140,8 +75454,9 @@
       }, 10);
     }
     editLaneLabel(node2, laneId, anchor3) {
+      var _a3;
       const ex = this.nodeExtra(node2);
-      const lanes = (ex.lanes ?? []).slice();
+      const lanes = ((_a3 = ex.lanes) != null ? _a3 : []).slice();
       const idx = lanes.findIndex((l3) => l3.id === laneId);
       if (idx < 0) return;
       const r2 = anchor3.getBoundingClientRect();
@@ -75214,8 +75529,9 @@
     }
     /** Re-measure rendered HTML and grow the node's height if the wrapped text overflows. */
     autoGrowMindmapNode(node2) {
+      var _a3, _b2;
       const view = this.graph.findViewByCell(node2);
-      const mm = view?.container?.querySelector?.(".mm");
+      const mm = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, ".mm");
       if (!mm) return;
       const desired = mm.scrollHeight;
       const cur = node2.getSize().height;
@@ -75228,11 +75544,12 @@
     // (Enter commits, Escape cancels). Empty commit clears the label. Long lines wrap
     // automatically at the EDGE_LABEL_TEXT.textWrap.width in the rendered SVG.
     editEdgeLabel(edge) {
+      var _a3, _b2, _c, _d;
       const bbox2 = edge.getBBox();
       const s3 = this.graph.scale().sx, t3 = this.graph.translate();
       const cx = (bbox2.x + bbox2.width / 2) * s3 + t3.tx;
       const cy = (bbox2.y + bbox2.height / 2) * s3 + t3.ty;
-      const cur = edge.getLabels()?.[0]?.attrs?.label?.text;
+      const cur = (_d = (_c = (_b2 = (_a3 = edge.getLabels()) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.attrs) == null ? void 0 : _c.label) == null ? void 0 : _d.text;
       const W3 = 220;
       this.inlineEdit({
         left: cx - W3 / 2,
@@ -75252,7 +75569,8 @@
     }
     // ── Edge style (relationship type / weight / dash / color) ────────────────
     edgeStyle(edge) {
-      return edge.getData()?.style ?? {};
+      var _a3, _b2;
+      return (_b2 = (_a3 = edge.getData()) == null ? void 0 : _a3.style) != null ? _b2 : {};
     }
     setEdgeStyle(edge, patch) {
       const next = { ...this.edgeStyle(edge), ...patch };
@@ -75262,26 +75580,28 @@
     }
     // Render the edge's stored style onto its line + markers.
     applyEdgeStyle(edge, selected = false) {
+      var _a3, _b2, _c, _d, _e3, _f;
       const st3 = this.edgeStyle(edge);
       const color = st3.stroke || EDGE_STROKE2;
       edge.attr("line/stroke", selected ? ACCENT : color, { silent: true });
-      edge.attr("line/strokeWidth", st3.width ?? 1.8, { silent: true });
-      edge.attr("line/strokeDasharray", EDGE_DASHES[st3.dash ?? "solid"] ?? "", { silent: true });
-      edge.attr("line/sourceMarker", buildMarker(st3.start ?? "none", color), { silent: true });
-      edge.attr("line/targetMarker", buildMarker(st3.end ?? "arrow", color), { silent: true });
+      edge.attr("line/strokeWidth", (_a3 = st3.width) != null ? _a3 : 1.8, { silent: true });
+      edge.attr("line/strokeDasharray", (_c = EDGE_DASHES[(_b2 = st3.dash) != null ? _b2 : "solid"]) != null ? _c : "", { silent: true });
+      edge.attr("line/sourceMarker", buildMarker((_d = st3.start) != null ? _d : "none", color), { silent: true });
+      edge.attr("line/targetMarker", buildMarker((_e3 = st3.end) != null ? _e3 : "arrow", color), { silent: true });
       if (st3.shape || st3.jump) this.applyEdgeShape(edge);
       const view = this.graph.findViewByCell(edge);
-      view?.update?.();
+      (_f = view == null ? void 0 : view.update) == null ? void 0 : _f.call(view);
     }
     // Line shape (orthogonal/elbow/straight/curved) — skip seq/mindmap (special routing).
     // A line jump (arc/gap) overrides the connector with X6's native jumpover.
     applyEdgeShape(edge) {
-      const sid = edge.getSourceCellId() ?? void 0;
+      var _a3, _b2, _c, _d;
+      const sid = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
       if (this.isSeqLifeline(sid) || this.isMindmapNode(sid)) return;
       const st3 = this.edgeStyle(edge);
-      const p4 = EDGE_SHAPES[st3.shape ?? "orthogonal"] ?? EDGE_SHAPES.orthogonal;
+      const p4 = (_c = EDGE_SHAPES[(_b2 = st3.shape) != null ? _b2 : "orthogonal"]) != null ? _c : EDGE_SHAPES.orthogonal;
       edge.setRouter(p4.router);
-      const jump = EDGE_JUMPS[st3.jump ?? "none"];
+      const jump = EDGE_JUMPS[(_d = st3.jump) != null ? _d : "none"];
       if (jump && jump !== "none") {
         edge.setConnector({ name: "jumpover", args: { type: jump, size: 6 } });
       } else {
@@ -75298,20 +75618,23 @@
     }
     // Rotate the edge label 0° ↔ 90°.
     applyEdgeTextAngle(edge) {
-      const ang = this.edgeStyle(edge).textAngle ?? 0;
+      var _a3, _b2, _c, _d;
+      const ang = (_a3 = this.edgeStyle(edge).textAngle) != null ? _a3 : 0;
       const labels = edge.getLabels();
       if (!labels.length) return;
-      const text4 = labels[0]?.attrs?.label?.text;
+      const text4 = (_d = (_c = (_b2 = labels[0]) == null ? void 0 : _b2.attrs) == null ? void 0 : _c.label) == null ? void 0 : _d.text;
       if (text4 == null) return;
       edge.setLabels([{ attrs: { body: EDGE_LABEL_BODY, label: { ...EDGE_LABEL_TEXT, text: text4, transform: ang ? `rotate(${ang})` : null } } }]);
     }
     toggleEdgeTextAngle(edge) {
-      const cur = this.edgeStyle(edge).textAngle ?? 0;
+      var _a3;
+      const cur = (_a3 = this.edgeStyle(edge).textAngle) != null ? _a3 : 0;
       this.setEdgeStyle(edge, { textAngle: cur === 90 ? 0 : 90 });
       this.applyEdgeTextAngle(edge);
     }
     // Line + marker preview. side="start" mirrors it (marker on the left).
     markerSvg(kind, side = "end") {
+      var _a3;
       const head = {
         none: "",
         arrow: `<path d="M14 2 23 8 14 14 Z" fill="currentColor"/>`,
@@ -75329,7 +75652,7 @@
       };
       const crowKinds = /* @__PURE__ */ new Set(["crow", "bar", "crow-bar", "bar-bar"]);
       const lineEnd = kind === "none" ? 25 : crowKinds.has(kind) ? 12 : 13;
-      const inner = `<line x1="1" y1="8" x2="${lineEnd}" y2="8" stroke="currentColor" stroke-width="1.6"/>${head[kind] ?? ""}`;
+      const inner = `<line x1="1" y1="8" x2="${lineEnd}" y2="8" stroke="currentColor" stroke-width="1.6"/>${(_a3 = head[kind]) != null ? _a3 : ""}`;
       const body = side === "start" ? `<g transform="translate(26,0) scale(-1,1)">${inner}</g>` : inner;
       return `<svg viewBox="0 0 26 16" width="26" height="16">${body}</svg>`;
     }
@@ -75373,7 +75696,7 @@
         cancelAnimationFrame(this.edgeDragRaf);
         this.edgeDragRaf = null;
       }
-      const samples = (frames ?? []).slice(2);
+      const samples = (frames != null ? frames : []).slice(2);
       if (samples.length < 3) return;
       const max2 = Math.round(Math.max(...samples));
       if (max2 <= 50) return;
@@ -75383,6 +75706,7 @@
       console.warn(`[omniboard-perf] edge drag janky: ${samples.length} frames \xB7 median ${med}ms \xB7 max ${max2}ms \xB7 ${janky} frame(s) >33ms`);
     }
     showEdgeBar(edge) {
+      var _a3, _b2, _c, _d, _e3, _f;
       const bar = this.edgeBar;
       if (!bar) return;
       bar.innerHTML = "";
@@ -75395,7 +75719,7 @@
         return b2;
       };
       bar.appendChild(mkBtn(
-        this.markerSvg(st3.start ?? "none", "start") + caret,
+        this.markerSvg((_a3 = st3.start) != null ? _a3 : "none", "start") + caret,
         "K\xFD hi\u1EC7u \u0111\u1EA7u tr\xE1i",
         (ev) => this.openEdgeMarkerPopup(edge, "start", ev.currentTarget)
       ));
@@ -75408,7 +75732,7 @@
         }
       ));
       bar.appendChild(mkBtn(
-        this.markerSvg(st3.end ?? "arrow", "end") + caret,
+        this.markerSvg((_b2 = st3.end) != null ? _b2 : "arrow", "end") + caret,
         "K\xFD hi\u1EC7u \u0111\u1EA7u ph\u1EA3i",
         (ev) => this.openEdgeMarkerPopup(edge, "end", ev.currentTarget)
       ));
@@ -75419,9 +75743,9 @@
         (ev) => this.openEdgeColorPopup(edge, ev.currentTarget)
       ));
       bar.appendChild(el("div", "lk-cb-sep"));
-      const ft3 = st3.flowType ?? "sequence";
+      const ft3 = (_c = st3.flowType) != null ? _c : "sequence";
       bar.appendChild(mkBtn(
-        `<span style="font-size:11px;font-weight:600">${FLOW_TYPE_LABEL[ft3] ?? "Sequence"}</span>` + caret,
+        `<span style="font-size:11px;font-weight:600">${(_d = FLOW_TYPE_LABEL[ft3]) != null ? _d : "Sequence"}</span>` + caret,
         "Lo\u1EA1i flow (BPMN)",
         (ev) => this.openEdgeFlowTypePopup(edge, ev.currentTarget)
       ));
@@ -75458,10 +75782,10 @@
       const s3 = this.graph.scale().sx;
       const t3 = this.graph.translate();
       const view = this.graph.findViewByCell(edge);
-      const pathEl = view?.container?.querySelector?.("path.x6-edge-selection, path[joint-selector='line'], path");
+      const pathEl = (_f = (_e3 = view == null ? void 0 : view.container) == null ? void 0 : _e3.querySelector) == null ? void 0 : _f.call(_e3, "path.x6-edge-selection, path[joint-selector='line'], path");
       const rootRect = this.root.getBoundingClientRect();
       let cx, yTop, yBot;
-      if (pathEl?.getBoundingClientRect) {
+      if (pathEl == null ? void 0 : pathEl.getBoundingClientRect) {
         const r2 = pathEl.getBoundingClientRect();
         cx = r2.left - rootRect.left + r2.width / 2;
         yTop = r2.top - rootRect.top;
@@ -75487,11 +75811,12 @@
       if (this.edgeBar) this.edgeBar.style.display = "none";
     }
     openEdgeMarkerPopup(edge, which, anchor3) {
+      var _a3, _b2, _c;
       const grid = el("div", "lk-marker-grid");
-      const cur = which === "start" ? this.edgeStyle(edge).start ?? "none" : this.edgeStyle(edge).end ?? "arrow";
+      const cur = which === "start" ? (_a3 = this.edgeStyle(edge).start) != null ? _a3 : "none" : (_b2 = this.edgeStyle(edge).end) != null ? _b2 : "arrow";
       for (const kind of EDGE_MARKER_KINDS) {
         const cell = el("div", "lk-marker-cell" + (kind === cur ? " on" : ""), this.markerSvg(kind, which));
-        cell.title = EDGE_MARKER_LABEL[kind] ?? kind;
+        cell.title = (_c = EDGE_MARKER_LABEL[kind]) != null ? _c : kind;
         cell.onclick = () => {
           this.setEdgeStyle(edge, which === "start" ? { start: kind } : { end: kind });
           this.hidePopup();
@@ -75503,12 +75828,21 @@
     }
     /** BPMN flow-type popup — applies a preset (Sequence/Default/Message/Conditional/Association). Đợt C. */
     openEdgeFlowTypePopup(edge, anchor3) {
+      var _a3;
       const list = el("div", "lk-line-list");
-      const cur = this.edgeStyle(edge).flowType ?? "sequence";
+      const cur = (_a3 = this.edgeStyle(edge).flowType) != null ? _a3 : "sequence";
       for (const key of ["sequence", "default", "message", "conditional", "association"]) {
         const row = el("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
         row.onclick = () => {
+          var _a4, _b2;
           this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
+          const data2 = (_a4 = edge.getData()) != null ? _a4 : {};
+          const nextAttrs = { ...(_b2 = data2.bpmnAttrs) != null ? _b2 : {} };
+          delete nextAttrs.isDefault;
+          if (key === "message" || key === "association") delete nextAttrs.condition;
+          if (key === "default") nextAttrs.isDefault = true;
+          const nextKind = key === "message" ? "message" : key === "association" ? "association" : void 0;
+          edge.setData({ ...data2, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : void 0 });
           this.hidePopup();
           this.showEdgeBar(edge);
         };
@@ -75518,6 +75852,7 @@
     }
     // Line popup: shape (orthogonal/elbow/straight/curved) + dash + weight.
     openEdgeLinePopup(edge, anchor3) {
+      var _a3, _b2;
       const st3 = this.edgeStyle(edge);
       const wrap = el("div", "lk-line-popup");
       const shapes = [
@@ -75528,7 +75863,7 @@
       ];
       const shapeRow = el("div", "lk-line-row");
       for (const [key, svg3] of shapes) {
-        const b2 = el("div", "lk-line-cell" + ((st3.shape ?? "orthogonal") === key ? " on" : ""), `<svg viewBox="0 0 18 14" width="22" height="16">${svg3}</svg>`);
+        const b2 = el("div", "lk-line-cell" + (((_a3 = st3.shape) != null ? _a3 : "orthogonal") === key ? " on" : ""), `<svg viewBox="0 0 18 14" width="22" height="16">${svg3}</svg>`);
         b2.title = key;
         b2.onclick = () => {
           this.setEdgeStyle(edge, { shape: key });
@@ -75540,9 +75875,10 @@
       wrap.appendChild(shapeRow);
       const dashRow = el("div", "lk-line-row");
       [["solid", ""], ["dashed", "5 3"], ["dotted", "1.5 3"]].forEach(([key, dash]) => {
+        var _a4;
         const b2 = el(
           "div",
-          "lk-line-cell" + ((st3.dash ?? "solid") === key ? " on" : ""),
+          "lk-line-cell" + (((_a4 = st3.dash) != null ? _a4 : "solid") === key ? " on" : ""),
           `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ""}/></svg>`
         );
         b2.onclick = () => {
@@ -75554,9 +75890,10 @@
       wrap.appendChild(dashRow);
       const wRow = el("div", "lk-line-row");
       EDGE_WIDTHS.forEach((w3, i3) => {
+        var _a4;
         const b2 = el(
           "div",
-          "lk-line-cell" + (Math.abs((st3.width ?? 1.8) - w3) < 0.2 ? " on" : ""),
+          "lk-line-cell" + (Math.abs(((_a4 = st3.width) != null ? _a4 : 1.8) - w3) < 0.2 ? " on" : ""),
           `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="${w3}"/></svg>`
         );
         b2.title = ["M\u1EA3nh", "V\u1EEBa", "\u0110\u1EADm"][i3];
@@ -75576,7 +75913,7 @@
       for (const [key, title2, svg3] of jumps) {
         const b2 = el(
           "div",
-          "lk-line-cell" + ((st3.jump ?? "none") === key ? " on" : ""),
+          "lk-line-cell" + (((_b2 = st3.jump) != null ? _b2 : "none") === key ? " on" : ""),
           `<svg viewBox="0 0 26 8" width="30" height="10">${svg3}</svg>`
         );
         b2.title = title2;
@@ -75619,10 +75956,11 @@
       this.showPopup(wrap, anchor3);
     }
     isSeqLifeline(cellId) {
+      var _a3;
       if (!cellId) return false;
       const c4 = this.graph.getCellById(cellId);
       if (!c4 || !c4.isNode()) return false;
-      const k3 = c4.getData()?.kind;
+      const k3 = (_a3 = c4.getData()) == null ? void 0 : _a3.kind;
       return !!k3 && SEQ_LIFELINE_KINDS.has(k3);
     }
     // Edges with an orthogonal router emit polyline routePoints we can materialize
@@ -75630,19 +75968,12 @@
     // Curved/straight routers (`normal`) don't produce meaningful bends here.
     isOrthogonalEdge(edge) {
       const r2 = edge.getRouter();
-      const name2 = typeof r2 === "string" ? r2 : r2?.name;
+      const name2 = typeof r2 === "string" ? r2 : r2 == null ? void 0 : r2.name;
       return name2 === "orth" || name2 === "manhattan" || name2 === "metro" || name2 === "er";
     }
-    /**
-     * Build temporary bend vertices for a selected orthogonal edge with no saved
-     * vertices. X6's segment tool cannot drag an empty route; Lark/draw.io feel
-     * editable because dragging the line first creates a bend. We emulate that by
-     * seeding a center dogleg only while selected, then reverting it on unselect
-     * unless the user actually moved a handle.
-     */
     materializeEditableBends(edge) {
       const view = this.graph.findViewByCell(edge);
-      const route = view?.routePoints;
+      const route = view == null ? void 0 : view.routePoints;
       if (Array.isArray(route) && route.length > 2) {
         return route.slice(1, -1).map((p4) => ({ x: p4.x, y: p4.y }));
       }
@@ -75651,10 +75982,7 @@
       if (!source || !target) return [];
       const dx = target.x - source.x;
       const dy = target.y - source.y;
-      const precision = 1;
-      if (Math.abs(dx) < precision || Math.abs(dy) < precision) {
-        return [];
-      }
+      if (Math.abs(dx) < 1 || Math.abs(dy) < 1) return [];
       if (Math.abs(dx) >= Math.abs(dy)) {
         const midX = source.x + dx / 2;
         return [{ x: midX, y: source.y }, { x: midX, y: target.y }];
@@ -75663,24 +75991,26 @@
       return [{ x: source.x, y: midY }, { x: target.x, y: midY }];
     }
     applySeqRoutingIfNeeded(edge) {
-      const srcId = edge.getSourceCellId() ?? void 0;
-      const tgtId = edge.getTargetCellId() ?? void 0;
+      var _a3, _b2, _c, _d, _e3, _f;
+      const srcId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
+      const tgtId = (_b2 = edge.getTargetCellId()) != null ? _b2 : void 0;
       if (!this.isSeqLifeline(srcId) || !this.isSeqLifeline(tgtId)) return;
       edge.setRouter("normal");
       edge.setConnector("seq-msg");
-      if (typeof edge.getData()?.y === "number") return;
+      if (typeof ((_c = edge.getData()) == null ? void 0 : _c.y) === "number") return;
       const peers = this.graph.getEdges().filter((other) => {
         if (other.id === edge.id) return false;
         const os = other.getSourceCellId(), ot3 = other.getTargetCellId();
         const same = os === srcId && ot3 === tgtId || os === tgtId && ot3 === srcId;
         return same && other.getConnector() === "seq-msg";
       });
-      const baseY = edge.getSourcePoint()?.y ?? 100;
+      const baseY = (_e3 = (_d = edge.getSourcePoint()) == null ? void 0 : _d.y) != null ? _e3 : 100;
       const lowest = peers.reduce((acc, p4) => {
-        const y3 = p4.getData()?.y ?? p4.getSourcePoint()?.y ?? baseY;
+        var _a4, _b3, _c2, _d2;
+        const y3 = (_d2 = (_c2 = (_a4 = p4.getData()) == null ? void 0 : _a4.y) != null ? _c2 : (_b3 = p4.getSourcePoint()) == null ? void 0 : _b3.y) != null ? _d2 : baseY;
         return Math.max(acc, y3);
       }, baseY - 30);
-      edge.setData({ ...edge.getData() ?? {}, y: lowest + 30 });
+      edge.setData({ ...(_f = edge.getData()) != null ? _f : {}, y: lowest + 30 });
     }
     /**
      * Auto-flip BPMN event labels to the opposite side of any connected edge
@@ -75688,6 +76018,7 @@
      * up; if above, label stays at the default bottom.
      */
     refreshBpmnEventLabels() {
+      var _a3, _b2;
       for (const n2 of this.graph.getNodes()) {
         const k3 = this.nodeKind(n2);
         const isEvent = k3.startsWith("bpmn-start") || k3.startsWith("bpmn-end") || k3.startsWith("bpmn-intermediate");
@@ -75709,20 +76040,22 @@
         }
         const flipUp = bottom4 && !top4;
         const view = this.graph.findViewByCell(n2);
-        const el2 = view?.container?.querySelector?.(isGw ? ".bp-gw" : ".bp-event");
+        const el2 = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, isGw ? ".bp-gw" : ".bp-event");
         if (el2) el2.classList.toggle("label-top", flipUp);
       }
     }
     isMindmapNode(cellId) {
+      var _a3;
       if (!cellId) return false;
       const c4 = this.graph.getCellById(cellId);
       if (!c4 || !c4.isNode()) return false;
-      const k3 = c4.getData()?.kind;
+      const k3 = (_a3 = c4.getData()) == null ? void 0 : _a3.kind;
       return !!k3 && MM_KINDS.has(k3);
     }
     applyMindmapRoutingIfNeeded(edge) {
-      const srcId = edge.getSourceCellId() ?? void 0;
-      const tgtId = edge.getTargetCellId() ?? void 0;
+      var _a3, _b2;
+      const srcId = (_a3 = edge.getSourceCellId()) != null ? _a3 : void 0;
+      const tgtId = (_b2 = edge.getTargetCellId()) != null ? _b2 : void 0;
       if (!this.isMindmapNode(srcId) || !this.isMindmapNode(tgtId)) return;
       const src = this.graph.getCellById(srcId);
       const tgt = this.graph.getCellById(tgtId);
@@ -75736,11 +76069,12 @@
     }
     // ── Model load / serialize ───────────────────────────────────────────────
     loadModel(model) {
+      var _a3, _b2, _c, _d, _e3, _f, _g, _h;
       this.graph.startBatch("load");
       this.graph.clearCells();
       for (const n2 of model.nodes) {
-        const a3 = n2.attrs ?? {};
-        const style2 = a3.style ?? {};
+        const a3 = (_a3 = n2.attrs) != null ? _a3 : {};
+        const style2 = (_b2 = a3.style) != null ? _b2 : {};
         const extra = {
           cols: a3.cols,
           fields: a3.fields,
@@ -75748,14 +76082,24 @@
           who: a3.who,
           labelOffset: a3.labelOffset,
           lanes: a3.lanes,
+          poolHorizontal: a3.poolHorizontal,
+          blackBox: a3.blackBox,
           trigger: a3.trigger,
           throwing: a3.throwing,
           interrupting: a3.interrupting,
           attachedTo: a3.attachedTo,
-          markers: a3.markers
+          markers: a3.markers,
+          collapsed: a3.collapsed
         };
         const migrated = migrateBpmnEventKind(n2.shape, extra);
-        this.addHtmlNode(migrated.kind, n2.x, n2.y, n2.width, n2.height, n2.label, style2, n2.id, migrated.extra, a3.__source);
+        const node2 = this.addHtmlNode(migrated.kind, n2.x, n2.y, n2.width, n2.height, n2.label, style2, n2.id, migrated.extra, a3.__source);
+        const phaseD = {};
+        if (a3.bpmnDoc) phaseD.bpmnDoc = a3.bpmnDoc;
+        if (a3.bpmnFill) phaseD.bpmnFill = a3.bpmnFill;
+        if (a3.bpmnStroke) phaseD.bpmnStroke = a3.bpmnStroke;
+        if (a3.camunda) phaseD.camunda = a3.camunda;
+        if (a3.bpmnProps) phaseD.bpmnProps = a3.bpmnProps;
+        if (Object.keys(phaseD).length) node2.setData({ ...node2.getData(), ...phaseD });
       }
       for (const e2 of model.edges) {
         const seq = this.isSeqLifeline(e2.source) && this.isSeqLifeline(e2.target);
@@ -75769,6 +76113,14 @@
           data2.ret = e2.ret || void 0;
         }
         if (e2.style) data2.style = e2.style;
+        if (e2.kind && e2.kind !== "sequence") data2.bpmnKind = e2.kind;
+        if (e2.attrs && Object.keys(e2.attrs).length) data2.bpmnAttrs = { ...e2.attrs };
+        if (!((_c = data2.style) == null ? void 0 : _c.flowType)) {
+          const ft3 = e2.kind === "message" ? "message" : e2.kind === "association" ? "association" : ((_d = e2.attrs) == null ? void 0 : _d.isDefault) ? "default" : ((_e3 = e2.attrs) == null ? void 0 : _e3.condition) ? "conditional" : void 0;
+          if (ft3) {
+            data2.style = { ...(_f = data2.style) != null ? _f : {}, flowType: ft3, ...FLOW_TYPE_PRESETS[ft3] };
+          }
+        }
         const forcedRouter = e2.router === "normal" ? "normal" : e2.router === "orth" ? { name: "orth" } : null;
         const sourceEnd = { cell: e2.source };
         if (e2.sourceAnchor) {
@@ -75788,16 +76140,47 @@
           id: e2.id,
           source: sourceEnd,
           target: targetEnd,
-          router: forcedRouter ?? (seq || mm ? "normal" : SMART_ROUTER),
+          router: forcedRouter != null ? forcedRouter : seq || mm ? "normal" : SMART_ROUTER,
           connector: seq ? "seq-msg" : mm ? "mm-edge" : CONNECTOR,
           attrs: edgeAttrs,
           labels: labelSpec,
-          vertices: e2.vertices ?? [],
+          vertices: (_g = e2.vertices) != null ? _g : [],
           // Sequence Y is read by the seq-msg connector from edge data at draw time.
           data: data2
         });
-        if (e2.style) this.applyEdgeStyle(created);
+        if (e2.style || data2.style) this.applyEdgeStyle(created);
         if (mm) this.applyMindmapRoutingIfNeeded(created);
+      }
+      for (const n2 of model.nodes) {
+        if (!n2.parentId && !n2.laneId) continue;
+        const child = this.graph.getCellById(n2.id);
+        if (!child || !child.isNode()) continue;
+        const prev = (_h = child.getData()) != null ? _h : {};
+        child.setData({
+          ...prev,
+          ...n2.parentId ? { parentId: n2.parentId } : {},
+          ...n2.laneId ? { laneId: n2.laneId } : {}
+        });
+        if (n2.parentId) {
+          const parent = this.graph.getCellById(n2.parentId);
+          if (parent && parent.isNode()) parent.addChild(child);
+        }
+      }
+      const parentById = new Map(model.nodes.map((n2) => [n2.id, n2.parentId]));
+      const depthOf = (id) => {
+        let d2 = 0;
+        let cur = parentById.get(id);
+        while (cur && d2 < 32) {
+          d2++;
+          cur = parentById.get(cur);
+        }
+        return d2;
+      };
+      for (const n2 of model.nodes) {
+        if (!FRAME_KINDS.has(n2.shape)) continue;
+        const cell = this.graph.getCellById(n2.id);
+        if (!cell || !cell.isNode()) continue;
+        cell.setZIndex(-1e3 + depthOf(n2.id));
       }
       this.graph.stopBatch("load");
       this.resyncHtmlNodes();
@@ -75864,7 +76247,7 @@
       const remapAttrs = (attrs) => {
         if (!attrs) return attrs;
         const src = attrs.__source;
-        if (!src?.sourceId) return attrs;
+        if (!(src == null ? void 0 : src.sourceId)) return attrs;
         return {
           ...attrs,
           __source: { ...src, sourceId: idFor(src.sourceId) }
@@ -75883,13 +76266,16 @@
         ],
         edges: [
           ...current.edges,
-          ...incoming.edges.map((e2) => ({
-            ...e2,
-            id: idFor(e2.id),
-            source: idFor(e2.source),
-            target: idFor(e2.target),
-            vertices: e2.vertices?.map((v4) => ({ x: v4.x + dx, y: v4.y + dy }))
-          }))
+          ...incoming.edges.map((e2) => {
+            var _a3;
+            return {
+              ...e2,
+              id: idFor(e2.id),
+              source: idFor(e2.source),
+              target: idFor(e2.target),
+              vertices: (_a3 = e2.vertices) == null ? void 0 : _a3.map((v4) => ({ x: v4.x + dx, y: v4.y + dy }))
+            };
+          })
         ]
       };
       this.loadModel(merged);
@@ -75897,9 +76283,14 @@
     }
     getModel() {
       const nodes = this.graph.getNodes().map((n2) => {
+        var _a3, _b2, _c, _d, _e3, _f, _g;
         const p4 = n2.getPosition();
         const s3 = n2.getSize();
         const ex = this.nodeExtra(n2);
+        const data2 = (_a3 = n2.getData()) != null ? _a3 : {};
+        const x6Parent = n2.getParent();
+        const parentId = x6Parent && x6Parent.isNode() ? x6Parent.id : data2.parentId;
+        const laneId = data2.laneId;
         return {
           id: n2.id,
           shape: this.nodeKind(n2),
@@ -75908,6 +76299,8 @@
           width: s3.width,
           height: s3.height,
           label: this.nodeLabel(n2),
+          ...parentId ? { parentId } : {},
+          ...laneId ? { laneId } : {},
           attrs: {
             style: this.nodeStyle(n2),
             cols: ex.cols,
@@ -75916,30 +76309,48 @@
             who: ex.who,
             labelOffset: ex.labelOffset,
             lanes: ex.lanes,
+            poolHorizontal: ex.poolHorizontal,
+            blackBox: ex.blackBox,
             // BPMN extras (Đợt A)
             trigger: ex.trigger,
             throwing: ex.throwing,
             interrupting: ex.interrupting,
             attachedTo: ex.attachedTo,
             markers: ex.markers,
-            __source: n2.getData()?.__source
+            collapsed: ex.collapsed,
+            // Phase D — BPMN metadata (live on node.data, not NodeExtra)
+            bpmnDoc: (_b2 = n2.getData()) == null ? void 0 : _b2.bpmnDoc,
+            bpmnFill: (_c = n2.getData()) == null ? void 0 : _c.bpmnFill,
+            bpmnStroke: (_d = n2.getData()) == null ? void 0 : _d.bpmnStroke,
+            camunda: (_e3 = n2.getData()) == null ? void 0 : _e3.camunda,
+            bpmnProps: (_f = n2.getData()) == null ? void 0 : _f.bpmnProps,
+            __source: (_g = n2.getData()) == null ? void 0 : _g.__source
           }
         };
       });
       const edges = this.graph.getEdges().map((e2) => {
+        var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l;
         const src = e2.getSource();
         const tgt = e2.getTarget();
         const srcFull = e2.getSource();
         const tgtFull = e2.getTarget();
-        const d2 = e2.getData() ?? {};
+        const d2 = (_a3 = e2.getData()) != null ? _a3 : {};
         const verts = e2.getVertices();
-        const lbl = e2.getLabels()?.[0];
-        const labelPos = lbl?.position && (lbl.position.distance != null || lbl.position.offset != null) ? { distance: lbl.position.distance, offset: lbl.position.offset } : void 0;
+        const lbl = (_b2 = e2.getLabels()) == null ? void 0 : _b2[0];
+        const labelPos = (lbl == null ? void 0 : lbl.position) && (lbl.position.distance != null || lbl.position.offset != null) ? { distance: lbl.position.distance, offset: lbl.position.offset } : void 0;
         const r2 = e2.getRouter();
-        const routerName = typeof r2 === "string" ? r2 : r2?.name;
+        const routerName = typeof r2 === "string" ? r2 : r2 == null ? void 0 : r2.name;
         const router2 = routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : void 0;
-        const srcAnchor = srcFull.anchor?.name === "topLeft" && typeof srcFull.anchor.args?.dx === "number" && typeof srcFull.anchor.args?.dy === "number" ? { dx: srcFull.anchor.args.dx, dy: srcFull.anchor.args.dy } : void 0;
-        const tgtAnchor = tgtFull.anchor?.name === "topLeft" && typeof tgtFull.anchor.args?.dx === "number" && typeof tgtFull.anchor.args?.dy === "number" ? { dx: tgtFull.anchor.args.dx, dy: tgtFull.anchor.args.dy } : void 0;
+        const srcAnchor = ((_c = srcFull.anchor) == null ? void 0 : _c.name) === "topLeft" && typeof ((_d = srcFull.anchor.args) == null ? void 0 : _d.dx) === "number" && typeof ((_e3 = srcFull.anchor.args) == null ? void 0 : _e3.dy) === "number" ? { dx: srcFull.anchor.args.dx, dy: srcFull.anchor.args.dy } : void 0;
+        const tgtAnchor = ((_f = tgtFull.anchor) == null ? void 0 : _f.name) === "topLeft" && typeof ((_g = tgtFull.anchor.args) == null ? void 0 : _g.dx) === "number" && typeof ((_h = tgtFull.anchor.args) == null ? void 0 : _h.dy) === "number" ? { dx: tgtFull.anchor.args.dx, dy: tgtFull.anchor.args.dy } : void 0;
+        let bpmnKind = d2.bpmnKind;
+        const bpmnAttrs = { ...(_i = d2.bpmnAttrs) != null ? _i : {} };
+        const ft3 = (_j = d2.style) == null ? void 0 : _j.flowType;
+        if (!bpmnKind) {
+          if (ft3 === "message") bpmnKind = "message";
+          else if (ft3 === "association") bpmnKind = "association";
+        }
+        if (ft3 === "default" && bpmnAttrs.isDefault === void 0) bpmnAttrs.isDefault = true;
         return {
           id: e2.id,
           source: src.cell,
@@ -75948,19 +76359,37 @@
           targetPort: tgt.port,
           sourceAnchor: srcAnchor,
           targetAnchor: tgtAnchor,
-          label: lbl?.attrs?.label?.text,
+          label: (_l = (_k = lbl == null ? void 0 : lbl.attrs) == null ? void 0 : _k.label) == null ? void 0 : _l.text,
           labelPos,
           y: typeof d2.y === "number" ? d2.y : void 0,
           ret: d2.ret ? true : void 0,
           style: d2.style && Object.keys(d2.style).length ? d2.style : void 0,
           vertices: verts && verts.length ? verts.map((v4) => ({ x: v4.x, y: v4.y })) : void 0,
-          router: router2
+          router: router2,
+          ...bpmnKind && bpmnKind !== "sequence" ? { kind: bpmnKind } : {},
+          ...Object.keys(bpmnAttrs).length ? { attrs: bpmnAttrs } : {}
         };
       });
       return { nodes, edges };
     }
     nodeCount() {
       return this.graph.getNodes().length;
+    }
+    focusCellById(id) {
+      const cell = this.graph.getCellById(id);
+      if (!cell) return false;
+      this.graph.resetSelection([cell]);
+      if (cell.isNode()) {
+        const n2 = cell;
+        const p4 = n2.getPosition();
+        const s3 = n2.getSize();
+        const cx = p4.x + s3.width / 2;
+        const cy = p4.y + s3.height / 2;
+        this.graph.centerPoint(cx, cy);
+      }
+      this.refreshContextBar();
+      this.refreshProps();
+      return true;
     }
     /**
      * n8n-style auto layout (longest-path ranking).
@@ -75979,6 +76408,7 @@
      * 8. zoomToFit + minimap + label-flip refresh.
      */
     autoLayout(dir = "LR") {
+      var _a3;
       const horiz = dir === "LR";
       const nodes = this.graph.getNodes();
       const layoutable = nodes.filter((n2) => {
@@ -76054,7 +76484,7 @@
         lf.position(n2.x - n2.width / 2 + offX, n2.y - n2.height / 2 + offY);
       }
       for (const c4 of containers) {
-        const kids = (childOf.get(c4.id) ?? []).map((id) => this.graph.getCellById(id)).filter((x3) => !!x3 && x3.isNode());
+        const kids = ((_a3 = childOf.get(c4.id)) != null ? _a3 : []).map((id) => this.graph.getCellById(id)).filter((x3) => !!x3 && x3.isNode());
         if (!kids.length) continue;
         const k3 = this.nodeKind(c4);
         const pad = k3 === "bpmn-lane" || k3 === "bpmn-pool" ? 24 : 18;
@@ -76117,10 +76547,11 @@
     }
     /** Standalone, fully-styled SVG string (tokens + node CSS inlined, white bg). */
     exportSVG() {
+      var _a3;
       const SVGNS2 = "http://www.w3.org/2000/svg";
       const svgEl = this.graph.view.svg;
       const clone3 = svgEl.cloneNode(true);
-      const bbox2 = svgEl.getBBox?.();
+      const bbox2 = (_a3 = svgEl.getBBox) == null ? void 0 : _a3.call(svgEl);
       const pad = 24;
       let x3 = 0, y3 = 0, w3 = 800, h3 = 600;
       if (bbox2) {
@@ -76241,6 +76672,20 @@
       this.graph.dispose();
     }
   };
+  // Representative shape icon for each diagram category (rail + mobile bar).
+  _OmniboardCanvas.CAT_REP = {
+    "C\u01A1 b\u1EA3n": "bs-rect",
+    "Flowchart": "fc-decision",
+    "ERD": "erd-entity",
+    "UML": "uml-class",
+    "State": "st-state",
+    "Sequence": "sq-actor",
+    "Mindmap": "mm-root",
+    "BPMN": "bpmn-gateway-x"
+  };
+  // Diagram categories that get a dedicated button on the mobile bottom bar (rest → "Sơ đồ khác" sheet).
+  _OmniboardCanvas.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
+  var OmniboardCanvas = _OmniboardCanvas;
 
   // node_modules/min-dash/dist/index.js
   var nativeToString = Object.prototype.toString;
@@ -82300,6 +82745,7 @@
     callActivity: "bpmn-call-activity",
     subProcess: "bpmn-subprocess",
     transaction: "bpmn-transaction",
+    adHocSubProcess: "bpmn-adhoc-subprocess",
     // Data artifacts
     dataObjectReference: "bpmn-data-object",
     dataStoreReference: "bpmn-data-store",
@@ -82346,6 +82792,7 @@
     "bpmn-transaction": "transaction",
     "bpmn-event-subprocess": "subProcess",
     // export.ts sets triggeredByEvent=true
+    "bpmn-adhoc-subprocess": "adHocSubProcess",
     "bpmn-call-activity": "callActivity",
     // Data artifacts
     "bpmn-data-object": "dataObjectReference",
@@ -82378,14 +82825,15 @@
 
   // src/io/bpmn/import.ts
   function bpmnExtras(fn2, tagLc) {
+    var _a3, _b2, _c, _d;
     const out = {};
-    const defRaw = fn2.eventDefinitions?.[0]?.$type?.replace(/^bpmn:/, "");
+    const defRaw = (_c = (_b2 = (_a3 = fn2.eventDefinitions) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.$type) == null ? void 0 : _c.replace(/^bpmn:/, "");
     const defLc = defRaw ? defRaw.charAt(0).toLowerCase() + defRaw.slice(1) : void 0;
     if (defLc && EVENT_DEF_TO_TRIGGER[defLc]) out.trigger = EVENT_DEF_TO_TRIGGER[defLc];
     if (tagLc === "intermediateThrowEvent" || tagLc === "endEvent") out.throwing = true;
     if (tagLc === "boundaryEvent") {
       out.interrupting = fn2.cancelActivity !== false;
-      if (fn2.attachedToRef?.id) out.attachedTo = fn2.attachedToRef.id;
+      if ((_d = fn2.attachedToRef) == null ? void 0 : _d.id) out.attachedTo = fn2.attachedToRef.id;
     } else if (fn2.isInterrupting === false) {
       out.interrupting = false;
     }
@@ -82423,6 +82871,7 @@
     "bpmn:CallActivity",
     "bpmn:SubProcess",
     "bpmn:Transaction",
+    "bpmn:AdHocSubProcess",
     // Đợt F — data artifacts + annotations + groups round-trip through canvas
     "bpmn:DataObjectReference",
     "bpmn:DataStoreReference",
@@ -82471,10 +82920,12 @@
     if (pos > 0.625) return `${side}-2`;
     return side;
   }
-  function diColours(attrs) {
-    if (!attrs) return {};
-    const fill2 = attrs["color:background-color"] || attrs["background-color"] || attrs["bioc:fill"] || attrs["fill"];
-    const stroke3 = attrs["color:border-color"] || attrs["border-color"] || attrs["bioc:stroke"] || attrs["stroke"];
+  function diColours(di) {
+    var _a3;
+    if (!di) return {};
+    const attrs = (_a3 = di.$attrs) != null ? _a3 : {};
+    const fill2 = di.fill || attrs["color:background-color"] || attrs["background-color"] || attrs["bioc:fill"] || attrs["fill"];
+    const stroke3 = di.stroke || attrs["color:border-color"] || attrs["border-color"] || attrs["bioc:stroke"] || attrs["stroke"];
     return { fill: fill2, stroke: stroke3 };
   }
   var moddleSingleton = null;
@@ -82482,34 +82933,146 @@
     if (!moddleSingleton) moddleSingleton = new SimpleBpmnModdle();
     return moddleSingleton;
   }
+  function parseCamundaExt(ext, nodeAttrs) {
+    var _a3, _b2, _c;
+    const out = {};
+    const camunda = {};
+    const bpmnProps = [];
+    const CAMUNDA_ATTRS = {
+      "camunda:assignee": "assignee",
+      "camunda:candidateUsers": "candidateUsers",
+      "camunda:candidateGroups": "candidateGroups",
+      "camunda:formKey": "formKey",
+      "camunda:dueDate": "dueDate",
+      "camunda:priority": "priority"
+    };
+    for (const [rawKey, shortKey] of Object.entries(CAMUNDA_ATTRS)) {
+      const val = nodeAttrs == null ? void 0 : nodeAttrs[rawKey];
+      if (typeof val === "string" && val) camunda[shortKey] = val;
+    }
+    if ((_a3 = ext == null ? void 0 : ext.values) == null ? void 0 : _a3.length) {
+      for (const v4 of ext.values) {
+        const children2 = (_b2 = v4.$children) != null ? _b2 : [];
+        for (const child of children2) {
+          if (child.$type === "camunda:property" && typeof child.name === "string") {
+            bpmnProps.push({ name: child.name, value: String((_c = child.value) != null ? _c : "") });
+          }
+        }
+      }
+    }
+    if (Object.keys(camunda).length) out.camunda = camunda;
+    if (bpmnProps.length) out.bpmnProps = bpmnProps;
+    return out;
+  }
   var MAX_BPMN_BYTES = 4 * 1024 * 1024;
-  async function importBpmn(raw2) {
+  async function importBpmn(raw2, options) {
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I;
     if (raw2.length > MAX_BPMN_BYTES) {
       throw new Error(`BPMN file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 4 MB.`);
     }
     const { rootElement: definitions, warnings: parserWarnings } = await moddle().fromXML(raw2, "bpmn:Definitions");
     const warnings = parserWarnings.map(
-      (w3) => typeof w3 === "string" ? w3 : w3.message ?? String(w3)
+      (w3) => {
+        var _a4;
+        return typeof w3 === "string" ? w3 : (_a4 = w3.message) != null ? _a4 : String(w3);
+      }
     );
     const flowNodes = [];
+    const flowNodeParentId = /* @__PURE__ */ new Map();
     const sequenceFlows = [];
-    const collectFlow = (parent) => {
-      for (const fe3 of parent.flowElements ?? []) {
-        if (FLOW_NODE_TYPES.has(fe3.$type)) flowNodes.push(fe3);
-        else if (fe3.$type === "bpmn:SequenceFlow") sequenceFlows.push(fe3);
-        if (fe3.flowElements) collectFlow(fe3);
+    const associations2 = [];
+    const messageFlows = [];
+    const collectFlow = (parent, parentSubprocessId) => {
+      var _a4, _b3, _c2, _d2;
+      for (const fe3 of (_a4 = parent.flowElements) != null ? _a4 : []) {
+        if (FLOW_NODE_TYPES.has(fe3.$type)) {
+          flowNodes.push(fe3);
+          if (parentSubprocessId && fe3.id) flowNodeParentId.set(fe3.id, parentSubprocessId);
+          for (const da of (_b3 = fe3.dataInputAssociations) != null ? _b3 : []) associations2.push(da);
+          for (const da of (_c2 = fe3.dataOutputAssociations) != null ? _c2 : []) associations2.push(da);
+        } else if (fe3.$type === "bpmn:SequenceFlow") sequenceFlows.push(fe3);
+        if (fe3.flowElements) {
+          const isContainer = fe3.$type === "bpmn:SubProcess" || fe3.$type === "bpmn:Transaction" || fe3.$type === "bpmn:AdHocSubProcess";
+          collectFlow(fe3, isContainer && fe3.id ? fe3.id : parentSubprocessId);
+        }
+      }
+      for (const ar of (_d2 = parent.artifacts) != null ? _d2 : []) {
+        if (ar.$type === "bpmn:Association") associations2.push(ar);
       }
     };
-    for (const root2 of definitions.rootElements ?? []) collectFlow(root2);
+    for (const root2 of (_a3 = definitions.rootElements) != null ? _a3 : []) {
+      collectFlow(root2);
+      if (root2.$type === "bpmn:Collaboration") {
+        for (const mf of (_b2 = root2.messageFlows) != null ? _b2 : []) messageFlows.push(mf);
+      }
+    }
+    const flowNodeLaneId = /* @__PURE__ */ new Map();
+    const walkLanes = (lanes) => {
+      var _a4, _b3;
+      for (const ln3 of lanes != null ? lanes : []) {
+        const childLanes = (_a4 = ln3.childLaneSet) == null ? void 0 : _a4.lanes;
+        if (childLanes == null ? void 0 : childLanes.length) {
+          walkLanes(childLanes);
+          continue;
+        }
+        const laneId = ln3.id;
+        if (!laneId) continue;
+        for (const ref2 of (_b3 = ln3.flowNodeRef) != null ? _b3 : []) {
+          const refId = typeof ref2 === "string" ? ref2 : ref2.id;
+          if (refId) flowNodeLaneId.set(refId, laneId);
+        }
+      }
+    };
+    for (const root2 of (_c = definitions.rootElements) != null ? _c : []) {
+      if (root2.$type !== "bpmn:Process") continue;
+      for (const ls of (_d = root2.laneSets) != null ? _d : []) walkLanes(ls.lanes);
+    }
+    const candidateIds = /* @__PURE__ */ new Set();
+    for (const n2 of flowNodes) if (n2.id) candidateIds.add(n2.id);
+    for (const e2 of sequenceFlows) if (e2.id) candidateIds.add(e2.id);
+    for (const e2 of associations2) if (e2.id) candidateIds.add(e2.id);
+    for (const e2 of messageFlows) if (e2.id) candidateIds.add(e2.id);
+    for (const root2 of (_e3 = definitions.rootElements) != null ? _e3 : []) {
+      if (root2.$type !== "bpmn:Collaboration") continue;
+      for (const p4 of (_f = root2.participants) != null ? _f : []) if (p4.id) candidateIds.add(p4.id);
+    }
+    for (const root2 of (_g = definitions.rootElements) != null ? _g : []) {
+      if (root2.$type !== "bpmn:Process") continue;
+      for (const ls of (_h = root2.laneSets) != null ? _h : []) {
+        for (const ln3 of (_i = ls.lanes) != null ? _i : []) if (ln3.id) candidateIds.add(ln3.id);
+      }
+    }
+    const diagrams = (_j = definitions.diagrams) != null ? _j : [];
+    let chosenDiagramIndex = 0;
+    const requested = options == null ? void 0 : options.diagramIndex;
+    if (typeof requested === "number" && requested >= 0 && requested < diagrams.length) {
+      chosenDiagramIndex = requested;
+    } else {
+      let bestScore = -1;
+      diagrams.forEach((dia, idx) => {
+        var _a4, _b3;
+        let score = 0;
+        for (const pe3 of (_a4 = dia.plane.planeElement) != null ? _a4 : []) {
+          const id = (_b3 = pe3.bpmnElement) == null ? void 0 : _b3.id;
+          if (id && candidateIds.has(id)) score++;
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          chosenDiagramIndex = idx;
+        }
+      });
+    }
+    if (diagrams.length > 1) {
+      warnings.push(`BPMN c\xF3 ${diagrams.length} diagrams; \u0111ang import plane #${chosenDiagramIndex + 1} (nhi\u1EC1u ph\u1EA7n t\u1EED nh\u1EA5t).`);
+    }
+    const chosenPlane = (_k = diagrams[chosenDiagramIndex]) == null ? void 0 : _k.plane;
     const diShapes = /* @__PURE__ */ new Map();
     const diEdges = /* @__PURE__ */ new Map();
-    for (const dia of definitions.diagrams ?? []) {
-      for (const pe3 of dia.plane.planeElement ?? []) {
-        const refId = pe3.bpmnElement?.id;
-        if (!refId) continue;
-        if (pe3.$type === "bpmndi:BPMNShape") diShapes.set(refId, pe3);
-        else if (pe3.$type === "bpmndi:BPMNEdge") diEdges.set(refId, pe3);
-      }
+    for (const pe3 of (_l = chosenPlane == null ? void 0 : chosenPlane.planeElement) != null ? _l : []) {
+      const refId = (_m = pe3.bpmnElement) == null ? void 0 : _m.id;
+      if (!refId) continue;
+      if (pe3.$type === "bpmndi:BPMNShape") diShapes.set(refId, pe3);
+      else if (pe3.$type === "bpmndi:BPMNEdge") diEdges.set(refId, pe3);
     }
     const model = { nodes: [], edges: [] };
     for (const fn2 of flowNodes) {
@@ -82517,14 +83080,18 @@
       const tag = fn2.$type.replace(/^bpmn:/, "");
       const tagLc = tag.charAt(0).toLowerCase() + tag.slice(1);
       const extras = bpmnExtras(fn2, tagLc);
-      const shape = extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
+      const shape = (_o = (_n2 = extras.kindOverride) != null ? _n2 : BPMN_TO_SHAPE[tagLc]) != null ? _o : "bpmn-task";
       const di = diShapes.get(id);
-      const bounds = di?.bounds;
-      const x3 = bounds?.x ?? 100;
-      const y3 = bounds?.y ?? 100;
-      const width2 = bounds?.width ?? (tagLc.endsWith("Event") ? 36 : 100);
-      const height2 = bounds?.height ?? (tagLc.endsWith("Event") ? 36 : 60);
-      const { fill: fill2, stroke: stroke3 } = diColours(di?.$attrs);
+      const bounds = di == null ? void 0 : di.bounds;
+      const x3 = (_p = bounds == null ? void 0 : bounds.x) != null ? _p : 100;
+      const y3 = (_q = bounds == null ? void 0 : bounds.y) != null ? _q : 100;
+      const width2 = (_r = bounds == null ? void 0 : bounds.width) != null ? _r : tagLc.endsWith("Event") ? 36 : 100;
+      const height2 = (_s = bounds == null ? void 0 : bounds.height) != null ? _s : tagLc.endsWith("Event") ? 36 : 60;
+      const nodeLabelOffset = ((_t3 = di == null ? void 0 : di.label) == null ? void 0 : _t3.bounds) ? {
+        x: di.label.bounds.x + di.label.bounds.width / 2 - (x3 + width2 / 2),
+        y: di.label.bounds.y + di.label.bounds.height / 2 - (y3 + height2 / 2)
+      } : void 0;
+      const { fill: fill2, stroke: stroke3 } = diColours(di);
       const style2 = {};
       if (fill2) style2.fill = fill2;
       if (stroke3) style2.stroke = stroke3;
@@ -82535,8 +83102,20 @@
         y: y3,
         width: width2,
         height: height2,
-        label: (fn2.name ?? "").replace(/&#10;/g, "\n"),
+        label: ((_u = fn2.name) != null ? _u : "").replace(/&#10;/g, "\n"),
+        ...flowNodeParentId.get(id) ? { parentId: flowNodeParentId.get(id) } : {},
+        ...flowNodeLaneId.get(id) ? { laneId: flowNodeLaneId.get(id) } : {},
         attrs: {
+          // Phase C — preserve DI.isExpanded so collapse state survives round-trip.
+          ...(di == null ? void 0 : di.isExpanded) === false ? { collapsed: true } : {},
+          // Phase D — bioc/color-spec explicit fill/stroke stored separately so
+          // the panel can write back named DI attrs (not just canvas node style).
+          ...fill2 ? { bpmnFill: fill2 } : {},
+          ...stroke3 ? { bpmnStroke: stroke3 } : {},
+          // Phase D — documentation text (first <bpmn:documentation> element body).
+          ...((_w = (_v = fn2.documentation) == null ? void 0 : _v[0]) == null ? void 0 : _w.text) ? { bpmnDoc: fn2.documentation[0].text } : {},
+          // Phase D — Camunda attrs (in $attrs) + extensionElements property values.
+          ...parseCamundaExt(fn2.extensionElements, fn2.$attrs),
           __source: { format: "bpmn", sourceId: id, tag: tagLc },
           ...Object.keys(style2).length ? { style: style2 } : {},
           // Đợt F — BPMN semantics preserved in NodeExtra for canvas + round-trip
@@ -82544,20 +83123,22 @@
           ...extras.throwing !== void 0 ? { throwing: extras.throwing } : {},
           ...extras.interrupting !== void 0 ? { interrupting: extras.interrupting } : {},
           ...extras.attachedTo ? { attachedTo: extras.attachedTo } : {},
-          ...extras.markers ? { markers: extras.markers } : {}
+          ...extras.markers ? { markers: extras.markers } : {},
+          ...nodeLabelOffset ? { labelOffset: nodeLabelOffset } : {}
         }
       });
       if (!di) warnings.push(`BPMN flow node "${id}" thi\u1EBFu BPMNShape DI \u2014 \u0111\u1EB7t v\u1ECB tr\xED m\u1EB7c \u0111\u1ECBnh.`);
     }
     const nodeBox2 = /* @__PURE__ */ new Map();
     for (const n2 of model.nodes) nodeBox2.set(n2.id, { x: n2.x, y: n2.y, width: n2.width, height: n2.height });
-    for (const sf of sequenceFlows) {
-      const id = sf.id;
-      const sourceId = sf.sourceRef?.id;
-      const targetId = sf.targetRef?.id;
-      if (!sourceId || !targetId) continue;
+    const buildEdge = (fe3, kind) => {
+      var _a4, _b3, _c2, _d2, _e4, _f2, _g2, _h2;
+      const id = fe3.id;
+      const sourceId = Array.isArray(fe3.sourceRef) ? (_b3 = typeof fe3.sourceRef[0] === "string" ? fe3.sourceRef[0] : (_a4 = fe3.sourceRef[0]) == null ? void 0 : _a4.id) != null ? _b3 : void 0 : (_c2 = fe3.sourceRef) == null ? void 0 : _c2.id;
+      const targetId = (_d2 = fe3.targetRef) == null ? void 0 : _d2.id;
+      if (!id || !sourceId || !targetId) return null;
       const di = diEdges.get(id);
-      const wps = di?.waypoint ?? [];
+      const wps = (_e4 = di == null ? void 0 : di.waypoint) != null ? _e4 : [];
       const vertices = wps.length > 2 ? wps.slice(1, -1).map((p4) => ({ x: p4.x, y: p4.y })) : void 0;
       const srcBox = nodeBox2.get(sourceId);
       const tgtBox = nodeBox2.get(targetId);
@@ -82566,7 +83147,7 @@
       const sourcePort = sourceAnchor ? void 0 : wps.length >= 2 && srcBox ? portFor(wps[0], srcBox) : void 0;
       const targetPort = targetAnchor ? void 0 : wps.length >= 2 && tgtBox ? portFor(wps[wps.length - 1], tgtBox) : void 0;
       let labelPos;
-      const lb = di?.label?.bounds;
+      const lb = (_f2 = di == null ? void 0 : di.label) == null ? void 0 : _f2.bounds;
       if (lb && wps.length >= 2) {
         const labelCx = lb.x + lb.width / 2;
         const labelCy = lb.y + lb.height / 2;
@@ -82590,7 +83171,14 @@
         }
         labelPos = { distance: 0.5, offset: { x: labelCx - midX, y: labelCy - midY } };
       }
-      model.edges.push({
+      const edgeAttrs = {};
+      if (kind === "sequence" && ((_g2 = fe3.conditionExpression) == null ? void 0 : _g2.body)) {
+        edgeAttrs.condition = fe3.conditionExpression.body;
+      }
+      if (kind === "association" && fe3.associationDirection && fe3.associationDirection !== "None") {
+        edgeAttrs.associationDirection = fe3.associationDirection;
+      }
+      return {
         id,
         source: sourceId,
         sourcePort,
@@ -82598,35 +83186,69 @@
         target: targetId,
         targetPort,
         targetAnchor,
-        label: (sf.name ?? "").replace(/&#10;/g, "\n") || void 0,
+        label: ((_h2 = fe3.name) != null ? _h2 : "").replace(/&#10;/g, "\n") || void 0,
         labelPos,
         vertices,
-        router: "normal"
-      });
+        router: "normal",
+        ...kind !== "sequence" ? { kind } : {},
+        ...Object.keys(edgeAttrs).length ? { attrs: edgeAttrs } : {}
+      };
+    };
+    for (const sf of sequenceFlows) {
+      const edge = buildEdge(sf, "sequence");
+      if (edge) model.edges.push(edge);
+    }
+    for (const mf of messageFlows) {
+      const edge = buildEdge(mf, "message");
+      if (edge) model.edges.push(edge);
+    }
+    for (const ar of associations2) {
+      const edge = buildEdge(ar, "association");
+      if (edge) model.edges.push(edge);
+    }
+    const defaultEdgeIds = /* @__PURE__ */ new Set();
+    for (const fn2 of flowNodes) {
+      const def = fn2.default;
+      const defId = typeof def === "string" ? def : def == null ? void 0 : def.id;
+      if (defId) defaultEdgeIds.add(defId);
+    }
+    for (const edge of model.edges) {
+      if (defaultEdgeIds.has(edge.id)) {
+        edge.attrs = { ...(_x = edge.attrs) != null ? _x : {}, isDefault: true };
+      }
     }
     const defs = definitions;
     const processById = /* @__PURE__ */ new Map();
-    for (const root2 of defs.rootElements ?? []) {
+    for (const root2 of (_y = defs.rootElements) != null ? _y : []) {
       if (root2.$type === "bpmn:Process" && root2.id) processById.set(root2.id, root2);
     }
     const pools = [];
     const HEADER = 30;
     const LANE_HEAD = 24;
     const PAD = 30;
-    for (const root2 of defs.rootElements ?? []) {
+    const flowNodePoolId = /* @__PURE__ */ new Map();
+    for (const root2 of (_z = defs.rootElements) != null ? _z : []) {
       if (root2.$type !== "bpmn:Collaboration") continue;
-      for (const part of root2.participants ?? []) {
-        const proc = part.processRef?.id ? processById.get(part.processRef.id) : void 0;
-        const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
-        const laneAttrs = lanes.map((ln3) => ({ id: ln3.id ?? "", label: ln3.name ?? "" }));
+      for (const part of (_A = root2.participants) != null ? _A : []) {
+        const processRefId = (_B = part.processRef) == null ? void 0 : _B.id;
+        const proc = processRefId ? processById.get(processRefId) : void 0;
+        const lanes = ((_C = proc == null ? void 0 : proc.laneSets) != null ? _C : []).flatMap((ls) => {
+          var _a4;
+          return (_a4 = ls.lanes) != null ? _a4 : [];
+        });
+        const laneAttrs = lanes.map((ln3) => {
+          var _a4, _b3;
+          return { id: (_a4 = ln3.id) != null ? _a4 : "", label: (_b3 = ln3.name) != null ? _b3 : "" };
+        });
         let px2, py, pw, ph;
         const partDi = part.id ? diShapes.get(part.id) : void 0;
-        if (partDi?.bounds) {
+        if (partDi == null ? void 0 : partDi.bounds) {
           ({ x: px2, y: py, width: pw, height: ph } = partDi.bounds);
         } else {
           const members = model.nodes.filter((n2) => {
-            const sid = n2.attrs?.__source?.sourceId;
-            return sid && proc?.flowElements?.some((fe3) => fe3.id === sid);
+            var _a4, _b3, _c2;
+            const sid = (_b3 = (_a4 = n2.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.sourceId;
+            return sid && ((_c2 = proc == null ? void 0 : proc.flowElements) == null ? void 0 : _c2.some((fe3) => fe3.id === sid));
           });
           const box = members.length ? members : model.nodes;
           if (!box.length) continue;
@@ -82639,23 +83261,38 @@
           pw = maxX - minX + HEADER + LANE_HEAD + PAD * 2;
           ph = maxY - minY + PAD * 2;
         }
+        if ((proc == null ? void 0 : proc.flowElements) && part.id) {
+          for (const fe3 of proc.flowElements) {
+            if (fe3.id) flowNodePoolId.set(fe3.id, part.id);
+          }
+        }
+        const isHorizontal = part.id ? ((_D = diShapes.get(part.id)) == null ? void 0 : _D.isHorizontal) !== false : true;
+        const isBlackBox = !processRefId;
         pools.push({
-          id: part.id ?? `pool_${pools.length}`,
+          id: (_E = part.id) != null ? _E : `pool_${pools.length}`,
           shape: "bpmn-pool",
           x: px2,
           y: py,
           width: pw,
           height: ph,
-          label: part.name ?? "",
+          label: (_F = part.name) != null ? _F : "",
           attrs: {
             lanes: laneAttrs.length ? laneAttrs : void 0,
+            poolHorizontal: isHorizontal,
+            blackBox: isBlackBox,
             __source: { format: "bpmn", sourceId: part.id, kind: "pool" }
           }
         });
       }
     }
+    for (const n2 of model.nodes) {
+      const pid = flowNodePoolId.get(n2.id);
+      if (pid) {
+        n2.attrs = { ...(_G = n2.attrs) != null ? _G : {}, poolId: pid, __source: { ...(_I = (_H = n2.attrs) == null ? void 0 : _H.__source) != null ? _I : {}, poolId: pid } };
+      }
+    }
     if (pools.length) model.nodes.unshift(...pools);
-    const sourceMeta = { format: "bpmn", payload: { raw: raw2 } };
+    const sourceMeta = { format: "bpmn", payload: { raw: raw2, diagramIndex: chosenDiagramIndex } };
     return { model, warnings, sourceMeta };
   }
 
@@ -82666,18 +83303,53 @@
     return moddleSingleton2;
   }
   function shapeToBpmnType(shape, attrs) {
-    if (shape === "bpmn-event-intermediate" && attrs?.attachedTo) return "bpmn:BoundaryEvent";
-    const tag = SHAPE_TO_BPMN[shape] ?? "task";
+    var _a3;
+    if (shape === "bpmn-event-intermediate" && (attrs == null ? void 0 : attrs.attachedTo)) return "bpmn:BoundaryEvent";
+    const tag = (_a3 = SHAPE_TO_BPMN[shape]) != null ? _a3 : "task";
     return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
   }
+  function edgeKindOf(e2) {
+    var _a3;
+    return (_a3 = e2.kind) != null ? _a3 : "sequence";
+  }
+  function bpmnTypeForEdgeKind(kind) {
+    if (kind === "message") return "bpmn:MessageFlow";
+    if (kind === "association") return "bpmn:Association";
+    return "bpmn:SequenceFlow";
+  }
+  function applyEdgeExtras(m4, fe3, kind, attrs) {
+    if (kind === "sequence") {
+      if (attrs == null ? void 0 : attrs.condition) {
+        const ce3 = m4.create("bpmn:FormalExpression", { body: attrs.condition });
+        fe3.conditionExpression = ce3;
+      } else {
+        delete fe3.conditionExpression;
+      }
+    }
+    if (kind === "association") {
+      if (attrs == null ? void 0 : attrs.associationDirection) {
+        fe3.associationDirection = attrs.associationDirection;
+      } else {
+        delete fe3.associationDirection;
+      }
+    }
+  }
+  function findCollaboration(defs) {
+    var _a3;
+    for (const root2 of (_a3 = defs.rootElements) != null ? _a3 : []) {
+      if (root2.$type === "bpmn:Collaboration") return root2;
+    }
+    return null;
+  }
   function applyBpmnExtras(m4, fe3, shape, attrs) {
+    var _a3;
     if (attrs.trigger && TRIGGER_TO_EVENT_DEF[attrs.trigger]) {
       const defName = TRIGGER_TO_EVENT_DEF[attrs.trigger];
       const defType = "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1);
       const def = m4.create(defType, {});
       fe3.eventDefinitions = [def];
     }
-    const markers = attrs.markers ?? [];
+    const markers = (_a3 = attrs.markers) != null ? _a3 : [];
     if (markers.includes("mi-par") || markers.includes("mi-seq")) {
       const loop3 = m4.create("bpmn:MultiInstanceLoopCharacteristics", { isSequential: markers.includes("mi-seq") });
       fe3.loopCharacteristics = loop3;
@@ -82704,18 +83376,104 @@
     if (shape === "bpmn-data-collection") {
       fe3.isCollection = true;
     }
+    if (typeof attrs.bpmnDoc === "string" && attrs.bpmnDoc.trim()) {
+      const doc = m4.create("bpmn:Documentation", { text: attrs.bpmnDoc.trim() });
+      fe3.documentation = [doc];
+    } else {
+      delete fe3.documentation;
+    }
+    if (attrs.camunda && Object.keys(attrs.camunda).length) {
+      const existing = fe3.extensionElements;
+      if (existing == null ? void 0 : existing.values) {
+        for (const v4 of existing.values) {
+          for (const [k3, val] of Object.entries(attrs.camunda)) {
+            if (k3 in v4) v4[k3] = val;
+          }
+        }
+      }
+    }
+  }
+  function escAttr(value) {
+    return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[ch]);
+  }
+  function patchCamundaXml(xml3, model) {
+    var _a3, _b2, _c, _d;
+    const nodes = model.nodes.filter((n2) => {
+      var _a4, _b3, _c2;
+      const attrs = (_a4 = n2.attrs) != null ? _a4 : {};
+      return attrs.camunda && Object.keys(attrs.camunda).length > 0 || ((_c2 = (_b3 = attrs.bpmnProps) == null ? void 0 : _b3.length) != null ? _c2 : 0) > 0;
+    });
+    if (!nodes.length) return xml3;
+    let out = xml3;
+    if (!/\sxmlns:camunda=/.test(out)) {
+      out = out.replace(/<bpmn:definitions\b([^>]*)>/, `<bpmn:definitions$1 xmlns:camunda="http://camunda.org/schema/1.0/bpmn">`);
+    }
+    for (const n2 of nodes) {
+      const attrs = (_a3 = n2.attrs) != null ? _a3 : {};
+      const camunda = (_b2 = attrs.camunda) != null ? _b2 : {};
+      const props = (_d = (_c = attrs.bpmnProps) == null ? void 0 : _c.filter((p4) => p4.name)) != null ? _d : [];
+      const id = escAttr(n2.id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const tagRe = new RegExp(`<bpmn:([A-Za-z]+)\\b([^>]*)\\bid="${id}"([^>]*)>`);
+      const match = tagRe.exec(out);
+      if (!match) continue;
+      const [full, tagName2, beforeId, afterId] = match;
+      let open2 = full;
+      for (const [key, value] of Object.entries(camunda)) {
+        if (!value) continue;
+        const attrName = `camunda:${key}`;
+        const attrRe = new RegExp(`\\s${attrName}="[^"]*"`);
+        const encoded = ` ${attrName}="${escAttr(String(value))}"`;
+        open2 = attrRe.test(open2) ? open2.replace(attrRe, encoded) : open2.replace(/\/?>$/, `${encoded}$&`);
+      }
+      if (open2 !== full) out = out.slice(0, match.index) + open2 + out.slice(match.index + full.length);
+      if (!props.length) continue;
+      const rematch = new RegExp(`<bpmn:${tagName2}\\b[^>]*\\bid="${id}"[^>]*>`).exec(out);
+      if (!rematch) continue;
+      const currentOpen = rematch[0];
+      const propsXml = `<camunda:properties>${props.map((p4) => {
+        var _a4;
+        return `<camunda:property name="${escAttr(p4.name)}" value="${escAttr((_a4 = p4.value) != null ? _a4 : "")}" />`;
+      }).join("")}</camunda:properties>`;
+      if (currentOpen.endsWith("/>")) {
+        const expanded = currentOpen.replace(/\s*\/>$/, `><bpmn:extensionElements>${propsXml}</bpmn:extensionElements></bpmn:${tagName2}>`);
+        out = out.slice(0, rematch.index) + expanded + out.slice(rematch.index + currentOpen.length);
+        continue;
+      }
+      const closeRe = new RegExp(`</bpmn:${tagName2}>`);
+      const close = closeRe.exec(out.slice(rematch.index + currentOpen.length));
+      if (!close) continue;
+      const blockStart = rematch.index;
+      const blockEnd = rematch.index + currentOpen.length + close.index + close[0].length;
+      const block2 = out.slice(blockStart, blockEnd);
+      let nextBlock;
+      if (/<bpmn:extensionElements\b[\s\S]*?<\/bpmn:extensionElements>/.test(block2)) {
+        nextBlock = block2.replace(
+          /<camunda:properties\b[\s\S]*?<\/camunda:properties>/,
+          propsXml
+        );
+        if (nextBlock === block2) {
+          nextBlock = block2.replace(/<bpmn:extensionElements\b[^>]*>/, (m0) => `${m0}${propsXml}`);
+        }
+      } else {
+        nextBlock = block2.replace(currentOpen, `${currentOpen}<bpmn:extensionElements>${propsXml}</bpmn:extensionElements>`);
+      }
+      out = out.slice(0, blockStart) + nextBlock + out.slice(blockEnd);
+    }
+    return out;
   }
   function findParticipant(defs, id) {
-    for (const root2 of defs.rootElements ?? []) {
+    var _a3, _b2;
+    for (const root2 of (_a3 = defs.rootElements) != null ? _a3 : []) {
       if (root2.$type !== "bpmn:Collaboration") continue;
-      const found = (root2.participants ?? []).find((p4) => p4.id === id);
+      const found = ((_b2 = root2.participants) != null ? _b2 : []).find((p4) => p4.id === id);
       if (found) return found;
     }
     return void 0;
   }
   function findLane(process2, id) {
-    for (const ls of process2.laneSets ?? []) {
-      const found = (ls.lanes ?? []).find((l3) => l3.id === id);
+    var _a3, _b2;
+    for (const ls of (_a3 = process2.laneSets) != null ? _a3 : []) {
+      const found = ((_b2 = ls.lanes) != null ? _b2 : []).find((l3) => l3.id === id);
       if (found) return found;
     }
     return void 0;
@@ -82724,85 +83482,190 @@
   var LANE_HEADER = 30;
   var POOL_MARGIN = 40;
   async function exportBpmn(model, meta) {
+    var _a3, _b2, _c, _d;
     const m4 = moddle2();
-    if (meta?.format === "bpmn") {
-      const raw2 = String(meta.payload?.raw ?? "");
-      if (raw2) return patchExisting(raw2, model, m4);
+    if ((meta == null ? void 0 : meta.format) === "bpmn") {
+      const raw2 = String((_b2 = (_a3 = meta.payload) == null ? void 0 : _a3.raw) != null ? _b2 : "");
+      const diagramIndex = Number((_d = (_c = meta.payload) == null ? void 0 : _c.diagramIndex) != null ? _d : 0);
+      if (raw2) return patchExisting(raw2, model, m4, Number.isFinite(diagramIndex) ? diagramIndex : 0);
     }
     return emitMinimal(model, m4);
   }
-  async function patchExisting(raw2, model, m4) {
+  async function patchExisting(raw2, model, m4, diagramIndex = 0) {
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F;
     const { rootElement: defs } = await m4.fromXML(raw2, "bpmn:Definitions");
     const definitions = defs;
     const diShape = /* @__PURE__ */ new Map();
     const diEdge = /* @__PURE__ */ new Map();
     let mainPlane = null;
-    for (const dia of definitions.diagrams ?? []) {
-      if (!mainPlane) mainPlane = dia.plane;
-      for (const pe3 of dia.plane.planeElement ?? []) {
-        const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : pe3.bpmnElement?.id;
+    const diagrams = (_a3 = definitions.diagrams) != null ? _a3 : [];
+    if (diagrams.length) {
+      mainPlane = diagrams[Math.max(0, Math.min(diagramIndex, diagrams.length - 1))].plane;
+    }
+    if (!mainPlane && diagrams[0]) mainPlane = diagrams[0].plane;
+    if (mainPlane) {
+      for (const pe3 of (_b2 = mainPlane.planeElement) != null ? _b2 : []) {
+        const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_c = pe3.bpmnElement) == null ? void 0 : _c.id;
         if (!refId) continue;
         if (pe3.$type === "bpmndi:BPMNShape") diShape.set(refId, pe3);
         else if (pe3.$type === "bpmndi:BPMNEdge") diEdge.set(refId, pe3);
       }
     }
     if (!mainPlane) throw new Error("BPMN export: source document has no BPMNPlane.");
-    const process2 = (definitions.rootElements ?? []).find((r2) => r2.$type === "bpmn:Process") ?? null;
+    const process2 = (_e3 = ((_d = definitions.rootElements) != null ? _d : []).find((r2) => r2.$type === "bpmn:Process")) != null ? _e3 : null;
     if (!process2) throw new Error("BPMN export: source document has no bpmn:Process.");
     const flowById = /* @__PURE__ */ new Map();
+    const containerOf = /* @__PURE__ */ new Map();
     const collect = (parent) => {
-      for (const fe3 of parent.flowElements ?? []) {
-        if (fe3.id) flowById.set(fe3.id, fe3);
+      var _a4, _b3;
+      for (const fe3 of (_a4 = parent.flowElements) != null ? _a4 : []) {
+        if (fe3.id) {
+          flowById.set(fe3.id, fe3);
+          containerOf.set(fe3.id, parent);
+        }
         if (fe3.flowElements) collect(fe3);
+      }
+      for (const ar of (_b3 = parent.artifacts) != null ? _b3 : []) {
+        if (ar.id && ar.$type === "bpmn:Association") {
+          flowById.set(ar.id, ar);
+          containerOf.set(ar.id, parent);
+        }
       }
     };
     collect(process2);
+    const collaboration = findCollaboration(definitions);
+    if (collaboration) {
+      for (const mf of (_f = collaboration.messageFlows) != null ? _f : []) {
+        if (mf.id) flowById.set(mf.id, mf);
+      }
+    }
     const modelNodeIds = new Set(model.nodes.map((n2) => n2.id));
     const modelEdgeIds = new Set(model.edges.map((e2) => e2.id));
+    const modelEdgeKind = new Map(model.edges.map((e2) => [e2.id, edgeKindOf(e2)]));
+    const modelSequenceEdgeIds = new Set(model.edges.filter((e2) => edgeKindOf(e2) === "sequence").map((e2) => e2.id));
+    const modelAssociationEdgeIds = new Set(model.edges.filter((e2) => edgeKindOf(e2) === "association").map((e2) => e2.id));
+    const modelMessageEdgeIds = new Set(model.edges.filter((e2) => edgeKindOf(e2) === "message").map((e2) => e2.id));
     for (const n2 of model.nodes) {
-      const srcKind = n2.attrs?.__source?.kind;
+      const srcKind = (_h = (_g = n2.attrs) == null ? void 0 : _g.__source) == null ? void 0 : _h.kind;
       if (srcKind === "pool") continue;
+      const targetContainer = n2.parentId && flowById.get(n2.parentId) || process2;
       let di = diShape.get(n2.id);
-      if (di?.bounds) {
+      if (di == null ? void 0 : di.bounds) {
         di.bounds.x = n2.x;
         di.bounds.y = n2.y;
         di.bounds.width = n2.width;
         di.bounds.height = n2.height;
-        di.label = void 0;
+        const nLabel = nodeLabelBoundsFromModel(m4, n2);
+        di.label = nLabel ? { bounds: nLabel } : void 0;
+        const collapsed = ((_i = n2.attrs) == null ? void 0 : _i.collapsed) === true;
+        di.isExpanded = !collapsed;
+        const bpmnFill = (_j = n2.attrs) == null ? void 0 : _j.bpmnFill;
+        const bpmnStroke = (_k = n2.attrs) == null ? void 0 : _k.bpmnStroke;
+        const shapeAttrs = (_l = di.$attrs) != null ? _l : di.$attrs = {};
+        if (bpmnFill) shapeAttrs["bioc:fill"] = bpmnFill;
+        else {
+          delete shapeAttrs["bioc:fill"];
+          delete shapeAttrs["color:background-color"];
+        }
+        if (bpmnStroke) shapeAttrs["bioc:stroke"] = bpmnStroke;
+        else {
+          delete shapeAttrs["bioc:stroke"];
+          delete shapeAttrs["color:border-color"];
+        }
       } else {
-        const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), { id: n2.id, name: n2.label ?? "" });
-        applyBpmnExtras(m4, fe3, n2.shape, n2.attrs ?? {});
-        (process2.flowElements ??= []).push(fe3);
+        const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), { id: n2.id, name: (_m = n2.label) != null ? _m : "" });
+        applyBpmnExtras(m4, fe3, n2.shape, (_n2 = n2.attrs) != null ? _n2 : {});
+        ((_o = targetContainer.flowElements) != null ? _o : targetContainer.flowElements = []).push(fe3);
+        flowById.set(n2.id, fe3);
+        containerOf.set(n2.id, targetContainer);
         di = m4.create("bpmndi:BPMNShape", {
           bpmnElement: fe3,
           bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height })
         });
-        (mainPlane.planeElement ??= []).push(di);
+        ((_p = mainPlane.planeElement) != null ? _p : mainPlane.planeElement = []).push(di);
         diShape.set(n2.id, di);
       }
       const existing = flowById.get(n2.id);
+      const curContainer = containerOf.get(n2.id);
+      if (existing && curContainer && curContainer !== targetContainer) {
+        curContainer.flowElements = ((_q = curContainer.flowElements) != null ? _q : []).filter((fe3) => fe3.id !== n2.id);
+        ((_r = targetContainer.flowElements) != null ? _r : targetContainer.flowElements = []).push(existing);
+        containerOf.set(n2.id, targetContainer);
+      }
       if (existing) {
         if (typeof n2.label === "string") existing.name = n2.label;
-        applyBpmnExtras(m4, existing, n2.shape, n2.attrs ?? {});
+        applyBpmnExtras(m4, existing, n2.shape, (_s = n2.attrs) != null ? _s : {});
       }
     }
-    const refIdOf = (r2) => typeof r2 === "string" ? r2 : r2?.id;
+    const refIdOf = (r2) => typeof r2 === "string" ? r2 : r2 == null ? void 0 : r2.id;
     const referenced = /* @__PURE__ */ new Set();
-    for (const fe3 of process2.flowElements ?? []) {
-      if (fe3.$type !== "bpmn:SequenceFlow") continue;
-      if (!modelEdgeIds.has(fe3.id)) continue;
+    const collectRefs = (fe3) => {
+      if (!fe3.id || !modelEdgeIds.has(fe3.id)) return;
       const src = refIdOf(fe3.sourceRef);
       const tgt = refIdOf(fe3.targetRef);
       if (src) referenced.add(src);
       if (tgt) referenced.add(tgt);
+    };
+    for (const fe3 of (_t3 = process2.flowElements) != null ? _t3 : []) {
+      if (fe3.$type === "bpmn:SequenceFlow") collectRefs(fe3);
     }
-    process2.flowElements = (process2.flowElements ?? []).filter((fe3) => {
-      if (fe3.$type === "bpmn:SequenceFlow") return modelEdgeIds.has(fe3.id);
-      return modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
-    });
+    for (const ar of (_u = process2.artifacts) != null ? _u : []) {
+      if (ar.$type === "bpmn:Association") collectRefs(ar);
+    }
+    if (collaboration) {
+      for (const mf of (_v = collaboration.messageFlows) != null ? _v : []) collectRefs(mf);
+    }
+    const filterFlowElements = (parent) => {
+      var _a4;
+      parent.flowElements = ((_a4 = parent.flowElements) != null ? _a4 : []).filter((fe3) => {
+        if (fe3.$type === "bpmn:SequenceFlow") return modelSequenceEdgeIds.has(fe3.id);
+        const survives = modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
+        return survives;
+      });
+      for (const fe3 of parent.flowElements) {
+        if (fe3.flowElements) filterFlowElements(fe3);
+      }
+    };
+    filterFlowElements(process2);
+    {
+      const byLaneId = /* @__PURE__ */ new Map();
+      for (const n2 of model.nodes) {
+        if (!n2.laneId) continue;
+        const arr = (_w = byLaneId.get(n2.laneId)) != null ? _w : [];
+        arr.push(n2.id);
+        byLaneId.set(n2.laneId, arr);
+      }
+      const walkLanesForRewrite = (lanes) => {
+        var _a4;
+        for (const ln3 of lanes != null ? lanes : []) {
+          const child = (_a4 = ln3.childLaneSet) == null ? void 0 : _a4.lanes;
+          if (child == null ? void 0 : child.length) {
+            walkLanesForRewrite(child);
+            continue;
+          }
+          const ids = ln3.id ? byLaneId.get(ln3.id) : void 0;
+          if (!(ids == null ? void 0 : ids.length)) {
+            ln3.flowNodeRef = [];
+            continue;
+          }
+          ln3.flowNodeRef = ids.map((id) => flowById.get(id)).filter((fe3) => !!fe3);
+        }
+      };
+      for (const ls of (_x = process2.laneSets) != null ? _x : []) walkLanesForRewrite(ls.lanes);
+    }
+    if (process2.artifacts) {
+      process2.artifacts = process2.artifacts.filter((ar) => {
+        if (ar.$type === "bpmn:Association") return modelAssociationEdgeIds.has(ar.id);
+        return true;
+      });
+    }
+    if (collaboration == null ? void 0 : collaboration.messageFlows) {
+      collaboration.messageFlows = collaboration.messageFlows.filter((mf) => modelMessageEdgeIds.has(mf.id));
+    }
     const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
-    mainPlane.planeElement = (mainPlane.planeElement ?? []).filter((pe3) => {
-      const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : pe3.bpmnElement?.id;
+    mainPlane.planeElement = ((_y = mainPlane.planeElement) != null ? _y : []).filter((pe3) => {
+      var _a4;
+      const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
       if (!refId) return true;
       if (pe3.$type === "bpmndi:BPMNEdge") return modelEdgeIds.has(refId);
       if (pe3.$type === "bpmndi:BPMNShape") {
@@ -82816,38 +83679,76 @@
       const srcNode = model.nodes.find((n2) => n2.id === e2.source);
       const tgtNode = model.nodes.find((n2) => n2.id === e2.target);
       if (!srcNode || !tgtNode) continue;
+      const kind = edgeKindOf(e2);
       let de3 = diEdge.get(e2.id);
       const wps = buildWaypoints(e2, srcNode, tgtNode, m4);
+      let sf = flowById.get(e2.id);
+      if (!sf) {
+        const sourceFe = flowById.get(e2.source);
+        const targetFe = flowById.get(e2.target);
+        sf = m4.create(bpmnTypeForEdgeKind(kind), {
+          id: e2.id,
+          name: (_z = e2.label) != null ? _z : "",
+          sourceRef: sourceFe,
+          targetRef: targetFe
+        });
+        if (kind === "message") {
+          if (!collaboration) {
+            sf.$type = "bpmn:SequenceFlow";
+            ((_A = process2.flowElements) != null ? _A : process2.flowElements = []).push(sf);
+          } else {
+            ((_B = collaboration.messageFlows) != null ? _B : collaboration.messageFlows = []).push(sf);
+          }
+        } else if (kind === "association") {
+          ((_C = process2.artifacts) != null ? _C : process2.artifacts = []).push(sf);
+        } else {
+          ((_D = process2.flowElements) != null ? _D : process2.flowElements = []).push(sf);
+        }
+        flowById.set(e2.id, sf);
+      } else if (typeof e2.label === "string") {
+        sf.name = e2.label;
+      }
+      applyEdgeExtras(m4, sf, kind, e2.attrs);
       if (de3) {
         de3.waypoint = wps;
-        de3.label = void 0;
+        const lb = edgeLabelBoundsFromModel(m4, e2, wps);
+        de3.label = lb ? m4.create("bpmndi:BPMNLabel", { bounds: lb }) : void 0;
       } else {
-        let sf = flowById.get(e2.id);
-        if (!sf) {
-          const sourceFe = flowById.get(e2.source);
-          const targetFe = flowById.get(e2.target);
-          sf = m4.create("bpmn:SequenceFlow", {
-            id: e2.id,
-            name: e2.label ?? "",
-            sourceRef: sourceFe,
-            targetRef: targetFe
-          });
-          (process2.flowElements ??= []).push(sf);
-        } else if (typeof e2.label === "string") {
-          sf.name = e2.label;
-        }
-        de3 = m4.create("bpmndi:BPMNEdge", { bpmnElement: sf, waypoint: wps });
-        (mainPlane.planeElement ??= []).push(de3);
+        const lb = edgeLabelBoundsFromModel(m4, e2, wps);
+        de3 = m4.create("bpmndi:BPMNEdge", {
+          bpmnElement: sf,
+          waypoint: wps,
+          ...lb ? { label: m4.create("bpmndi:BPMNLabel", { bounds: lb }) } : {}
+        });
+        ((_E = mainPlane.planeElement) != null ? _E : mainPlane.planeElement = []).push(de3);
         diEdge.set(e2.id, de3);
       }
     }
+    for (const n2 of model.nodes) {
+      const fe3 = flowById.get(n2.id);
+      if (fe3 && fe3.default) delete fe3.default;
+    }
+    for (const e2 of model.edges) {
+      if (!((_F = e2.attrs) == null ? void 0 : _F.isDefault)) continue;
+      if (edgeKindOf(e2) !== "sequence") continue;
+      const srcFe = flowById.get(e2.source);
+      const edgeFe = flowById.get(e2.id);
+      if (srcFe && edgeFe) srcFe.default = edgeFe;
+    }
     const { xml: xml3 } = await m4.toXML(definitions, { format: true });
-    return xml3;
+    return patchCamundaXml(xml3, model);
   }
   function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m4) {
-    const pools = model.nodes.filter((n2) => n2.attrs?.__source?.kind === "pool");
+    var _a3, _b2, _c, _d;
+    const pools = model.nodes.filter((n2) => {
+      var _a4, _b3;
+      return ((_b3 = (_a4 = n2.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
+    });
     if (!pools.length) return;
-    const flow = model.nodes.filter((n2) => n2.attrs?.__source?.kind !== "pool");
+    const flow = model.nodes.filter((n2) => {
+      var _a4, _b3;
+      return ((_b3 = (_a4 = n2.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) !== "pool";
+    });
     if (!flow.length) return;
     const minX = Math.min(...flow.map((n2) => n2.x));
     const minY = Math.min(...flow.map((n2) => n2.y));
@@ -82860,7 +83761,7 @@
     for (const pool of pools) {
       const prefix2 = [];
       let pdi = diShape.get(pool.id);
-      if (pdi?.bounds) {
+      if (pdi == null ? void 0 : pdi.bounds) {
         pdi.bounds.x = poolX;
         pdi.bounds.y = poolY;
         pdi.bounds.width = poolW;
@@ -82868,23 +83769,25 @@
       } else {
         const part = findParticipant(definitions, pool.id);
         pdi = m4.create("bpmndi:BPMNShape", {
-          bpmnElement: part ?? m4.create("bpmn:Participant", { id: pool.id }),
+          bpmnElement: part != null ? part : m4.create("bpmn:Participant", { id: pool.id }),
           bounds: m4.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
         });
-        pdi.isHorizontal = true;
+        const isHorizontal = ((_a3 = pool.attrs) == null ? void 0 : _a3.poolHorizontal) !== false;
+        pdi.isHorizontal = isHorizontal;
         diShape.set(pool.id, pdi);
         prefix2.push(pdi);
       }
-      const lanes = pool.attrs?.lanes ?? [];
+      const lanes = (_c = (_b2 = pool.attrs) == null ? void 0 : _b2.lanes) != null ? _c : [];
       const laneX = poolX + POOL_HEADER;
       const laneW = poolW - POOL_HEADER;
       if (lanes.length) {
         const bands = laneBands(lanes, process2, model, poolY, poolH);
         lanes.forEach((ln3, i3) => {
+          var _a4;
           if (!ln3.id) return;
           const band = bands[i3];
           let ldi = diShape.get(ln3.id);
-          if (ldi?.bounds) {
+          if (ldi == null ? void 0 : ldi.bounds) {
             ldi.bounds.x = laneX;
             ldi.bounds.y = band.y;
             ldi.bounds.width = laneW;
@@ -82892,25 +83795,30 @@
           } else {
             const laneEl = findLane(process2, ln3.id);
             ldi = m4.create("bpmndi:BPMNShape", {
-              bpmnElement: laneEl ?? m4.create("bpmn:Lane", { id: ln3.id }),
+              bpmnElement: laneEl != null ? laneEl : m4.create("bpmn:Lane", { id: ln3.id }),
               bounds: m4.create("dc:Bounds", { x: laneX, y: band.y, width: laneW, height: band.h })
             });
-            ldi.isHorizontal = true;
+            const isHorizontal = ((_a4 = pool.attrs) == null ? void 0 : _a4.poolHorizontal) !== false;
+            ldi.isHorizontal = isHorizontal;
             diShape.set(ln3.id, ldi);
             prefix2.push(ldi);
           }
         });
       }
-      if (prefix2.length) (mainPlane.planeElement ??= []).unshift(...prefix2);
+      if (prefix2.length) ((_d = mainPlane.planeElement) != null ? _d : mainPlane.planeElement = []).unshift(...prefix2);
     }
   }
   function laneBands(lanes, process2, model, poolY, poolH) {
     if (lanes.length <= 1) return [{ y: poolY, h: poolH }];
     const nodeY = new Map(model.nodes.map((n2) => [n2.id, { top: n2.y, bot: n2.y + n2.height }]));
     const mids = lanes.map((ln3) => {
+      var _a3;
       const lane = findLane(process2, ln3.id);
-      const refs = lane?.flowNodeRef ?? [];
-      const ys = refs.map((r2) => nodeY.get(typeof r2 === "string" ? r2 : r2.id ?? "")).filter(Boolean);
+      const refs = (_a3 = lane == null ? void 0 : lane.flowNodeRef) != null ? _a3 : [];
+      const ys = refs.map((r2) => {
+        var _a4;
+        return nodeY.get(typeof r2 === "string" ? r2 : (_a4 = r2.id) != null ? _a4 : "");
+      }).filter(Boolean);
       if (!ys.length) return NaN;
       return ys.reduce((s3, v4) => s3 + (v4.top + v4.bot) / 2, 0) / ys.length;
     });
@@ -82931,13 +83839,65 @@
     return bands;
   }
   function buildWaypoints(e2, src, tgt, m4) {
+    var _a3;
     const point = (x3, y3) => m4.create("dc:Point", { x: x3, y: y3 });
     const start = e2.sourceAnchor ? point(src.x + e2.sourceAnchor.dx, src.y + e2.sourceAnchor.dy) : point(src.x + src.width / 2, src.y + src.height / 2);
     const end = e2.targetAnchor ? point(tgt.x + e2.targetAnchor.dx, tgt.y + e2.targetAnchor.dy) : point(tgt.x + tgt.width / 2, tgt.y + tgt.height / 2);
-    const mid = (e2.vertices ?? []).map((v4) => point(v4.x, v4.y));
+    const mid = ((_a3 = e2.vertices) != null ? _a3 : []).map((v4) => point(v4.x, v4.y));
     return [start, ...mid, end];
   }
+  function pointAtDistance(wps, distance) {
+    if (!wps.length) return { x: 0, y: 0 };
+    if (wps.length === 1) return { x: wps[0].x, y: wps[0].y };
+    const total = wps.slice(1).reduce((sum, p4, i3) => sum + Math.hypot(p4.x - wps[i3].x, p4.y - wps[i3].y), 0);
+    const target = Math.max(0, Math.min(1, distance)) * total;
+    let walked = 0;
+    for (let i3 = 1; i3 < wps.length; i3++) {
+      const a3 = wps[i3 - 1], b2 = wps[i3];
+      const seg = Math.hypot(b2.x - a3.x, b2.y - a3.y);
+      if (walked + seg >= target) {
+        const t3 = seg === 0 ? 0 : (target - walked) / seg;
+        return { x: a3.x + (b2.x - a3.x) * t3, y: a3.y + (b2.y - a3.y) * t3 };
+      }
+      walked += seg;
+    }
+    return { x: wps[wps.length - 1].x, y: wps[wps.length - 1].y };
+  }
+  function edgeLabelBoundsFromModel(m4, edge, wps) {
+    var _a3, _b2, _c, _d;
+    if (!edge.labelPos && !edge.label) return void 0;
+    const distance = (_b2 = (_a3 = edge.labelPos) == null ? void 0 : _a3.distance) != null ? _b2 : 0.5;
+    const base = pointAtDistance(wps, distance);
+    let dx = 0, dy = 0;
+    const off = (_c = edge.labelPos) == null ? void 0 : _c.offset;
+    if (typeof off === "number") dy = off;
+    else if (off && typeof off.x === "number" && typeof off.y === "number") {
+      dx = off.x;
+      dy = off.y;
+    }
+    const textLen = ((_d = edge.label) != null ? _d : "").length;
+    const width2 = Math.max(30, Math.min(300, textLen * 7 + 18));
+    const height2 = 20;
+    return m4.create("dc:Bounds", {
+      x: base.x + dx - width2 / 2,
+      y: base.y + dy - height2 / 2,
+      width: width2,
+      height: height2
+    });
+  }
+  function nodeLabelBoundsFromModel(m4, node2) {
+    var _a3, _b2, _c, _d;
+    const off = (_a3 = node2.attrs) == null ? void 0 : _a3.labelOffset;
+    if (!off || !off.x && !off.y) return void 0;
+    const textLen = ((_b2 = node2.label) != null ? _b2 : "").length;
+    const width2 = Math.max(30, Math.min(320, textLen * 7 + 18));
+    const height2 = 20;
+    const cx = node2.x + node2.width / 2 + ((_c = off.x) != null ? _c : 0);
+    const cy = node2.y + node2.height / 2 + ((_d = off.y) != null ? _d : 0);
+    return m4.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
+  }
   async function emitMinimal(model, m4) {
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h;
     const defs = m4.create("bpmn:Definitions", {
       id: "Definitions_Export",
       targetNamespace: "http://omniboard.local/bpmn"
@@ -82946,25 +83906,44 @@
       id: "Process_Export",
       isExecutable: false
     });
-    (defs.rootElements ??= []).push(process2);
+    ((_a3 = defs.rootElements) != null ? _a3 : defs.rootElements = []).push(process2);
     const feById = /* @__PURE__ */ new Map();
     process2.flowElements = [];
     for (const n2 of model.nodes) {
-      const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), { id: n2.id, name: n2.label ?? "" });
-      applyBpmnExtras(m4, fe3, n2.shape, n2.attrs ?? {});
-      process2.flowElements.push(fe3);
+      const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), { id: n2.id, name: (_b2 = n2.label) != null ? _b2 : "" });
+      applyBpmnExtras(m4, fe3, n2.shape, (_c = n2.attrs) != null ? _c : {});
       feById.set(n2.id, fe3);
+    }
+    for (const n2 of model.nodes) {
+      const fe3 = feById.get(n2.id);
+      const parent = n2.parentId ? feById.get(n2.parentId) : void 0;
+      const container = parent != null ? parent : process2;
+      ((_d = container.flowElements) != null ? _d : container.flowElements = []).push(fe3);
     }
     const sfById = /* @__PURE__ */ new Map();
     for (const e2 of model.edges) {
-      const sf = m4.create("bpmn:SequenceFlow", {
+      const kind = edgeKindOf(e2);
+      const typeStr = kind === "message" ? "bpmn:SequenceFlow" : bpmnTypeForEdgeKind(kind);
+      const sf = m4.create(typeStr, {
         id: e2.id,
-        name: e2.label ?? "",
+        name: (_e3 = e2.label) != null ? _e3 : "",
         sourceRef: feById.get(e2.source),
         targetRef: feById.get(e2.target)
       });
-      process2.flowElements.push(sf);
+      applyEdgeExtras(m4, sf, kind === "message" ? "sequence" : kind, e2.attrs);
+      if (kind === "association") {
+        ((_f = process2.artifacts) != null ? _f : process2.artifacts = []).push(sf);
+      } else {
+        process2.flowElements.push(sf);
+      }
       sfById.set(e2.id, sf);
+    }
+    for (const e2 of model.edges) {
+      if (!((_g = e2.attrs) == null ? void 0 : _g.isDefault)) continue;
+      if (edgeKindOf(e2) !== "sequence") continue;
+      const srcFe = feById.get(e2.source);
+      const edgeFe = sfById.get(e2.id);
+      if (srcFe && edgeFe) srcFe.default = edgeFe;
     }
     const plane = m4.create("bpmndi:BPMNPlane", {
       id: "Plane_Export",
@@ -82972,10 +83951,12 @@
       planeElement: []
     });
     for (const n2 of model.nodes) {
+      const nLabel = nodeLabelBoundsFromModel(m4, n2);
       plane.planeElement.push(m4.create("bpmndi:BPMNShape", {
         id: n2.id + "_di",
         bpmnElement: feById.get(n2.id),
-        bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height })
+        bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height }),
+        ...nLabel ? { label: m4.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {}
       }));
     }
     for (const e2 of model.edges) {
@@ -82983,16 +83964,19 @@
       const tgt = model.nodes.find((n2) => n2.id === e2.target);
       const sf = sfById.get(e2.id);
       if (!src || !tgt || !sf) continue;
+      const waypoints = buildWaypoints(e2, src, tgt, m4);
+      const eLabel = edgeLabelBoundsFromModel(m4, e2, waypoints);
       plane.planeElement.push(m4.create("bpmndi:BPMNEdge", {
         id: e2.id + "_di",
         bpmnElement: sf,
-        waypoint: buildWaypoints(e2, src, tgt, m4)
+        waypoint: waypoints,
+        ...eLabel ? { label: m4.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}
       }));
     }
     const dia = m4.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-    (defs.diagrams ??= []).push(dia);
+    ((_h = defs.diagrams) != null ? _h : defs.diagrams = []).push(dia);
     const { xml: xml3 } = await m4.toXML(defs, { format: true });
-    return xml3;
+    return patchCamundaXml(xml3, model);
   }
 
   // src/io/dbml/import.ts
@@ -83136,7 +84120,7 @@
     bpmn: async (raw2) => {
       const r2 = await importBpmn(raw2);
       canvas.loadModel(r2.model);
-      return { nodes: r2.model.nodes.length, edges: r2.model.edges.length, warnings: r2.warnings };
+      return { nodes: r2.model.nodes.length, edges: r2.model.edges.length, warnings: r2.warnings, sourceMeta: r2.sourceMeta };
     },
     dbml: (raw2) => {
       const r2 = importDbml(raw2);
@@ -83145,7 +84129,10 @@
     }
   };
   window.__export = {
-    bpmn: async (model) => exportBpmn(model)
+    bpmn: async (model, meta) => exportBpmn(
+      model,
+      meta
+    )
   };
   canvas.loadModel({ nodes: [
     { id: "p", shape: "fc-process", x: 50, y: 120, width: 130, height: 56, label: "X\u1EED l\xFD" },

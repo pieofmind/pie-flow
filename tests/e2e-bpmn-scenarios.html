@@ -1,0 +1,269 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>BPMN E2E scenarios</title>
+<style>
+:root{--font-interface:system-ui;}
+body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
+#host{width:1200px;height:720px;border:1px solid #ccc;}
+#log{padding:8px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;background:#fff;border-top:1px solid #ccc;max-height:300px;overflow:auto}
+.pass{color:#0a0}.fail{color:#c00;font-weight:600}
+</style>
+<link rel="stylesheet" href="../styles.css"/>
+</head><body>
+<div id="host" class="da-board-view"></div>
+<div id="log"></div>
+<script src="../harness/harness.js?v=phaseA3"></script>
+<script>
+const log = document.getElementById('log');
+const w = (s, cls='') => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = s; log.appendChild(d); };
+const results = [];
+async function run(name, fn) {
+  try { const out = await fn(); results.push({name, ok:true, info: out||''}); w(`✅ ${name}  ${out||''}`, 'pass'); }
+  catch(e) { results.push({name, ok:false, err: String(e?.message||e)}); w(`❌ ${name}  ${e?.message||e}`, 'fail'); console.error(name, e); }
+}
+function assert(cond, msg) { if (!cond) throw new Error('assert: '+msg); }
+function strMatch(s, re, msg) { if (!re.test(s)) throw new Error('no match for '+re+' :: '+msg); }
+
+// Reusable BPMN fixtures
+const BPMN_HEADER = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+  '<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"' +
+  ' xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"' +
+  ' xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"' +
+  ' xmlns:di="http://www.omg.org/spec/DD/20100524/DI"' +
+  ' id="d" targetNamespace="x">';
+
+// 1. Sequential flow — Start → Task → End
+const SCENARIO_LINEAR = BPMN_HEADER + `
+  <bpmn:process id="P1" isExecutable="false">
+    <bpmn:startEvent id="s"/>
+    <bpmn:task id="t" name="Process"/>
+    <bpmn:endEvent id="e"/>
+    <bpmn:sequenceFlow id="f1" sourceRef="s" targetRef="t"/>
+    <bpmn:sequenceFlow id="f2" sourceRef="t" targetRef="e"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P1">
+    <bpmndi:BPMNShape bpmnElement="s"><dc:Bounds x="100" y="100" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape bpmnElement="t"><dc:Bounds x="200" y="92" width="100" height="52"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape bpmnElement="e"><dc:Bounds x="360" y="100" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge bpmnElement="f1"><di:waypoint x="136" y="118"/><di:waypoint x="200" y="118"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge bpmnElement="f2"><di:waypoint x="300" y="118"/><di:waypoint x="360" y="118"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+// 2. Gateway split with conditional + default
+const SCENARIO_GATEWAY = BPMN_HEADER + `
+  <bpmn:process id="P2">
+    <bpmn:exclusiveGateway id="g" default="fd"/>
+    <bpmn:task id="ta"/><bpmn:task id="tb"/>
+    <bpmn:sequenceFlow id="fc" sourceRef="g" targetRef="ta">
+      <bpmn:conditionExpression xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="bpmn:tFormalExpression">\${ok}</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="fd" sourceRef="g" targetRef="tb"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P2">
+    <bpmndi:BPMNShape bpmnElement="g"><dc:Bounds x="100" y="100" width="50" height="50"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape bpmnElement="ta"><dc:Bounds x="220" y="40" width="100" height="60"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape bpmnElement="tb"><dc:Bounds x="220" y="160" width="100" height="60"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge bpmnElement="fc"><di:waypoint x="150" y="120"/><di:waypoint x="220" y="70"/></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge bpmnElement="fd"><di:waypoint x="150" y="130"/><di:waypoint x="220" y="190"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+// 3. Two pools + Message Flow
+const SCENARIO_MESSAGE = BPMN_HEADER + `
+  <bpmn:collaboration id="C">
+    <bpmn:participant id="pA" name="Customer" processRef="PA"/>
+    <bpmn:participant id="pB" name="Vendor" processRef="PB"/>
+    <bpmn:messageFlow id="mf" name="Order" sourceRef="tA" targetRef="tB"/>
+  </bpmn:collaboration>
+  <bpmn:process id="PA"><bpmn:task id="tA" name="Send order"/></bpmn:process>
+  <bpmn:process id="PB"><bpmn:task id="tB" name="Receive"/></bpmn:process>
+  <bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="C">
+    <bpmndi:BPMNShape bpmnElement="pA" isHorizontal="true"><dc:Bounds x="0" y="0" width="600" height="120"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape bpmnElement="pB" isHorizontal="true"><dc:Bounds x="0" y="160" width="600" height="120"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape bpmnElement="tA"><dc:Bounds x="100" y="30" width="100" height="60"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape bpmnElement="tB"><dc:Bounds x="100" y="190" width="100" height="60"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge bpmnElement="mf"><di:waypoint x="150" y="90"/><di:waypoint x="150" y="190"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+// 4. Annotation + Association
+const SCENARIO_ANNOTATION = BPMN_HEADER + `
+  <bpmn:process id="P4">
+    <bpmn:task id="t"/>
+    <bpmn:textAnnotation id="an"><bpmn:text>Important</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="as" sourceRef="an" targetRef="t" associationDirection="One"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P4">
+    <bpmndi:BPMNShape bpmnElement="t"><dc:Bounds x="200" y="100" width="100" height="60"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape bpmnElement="an"><dc:Bounds x="50" y="50" width="100" height="40"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge bpmnElement="as"><di:waypoint x="100" y="90"/><di:waypoint x="200" y="130"/></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+// 5. Boundary event + multi-instance + compensation + interrupting=false
+const SCENARIO_BOUNDARY = BPMN_HEADER + `
+  <bpmn:process id="P5">
+    <bpmn:userTask id="host" name="Review">
+      <bpmn:multiInstanceLoopCharacteristics isSequential="false"/>
+    </bpmn:userTask>
+    <bpmn:boundaryEvent id="bnd" attachedToRef="host" cancelActivity="false">
+      <bpmn:timerEventDefinition/>
+    </bpmn:boundaryEvent>
+    <bpmn:task id="comp" isForCompensation="true"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P5">
+    <bpmndi:BPMNShape bpmnElement="host"><dc:Bounds x="100" y="100" width="120" height="80"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape bpmnElement="bnd"><dc:Bounds x="200" y="160" width="36" height="36"/></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape bpmnElement="comp"><dc:Bounds x="300" y="100" width="120" height="80"/></bpmndi:BPMNShape>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+// 6. All event triggers smoke
+// OMG event definition names — note "compensate" (not "compensation"), "signal" → "signalEventDefinition" etc.
+const triggers = ["message","timer","signal","error","escalation","compensation","conditional","link","cancel","terminate"];
+const TRIGGER_TO_DEF = { compensation:"compensate" };
+const SCENARIO_TRIGGERS = BPMN_HEADER + `<bpmn:process id="P6">` +
+  triggers.map((t,i)=>`<bpmn:intermediateThrowEvent id="ev${i}"><bpmn:${TRIGGER_TO_DEF[t]??t}EventDefinition/></bpmn:intermediateThrowEvent>`).join('') +
+  `</bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P6">` +
+  triggers.map((t,i)=>`<bpmndi:BPMNShape bpmnElement="ev${i}"><dc:Bounds x="${50+i*50}" y="100" width="36" height="36"/></bpmndi:BPMNShape>`).join('') +
+  `</bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+async function runAll() {
+  await run('S1 linear flow import', async () => {
+    const r = await window.__import.bpmn(SCENARIO_LINEAR);
+    assert(r.nodes === 3, `expected 3 nodes, got ${r.nodes}`);
+    assert(r.edges === 2, `expected 2 edges, got ${r.edges}`);
+    return `${r.nodes}n/${r.edges}e`;
+  });
+
+  await run('S1 round-trip linear → export valid XML', async () => {
+    const r = await window.__import.bpmn(SCENARIO_LINEAR);
+    const xml = await window.__export.bpmn(window.__ob.getModel());
+    strMatch(xml, /<bpmn:sequenceFlow[^>]*id="f1"/, 'f1 preserved');
+    strMatch(xml, /<bpmn:startEvent[^>]*id="s"/, 'start preserved');
+    return `${xml.length} chars`;
+  });
+
+  await run('S2 gateway condition + default import', async () => {
+    const r = await window.__import.bpmn(SCENARIO_GATEWAY);
+    const m = window.__ob.getModel();
+    const fc = m.edges.find(e=>e.id==='fc');
+    const fd = m.edges.find(e=>e.id==='fd');
+    assert(fc?.attrs?.condition?.includes('ok'), 'condition body');
+    assert(fd?.attrs?.isDefault === true, 'default flag');
+    return `cond:${!!fc.attrs.condition} default:${fd.attrs.isDefault}`;
+  });
+
+  await run('S2 gateway round-trip preserves condition + default attr', async () => {
+    await window.__import.bpmn(SCENARIO_GATEWAY);
+    const xml = await window.__export.bpmn(window.__ob.getModel());
+    strMatch(xml, /<bpmn:conditionExpression/, 'condition serialized');
+    strMatch(xml, /default="fd"/, 'default attr serialized');
+    return 'ok';
+  });
+
+  await run('S3 message flow import → kind=message', async () => {
+    await window.__import.bpmn(SCENARIO_MESSAGE);
+    const m = window.__ob.getModel();
+    const mf = m.edges.find(e=>e.id==='mf');
+    assert(mf?.kind === 'message', `kind=${mf?.kind}`);
+    return `kind=${mf.kind} style.flowType=${mf.style?.flowType}`;
+  });
+
+  await run('S3 message flow round-trip emits messageFlow on collaboration', async () => {
+    await window.__import.bpmn(SCENARIO_MESSAGE);
+    // Real Obsidian flow always carries sourceMeta (raw XML) for round-trip
+    // fidelity. Minimal path has no Collaboration root → MessageFlow downgrades.
+    const xml = await window.__export.bpmn(window.__ob.getModel(), { format:'bpmn', payload:{ raw: SCENARIO_MESSAGE } });
+    strMatch(xml, /<bpmn:messageFlow[^>]*id="mf"/, 'messageFlow preserved');
+    strMatch(xml, /<bpmn:collaboration/, 'collaboration preserved');
+    return 'ok';
+  });
+
+  await run('S4 annotation + association import → kind=association', async () => {
+    await window.__import.bpmn(SCENARIO_ANNOTATION);
+    const m = window.__ob.getModel();
+    const as = m.edges.find(e=>e.id==='as');
+    assert(as?.kind === 'association', `kind=${as?.kind}`);
+    assert(as?.attrs?.associationDirection === 'One', `dir=${as?.attrs?.associationDirection}`);
+    return `dir=${as.attrs.associationDirection}`;
+  });
+
+  await run('S4 annotation round-trip emits association artifact', async () => {
+    await window.__import.bpmn(SCENARIO_ANNOTATION);
+    const xml = await window.__export.bpmn(window.__ob.getModel());
+    strMatch(xml, /<bpmn:association[^>]*associationDirection="One"/, 'association direction');
+    return 'ok';
+  });
+
+  await run('S5 boundary + multi-instance + compensation', async () => {
+    await window.__import.bpmn(SCENARIO_BOUNDARY);
+    const m = window.__ob.getModel();
+    const host = m.nodes.find(n=>n.id==='host');
+    const bnd = m.nodes.find(n=>n.id==='bnd');
+    const comp = m.nodes.find(n=>n.id==='comp');
+    assert(host?.attrs?.markers?.includes('mi-par'), 'multi-instance marker');
+    assert(bnd?.attrs?.attachedTo === 'host', 'boundary attached');
+    assert(bnd?.attrs?.interrupting === false, 'non-interrupting');
+    assert(comp?.attrs?.markers?.includes('compensation'), 'compensation marker');
+    return 'all markers OK';
+  });
+
+  await run('S5 boundary round-trip preserves cancelActivity + isForCompensation', async () => {
+    await window.__import.bpmn(SCENARIO_BOUNDARY);
+    const xml = await window.__export.bpmn(window.__ob.getModel());
+    strMatch(xml, /cancelActivity="false"/, 'cancelActivity flag');
+    strMatch(xml, /isForCompensation="true"/, 'compensation flag');
+    strMatch(xml, /<bpmn:multiInstanceLoopCharacteristics/, 'multi-instance loop');
+    return 'ok';
+  });
+
+  await run('S6 all 10 event triggers import', async () => {
+    await window.__import.bpmn(SCENARIO_TRIGGERS);
+    const m = window.__ob.getModel();
+    const got = m.nodes.map(n => n.attrs?.trigger);
+    for (const t of triggers) assert(got.includes(t), `missing trigger: ${t}`);
+    return `${triggers.length} triggers`;
+  });
+
+  await run('S7 user adds new node + edge to imported model, round-trip', async () => {
+    await window.__import.bpmn(SCENARIO_LINEAR);
+    const m = window.__ob.getModel();
+    m.nodes.push({ id:'newT', shape:'bpmn-task-user', x:500, y:92, width:100, height:52, label:'New' });
+    m.edges.push({ id:'newF', source:'e', target:'newT' });
+    const xml = await window.__export.bpmn(m, { format:'bpmn', payload:{} });
+    // No sourceMeta path → minimal exporter
+    strMatch(xml, /id="newT"/, 'new node serialized');
+    strMatch(xml, /id="newF"/, 'new edge serialized');
+    return 'ok';
+  });
+
+  await run('S8 visual flowType change → semantic kind updates', async () => {
+    await window.__import.bpmn(SCENARIO_LINEAR);
+    const ob = window.__ob;
+    const m = ob.getModel();
+    // Pick first edge, mutate data to simulate user picking "message" in popup
+    const xEdge = ob.graph.getEdges().find(e=>e.id==='f1');
+    xEdge.setData({ ...(xEdge.getData()||{}), bpmnKind:'message', style:{ flowType:'message', dash:'dashed', start:'circle', end:'triangle' } });
+    const m2 = ob.getModel();
+    const f1 = m2.edges.find(e=>e.id==='f1');
+    assert(f1.kind === 'message', `expected kind=message, got ${f1.kind}`);
+    return `kind=${f1.kind}`;
+  });
+
+  await run('S9 strip stale state after user clears condition/default', async () => {
+    await window.__import.bpmn(SCENARIO_GATEWAY);
+    const m = window.__ob.getModel();
+    for (const e of m.edges) { if (e.attrs) { delete e.attrs.condition; delete e.attrs.isDefault; } }
+    const xml = await window.__export.bpmn(m, { format:'bpmn', payload:{ raw: SCENARIO_GATEWAY } });
+    assert(!/conditionExpression/.test(xml), 'condition stripped');
+    assert(!/default="/.test(xml), 'default stripped');
+    return 'stripped';
+  });
+
+  // Final summary
+  const passed = results.filter(r=>r.ok).length;
+  const failed = results.length - passed;
+  window.__results = { passed, failed, total: results.length, results };
+  w('', '');
+  w(`SUMMARY: ${passed}/${results.length} passed`, failed===0 ? 'pass' : 'fail');
+}
+
+runAll().then(()=>{ window.__done = true; });
+</script>
+</body></html>

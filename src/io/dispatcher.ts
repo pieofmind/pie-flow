@@ -1,4 +1,4 @@
-import type { ImportResult } from "./types";
+import type { ImportOptions, ImportResult } from "./types";
 import { FORMATS, findByExtension } from "./registry";
 
 /** Detect format from raw content if extension didn't pin it. Strict on
@@ -14,9 +14,9 @@ function detectByContent(raw: string): typeof FORMATS[number] | null {
   return null;
 }
 
-export async function importFromFile(filename: string, raw: string): Promise<ImportResult> {
+export async function importFromFile(filename: string, raw: string, options?: ImportOptions): Promise<ImportResult> {
   const byExt = findByExtension(filename);
   const fmt = byExt ?? detectByContent(raw);
   if (!fmt) throw new Error(`Không nhận diện được định dạng của "${filename}".`);
-  return await fmt.importer(raw);
+  return await fmt.importer(raw, options);
 }

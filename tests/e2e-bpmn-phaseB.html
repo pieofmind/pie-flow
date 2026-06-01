@@ -1,0 +1,109 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>BPMN Phase B E2E</title>
+<style>body{margin:0;font-family:system-ui;background:#FFF4DE}#host{width:1280px;height:720px;border:1px solid #ccc}#log{padding:8px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;background:#fff;max-height:300px;overflow:auto}.pass{color:#0a0}.fail{color:#c00;font-weight:600}</style>
+<link rel="stylesheet" href="../styles.css"/></head><body>
+<div id="host" class="da-board-view"></div><div id="log"></div>
+<script src="../harness/harness.js?v=phaseB2"></script>
+<script>
+const log = document.getElementById('log');
+const w = (s, c='') => { const d=document.createElement('div'); if(c)d.className=c; d.textContent=s; log.appendChild(d); };
+const results = [];
+async function run(name, fn) {
+  try { const out = await fn(); results.push({name, ok:true, info: out||''}); w(`✅ ${name}  ${out||''}`, 'pass'); }
+  catch(e) { results.push({name, ok:false, err: String(e?.message||e)}); w(`❌ ${name}  ${e?.message||e}`, 'fail'); console.error(name, e); }
+}
+const a = (c, m) => { if (!c) throw new Error(m); };
+
+const H = '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="d" targetNamespace="x">';
+
+const NESTED = H + `<bpmn:process id="P"><bpmn:task id="outer"/><bpmn:subProcess id="sp1" name="Sub"><bpmn:task id="inner1"/><bpmn:subProcess id="sp2" name="Deeper"><bpmn:task id="inner2"/></bpmn:subProcess></bpmn:subProcess></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="outer"><dc:Bounds x="50" y="50" width="100" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="sp1" isExpanded="true"><dc:Bounds x="200" y="50" width="400" height="200"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="inner1"><dc:Bounds x="240" y="100" width="100" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="sp2" isExpanded="true"><dc:Bounds x="380" y="100" width="200" height="120"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="inner2"><dc:Bounds x="420" y="140" width="100" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+const LANES = H + `<bpmn:collaboration id="C"><bpmn:participant id="pool1" name="Org" processRef="P"/></bpmn:collaboration><bpmn:process id="P"><bpmn:laneSet><bpmn:lane id="L1" name="Customer"><bpmn:flowNodeRef>t1</bpmn:flowNodeRef></bpmn:lane><bpmn:lane id="L2" name="Vendor"><bpmn:flowNodeRef>t2</bpmn:flowNodeRef></bpmn:lane></bpmn:laneSet><bpmn:task id="t1" name="A"/><bpmn:task id="t2" name="B"/></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="C"><bpmndi:BPMNShape bpmnElement="pool1" isHorizontal="true"><dc:Bounds x="40" y="40" width="700" height="300"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="L1" isHorizontal="true"><dc:Bounds x="80" y="40" width="660" height="150"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="L2" isHorizontal="true"><dc:Bounds x="80" y="190" width="660" height="150"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="t1"><dc:Bounds x="200" y="80" width="100" height="60"/></bpmndi:BPMNShape><bpmndi:BPMNShape bpmnElement="t2"><dc:Bounds x="200" y="240" width="100" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+
+async function runAll() {
+  await run('B1 import nested subprocess → parentId', async () => {
+    await window.__import.bpmn(NESTED);
+    const m = window.__ob.getModel();
+    const inner1 = m.nodes.find(n=>n.id==='inner1');
+    const inner2 = m.nodes.find(n=>n.id==='inner2');
+    const sp2 = m.nodes.find(n=>n.id==='sp2');
+    a(inner1?.parentId === 'sp1', `inner1.parentId=${inner1?.parentId}`);
+    a(inner2?.parentId === 'sp2', `inner2.parentId=${inner2?.parentId}`);
+    a(sp2?.parentId === 'sp1', `sp2.parentId=${sp2?.parentId}`);
+    return `inner1@sp1, inner2@sp2, sp2@sp1`;
+  });
+
+  await run('B2 X6 embedding — subprocess.translate() moves children', async () => {
+    await window.__import.bpmn(NESTED);
+    const ob = window.__ob;
+    const sp1 = ob.graph.getCellById('sp1');
+    const inner1 = ob.graph.getCellById('inner1');
+    const sp2 = ob.graph.getCellById('sp2');
+    a(inner1.getParent()?.id === 'sp1', `inner1 parent=${inner1.getParent()?.id}`);
+    a(sp2.getParent()?.id === 'sp1', `sp2 parent=${sp2.getParent()?.id}`);
+    // X6 propagates children only on translate() (matrix delta), not setPosition.
+    const inner1Pos0 = inner1.getPosition();
+    sp1.translate(100, 50);
+    const inner1Pos1 = inner1.getPosition();
+    a(inner1Pos1.x === inner1Pos0.x + 100, `inner1 x moved ${inner1Pos1.x - inner1Pos0.x}`);
+    return `dx=100, dy=50 propagated`;
+  });
+
+  await run('B3 round-trip nested subprocess → XML preserves nesting', async () => {
+    const r = await window.__import.bpmn(NESTED);
+    const m = window.__ob.getModel();
+    const xml = await window.__export.bpmn(m, r.sourceMeta ?? { format:'bpmn', payload:{ raw: NESTED }});
+    const sp1Block = xml.match(/<bpmn:subProcess[^>]*id="sp1"[\s\S]*?<\/bpmn:subProcess>/)?.[0] ?? '';
+    const sp2Block = sp1Block.match(/<bpmn:subProcess[^>]*id="sp2"[\s\S]*?<\/bpmn:subProcess>/)?.[0] ?? '';
+    a(sp1Block.includes('id="inner1"'), 'inner1 inside sp1');
+    a(sp2Block.includes('id="inner2"'), 'inner2 inside sp2');
+    return 'nested structure preserved';
+  });
+
+  await run('B4 user drags inner1 OUT of sp1 → exported XML un-nests it', async () => {
+    const r = await window.__import.bpmn(NESTED);
+    // Simulate "user dragged inner1 out of sp1" by mutating the canvas-derived
+    // model directly. The exporter is the SoT for nesting; clearing parentId
+    // must cause re-nesting on next export regardless of X6 state.
+    const m = window.__ob.getModel();
+    const inner1 = m.nodes.find(n=>n.id==='inner1');
+    a(inner1?.parentId === 'sp1', `pre: inner1.parentId=${inner1?.parentId}`);
+    inner1.parentId = undefined;
+    const xml = await window.__export.bpmn(m, r.sourceMeta);
+    const sp1Block = xml.match(/<bpmn:subProcess[^>]*id="sp1"[\s\S]*?<\/bpmn:subProcess>/)?.[0] ?? '';
+    a(!sp1Block.includes('id="inner1"'), 'inner1 no longer inside sp1');
+    a(xml.includes('id="inner1"'), 'inner1 still in XML (at top level)');
+    return 'un-nested';
+  });
+
+  await run('B5 lane membership import — node.laneId', async () => {
+    await window.__import.bpmn(LANES);
+    const m = window.__ob.getModel();
+    const t1 = m.nodes.find(n=>n.id==='t1');
+    const t2 = m.nodes.find(n=>n.id==='t2');
+    a(t1?.laneId === 'L1', `t1.laneId=${t1?.laneId}`);
+    a(t2?.laneId === 'L2', `t2.laneId=${t2?.laneId}`);
+    return 't1@L1, t2@L2';
+  });
+
+  await run('B6 lane round-trip — flowNodeRef rebuilt', async () => {
+    const r = await window.__import.bpmn(LANES);
+    const m = window.__ob.getModel();
+    // User swaps lane membership.
+    m.nodes.find(n=>n.id==='t1').laneId = 'L2';
+    m.nodes.find(n=>n.id==='t2').laneId = 'L1';
+    const xml = await window.__export.bpmn(m, r.sourceMeta);
+    const l1 = xml.match(/<bpmn:lane[^>]*id="L1"[\s\S]*?<\/bpmn:lane>/)?.[0] ?? '';
+    const l2 = xml.match(/<bpmn:lane[^>]*id="L2"[\s\S]*?<\/bpmn:lane>/)?.[0] ?? '';
+    a(/flowNodeRef[^>]*>\s*t2\s*</.test(l1), `L1 should contain t2: ${l1.slice(0,200)}`);
+    a(/flowNodeRef[^>]*>\s*t1\s*</.test(l2), `L2 should contain t1: ${l2.slice(0,200)}`);
+    return 'swapped';
+  });
+
+  const passed = results.filter(r=>r.ok).length;
+  w('', '');
+  w(`SUMMARY: ${passed}/${results.length} passed`, passed===results.length ? 'pass' : 'fail');
+  window.__results = { passed, failed: results.length-passed, total: results.length, results };
+}
+runAll().then(()=>{ window.__done = true; });
+</script></body></html>

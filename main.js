@@ -41399,7 +41399,7 @@ __export(main_exports18, {
   default: () => DiagramsPlugin
 });
 module.exports = __toCommonJS(main_exports18);
-var import_obsidian8 = require("obsidian");
+var import_obsidian9 = require("obsidian");
 
 // src/view/BoardView.ts
 var import_obsidian3 = require("obsidian");
@@ -120102,6 +120102,51 @@ var BpmnPropertiesView = class extends import_obsidian7.ItemView {
   }
 };
 
+// src/bpmn-native/bpmn-icons.ts
+var import_obsidian8 = require("obsidian");
+var svgWrap = (content5) => `<g transform="scale(4.167)">${content5}</g>`;
+function registerBpmnIcons() {
+  const icons3 = {
+    // --- TASKS ---
+    "bpmn-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-user-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9.5a2 2 0 100-4 2 2 0 000 4zM7.5 15.5c0-2 2-3 4.5-3s4.5 1 4.5 3" stroke="currentColor" stroke-width="2" fill="none"/>`),
+    "bpmn-service-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 8.5v1M12 14.5v1M8.5 12h1M14.5 12h1" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-script-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`),
+    "bpmn-business-rule-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 8h10M7 12h10M7 16h10M11 8v8" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-send-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 9l6 3.5 6-3.5M6 15V9h12v6z" stroke="currentColor" stroke-width="1.5" fill="none"/>`),
+    "bpmn-receive-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 9l6 3 6-3M6 15l4.5-3M18 15l-4.5-3" stroke="currentColor" stroke-width="1.5" fill="none"/>`),
+    "bpmn-manual-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 15c0-1.5 1-2.5 2.5-2.5s2.5 1 2.5 2.5M11 15c0-1.5 1-2.5 2.5-2.5s2.5 1 2.5 2.5M16 15c0-1.5 1-2.5 2.5-2.5s2.5 1 2.5 2.5" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-call-activity": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="3.5"/>`),
+    "bpmn-sub-process": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="10" y="13" width="4" height="4" fill="none" stroke="currentColor" stroke-width="1"/><path d="M12 14v2M11 15h2" stroke="currentColor" stroke-width="1"/>`),
+    "bpmn-transaction": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="5" y="7" width="14" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1"/>`),
+    "bpmn-event-sub-process": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2,2"/><circle cx="7" cy="9" r="2.5" stroke="currentColor" stroke-width="1" fill="none"/>`),
+    // --- GATEWAYS ---
+    "bpmn-gateway-xor": svgWrap(`<path d="M12 2l9 10-9 10-9-10z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`),
+    "bpmn-gateway-and": svgWrap(`<path d="M12 2l9 10-9 10-9-10z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`),
+    "bpmn-gateway-or": svgWrap(`<path d="M12 2l9 10-9 10-9-10z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="2" fill="none"/>`),
+    "bpmn-gateway-complex": svgWrap(`<path d="M12 2l9 10-9 10-9-10z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M7 12h10M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-gateway-event": svgWrap(`<path d="M12 2l9 10-9 10-9-10z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1" fill="none"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1" fill="none"/><polygon points="12,10 13.5,11 13,13 11,13 10.5,11" stroke="currentColor" stroke-width="1" fill="none"/>`),
+    // --- EVENTS ---
+    "bpmn-start-event": svgWrap(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-catch-event": svgWrap(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1"/>`),
+    "bpmn-throw-event": svgWrap(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-boundary-event": svgWrap(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2,2"/><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1"/>`),
+    "bpmn-end-event": svgWrap(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="3"/>`),
+    // --- DATA & OTHERS ---
+    "bpmn-data-object": svgWrap(`<path d="M7 3h6.5l4.5 4.5V21H7z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13.5 3v4.5H18" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-data-store": svgWrap(`<ellipse cx="12" cy="6" rx="6" ry="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 6v6c0 1.5 2.7 2.5 6 2.5s6-1 6-2.5V6M6 12v6c0 1.5 2.7 2.5 6 2.5s6-1 6-2.5v-6" fill="none" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-data-input": svgWrap(`<path d="M7 3h6.5l4.5 4.5V21H7z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13.5 3v4.5H18" stroke="currentColor" stroke-width="2"/><path d="M10 12h4m-2-2v4" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-data-output": svgWrap(`<path d="M7 3h6.5l4.5 4.5V21H7z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13.5 3v4.5H18" stroke="currentColor" stroke-width="2"/><path d="M10 13h4" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-participant": svgWrap(`<rect x="3" y="4" width="18" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 4v16" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-lane": svgWrap(`<rect x="3" y="6" width="18" height="12" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 6h6v12H3z" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-group": svgWrap(`<rect x="3" y="4" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4,3"/>`),
+    "bpmn-text-annotation": svgWrap(`<path d="M9 4H5v16h4" fill="none" stroke="currentColor" stroke-width="2"/>`)
+  };
+  for (const [id, svgContent] of Object.entries(icons3)) {
+    (0, import_obsidian8.addIcon)(id, svgContent);
+  }
+}
+
 // src/ui/Placeholder.tsx
 function PlaceholderRenderer({ model }) {
   return /* @__PURE__ */ u4("pre", { class: "diagrams-placeholder-render", children: model.trim() || "(empty diagram)" });
@@ -120460,7 +120505,7 @@ var ALL_ADAPTERS = [
   mindmapAdapter,
   mermaidAdapter
 ];
-var DiagramsPlugin = class extends import_obsidian8.Plugin {
+var DiagramsPlugin = class extends import_obsidian9.Plugin {
   constructor() {
     super(...arguments);
     this.registry = new AdapterRegistry();
@@ -120468,6 +120513,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
   }
   async onload() {
     await this.loadSettings();
+    registerBpmnIcons();
     this.registerView(BOARD_VIEW_TYPE3, (leaf) => new BoardView(leaf, this));
     this.registerView(OMNIBOARD_PROPERTIES_VIEW_TYPE, (leaf) => new OmniboardPropertiesView(leaf));
     this.registerView(OMNIBOARD_ISSUES_VIEW_TYPE, (leaf) => new BpmnIssuesView(leaf));
@@ -120483,7 +120529,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file, source) => {
         var _a3;
-        if (!(file instanceof import_obsidian8.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        if (!(file instanceof import_obsidian9.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
         const leaf = this.findLeafForFile(file);
         const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE3;
         menu.addItem((item) => {
@@ -120679,7 +120725,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
       const { model, sourceMeta } = await importBpmn(xml3);
       const basename = bpmnFile.basename;
       const dir = (_b2 = (_a3 = bpmnFile.parent) == null ? void 0 : _a3.path) != null ? _b2 : "";
-      const wrapperPath = (0, import_obsidian8.normalizePath)(
+      const wrapperPath = (0, import_obsidian9.normalizePath)(
         (dir ? dir + "/" : "") + `${basename}${OMNIBOARD_SUFFIX}`
       );
       const content5 = serializeBoard(model, "", sourceMeta, {
@@ -120687,8 +120733,8 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
         bpmnXml: xml3
       });
       const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
-      if (existing instanceof import_obsidian8.TFile) {
-        new import_obsidian8.Notice(
+      if (existing instanceof import_obsidian9.TFile) {
+        new import_obsidian9.Notice(
           `\u0110\xE3 t\u1ED3n t\u1EA1i "${wrapperPath}". Xo\xE1 ho\u1EB7c \u0111\u1ED5i t\xEAn file \u0111\xF3 tr\u01B0\u1EDBc khi convert.`,
           7e3
         );
@@ -120699,26 +120745,26 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
         wrapperFile = await this.app.vault.create(wrapperPath, content5);
       } catch (createErr) {
         console.error("[omniboard] vault.create failed for wrapper", createErr);
-        new import_obsidian8.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
+        new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
         return;
       }
       const leaf = this.app.workspace.getLeaf(false);
       if (!leaf) {
-        new import_obsidian8.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
+        new import_obsidian9.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
         return;
       }
       await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: wrapperFile.path } });
-      new import_obsidian8.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
+      new import_obsidian9.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
     } catch (err2) {
       console.error("[omniboard] convertBpmnToWrapper failed", err2);
-      new import_obsidian8.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
+      new import_obsidian9.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
   async createBoardFile() {
     const d4 = /* @__PURE__ */ new Date();
     const pad = (n4) => String(n4).padStart(2, "0");
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
-    const path2 = (0, import_obsidian8.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
+    const path2 = (0, import_obsidian9.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
     const content5 = serializeBoard({ nodes: [], edges: [] }, "", void 0, {
       compressDrawingData: this.settings.compressDrawingData
     });
@@ -120726,8 +120772,8 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
       return await this.app.vault.create(path2, content5);
     } catch (e5) {
       const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing instanceof import_obsidian8.TFile) return existing;
-      new import_obsidian8.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
+      if (existing instanceof import_obsidian9.TFile) return existing;
+      new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
       return null;
     }
   }
@@ -120789,12 +120835,12 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
   async createAndOpenBpmn() {
     const folder = this.app.fileManager.getNewFileParent("");
     const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/[-:T]/g, "").slice(0, 15);
-    const path2 = (0, import_obsidian8.normalizePath)(`${folder.path}/BPMN-${ts}.bpmn`);
+    const path2 = (0, import_obsidian9.normalizePath)(`${folder.path}/BPMN-${ts}.bpmn`);
     try {
       const file = await this.app.vault.create(path2, MINIMAL_BPMN_XML);
       await this.app.workspace.getLeaf("tab").openFile(file);
     } catch (e5) {
-      new import_obsidian8.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file BPMN.");
+      new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file BPMN.");
     }
   }
   /** Create a board, embed it at the cursor (`![[...]]`), and open it. */
@@ -120812,7 +120858,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
-    if (!(file instanceof import_obsidian8.TFile)) return;
+    if (!(file instanceof import_obsidian9.TFile)) return;
     host.dataset.daRendered = "1";
     host.empty();
     host.addClass("da-embed");
@@ -120821,7 +120867,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
     head.createSpan({ cls: "da-embed-ttl", text: file.basename });
     const meta = head.createSpan({ cls: "da-embed-meta" });
     const open4 = head.createEl("button", { cls: "da-embed-open" });
-    (0, import_obsidian8.setIcon)(open4, "external-link");
+    (0, import_obsidian9.setIcon)(open4, "external-link");
     open4.createSpan({ text: "M\u1EDF" });
     open4.onclick = (e5) => {
       e5.preventDefault();
@@ -120846,9 +120892,9 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
   }
   /** Insert from the ribbon menu — needs to find the active markdown editor itself. */
   insertDiagramIntoActiveEditor(adapter) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian8.MarkdownView);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
     if (!view) {
-      new import_obsidian8.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
+      new import_obsidian9.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
       return;
     }
     this.insertDiagram(view.editor, adapter);
@@ -120878,7 +120924,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
   }
   /** Rewrite the fenced block that produced `el` with new content. */
   replaceCodeBlock(el4, ctx, lang, newText) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian8.MarkdownView);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
     if (!view) return;
     const info = ctx.getSectionInfo(el4);
     if (!info) return;

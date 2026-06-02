@@ -345,7 +345,11 @@ function findLane(process: ModdleElement, id: string): ModdleElement | undefined
   return undefined;
 }
 
-const POOL_HEADER = 44;  // pool vertical title strip (fits 2-line wrapped titles, matches CSS bp-pool-head width)
+// pool vertical title strip width — MUST match bpmn-js's internal participant
+// header constant (30px). Using a different value causes bpmn-js to draw its
+// default divider line at x=30 while our lanes start at x=POOL_HEADER, leaving
+// an empty band that looks like a second nested pool frame.
+const POOL_HEADER = 30;
 const LANE_HEADER = 30;  // lane vertical title strip
 const POOL_MARGIN = 40;  // padding between content bbox and pool edges
 

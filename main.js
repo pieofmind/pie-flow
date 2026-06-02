@@ -85241,7 +85241,7 @@ function findLane(process2, id) {
   }
   return void 0;
 }
-var POOL_HEADER = 44;
+var POOL_HEADER = 30;
 var LANE_HEADER = 30;
 var POOL_MARGIN = 40;
 async function exportBpmn(model, meta) {

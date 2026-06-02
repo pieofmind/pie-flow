@@ -6,7 +6,15 @@
  *
  * View-local lifecycle: one controller per view, no module-level mutable state.
  */
-import { TextFileView, WorkspaceLeaf, Notice, setIcon, Menu, normalizePath } from "obsidian";
+import { TextFileView, WorkspaceLeaf, Notice, setIcon, Menu } from "obsidian";
+
+/**
+ * Mobile detection — mirror OmniboardCanvas pattern. `Platform.isMobile` from
+ * the obsidian package is unreliable on some iPhone builds; the `is-mobile`
+ * body class set by Obsidian's mobile bootstrap is the source of truth.
+ */
+const isObsidianMobile = (): boolean =>
+  typeof document !== "undefined" && !!document.body?.classList.contains("is-mobile");
 import { BpmnNativeController } from "./BpmnNativeController";
 import type DiagramsPlugin from "../main";
 import {
@@ -23,10 +31,12 @@ import { mergeBpmnImport, collectIds } from "../view/mergeBpmnCanvas";
 import type { CanvasModel } from "../canvas/types";
 import type { SourceMeta } from "../io/types";
 import { BOARD_VIEW_TYPE } from "../view/BoardView";
+// Inline at build time via esbuild `loader: { ".css": "text" }`. Runtime
+// disk read fails on mobile (sync timing + sandboxed adapter).
+import BPMN_NATIVE_CSS from "./bpmn-native.css";
 
 export const BPMN_NATIVE_VIEW_TYPE = "bpmn-native";
 const BPMN_STYLE_ID = "bpmn-native-styles";
-const BPMN_STYLE_FILE = "bpmn-native.css";
 
 const MINIMAL_BPMN_FALLBACK = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
@@ -192,7 +202,12 @@ export class BpmnNativeView extends TextFileView {
   async onOpen(): Promise<void> {
     this.contentEl.empty();
     this.contentEl.addClass("da-board-view");
-    this.contentEl.style.cssText = "padding:0; display:flex; flex-direction:column; height:100%;";
+    // iOS WebView resolves `height: 100%` against the parent's *resolved*
+    // height — Obsidian mobile sometimes leaves the workspace-leaf parent
+    // at auto/implicit height, which collapses our content area. `100dvh`
+    // (dynamic viewport height) is iOS-aware and tracks the visual viewport
+    // even when the address-bar / soft-keyboard shows.
+    this.contentEl.style.cssText = "padding:0; display:flex; flex-direction:column; height:100%; min-height:100dvh;";
 
     await this.ensureBpmnStyles();
 
@@ -201,6 +216,113 @@ export class BpmnNativeView extends TextFileView {
     // Create container
     this.bpmnContainer = this.contentEl.createDiv({ cls: "bpmn-native-root" });
     this.bpmnContainer.style.cssText = "position:relative; flex:1; min-height:0;";
+
+    // Mobile UX H3 fix: Obsidian mobile interprets edge-swipes as "open
+    // left/right drawer" — stop touch events from bubbling out of the
+    // BPMN canvas so a pan that starts near the screen edge actually pans
+    // the diagram. Sibling X6 BoardView applies the same pattern to
+    // `.lk-graph-mount`. Passive listeners (we don't preventDefault — the
+    // CSS `touch-action: none` already does that — we just need to stop
+    // propagation to Obsidian's workspace-level handlers).
+    const stopTouchProp = (e: Event) => e.stopPropagation();
+    for (const evt of ["touchstart", "touchmove", "touchend"] as const) {
+      this.bpmnContainer.addEventListener(evt, stopTouchProp, { passive: true });
+    }
+
+    // Mobile UX C1 fix (custom touch handlers, OmniboardCanvas pattern):
+    // diagram-js's PointerEvent → element.mousedown synthesis is unreliable
+    // on iOS WebView, leaving the canvas frozen even with `touch-action: none`.
+    // Wire 1-finger pan + 2-finger pinch-zoom directly on top of bpmn-js's
+    // Canvas API (panBy / zoomAt).
+    this.installTouchGestures(this.bpmnContainer);
+  }
+
+  /** Manual touch pan + pinch — bypasses diagram-js's PointerEvent chain. */
+  private installTouchGestures(container: HTMLElement): void {
+    // OmniboardCanvas / X6 pattern:
+    //   At pinch start, snapshot the diagram-local point under the midpoint.
+    //   Each move: apply new zoom (without center → bpmn-js scales around the
+    //   canvas origin), then look up where the snapshotted local point is now
+    //   in screen-space and pan so it lands back under the CURRENT midpoint.
+    //   This is more robust than passing a moving `center` to `canvas.zoom()`
+    //   because that only re-scales — it doesn't translate when the midpoint
+    //   itself moves during the gesture.
+    type Pinch = { d0: number; scale0: number; lx: number; ly: number };
+    let pinch: Pinch | null = null;
+    let pan: { x: number; y: number } | null = null;
+
+    const dist = (t: TouchList): number =>
+      Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+    const mid = (t: TouchList): { x: number; y: number } => ({
+      x: (t[0].clientX + t[1].clientX) / 2,
+      y: (t[0].clientY + t[1].clientY) / 2,
+    });
+    const localPoint = (clientX: number, clientY: number): { x: number; y: number } => {
+      const rect = container.getBoundingClientRect();
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    };
+
+    const onStart = (e: TouchEvent): void => {
+      if (e.touches.length === 2) {
+        const m = mid(e.touches);
+        const lp = localPoint(m.x, m.y);
+        const local = this.controller.clientToLocal(lp.x, lp.y);
+        pinch = {
+          d0: dist(e.touches) || 1,
+          scale0: this.controller.getZoom(),
+          lx: local.x,
+          ly: local.y,
+        };
+        pan = null;
+        e.preventDefault();
+      } else if (e.touches.length === 1) {
+        pan = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        pinch = null;
+      }
+    };
+
+    const onMove = (e: TouchEvent): void => {
+      if (pinch && e.touches.length === 2) {
+        e.preventDefault();
+        const m = mid(e.touches);
+        const lp = localPoint(m.x, m.y);
+        const nextScale = Math.min(4, Math.max(0.2, pinch.scale0 * (dist(e.touches) / pinch.d0)));
+        // Re-scale without center → bpmn-js zooms around origin, so the
+        // anchored canvas point would shift; the panBy below pulls it back
+        // under the current finger midpoint.
+        this.controller.zoom(nextScale);
+        const cur = this.controller.localToClient(pinch.lx, pinch.ly);
+        const dx = lp.x - cur.x;
+        const dy = lp.y - cur.y;
+        if (dx !== 0 || dy !== 0) {
+          this.controller.panBy(dx, dy);
+        }
+        return;
+      }
+      if (pan && e.touches.length === 1) {
+        e.preventDefault();
+        const t = e.touches[0];
+        const dx = t.clientX - pan.x;
+        const dy = t.clientY - pan.y;
+        if (dx !== 0 || dy !== 0) {
+          this.controller.panBy(dx, dy);
+          pan.x = t.clientX;
+          pan.y = t.clientY;
+        }
+      }
+    };
+
+    const onEnd = (e: TouchEvent): void => {
+      if (e.touches.length < 2) pinch = null;
+      if (e.touches.length < 1) pan = null;
+    };
+
+    // Non-passive so preventDefault() can suppress iOS's native page-pan +
+    // pinch-zoom while we drive the canvas instead.
+    container.addEventListener("touchstart", onStart, { passive: false });
+    container.addEventListener("touchmove", onMove, { passive: false });
+    container.addEventListener("touchend", onEnd, { passive: true });
+    container.addEventListener("touchcancel", onEnd, { passive: true });
   }
 
   async onClose(): Promise<void> {
@@ -414,25 +536,19 @@ export class BpmnNativeView extends TextFileView {
   }
 
   private async ensureBpmnStyles(): Promise<void> {
+    // Idempotent injection — CSS bundled into main.js at build time, so this
+    // is sync and never fails on mobile (no vault.adapter dependency).
+    const existing = document.getElementById(BPMN_STYLE_ID) as HTMLStyleElement | null;
+    if (existing) return;
     try {
-      const css = await this.readBpmnCss();
-      const existing = document.getElementById(BPMN_STYLE_ID) as HTMLStyleElement | null;
-      const styleEl = existing ?? document.createElement("style");
+      const styleEl = document.createElement("style");
       styleEl.id = BPMN_STYLE_ID;
-      styleEl.textContent = css;
-      if (!existing) {
-        document.head.appendChild(styleEl);
-      }
+      styleEl.textContent = BPMN_NATIVE_CSS;
+      document.head.appendChild(styleEl);
     } catch (err) {
-      console.error("[BpmnNative] Failed to load BPMN CSS:", err);
-      new Notice("Không load được BPMN CSS.");
+      console.error("[BpmnNative] Failed to inject BPMN CSS:", err);
+      new Notice("Không inject được BPMN CSS.");
     }
-  }
-
-  private async readBpmnCss(): Promise<string> {
-    const dir = this.plugin.manifest.dir;
-    if (!dir) throw new Error("Plugin manifest dir is unavailable");
-    return await this.app.vault.adapter.read(normalizePath(`${dir}/${BPMN_STYLE_FILE}`));
   }
 
   private buildTopBar(): void {
@@ -471,12 +587,7 @@ export class BpmnNativeView extends TextFileView {
     setIcon(propsBtn, "sliders-horizontal");
     propsBtn.setAttribute("aria-label", "BPMN properties");
     propsBtn.title = "BPMN properties";
-    propsBtn.onclick = () => {
-      const leaf = this.plugin.app.workspace.getRightLeaf(false);
-      if (leaf) {
-        void leaf.setViewState({ type: "bpmn-properties", active: true });
-      }
-    };
+    propsBtn.onclick = () => this.openProperties();
 
     if (this.isWrapper) {
       const switchBtn = bar.createEl("button", { cls: "da-tb-ic" });
@@ -510,6 +621,13 @@ export class BpmnNativeView extends TextFileView {
       await this.persistXml();
       this.leaf.detach();
     };
+  }
+
+  private openProperties(): void {
+    const leaf = this.plugin.app.workspace.getRightLeaf(false);
+    if (leaf) {
+      void leaf.setViewState({ type: "bpmn-properties", active: true });
+    }
   }
 
   private createNavigationWidget(): void {

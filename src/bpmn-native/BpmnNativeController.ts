@@ -46,12 +46,19 @@ export const MINIMAL_BPMN_XML = `<?xml version="1.0" encoding="UTF-8"?>
 export type ChangeCallback = () => void;
 
 type BpmnCanvas = {
-  zoom: (value?: number | "fit-viewport") => number | void;
+  zoom: (value?: number | "fit-viewport", center?: { x: number; y: number } | "auto") => number | void;
+  scroll: (delta: { dx: number; dy: number }) => void;
+  viewbox: () => { x: number; y: number; width: number; height: number; scale: number };
+  resized?: () => void;
 };
 
 export class BpmnNativeController {
   private modeler: InstanceType<typeof BpmnModeler> | null = null;
   private onChanged: ChangeCallback | null = null;
+  /** Watches the container size — bpmn-js does NOT auto-detect resize. On
+   *  mobile (rotate / keyboard show-hide / leaf split) the canvas would
+   *  otherwise keep its old viewBox and look pinned to the top-left. */
+  private resizeObserver: ResizeObserver | null = null;
 
   /**
    * Mount the modeler into a DOM container and import initial XML.
@@ -84,8 +91,13 @@ export class BpmnNativeController {
         window.dispatchEvent(new CustomEvent("bpmn-native-selection-change"));
       });
 
-      // Fit to viewport
-      this.zoom("fit-viewport");
+      // Mobile UX C3 fix: defer fit-viewport until the container has a
+      // non-zero size. setViewData → mountModeler can race the WebView's
+      // first layout pass on iOS, leaving `clientHeight=0` at this point;
+      // calling fit-viewport against a zero bbox produces a fallback scale
+      // anchored top-left (the "diagram dán cứng top" symptom).
+      this.scheduleInitialFit(container);
+      this.installResizeObserver(container);
 
       return { warnings };
     } catch (err: unknown) {
@@ -125,6 +137,87 @@ export class BpmnNativeController {
     if (!canvas || typeof canvas.zoom !== "function") return 1;
     const current = canvas.zoom();
     return typeof current === "number" ? current : 1;
+  }
+
+  /**
+   * Pan the canvas by a CSS-pixel delta (positive = pan toward bottom-right).
+   * Mobile pan handler in BpmnNativeView wires this up.
+   */
+  panBy(dx: number, dy: number): void {
+    if (!this.modeler) return;
+    const canvas = this.modeler.get("canvas") as BpmnCanvas;
+    if (canvas && typeof canvas.scroll === "function") {
+      canvas.scroll({ dx, dy });
+    }
+  }
+
+  /**
+   * Zoom around a CSS-pixel client point (relative to the modeler container).
+   * diagram-js's `canvas.zoom(level, center)` expects `center` in CSS-pixel
+   * client space.
+   */
+  zoomAt(level: number, clientX: number, clientY: number): void {
+    if (!this.modeler) return;
+    const canvas = this.modeler.get("canvas") as BpmnCanvas;
+    if (!canvas || typeof canvas.zoom !== "function") return;
+    canvas.zoom(level, { x: clientX, y: clientY });
+  }
+
+  /**
+   * Convert a CSS-pixel client point (relative to the canvas container) to
+   * the diagram's local/canvas coordinate space. Used by the pinch-zoom
+   * handler to lock a canvas point at gesture start and re-anchor it each
+   * move (OmniboardCanvas / X6 pattern: more robust than passing a moving
+   * center to `canvas.zoom()` because the center re-anchor only re-scales,
+   * it does NOT re-translate when the midpoint moves during pinch).
+   */
+  clientToLocal(clientX: number, clientY: number): { x: number; y: number } {
+    if (!this.modeler) return { x: 0, y: 0 };
+    const canvas = this.modeler.get("canvas") as BpmnCanvas;
+    if (!canvas || typeof canvas.viewbox !== "function") return { x: 0, y: 0 };
+    const vb = canvas.viewbox();
+    return {
+      x: vb.x + clientX / vb.scale,
+      y: vb.y + clientY / vb.scale,
+    };
+  }
+
+  /** Inverse of {@link clientToLocal}. */
+  localToClient(x: number, y: number): { x: number; y: number } {
+    if (!this.modeler) return { x: 0, y: 0 };
+    const canvas = this.modeler.get("canvas") as BpmnCanvas;
+    if (!canvas || typeof canvas.viewbox !== "function") return { x: 0, y: 0 };
+    const vb = canvas.viewbox();
+    return {
+      x: (x - vb.x) * vb.scale,
+      y: (y - vb.y) * vb.scale,
+    };
+  }
+
+  /**
+   * Activate the hand-tool (1-finger pan via bpmn-js itself). Our custom
+   * touch gestures already pan the canvas, so this is mostly cosmetic on
+   * mobile — but the bpmn-js hand cursor signals "you can drag" to users.
+   */
+  activateHand(event?: MouseEvent): void {
+    if (!this.modeler) return;
+    try {
+      const handTool = this.modeler.get("handTool") as { activateHand?: (e?: MouseEvent) => void };
+      handTool?.activateHand?.(event);
+    } catch (err) {
+      console.warn("[BpmnNative] activateHand failed", err);
+    }
+  }
+
+  /** Start a global-connect drag from the given event. */
+  activateConnect(event: MouseEvent): void {
+    if (!this.modeler) return;
+    try {
+      const globalConnect = this.modeler.get("globalConnect") as { start?: (e: MouseEvent) => void };
+      globalConnect?.start?.(event);
+    } catch (err) {
+      console.warn("[BpmnNative] activateConnect failed", err);
+    }
   }
 
   /** Start creating a BPMN shape from a pointer event. */
@@ -264,8 +357,78 @@ export class BpmnNativeController {
     }
   }
 
+  /**
+   * Wait until the container has measurable size, then call fit-viewport.
+   * If the container is already sized, defer one rAF so layout flushes
+   * before we measure. If not yet sized, fall through to the ResizeObserver
+   * which will fit on first non-zero entry.
+   */
+  private scheduleInitialFit(container: HTMLElement): void {
+    const tryFit = (): boolean => {
+      if (!this.modeler) return true;
+      try {
+        const rect = container.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return false;
+        this.zoom("fit-viewport");
+        return true;
+      } catch (err) {
+        // jsdom mocks or torn-down containers reach here; not fatal.
+        console.warn("[BpmnNative] Initial fit-viewport skipped", err);
+        return true;
+      }
+    };
+    // Tests run in jsdom without requestAnimationFrame — fall back to a
+    // microtask so the unit suite still exercises this path.
+    const raf =
+      typeof requestAnimationFrame === "function"
+        ? requestAnimationFrame
+        : (cb: FrameRequestCallback) => setTimeout(() => cb(0), 0);
+    // First attempt after one frame so layout is up to date.
+    raf(() => {
+      if (!tryFit()) {
+        // Second attempt next frame for slow WebViews (e.g. Obsidian mobile
+        // leaf transitions).
+        raf(() => { tryFit(); });
+      }
+    });
+  }
+
+  /**
+   * Watch the container for resize and tell bpmn-js to re-measure. Covers
+   * orientation change, keyboard show/hide, leaf split, and the initial
+   * 0-size → first-paint transition on mobile.
+   */
+  private installResizeObserver(container: HTMLElement): void {
+    if (typeof ResizeObserver === "undefined") return;
+    if (!container || typeof (container as HTMLElement).getBoundingClientRect !== "function") return;
+    let firstFitDone = false;
+    this.resizeObserver = new ResizeObserver((entries) => {
+      if (!this.modeler) return;
+      const entry = entries[0];
+      const { width, height } = entry.contentRect;
+      if (width <= 0 || height <= 0) return;
+      try {
+        const canvas = this.modeler.get("canvas") as { resized?: () => void };
+        canvas.resized?.();
+        // Auto-fit only on the first time the container becomes sized — after
+        // that the user's manual zoom should not be clobbered by every resize.
+        if (!firstFitDone) {
+          this.zoom("fit-viewport");
+          firstFitDone = true;
+        }
+      } catch (err) {
+        console.warn("[BpmnNative] ResizeObserver re-fit failed", err);
+      }
+    });
+    this.resizeObserver.observe(container);
+  }
+
   /** Destroy modeler, release DOM and listeners. */
   dispose(): void {
+    if (this.resizeObserver) {
+      try { this.resizeObserver.disconnect(); } catch { /* ignore */ }
+      this.resizeObserver = null;
+    }
     if (this.modeler) {
       try {
         this.modeler.destroy();

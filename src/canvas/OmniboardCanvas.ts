@@ -165,6 +165,7 @@ type PortSide = SpawnDir;
 const PORT_SIDE: Record<PortSide, PortSide> = { top: "top", right: "right", bottom: "bottom", left: "left" };
 const OPPOSITE_SIDE: Record<PortSide, PortSide> = { top: "bottom", right: "left", bottom: "top", left: "right" };
 const PORT_CONNECTION_POINT = { name: "anchor" } as const;
+const NON_CONNECTABLE_PORT_KINDS = new Set<string>(["bpmn-lane", "bpmn-pool", "bpmn-group"]);
 const ACT_WIDTH = 12; // fixed width of the sequence activation bar
 // Container/frame shapes that should render behind regular nodes.
 const FRAME_KINDS = new Set<string>([
@@ -475,13 +476,18 @@ export class OmniboardCanvas {
         createEdge() { return this.createEdge({ attrs: EDGE_ATTRS }); },
         // Accept drops on fixed node ports, plus empty-canvas drops so allowBlank
         // still opens the "Chèn hình" picker.
-        validateConnection: ({ sourceCell, targetCell }) =>
-          !targetCell || (targetCell.isNode() && sourceCell !== targetCell),
+        validateConnection: ({ sourceCell, targetCell }) => {
+          if (!targetCell) return true;
+          if (!targetCell.isNode() || sourceCell === targetCell) return false;
+          return !this.isPortDisabledNode(targetCell.id);
+        },
         // Only port circles may start a connection drag; body clicks stay normal
         // selection/edit interactions.
-        validateMagnet: ({ magnet }) => {
+        validateMagnet: ({ magnet, cell }) => {
           // Port circles carry class `x6-port-body`; the body hit rect doesn't.
-          return !!magnet && (magnet as Element).classList?.contains("x6-port-body");
+          if (!magnet || !(magnet as Element).classList?.contains("x6-port-body")) return false;
+          if (!cell?.isNode?.()) return false;
+          return !this.isPortDisabledNode(cell.id);
         },
       },
       highlighting: {
@@ -780,11 +786,25 @@ export class OmniboardCanvas {
 
     // If the drop point lands inside another node, bind to the nearest of that
     // node's fixed 12 ports instead of creating a free-position anchor.
+    const candidates: Node[] = [];
     for (const n of this.graph.getNodes()) {
       if (n.id === src.id) continue;
+      if (this.isPortDisabledNode(n.id)) continue;
       const b = n.getBBox();
       if (pt.x < b.x || pt.x > b.x + b.width || pt.y < b.y || pt.y > b.y + b.height) continue;
-      edge.setTarget(portEndpoint(n.id, nearestFixedPort(n as Node, pt)) as never);
+      candidates.push(n as Node);
+    }
+    if (candidates.length) {
+      // When multiple nodes overlap (e.g. task inside pool/lane), prefer the
+      // smallest bbox so regular flow nodes win over big containers.
+      const best = candidates.reduce((pick, cur) => {
+        const pb = pick.getBBox();
+        const cb = cur.getBBox();
+        const pArea = pb.width * pb.height;
+        const cArea = cb.width * cb.height;
+        return cArea < pArea ? cur : pick;
+      });
+      edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt)) as never);
       return "connected";
     }
 
@@ -1407,12 +1427,13 @@ export class OmniboardCanvas {
   private togglePorts(node: Node, visible: boolean) {
     const view = this.graph.findViewByCell(node);
     if (!view) return;
+    const canConnect = !this.isPortDisabledNode(node.id);
     // Show all 12 fixed ports (3 per side). X6 writes the port id onto the
     // <circle> element (port-attr), not the <g>.
     (view.container as Element).querySelectorAll<SVGElement>(".x6-port circle").forEach((c) => {
       const id = c.getAttribute("port") ?? "";
       const isFixed = FIXED_PORT_IDS.includes(id as FixedPortId);
-      c.style.visibility = visible && isFixed ? "visible" : "hidden";
+      c.style.visibility = visible && canConnect && isFixed ? "visible" : "hidden";
     });
   }
 
@@ -2752,8 +2773,10 @@ export class OmniboardCanvas {
   // ── HTML node helpers ────────────────────────────────────────────────────
   private addHtmlNode(kind: string, x: number, y: number, w: number, h: number, label: string, style?: NodeStyle, id?: string, extra?: NodeExtra, source?: unknown): Node {
     const ex = this.mergeExtra(kind, extra);
+    const hasPorts = !NON_CONNECTABLE_PORT_KINDS.has(kind);
     const node = this.graph.addNode({
       id, shape: "html-node", x, y, width: w, height: h,
+      ports: hasPorts ? undefined : { items: [] },
       // `__source` carries import provenance (BPMN pool kind, original ids) and
       // MUST survive the load→getModel round-trip — otherwise re-saving the
       // board (e.g. when opened on another device) drops it and the pool/lane
@@ -3586,6 +3609,13 @@ export class OmniboardCanvas {
     return BPMN_EVENT_KINDS.has(this.nodeKind(c as Node));
   }
 
+  private isPortDisabledNode(cellId: string | undefined): boolean {
+    if (!cellId) return false;
+    const c = this.graph.getCellById(cellId);
+    if (!c || !c.isNode()) return false;
+    return NON_CONNECTABLE_PORT_KINDS.has(this.nodeKind(c as Node));
+  }
+
   private endpointPort(edge: Edge, type: Edge.TerminalType): string | undefined {
     const terminal = (type === "source" ? edge.getSource() : edge.getTarget()) as { port?: string } | undefined;
     return terminal?.port;
@@ -3996,7 +4026,45 @@ export class OmniboardCanvas {
       const data = (n.getData() as { parentId?: string; laneId?: string } | undefined) ?? {};
       const x6Parent = n.getParent();
       const parentId = x6Parent && x6Parent.isNode() ? x6Parent.id : data.parentId;
-      const laneId = data.laneId;
+      
+      // Live laneId determination based on physical pool overlap (Phase B).
+      // Since lanes are not X6 nodes, we find the pool node that contains this node's center,
+      // and determine which lane it falls into based on vertical division of the pool.
+      let laneId = data.laneId;
+      if (
+        this.nodeKind(n) !== "bpmn-pool" &&
+        this.nodeKind(n) !== "bpmn-lane" &&
+        this.nodeKind(n) !== "bpmn-subprocess" &&
+        this.nodeKind(n) !== "bpmn-group" &&
+        this.nodeKind(n) !== "bpmn-annotation"
+      ) {
+        const cx = p.x + s.width / 2;
+        const cy = p.y + s.height / 2;
+        const pools = this.graph.getNodes().filter((node) => this.nodeKind(node) === "bpmn-pool");
+        for (const pool of pools) {
+          const poolPos = pool.getPosition();
+          const poolSize = pool.getSize();
+          if (
+            cx >= poolPos.x && cx <= poolPos.x + poolSize.width &&
+            cy >= poolPos.y && cy <= poolPos.y + poolSize.height
+          ) {
+            const poolExtra = this.nodeExtra(pool);
+            const poolLanes = poolExtra.lanes ?? [{ id: "l1", label: "Lane 1" }];
+            if (poolLanes.length > 0) {
+              const laneHeight = poolSize.height / poolLanes.length;
+              const relY = cy - poolPos.y;
+              const laneIdx = Math.max(0, Math.min(poolLanes.length - 1, Math.floor(relY / laneHeight)));
+              laneId = poolLanes[laneIdx].id;
+              
+              // Keep the cached data in sync silently
+              if (laneId !== data.laneId) {
+                n.setData({ ...data, laneId }, { silent: true });
+              }
+              break;
+            }
+          }
+        }
+      }
       return {
         id: n.id, shape: this.nodeKind(n), x: p.x, y: p.y, width: s.width, height: s.height,
         label: this.nodeLabel(n),

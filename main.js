@@ -77073,58 +77073,58 @@ var SHAPE_CATEGORIES = [
       // dropped node renders the correct icon immediately.
       // ── 18 common shapes shown by default ──
       // Events (9)
-      { shape: "bpmn-event-start", label: "Start", w: 40, h: 40 },
-      { shape: "bpmn-event-start", label: "Start msg", w: 40, h: 40, seed: { trigger: "message" } },
-      { shape: "bpmn-event-start", label: "Start timer", w: 40, h: 40, seed: { trigger: "timer" } },
-      { shape: "bpmn-event-intermediate", label: "Intermediate", w: 40, h: 40 },
-      { shape: "bpmn-event-intermediate", label: "Inter. msg", w: 40, h: 40, seed: { trigger: "message" } },
-      { shape: "bpmn-event-intermediate", label: "Inter. timer", w: 40, h: 40, seed: { trigger: "timer" } },
-      { shape: "bpmn-event-end", label: "End", w: 40, h: 40 },
-      { shape: "bpmn-event-end", label: "End msg", w: 40, h: 40, seed: { trigger: "message" } },
-      { shape: "bpmn-event-end", label: "Terminate", w: 40, h: 40, seed: { trigger: "terminate" } },
+      { shape: "bpmn-event-start", label: "Start", w: 36, h: 36 },
+      { shape: "bpmn-event-start", label: "Start msg", w: 36, h: 36, seed: { trigger: "message" } },
+      { shape: "bpmn-event-start", label: "Start timer", w: 36, h: 36, seed: { trigger: "timer" } },
+      { shape: "bpmn-event-intermediate", label: "Intermediate", w: 36, h: 36 },
+      { shape: "bpmn-event-intermediate", label: "Inter. msg", w: 36, h: 36, seed: { trigger: "message" } },
+      { shape: "bpmn-event-intermediate", label: "Inter. timer", w: 36, h: 36, seed: { trigger: "timer" } },
+      { shape: "bpmn-event-end", label: "End", w: 36, h: 36 },
+      { shape: "bpmn-event-end", label: "End msg", w: 36, h: 36, seed: { trigger: "message" } },
+      { shape: "bpmn-event-end", label: "Terminate", w: 36, h: 36, seed: { trigger: "terminate" } },
       // Gateways (3)
-      { shape: "bpmn-gateway-x", label: "Exclusive GW", w: 50, h: 50 },
-      { shape: "bpmn-gateway-parallel", label: "Parallel GW", w: 50, h: 50 },
-      { shape: "bpmn-gateway-inclusive", label: "Inclusive GW", w: 50, h: 50 },
+      { shape: "bpmn-gateway-x", label: "Exclusive GW", w: 40, h: 40 },
+      { shape: "bpmn-gateway-parallel", label: "Parallel GW", w: 40, h: 40 },
+      { shape: "bpmn-gateway-inclusive", label: "Inclusive GW", w: 40, h: 40 },
       // Tasks (3)
-      { shape: "bpmn-task", label: "Task", w: 120, h: 60 },
-      { shape: "bpmn-task-user", label: "User task", w: 120, h: 60 },
-      { shape: "bpmn-task-service", label: "Service task", w: 120, h: 60 },
+      { shape: "bpmn-task", label: "Task", w: 100, h: 80 },
+      { shape: "bpmn-task-user", label: "User task", w: 100, h: 80 },
+      { shape: "bpmn-task-service", label: "Service task", w: 100, h: 80 },
       // Activities + swimlanes (3)
       { shape: "bpmn-subprocess", label: "Sub-process", w: 200, h: 120 },
       { shape: "bpmn-lane", label: "Lane", w: 480, h: 140 },
       { shape: "bpmn-pool", label: "Pool", w: 560, h: 200 },
       // ── Load more (hidden by default) ──
       // Remaining event triggers
-      { shape: "bpmn-event-start", label: "Start signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
-      { shape: "bpmn-event-start", label: "Start cond.", w: 40, h: 40, seed: { trigger: "conditional" }, advanced: true },
-      { shape: "bpmn-event-start", label: "Start multi", w: 40, h: 40, seed: { trigger: "multiple" }, advanced: true },
-      { shape: "bpmn-event-intermediate", label: "Inter. signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
-      { shape: "bpmn-event-intermediate", label: "Inter. error", w: 40, h: 40, seed: { trigger: "error" }, advanced: true },
-      { shape: "bpmn-event-intermediate", label: "Inter. escal.", w: 40, h: 40, seed: { trigger: "escalation" }, advanced: true },
-      { shape: "bpmn-event-intermediate", label: "Inter. comp.", w: 40, h: 40, seed: { trigger: "compensation" }, advanced: true },
-      { shape: "bpmn-event-intermediate", label: "Inter. cond.", w: 40, h: 40, seed: { trigger: "conditional" }, advanced: true },
-      { shape: "bpmn-event-intermediate", label: "Inter. link", w: 40, h: 40, seed: { trigger: "link" }, advanced: true },
-      { shape: "bpmn-event-intermediate", label: "Inter. cancel", w: 40, h: 40, seed: { trigger: "cancel" }, advanced: true },
-      { shape: "bpmn-event-end", label: "End signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
-      { shape: "bpmn-event-end", label: "End error", w: 40, h: 40, seed: { trigger: "error" }, advanced: true },
-      { shape: "bpmn-event-end", label: "End escal.", w: 40, h: 40, seed: { trigger: "escalation" }, advanced: true },
-      { shape: "bpmn-event-end", label: "End comp.", w: 40, h: 40, seed: { trigger: "compensation" }, advanced: true },
-      { shape: "bpmn-event-end", label: "End cancel", w: 40, h: 40, seed: { trigger: "cancel" }, advanced: true },
+      { shape: "bpmn-event-start", label: "Start signal", w: 36, h: 36, seed: { trigger: "signal" }, advanced: true },
+      { shape: "bpmn-event-start", label: "Start cond.", w: 36, h: 36, seed: { trigger: "conditional" }, advanced: true },
+      { shape: "bpmn-event-start", label: "Start multi", w: 36, h: 36, seed: { trigger: "multiple" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. signal", w: 36, h: 36, seed: { trigger: "signal" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. error", w: 36, h: 36, seed: { trigger: "error" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. escal.", w: 36, h: 36, seed: { trigger: "escalation" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. comp.", w: 36, h: 36, seed: { trigger: "compensation" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. cond.", w: 36, h: 36, seed: { trigger: "conditional" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. link", w: 36, h: 36, seed: { trigger: "link" }, advanced: true },
+      { shape: "bpmn-event-intermediate", label: "Inter. cancel", w: 36, h: 36, seed: { trigger: "cancel" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End signal", w: 36, h: 36, seed: { trigger: "signal" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End error", w: 36, h: 36, seed: { trigger: "error" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End escal.", w: 36, h: 36, seed: { trigger: "escalation" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End comp.", w: 36, h: 36, seed: { trigger: "compensation" }, advanced: true },
+      { shape: "bpmn-event-end", label: "End cancel", w: 36, h: 36, seed: { trigger: "cancel" }, advanced: true },
       // Remaining gateways
-      { shape: "bpmn-gateway-event", label: "Event GW", w: 50, h: 50, advanced: true },
-      { shape: "bpmn-gateway-complex", label: "Complex GW", w: 50, h: 50, advanced: true },
+      { shape: "bpmn-gateway-event", label: "Event GW", w: 40, h: 40, advanced: true },
+      { shape: "bpmn-gateway-complex", label: "Complex GW", w: 40, h: 40, advanced: true },
       // Remaining tasks
-      { shape: "bpmn-task-script", label: "Script task", w: 120, h: 60, advanced: true },
-      { shape: "bpmn-task-manual", label: "Manual task", w: 120, h: 60, advanced: true },
-      { shape: "bpmn-task-send", label: "Send task", w: 120, h: 60, advanced: true },
-      { shape: "bpmn-task-receive", label: "Receive task", w: 120, h: 60, advanced: true },
-      { shape: "bpmn-task-rule", label: "Rule task", w: 120, h: 60, advanced: true },
+      { shape: "bpmn-task-script", label: "Script task", w: 100, h: 80, advanced: true },
+      { shape: "bpmn-task-manual", label: "Manual task", w: 100, h: 80, advanced: true },
+      { shape: "bpmn-task-send", label: "Send task", w: 100, h: 80, advanced: true },
+      { shape: "bpmn-task-receive", label: "Receive task", w: 100, h: 80, advanced: true },
+      { shape: "bpmn-task-rule", label: "Rule task", w: 100, h: 80, advanced: true },
       // Remaining activities
       { shape: "bpmn-transaction", label: "Transaction", w: 200, h: 120, advanced: true },
       { shape: "bpmn-event-subprocess", label: "Event sub-process", w: 200, h: 120, advanced: true },
       { shape: "bpmn-adhoc-subprocess", label: "Ad-hoc sub-process", w: 200, h: 120, advanced: true },
-      { shape: "bpmn-call-activity", label: "Call activity", w: 120, h: 60, advanced: true },
+      { shape: "bpmn-call-activity", label: "Call activity", w: 100, h: 80, advanced: true },
       // Data artifacts
       { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
       { shape: "bpmn-data-collection", label: "Data collection", w: 60, h: 76, advanced: true },
@@ -79177,6 +79177,7 @@ var EDGE_DASHES = { solid: "", dashed: "6 4", dotted: "2 4" };
 var PORT_SIDE = { top: "top", right: "right", bottom: "bottom", left: "left" };
 var OPPOSITE_SIDE = { top: "bottom", right: "left", bottom: "top", left: "right" };
 var PORT_CONNECTION_POINT = { name: "anchor" };
+var NON_CONNECTABLE_PORT_KINDS = /* @__PURE__ */ new Set(["bpmn-lane", "bpmn-pool", "bpmn-group"]);
 var ACT_WIDTH = 12;
 var FRAME_KINDS = /* @__PURE__ */ new Set([
   "sq-frag-alt",
@@ -79626,12 +79627,18 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         },
         // Accept drops on fixed node ports, plus empty-canvas drops so allowBlank
         // still opens the "Chèn hình" picker.
-        validateConnection: ({ sourceCell, targetCell }) => !targetCell || targetCell.isNode() && sourceCell !== targetCell,
+        validateConnection: ({ sourceCell, targetCell }) => {
+          if (!targetCell) return true;
+          if (!targetCell.isNode() || sourceCell === targetCell) return false;
+          return !this.isPortDisabledNode(targetCell.id);
+        },
         // Only port circles may start a connection drag; body clicks stay normal
         // selection/edit interactions.
-        validateMagnet: ({ magnet }) => {
-          var _a3;
-          return !!magnet && ((_a3 = magnet.classList) == null ? void 0 : _a3.contains("x6-port-body"));
+        validateMagnet: ({ magnet, cell }) => {
+          var _a3, _b2;
+          if (!magnet || !((_a3 = magnet.classList) == null ? void 0 : _a3.contains("x6-port-body"))) return false;
+          if (!((_b2 = cell == null ? void 0 : cell.isNode) == null ? void 0 : _b2.call(cell))) return false;
+          return !this.isPortDisabledNode(cell.id);
         }
       },
       highlighting: {
@@ -79953,11 +79960,23 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       return "removed";
     }
     const srcPort = (_a3 = edge.getSource()) == null ? void 0 : _a3.port;
+    const candidates = [];
     for (const n3 of this.graph.getNodes()) {
       if (n3.id === src.id) continue;
+      if (this.isPortDisabledNode(n3.id)) continue;
       const b3 = n3.getBBox();
       if (pt2.x < b3.x || pt2.x > b3.x + b3.width || pt2.y < b3.y || pt2.y > b3.y + b3.height) continue;
-      edge.setTarget(portEndpoint(n3.id, nearestFixedPort(n3, pt2)));
+      candidates.push(n3);
+    }
+    if (candidates.length) {
+      const best = candidates.reduce((pick3, cur) => {
+        const pb = pick3.getBBox();
+        const cb = cur.getBBox();
+        const pArea = pb.width * pb.height;
+        const cArea = cb.width * cb.height;
+        return cArea < pArea ? cur : pick3;
+      });
+      edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt2)));
       return "connected";
     }
     this.pendingDrop = edge;
@@ -80609,11 +80628,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   togglePorts(node2, visible) {
     const view = this.graph.findViewByCell(node2);
     if (!view) return;
+    const canConnect = !this.isPortDisabledNode(node2.id);
     view.container.querySelectorAll(".x6-port circle").forEach((c6) => {
       var _a3;
       const id = (_a3 = c6.getAttribute("port")) != null ? _a3 : "";
       const isFixed = FIXED_PORT_IDS.includes(id);
-      c6.style.visibility = visible && isFixed ? "visible" : "hidden";
+      c6.style.visibility = visible && canConnect && isFixed ? "visible" : "hidden";
     });
   }
   // ── Left tool dock (design "PHẦN TỬ" — labeled vertical list) ─────────────
@@ -82043,6 +82063,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   // ── HTML node helpers ────────────────────────────────────────────────────
   addHtmlNode(kind, x4, y5, w5, h5, label, style2, id, extra, source) {
     const ex = this.mergeExtra(kind, extra);
+    const hasPorts = !NON_CONNECTABLE_PORT_KINDS.has(kind);
     const node2 = this.graph.addNode({
       id,
       shape: "html-node",
@@ -82050,6 +82071,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       y: y5,
       width: w5,
       height: h5,
+      ports: hasPorts ? void 0 : { items: [] },
       // `__source` carries import provenance (BPMN pool kind, original ids) and
       // MUST survive the load→getModel round-trip — otherwise re-saving the
       // board (e.g. when opened on another device) drops it and the pool/lane
@@ -83005,6 +83027,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (!c6 || !c6.isNode()) return false;
     return BPMN_EVENT_KINDS.has(this.nodeKind(c6));
   }
+  isPortDisabledNode(cellId) {
+    if (!cellId) return false;
+    const c6 = this.graph.getCellById(cellId);
+    if (!c6 || !c6.isNode()) return false;
+    return NON_CONNECTABLE_PORT_KINDS.has(this.nodeKind(c6));
+  }
   endpointPort(edge, type) {
     const terminal = type === "source" ? edge.getSource() : edge.getTarget();
     return terminal == null ? void 0 : terminal.port;
@@ -83327,14 +83355,37 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   getModel() {
     const nodes = this.graph.getNodes().map((n3) => {
-      var _a3, _b2, _c, _d, _e3, _f, _g;
+      var _a3, _b2, _c, _d, _e3, _f, _g, _h;
       const p6 = n3.getPosition();
       const s5 = n3.getSize();
       const ex = this.nodeExtra(n3);
       const data2 = (_a3 = n3.getData()) != null ? _a3 : {};
       const x6Parent = n3.getParent();
       const parentId = x6Parent && x6Parent.isNode() ? x6Parent.id : data2.parentId;
-      const laneId = data2.laneId;
+      let laneId = data2.laneId;
+      if (this.nodeKind(n3) !== "bpmn-pool" && this.nodeKind(n3) !== "bpmn-lane" && this.nodeKind(n3) !== "bpmn-subprocess" && this.nodeKind(n3) !== "bpmn-group" && this.nodeKind(n3) !== "bpmn-annotation") {
+        const cx = p6.x + s5.width / 2;
+        const cy = p6.y + s5.height / 2;
+        const pools = this.graph.getNodes().filter((node2) => this.nodeKind(node2) === "bpmn-pool");
+        for (const pool of pools) {
+          const poolPos = pool.getPosition();
+          const poolSize = pool.getSize();
+          if (cx >= poolPos.x && cx <= poolPos.x + poolSize.width && cy >= poolPos.y && cy <= poolPos.y + poolSize.height) {
+            const poolExtra = this.nodeExtra(pool);
+            const poolLanes = (_b2 = poolExtra.lanes) != null ? _b2 : [{ id: "l1", label: "Lane 1" }];
+            if (poolLanes.length > 0) {
+              const laneHeight = poolSize.height / poolLanes.length;
+              const relY = cy - poolPos.y;
+              const laneIdx = Math.max(0, Math.min(poolLanes.length - 1, Math.floor(relY / laneHeight)));
+              laneId = poolLanes[laneIdx].id;
+              if (laneId !== data2.laneId) {
+                n3.setData({ ...data2, laneId }, { silent: true });
+              }
+              break;
+            }
+          }
+        }
+      }
       return {
         id: n3.id,
         shape: this.nodeKind(n3),
@@ -83363,12 +83414,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
           markers: ex.markers,
           collapsed: ex.collapsed,
           // Phase D — BPMN metadata (live on node.data, not NodeExtra)
-          bpmnDoc: (_b2 = n3.getData()) == null ? void 0 : _b2.bpmnDoc,
-          bpmnFill: (_c = n3.getData()) == null ? void 0 : _c.bpmnFill,
-          bpmnStroke: (_d = n3.getData()) == null ? void 0 : _d.bpmnStroke,
-          camunda: (_e3 = n3.getData()) == null ? void 0 : _e3.camunda,
-          bpmnProps: (_f = n3.getData()) == null ? void 0 : _f.bpmnProps,
-          __source: (_g = n3.getData()) == null ? void 0 : _g.__source
+          bpmnDoc: (_c = n3.getData()) == null ? void 0 : _c.bpmnDoc,
+          bpmnFill: (_d = n3.getData()) == null ? void 0 : _d.bpmnFill,
+          bpmnStroke: (_e3 = n3.getData()) == null ? void 0 : _e3.bpmnStroke,
+          camunda: (_f = n3.getData()) == null ? void 0 : _f.camunda,
+          bpmnProps: (_g = n3.getData()) == null ? void 0 : _g.bpmnProps,
+          __source: (_h = n3.getData()) == null ? void 0 : _h.__source
         }
       };
     });
@@ -83834,6 +83885,67 @@ function applyBpmnExtras(m6, fe3, shape, attrs) {
 function escAttr(value) {
   return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[ch]);
 }
+var BPMN_ID_START_RE = /^[A-Za-z_]/;
+var BPMN_ID_CHAR_RE = /[^A-Za-z0-9_.-]/g;
+function normalizeBpmnId(raw2, prefix2, used) {
+  const seed = String(raw2 != null ? raw2 : "").trim();
+  let base = seed ? seed.replace(BPMN_ID_CHAR_RE, "_") : prefix2;
+  if (!base) base = prefix2;
+  if (!BPMN_ID_START_RE.test(base)) base = `${prefix2}_${base}`;
+  let out = base;
+  let n3 = 1;
+  while (used.has(out)) out = `${base}_${++n3}`;
+  used.add(out);
+  return out;
+}
+function normalizeModelIdsForBpmn(model) {
+  var _a3, _b2;
+  const used = /* @__PURE__ */ new Set();
+  const nodeMap = /* @__PURE__ */ new Map();
+  const edgeMap = /* @__PURE__ */ new Map();
+  const laneMap = /* @__PURE__ */ new Map();
+  for (const n3 of model.nodes) nodeMap.set(n3.id, normalizeBpmnId(n3.id, "N", used));
+  for (const e4 of model.edges) edgeMap.set(e4.id, normalizeBpmnId(e4.id, "E", used));
+  for (const n3 of model.nodes) {
+    const lanes = (_b2 = (_a3 = n3.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
+    for (const ln3 of lanes) {
+      if (!ln3.id || laneMap.has(ln3.id)) continue;
+      laneMap.set(ln3.id, normalizeBpmnId(ln3.id, "L", used));
+    }
+  }
+  for (const n3 of model.nodes) {
+    if (!n3.laneId || laneMap.has(n3.laneId)) continue;
+    laneMap.set(n3.laneId, normalizeBpmnId(n3.laneId, "L", used));
+  }
+  return {
+    nodes: model.nodes.map((n3) => {
+      var _a4, _b3, _c, _d, _e3, _f;
+      const lanes = (_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.lanes) == null ? void 0 : _b3.map((ln3) => {
+        var _a5;
+        return {
+          ...ln3,
+          id: (_a5 = laneMap.get(ln3.id)) != null ? _a5 : ln3.id
+        };
+      });
+      return {
+        ...n3,
+        id: (_c = nodeMap.get(n3.id)) != null ? _c : n3.id,
+        ...n3.parentId ? { parentId: (_d = nodeMap.get(n3.parentId)) != null ? _d : n3.parentId } : {},
+        ...n3.laneId ? { laneId: (_e3 = laneMap.get(n3.laneId)) != null ? _e3 : n3.laneId } : {},
+        attrs: lanes ? { ...(_f = n3.attrs) != null ? _f : {}, lanes } : n3.attrs
+      };
+    }),
+    edges: model.edges.map((e4) => {
+      var _a4, _b3, _c;
+      return {
+        ...e4,
+        id: (_a4 = edgeMap.get(e4.id)) != null ? _a4 : e4.id,
+        source: (_b3 = nodeMap.get(e4.source)) != null ? _b3 : e4.source,
+        target: (_c = nodeMap.get(e4.target)) != null ? _c : e4.target
+      };
+    })
+  };
+}
 function patchCamundaXml(xml3, model) {
   var _a3, _b2, _c, _d;
   const nodes = model.nodes.filter((n3) => {
@@ -83921,22 +84033,23 @@ var LANE_HEADER = 30;
 var POOL_MARGIN = 40;
 async function exportBpmn(model, meta) {
   var _a3, _b2, _c, _d;
+  const normalizedModel = normalizeModelIdsForBpmn(model);
   const m6 = moddle2();
   if ((meta == null ? void 0 : meta.format) === "bpmn") {
     const raw2 = String((_b2 = (_a3 = meta.payload) == null ? void 0 : _a3.raw) != null ? _b2 : "");
     const diagramIndex = Number((_d = (_c = meta.payload) == null ? void 0 : _c.diagramIndex) != null ? _d : 0);
     if (raw2) {
       try {
-        return await patchExisting(raw2, model, m6, Number.isFinite(diagramIndex) ? diagramIndex : 0);
+        return await patchExisting(raw2, normalizedModel, m6, Number.isFinite(diagramIndex) ? diagramIndex : 0);
       } catch (err2) {
         console.warn("[omniboard:bpmn] patchExisting failed; falling back to minimal export", err2);
       }
     }
   }
-  return emitMinimal(model, m6);
+  return emitMinimal(normalizedModel, m6);
 }
 async function patchExisting(raw2, model, m6, diagramIndex = 0) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H;
   const { rootElement: defs } = await m6.fromXML(raw2, "bpmn:Definitions");
   const definitions = defs;
   const diShape = /* @__PURE__ */ new Map();
@@ -83984,14 +84097,22 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
     }
   }
   const modelNodeIds = new Set(model.nodes.map((n3) => n3.id));
-  const modelEdgeIds = new Set(model.edges.map((e4) => e4.id));
-  const modelEdgeKind = new Map(model.edges.map((e4) => [e4.id, edgeKindOf(e4)]));
-  const modelSequenceEdgeIds = new Set(model.edges.filter((e4) => edgeKindOf(e4) === "sequence").map((e4) => e4.id));
-  const modelAssociationEdgeIds = new Set(model.edges.filter((e4) => edgeKindOf(e4) === "association").map((e4) => e4.id));
-  const modelMessageEdgeIds = new Set(model.edges.filter((e4) => edgeKindOf(e4) === "message").map((e4) => e4.id));
+  const endpointIds = new Set(flowById.keys());
+  for (const ar of (_g = process2.artifacts) != null ? _g : []) if (ar.id) endpointIds.add(ar.id);
+  for (const p6 of (_h = collaboration == null ? void 0 : collaboration.participants) != null ? _h : []) if (p6.id) endpointIds.add(p6.id);
+  const validModelEdges = model.edges.filter(
+    (e4) => (modelNodeIds.has(e4.source) || endpointIds.has(e4.source)) && (modelNodeIds.has(e4.target) || endpointIds.has(e4.target))
+  );
+  const modelEdgeIds = new Set(validModelEdges.map((e4) => e4.id));
+  const modelEdgeKind = new Map(validModelEdges.map((e4) => [e4.id, edgeKindOf(e4)]));
+  const modelSequenceEdgeIds = new Set(validModelEdges.filter((e4) => edgeKindOf(e4) === "sequence").map((e4) => e4.id));
+  const modelAssociationEdgeIds = new Set(validModelEdges.filter((e4) => edgeKindOf(e4) === "association").map((e4) => e4.id));
+  const modelMessageEdgeIds = new Set(validModelEdges.filter((e4) => edgeKindOf(e4) === "message").map((e4) => e4.id));
   for (const n3 of model.nodes) {
-    const srcKind = (_h = (_g = n3.attrs) == null ? void 0 : _g.__source) == null ? void 0 : _h.kind;
-    if (srcKind === "pool") continue;
+    const srcKind = (_j = (_i = n3.attrs) == null ? void 0 : _i.__source) == null ? void 0 : _j.kind;
+    const isPool = n3.shape === "bpmn-pool" || srcKind === "pool";
+    const isLane = n3.shape === "bpmn-lane" || srcKind === "lane";
+    if (isPool || isLane) continue;
     const targetContainer = n3.parentId && flowById.get(n3.parentId) || process2;
     let di = diShape.get(n3.id);
     if (di == null ? void 0 : di.bounds) {
@@ -84001,11 +84122,11 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
       di.bounds.height = n3.height;
       const nLabel = nodeLabelBoundsFromModel(m6, n3);
       di.label = nLabel ? m6.create("bpmndi:BPMNLabel", { bounds: nLabel }) : void 0;
-      const collapsed = ((_i = n3.attrs) == null ? void 0 : _i.collapsed) === true;
+      const collapsed = ((_k = n3.attrs) == null ? void 0 : _k.collapsed) === true;
       di.isExpanded = !collapsed;
-      const bpmnFill = (_j = n3.attrs) == null ? void 0 : _j.bpmnFill;
-      const bpmnStroke = (_k = n3.attrs) == null ? void 0 : _k.bpmnStroke;
-      const shapeAttrs = (_l = di.$attrs) != null ? _l : di.$attrs = {};
+      const bpmnFill = (_l = n3.attrs) == null ? void 0 : _l.bpmnFill;
+      const bpmnStroke = (_m = n3.attrs) == null ? void 0 : _m.bpmnStroke;
+      const shapeAttrs = (_n2 = di.$attrs) != null ? _n2 : di.$attrs = {};
       if (bpmnFill) shapeAttrs["bioc:fill"] = bpmnFill;
       else {
         delete shapeAttrs["bioc:fill"];
@@ -84017,28 +84138,28 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
         delete shapeAttrs["color:border-color"];
       }
     } else {
-      const fe3 = m6.create(shapeToBpmnType(n3.shape, n3.attrs), { id: n3.id, name: (_m = n3.label) != null ? _m : "" });
-      applyBpmnExtras(m6, fe3, n3.shape, (_n2 = n3.attrs) != null ? _n2 : {});
-      ((_o = targetContainer.flowElements) != null ? _o : targetContainer.flowElements = []).push(fe3);
+      const fe3 = m6.create(shapeToBpmnType(n3.shape, n3.attrs), { id: n3.id, name: (_o = n3.label) != null ? _o : "" });
+      applyBpmnExtras(m6, fe3, n3.shape, (_p = n3.attrs) != null ? _p : {});
+      ((_q = targetContainer.flowElements) != null ? _q : targetContainer.flowElements = []).push(fe3);
       flowById.set(n3.id, fe3);
       containerOf.set(n3.id, targetContainer);
       di = m6.create("bpmndi:BPMNShape", {
         bpmnElement: fe3,
         bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height })
       });
-      ((_p = mainPlane.planeElement) != null ? _p : mainPlane.planeElement = []).push(di);
+      ((_r = mainPlane.planeElement) != null ? _r : mainPlane.planeElement = []).push(di);
       diShape.set(n3.id, di);
     }
     const existing = flowById.get(n3.id);
     const curContainer = containerOf.get(n3.id);
     if (existing && curContainer && curContainer !== targetContainer) {
-      curContainer.flowElements = ((_q = curContainer.flowElements) != null ? _q : []).filter((fe3) => fe3.id !== n3.id);
-      ((_r = targetContainer.flowElements) != null ? _r : targetContainer.flowElements = []).push(existing);
+      curContainer.flowElements = ((_s = curContainer.flowElements) != null ? _s : []).filter((fe3) => fe3.id !== n3.id);
+      ((_t3 = targetContainer.flowElements) != null ? _t3 : targetContainer.flowElements = []).push(existing);
       containerOf.set(n3.id, targetContainer);
     }
     if (existing) {
       if (typeof n3.label === "string") existing.name = n3.label;
-      applyBpmnExtras(m6, existing, n3.shape, (_s = n3.attrs) != null ? _s : {});
+      applyBpmnExtras(m6, existing, n3.shape, (_u = n3.attrs) != null ? _u : {});
     }
   }
   const refIdOf = (r4) => typeof r4 === "string" ? r4 : r4 == null ? void 0 : r4.id;
@@ -84050,14 +84171,14 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
     if (src) referenced.add(src);
     if (tgt) referenced.add(tgt);
   };
-  for (const fe3 of (_t3 = process2.flowElements) != null ? _t3 : []) {
+  for (const fe3 of (_v = process2.flowElements) != null ? _v : []) {
     if (fe3.$type === "bpmn:SequenceFlow") collectRefs(fe3);
   }
-  for (const ar of (_u = process2.artifacts) != null ? _u : []) {
+  for (const ar of (_w = process2.artifacts) != null ? _w : []) {
     if (ar.$type === "bpmn:Association") collectRefs(ar);
   }
   if (collaboration) {
-    for (const mf of (_v = collaboration.messageFlows) != null ? _v : []) collectRefs(mf);
+    for (const mf of (_x = collaboration.messageFlows) != null ? _x : []) collectRefs(mf);
   }
   const filterFlowElements = (parent) => {
     var _a4;
@@ -84075,7 +84196,7 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
     const byLaneId = /* @__PURE__ */ new Map();
     for (const n3 of model.nodes) {
       if (!n3.laneId) continue;
-      const arr = (_w = byLaneId.get(n3.laneId)) != null ? _w : [];
+      const arr = (_y = byLaneId.get(n3.laneId)) != null ? _y : [];
       arr.push(n3.id);
       byLaneId.set(n3.laneId, arr);
     }
@@ -84095,7 +84216,7 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
         ln3.flowNodeRef = ids.map((id) => flowById.get(id)).filter((fe3) => !!fe3);
       }
     };
-    for (const ls of (_x = process2.laneSets) != null ? _x : []) walkLanesForRewrite(ls.lanes);
+    for (const ls of (_z = process2.laneSets) != null ? _z : []) walkLanesForRewrite(ls.lanes);
   }
   if (process2.artifacts) {
     process2.artifacts = process2.artifacts.filter((ar) => {
@@ -84107,7 +84228,7 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
     collaboration.messageFlows = collaboration.messageFlows.filter((mf) => modelMessageEdgeIds.has(mf.id));
   }
   const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
-  mainPlane.planeElement = ((_y = mainPlane.planeElement) != null ? _y : []).filter((pe3) => {
+  mainPlane.planeElement = ((_A = mainPlane.planeElement) != null ? _A : []).filter((pe3) => {
     var _a4;
     const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
     if (!refId) return true;
@@ -84119,7 +84240,7 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
     return true;
   });
   emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m6);
-  for (const e4 of model.edges) {
+  for (const e4 of validModelEdges) {
     const srcNode = model.nodes.find((n3) => n3.id === e4.source);
     const tgtNode = model.nodes.find((n3) => n3.id === e4.target);
     if (!srcNode || !tgtNode) continue;
@@ -84130,23 +84251,24 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
     if (!sf) {
       const sourceFe = flowById.get(e4.source);
       const targetFe = flowById.get(e4.target);
+      if (!sourceFe || !targetFe) continue;
       sf = m6.create(bpmnTypeForEdgeKind(kind), {
         id: e4.id,
-        name: (_z = e4.label) != null ? _z : "",
+        name: (_B = e4.label) != null ? _B : "",
         sourceRef: sourceFe,
         targetRef: targetFe
       });
       if (kind === "message") {
         if (!collaboration) {
           sf.$type = "bpmn:SequenceFlow";
-          ((_A = process2.flowElements) != null ? _A : process2.flowElements = []).push(sf);
+          ((_C = process2.flowElements) != null ? _C : process2.flowElements = []).push(sf);
         } else {
-          ((_B = collaboration.messageFlows) != null ? _B : collaboration.messageFlows = []).push(sf);
+          ((_D = collaboration.messageFlows) != null ? _D : collaboration.messageFlows = []).push(sf);
         }
       } else if (kind === "association") {
-        ((_C = process2.artifacts) != null ? _C : process2.artifacts = []).push(sf);
+        ((_E = process2.artifacts) != null ? _E : process2.artifacts = []).push(sf);
       } else {
-        ((_D = process2.flowElements) != null ? _D : process2.flowElements = []).push(sf);
+        ((_F = process2.flowElements) != null ? _F : process2.flowElements = []).push(sf);
       }
       flowById.set(e4.id, sf);
     } else if (typeof e4.label === "string") {
@@ -84164,7 +84286,7 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
         waypoint: wps,
         ...lb ? { label: m6.create("bpmndi:BPMNLabel", { bounds: lb }) } : {}
       });
-      ((_E = mainPlane.planeElement) != null ? _E : mainPlane.planeElement = []).push(de3);
+      ((_G = mainPlane.planeElement) != null ? _G : mainPlane.planeElement = []).push(de3);
       diEdge.set(e4.id, de3);
     }
   }
@@ -84172,8 +84294,8 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
     const fe3 = flowById.get(n3.id);
     if (fe3 && fe3.default) delete fe3.default;
   }
-  for (const e4 of model.edges) {
-    if (!((_F = e4.attrs) == null ? void 0 : _F.isDefault)) continue;
+  for (const e4 of validModelEdges) {
+    if (!((_H = e4.attrs) == null ? void 0 : _H.isDefault)) continue;
     if (edgeKindOf(e4) !== "sequence") continue;
     const srcFe = flowById.get(e4.source);
     const edgeFe = flowById.get(e4.id);
@@ -84183,16 +84305,35 @@ async function patchExisting(raw2, model, m6, diagramIndex = 0) {
   return patchCamundaXml(xml3, model);
 }
 function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m6) {
-  var _a3, _b2, _c, _d;
-  const pools = model.nodes.filter((n3) => {
-    var _a4, _b3;
-    return ((_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
-  });
+  var _a3, _b2, _c, _d, _e3, _f, _g;
+  const pools = model.nodes.filter(
+    (n3) => {
+      var _a4, _b3;
+      return n3.shape === "bpmn-pool" || ((_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
+    }
+  );
   if (!pools.length) return;
-  const flow = model.nodes.filter((n3) => {
-    var _a4, _b3;
-    return ((_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) !== "pool";
-  });
+  let collaboration = findCollaboration(definitions);
+  const ensureCollaboration = () => {
+    var _a4;
+    if (collaboration) return collaboration;
+    collaboration = m6.create("bpmn:Collaboration", { id: "Collaboration_Export" });
+    ((_a4 = definitions.rootElements) != null ? _a4 : definitions.rootElements = []).push(collaboration);
+    return collaboration;
+  };
+  const ensureLaneSet = () => {
+    var _a4, _b3, _c2;
+    if (((_a4 = process2.laneSets) != null ? _a4 : []).length) return process2.laneSets[0];
+    const laneSet = m6.create("bpmn:LaneSet", { id: `LaneSet_${(_b3 = process2.id) != null ? _b3 : "Process_Export"}` });
+    ((_c2 = process2.laneSets) != null ? _c2 : process2.laneSets = []).push(laneSet);
+    return laneSet;
+  };
+  const flow = model.nodes.filter(
+    (n3) => {
+      var _a4, _b3;
+      return n3.shape !== "bpmn-pool" && ((_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) !== "pool";
+    }
+  );
   if (!flow.length) return;
   const minX = Math.min(...flow.map((n3) => n3.x));
   const minY = Math.min(...flow.map((n3) => n3.y));
@@ -84211,23 +84352,31 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m6
       pdi.bounds.width = poolW;
       pdi.bounds.height = poolH;
     } else {
-      const part = findParticipant(definitions, pool.id);
+      let part = findParticipant(definitions, pool.id);
+      if (!part) {
+        part = m6.create("bpmn:Participant", {
+          id: pool.id,
+          name: (_a3 = pool.label) != null ? _a3 : "Pool",
+          processRef: process2
+        });
+        ((_c = (_b2 = ensureCollaboration()).participants) != null ? _c : _b2.participants = []).push(part);
+      }
       pdi = m6.create("bpmndi:BPMNShape", {
-        bpmnElement: part != null ? part : m6.create("bpmn:Participant", { id: pool.id }),
+        bpmnElement: part,
         bounds: m6.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
       });
-      const isHorizontal = ((_a3 = pool.attrs) == null ? void 0 : _a3.poolHorizontal) !== false;
+      const isHorizontal = ((_d = pool.attrs) == null ? void 0 : _d.poolHorizontal) !== false;
       pdi.isHorizontal = isHorizontal;
       diShape.set(pool.id, pdi);
       prefix2.push(pdi);
     }
-    const lanes = (_c = (_b2 = pool.attrs) == null ? void 0 : _b2.lanes) != null ? _c : [];
+    const lanes = (_f = (_e3 = pool.attrs) == null ? void 0 : _e3.lanes) != null ? _f : [];
     const laneX = poolX + POOL_HEADER;
     const laneW = poolW - POOL_HEADER;
     if (lanes.length) {
       const bands = laneBands(lanes, process2, model, poolY, poolH);
       lanes.forEach((ln3, i6) => {
-        var _a4;
+        var _a4, _b3, _c2, _d2;
         if (!ln3.id) return;
         const band = bands[i6];
         let ldi = diShape.get(ln3.id);
@@ -84237,19 +84386,23 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m6
           ldi.bounds.width = laneW;
           ldi.bounds.height = band.h;
         } else {
-          const laneEl = findLane(process2, ln3.id);
+          let laneEl = findLane(process2, ln3.id);
+          if (!laneEl) {
+            laneEl = m6.create("bpmn:Lane", { id: ln3.id, name: (_a4 = ln3.label) != null ? _a4 : ln3.id });
+            ((_c2 = (_b3 = ensureLaneSet()).lanes) != null ? _c2 : _b3.lanes = []).push(laneEl);
+          }
           ldi = m6.create("bpmndi:BPMNShape", {
-            bpmnElement: laneEl != null ? laneEl : m6.create("bpmn:Lane", { id: ln3.id }),
+            bpmnElement: laneEl,
             bounds: m6.create("dc:Bounds", { x: laneX, y: band.y, width: laneW, height: band.h })
           });
-          const isHorizontal = ((_a4 = pool.attrs) == null ? void 0 : _a4.poolHorizontal) !== false;
+          const isHorizontal = ((_d2 = pool.attrs) == null ? void 0 : _d2.poolHorizontal) !== false;
           ldi.isHorizontal = isHorizontal;
           diShape.set(ln3.id, ldi);
           prefix2.push(ldi);
         }
       });
     }
-    if (prefix2.length) ((_d = mainPlane.planeElement) != null ? _d : mainPlane.planeElement = []).unshift(...prefix2);
+    if (prefix2.length) ((_g = mainPlane.planeElement) != null ? _g : mainPlane.planeElement = []).unshift(...prefix2);
   }
 }
 function laneBands(lanes, process2, model, poolY, poolH) {
@@ -84282,13 +84435,77 @@ function laneBands(lanes, process2, model, poolY, poolH) {
   });
   return bands;
 }
+function getPortOffset(portId, width2, height2) {
+  if (!portId) return { dx: width2 / 2, dy: height2 / 2 };
+  switch (portId) {
+    case "top":
+      return { dx: width2 / 2, dy: 0 };
+    case "top-1":
+      return { dx: width2 / 3, dy: 0 };
+    case "top-2":
+      return { dx: 2 * width2 / 3, dy: 0 };
+    case "bottom":
+      return { dx: width2 / 2, dy: height2 };
+    case "bottom-1":
+      return { dx: width2 / 3, dy: height2 };
+    case "bottom-2":
+      return { dx: 2 * width2 / 3, dy: height2 };
+    case "left":
+      return { dx: 0, dy: height2 / 2 };
+    case "left-1":
+      return { dx: 0, dy: height2 / 3 };
+    case "left-2":
+      return { dx: 0, dy: 2 * height2 / 3 };
+    case "right":
+      return { dx: width2, dy: height2 / 2 };
+    case "right-1":
+      return { dx: width2, dy: height2 / 3 };
+    case "right-2":
+      return { dx: width2, dy: 2 * height2 / 3 };
+    default:
+      return { dx: width2 / 2, dy: height2 / 2 };
+  }
+}
+function portIsHorizontal(portId, start, end, isSource) {
+  if (portId) {
+    return portId.startsWith("left") || portId.startsWith("right");
+  }
+  if (isSource) {
+    return Math.abs(end.x - start.x) > Math.abs(end.y - start.y);
+  } else {
+    return Math.abs(end.y - start.y) > Math.abs(end.x - start.x);
+  }
+}
+function getOrthogonalWaypoints(start, end, sourcePort, targetPort) {
+  const isHorizontalSource = portIsHorizontal(sourcePort, start, end, true);
+  const isHorizontalTarget = portIsHorizontal(targetPort, start, end, false);
+  if (isHorizontalSource && !isHorizontalTarget) {
+    return [start, { x: end.x, y: start.y }, end];
+  } else if (!isHorizontalSource && isHorizontalTarget) {
+    return [start, { x: start.x, y: end.y }, end];
+  } else if (isHorizontalSource && isHorizontalTarget) {
+    const mx = (start.x + end.x) / 2;
+    return [start, { x: mx, y: start.y }, { x: mx, y: end.y }, end];
+  } else {
+    const my = (start.y + end.y) / 2;
+    return [start, { x: start.x, y: my }, { x: end.x, y: my }, end];
+  }
+}
 function buildWaypoints(e4, src, tgt, m6) {
-  var _a3;
+  var _a3, _b2, _c;
   const point = (x4, y5) => m6.create("dc:Point", { x: x4, y: y5 });
-  const start = e4.sourceAnchor ? point(src.x + e4.sourceAnchor.dx, src.y + e4.sourceAnchor.dy) : point(src.x + src.width / 2, src.y + src.height / 2);
-  const end = e4.targetAnchor ? point(tgt.x + e4.targetAnchor.dx, tgt.y + e4.targetAnchor.dy) : point(tgt.x + tgt.width / 2, tgt.y + tgt.height / 2);
-  const mid = ((_a3 = e4.vertices) != null ? _a3 : []).map((v6) => point(v6.x, v6.y));
-  return [start, ...mid, end];
+  const srcOffset = (_a3 = e4.sourceAnchor) != null ? _a3 : getPortOffset(e4.sourcePort, src.width, src.height);
+  const tgtOffset = (_b2 = e4.targetAnchor) != null ? _b2 : getPortOffset(e4.targetPort, tgt.width, tgt.height);
+  const start = { x: src.x + srcOffset.dx, y: src.y + srcOffset.dy };
+  const end = { x: tgt.x + tgtOffset.dx, y: tgt.y + tgtOffset.dy };
+  let waypoints;
+  if (e4.router === "orth" && (!e4.vertices || e4.vertices.length === 0)) {
+    waypoints = getOrthogonalWaypoints(start, end, e4.sourcePort, e4.targetPort);
+  } else {
+    const mid = (_c = e4.vertices) != null ? _c : [];
+    waypoints = [start, ...mid, end];
+  }
+  return waypoints.map((w5) => point(w5.x, w5.y));
 }
 function pointAtDistance(wps, distance) {
   if (!wps.length) return { x: 0, y: 0 };
@@ -84348,7 +84565,7 @@ function nodeLabelBoundsFromModel(m6, node2) {
   return m6.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
 }
 async function emitMinimal(model, m6) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u;
   const defs = m6.create("bpmn:Definitions", {
     id: "Definitions_Export",
     targetNamespace: "http://omniboard.local/bpmn"
@@ -84358,39 +84575,94 @@ async function emitMinimal(model, m6) {
     isExecutable: false
   });
   ((_a3 = defs.rootElements) != null ? _a3 : defs.rootElements = []).push(process2);
+  const pools = model.nodes.filter(
+    (n3) => {
+      var _a4, _b3;
+      return n3.shape === "bpmn-pool" || ((_b3 = (_a4 = n3.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
+    }
+  );
+  if (pools.length) {
+    const collaboration = m6.create("bpmn:Collaboration", { id: "Collaboration_Export" });
+    collaboration.participants = pools.map((pool) => {
+      var _a4;
+      return m6.create("bpmn:Participant", {
+        id: pool.id,
+        name: (_a4 = pool.label) != null ? _a4 : "Pool",
+        processRef: process2
+      });
+    });
+    ((_b2 = defs.rootElements) != null ? _b2 : defs.rootElements = []).push(collaboration);
+    const lanes = pools.flatMap((pool) => {
+      var _a4, _b3;
+      return (_b3 = (_a4 = pool.attrs) == null ? void 0 : _a4.lanes) != null ? _b3 : [];
+    });
+    if (lanes.length) {
+      process2.laneSets = [m6.create("bpmn:LaneSet", {
+        id: `LaneSet_${(_c = process2.id) != null ? _c : "Process_Export"}`,
+        lanes: lanes.map((ln3) => {
+          var _a4;
+          return m6.create("bpmn:Lane", { id: ln3.id, name: (_a4 = ln3.label) != null ? _a4 : ln3.id });
+        })
+      })];
+    }
+  }
   const feById = /* @__PURE__ */ new Map();
   process2.flowElements = [];
   for (const n3 of model.nodes) {
-    const fe3 = m6.create(shapeToBpmnType(n3.shape, n3.attrs), { id: n3.id, name: (_b2 = n3.label) != null ? _b2 : "" });
-    applyBpmnExtras(m6, fe3, n3.shape, (_c = n3.attrs) != null ? _c : {});
+    const srcKind = (_e3 = (_d = n3.attrs) == null ? void 0 : _d.__source) == null ? void 0 : _e3.kind;
+    if (n3.shape === "bpmn-pool" || n3.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
+    const fe3 = m6.create(shapeToBpmnType(n3.shape, n3.attrs), { id: n3.id, name: (_f = n3.label) != null ? _f : "" });
+    applyBpmnExtras(m6, fe3, n3.shape, (_g = n3.attrs) != null ? _g : {});
     feById.set(n3.id, fe3);
   }
   for (const n3 of model.nodes) {
+    const srcKind = (_i = (_h = n3.attrs) == null ? void 0 : _h.__source) == null ? void 0 : _i.kind;
+    if (n3.shape === "bpmn-pool" || n3.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const fe3 = feById.get(n3.id);
     const parent = n3.parentId ? feById.get(n3.parentId) : void 0;
     const container = parent != null ? parent : process2;
-    ((_d = container.flowElements) != null ? _d : container.flowElements = []).push(fe3);
+    ((_j = container.flowElements) != null ? _j : container.flowElements = []).push(fe3);
+  }
+  for (const ls of (_k = process2.laneSets) != null ? _k : []) {
+    for (const ln3 of (_l = ls.lanes) != null ? _l : []) {
+      const refs = [];
+      for (const n3 of model.nodes) {
+        if (n3.laneId !== ln3.id) continue;
+        const fe3 = feById.get(n3.id);
+        if (fe3) refs.push(fe3);
+      }
+      ln3.flowNodeRef = refs;
+    }
   }
   const sfById = /* @__PURE__ */ new Map();
-  for (const e4 of model.edges) {
+  const nodeIdSet = new Set(model.nodes.map((n3) => n3.id));
+  const validEdges = model.edges.filter((e4) => nodeIdSet.has(e4.source) && nodeIdSet.has(e4.target));
+  const collaborationRoot = (_n2 = ((_m = defs.rootElements) != null ? _m : []).find((r4) => r4.$type === "bpmn:Collaboration")) != null ? _n2 : null;
+  for (const e4 of validEdges) {
     const kind = edgeKindOf(e4);
-    const typeStr = kind === "message" ? "bpmn:SequenceFlow" : bpmnTypeForEdgeKind(kind);
+    let typeStr = bpmnTypeForEdgeKind(kind);
+    if (kind === "message" && !collaborationRoot) {
+      typeStr = "bpmn:SequenceFlow";
+    }
     const sf = m6.create(typeStr, {
       id: e4.id,
-      name: (_e3 = e4.label) != null ? _e3 : "",
+      name: (_o = e4.label) != null ? _o : "",
       sourceRef: feById.get(e4.source),
       targetRef: feById.get(e4.target)
     });
-    applyEdgeExtras(m6, sf, kind === "message" ? "sequence" : kind, e4.attrs);
+    if (!sf.sourceRef || !sf.targetRef) continue;
+    applyEdgeExtras(m6, sf, kind === "message" && !collaborationRoot ? "sequence" : kind, e4.attrs);
     if (kind === "association") {
-      ((_f = process2.artifacts) != null ? _f : process2.artifacts = []).push(sf);
+      ((_p = process2.artifacts) != null ? _p : process2.artifacts = []).push(sf);
+    } else if (kind === "message" && collaborationRoot) {
+      ((_q = collaborationRoot.messageFlows) != null ? _q : collaborationRoot.messageFlows = []).push(sf);
     } else {
       process2.flowElements.push(sf);
     }
     sfById.set(e4.id, sf);
   }
-  for (const e4 of model.edges) {
-    if (!((_g = e4.attrs) == null ? void 0 : _g.isDefault)) continue;
+  for (const e4 of validEdges) {
+    if (!((_r = e4.attrs) == null ? void 0 : _r.isDefault)) continue;
     if (edgeKindOf(e4) !== "sequence") continue;
     const srcFe = feById.get(e4.source);
     const edgeFe = sfById.get(e4.id);
@@ -84398,19 +84670,24 @@ async function emitMinimal(model, m6) {
   }
   const plane = m6.create("bpmndi:BPMNPlane", {
     id: "Plane_Export",
-    bpmnElement: process2,
+    bpmnElement: collaborationRoot != null ? collaborationRoot : process2,
     planeElement: []
   });
+  const diShape = /* @__PURE__ */ new Map();
   for (const n3 of model.nodes) {
+    const srcKind = (_t3 = (_s = n3.attrs) == null ? void 0 : _s.__source) == null ? void 0 : _t3.kind;
+    if (n3.shape === "bpmn-pool" || n3.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const nLabel = nodeLabelBoundsFromModel(m6, n3);
-    plane.planeElement.push(m6.create("bpmndi:BPMNShape", {
+    const di = m6.create("bpmndi:BPMNShape", {
       id: n3.id + "_di",
       bpmnElement: feById.get(n3.id),
       bounds: m6.create("dc:Bounds", { x: n3.x, y: n3.y, width: n3.width, height: n3.height }),
       ...nLabel ? { label: m6.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {}
-    }));
+    });
+    plane.planeElement.push(di);
+    diShape.set(n3.id, di);
   }
-  for (const e4 of model.edges) {
+  for (const e4 of validEdges) {
     const src = model.nodes.find((n3) => n3.id === e4.source);
     const tgt = model.nodes.find((n3) => n3.id === e4.target);
     const sf = sfById.get(e4.id);
@@ -84424,8 +84701,9 @@ async function emitMinimal(model, m6) {
       ...eLabel ? { label: m6.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}
     }));
   }
+  emitPoolLaneShapes(model, defs, process2, plane, diShape, m6);
   const dia = m6.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-  ((_h = defs.diagrams) != null ? _h : defs.diagrams = []).push(dia);
+  ((_u = defs.diagrams) != null ? _u : defs.diagrams = []).push(dia);
   const { xml: xml3 } = await m6.toXML(defs, { format: true });
   return patchCamundaXml(xml3, model);
 }

@@ -935,4 +935,58 @@ describe("BPMN edge kinds — import + export round-trip", () => {
     expect(xml).toMatch(/id="a"/);
     expect(xml).toMatch(/id="f1"/);
   });
+
+  it("minimal export normalizes BPMN IDs and drops dangling sequence flows", async () => {
+    const model: CanvasModel = {
+      nodes: [
+        {
+          id: "pool1",
+          shape: "bpmn-pool",
+          x: 0,
+          y: 0,
+          width: 640,
+          height: 320,
+          label: "Hiring",
+          attrs: {
+            lanes: [
+              { id: "lane1", label: "HR" },
+              { id: "lane2", label: "Manager" },
+              { id: "lane3", label: "IT" },
+            ],
+          },
+        },
+        { id: "77f95155-8a2d-47ed-8962-3e8e9b425176", shape: "bpmn-gateway-x", x: 120, y: 140, width: 50, height: 50, label: "Gate" },
+        { id: "task2", shape: "bpmn-task", x: 260, y: 120, width: 140, height: 80, label: "Task" },
+      ],
+      edges: [
+        {
+          id: "85034f04-505f-493a-be8c-06f8984e2c95",
+          source: "77f95155-8a2d-47ed-8962-3e8e9b425176",
+          target: "task2",
+        },
+        // dangling target must be dropped
+        { id: "e_missing_target", source: "task2", target: "task_missing" },
+      ],
+    };
+
+    const xml = await exportBpmn(model, null);
+    const processSection = xml.match(/<bpmn:process[\s\S]*?<\/bpmn:process>/)?.[0] ?? "";
+
+    // IDs starting with digits are normalized to XML-safe names.
+    expect(xml).not.toMatch(/id="77f95155-8a2d-47ed-8962-3e8e9b425176"/);
+    expect(xml).not.toMatch(/id="85034f04-505f-493a-be8c-06f8984e2c95"/);
+    expect(xml).toMatch(/id="N_77f95155-8a2d-47ed-8962-3e8e9b425176"/);
+    expect(xml).toMatch(/id="E_85034f04-505f-493a-be8c-06f8984e2c95"/);
+
+    // Participant must live under collaboration, not as a process flowElement.
+    expect(processSection).not.toMatch(/<bpmn:participant\b/);
+    expect(xml).toMatch(/<bpmn:collaboration\b/);
+
+    // No dangling edge with missing source/target refs.
+    expect(xml).not.toMatch(/id="e_missing_target"/);
+    const exportedFlows = xml.match(/<bpmn:sequenceFlow\b[^>]*>/g) ?? [];
+    expect(exportedFlows.length).toBe(1);
+    expect(exportedFlows[0]).toMatch(/\bsourceRef="/);
+    expect(exportedFlows[0]).toMatch(/\btargetRef="/);
+  });
 });

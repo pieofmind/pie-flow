@@ -201,6 +201,64 @@ function escText(value: string): string {
   return value.replace(/[&<>]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[ch]!));
 }
 
+const BPMN_ID_START_RE = /^[A-Za-z_]/;
+const BPMN_ID_CHAR_RE = /[^A-Za-z0-9_.-]/g;
+
+function normalizeBpmnId(raw: string, prefix: string, used: Set<string>): string {
+  const seed = String(raw ?? "").trim();
+  let base = seed ? seed.replace(BPMN_ID_CHAR_RE, "_") : prefix;
+  if (!base) base = prefix;
+  if (!BPMN_ID_START_RE.test(base)) base = `${prefix}_${base}`;
+  let out = base;
+  let n = 1;
+  while (used.has(out)) out = `${base}_${++n}`;
+  used.add(out);
+  return out;
+}
+
+function normalizeModelIdsForBpmn(model: CanvasModel): CanvasModel {
+  const used = new Set<string>();
+  const nodeMap = new Map<string, string>();
+  const edgeMap = new Map<string, string>();
+  const laneMap = new Map<string, string>();
+
+  for (const n of model.nodes) nodeMap.set(n.id, normalizeBpmnId(n.id, "N", used));
+  for (const e of model.edges) edgeMap.set(e.id, normalizeBpmnId(e.id, "E", used));
+  for (const n of model.nodes) {
+    const lanes = (n.attrs?.lanes as Array<{ id: string; label?: string }> | undefined) ?? [];
+    for (const ln of lanes) {
+      if (!ln.id || laneMap.has(ln.id)) continue;
+      laneMap.set(ln.id, normalizeBpmnId(ln.id, "L", used));
+    }
+  }
+  for (const n of model.nodes) {
+    if (!n.laneId || laneMap.has(n.laneId)) continue;
+    laneMap.set(n.laneId, normalizeBpmnId(n.laneId, "L", used));
+  }
+
+  return {
+    nodes: model.nodes.map((n) => {
+      const lanes = (n.attrs?.lanes as Array<{ id: string; label?: string }> | undefined)?.map((ln) => ({
+        ...ln,
+        id: laneMap.get(ln.id) ?? ln.id,
+      }));
+      return {
+        ...n,
+        id: nodeMap.get(n.id) ?? n.id,
+        ...(n.parentId ? { parentId: nodeMap.get(n.parentId) ?? n.parentId } : {}),
+        ...(n.laneId ? { laneId: laneMap.get(n.laneId) ?? n.laneId } : {}),
+        attrs: lanes ? { ...(n.attrs ?? {}), lanes } : n.attrs,
+      };
+    }),
+    edges: model.edges.map((e) => ({
+      ...e,
+      id: edgeMap.get(e.id) ?? e.id,
+      source: nodeMap.get(e.source) ?? e.source,
+      target: nodeMap.get(e.target) ?? e.target,
+    })),
+  };
+}
+
 function patchCamundaXml(xml: string, model: CanvasModel): string {
   const nodes = model.nodes.filter((n) => {
     const attrs = (n.attrs ?? {}) as BpmnNodeAttrs;
@@ -292,13 +350,14 @@ const LANE_HEADER = 30;  // lane vertical title strip
 const POOL_MARGIN = 40;  // padding between content bbox and pool edges
 
 export async function exportBpmn(model: CanvasModel, meta?: SourceMeta | null): Promise<string> {
+  const normalizedModel = normalizeModelIdsForBpmn(model);
   const m = moddle();
   if (meta?.format === "bpmn") {
     const raw = String((meta.payload as { raw?: string })?.raw ?? "");
     const diagramIndex = Number((meta.payload as { diagramIndex?: number } | undefined)?.diagramIndex ?? 0);
     if (raw) {
       try {
-        return await patchExisting(raw, model, m, Number.isFinite(diagramIndex) ? diagramIndex : 0);
+        return await patchExisting(raw, normalizedModel, m, Number.isFinite(diagramIndex) ? diagramIndex : 0);
       } catch (err) {
         // Safety net: malformed/partial raw XML (or unsupported legacy DI bits)
         // should not block export entirely. Fall back to minimal emit so users
@@ -307,7 +366,7 @@ export async function exportBpmn(model: CanvasModel, meta?: SourceMeta | null): 
       }
     }
   }
-  return emitMinimal(model, m);
+  return emitMinimal(normalizedModel, m);
 }
 
 /** Round-trip the original XML, patching bounds + waypoints, adding new flow
@@ -364,13 +423,23 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
   }
 
   const modelNodeIds = new Set(model.nodes.map((n) => n.id));
-  const modelEdgeIds = new Set(model.edges.map((e) => e.id));
+  const endpointIds = new Set<string>(flowById.keys());
+  for (const ar of process.artifacts ?? []) if (ar.id) endpointIds.add(ar.id);
+  for (const p of collaboration?.participants ?? []) if (p.id) endpointIds.add(p.id);
+  // Keep only edges whose endpoints still exist either in the current canvas
+  // nodes or as preserved BPMN endpoints from the source XML (e.g. imported
+  // text annotations/participants that are not editable nodes yet).
+  const validModelEdges = model.edges.filter((e) =>
+    (modelNodeIds.has(e.source) || endpointIds.has(e.source)) &&
+    (modelNodeIds.has(e.target) || endpointIds.has(e.target)),
+  );
+  const modelEdgeIds = new Set(validModelEdges.map((e) => e.id));
   // Split model edges by kind so each container (process flowElements,
   // process artifacts, collaboration messageFlows) is patched independently.
-  const modelEdgeKind = new Map<string, EdgeKind>(model.edges.map((e) => [e.id, edgeKindOf(e)]));
-  const modelSequenceEdgeIds = new Set(model.edges.filter((e) => edgeKindOf(e) === "sequence").map((e) => e.id));
-  const modelAssociationEdgeIds = new Set(model.edges.filter((e) => edgeKindOf(e) === "association").map((e) => e.id));
-  const modelMessageEdgeIds = new Set(model.edges.filter((e) => edgeKindOf(e) === "message").map((e) => e.id));
+  const modelEdgeKind = new Map<string, EdgeKind>(validModelEdges.map((e) => [e.id, edgeKindOf(e)]));
+  const modelSequenceEdgeIds = new Set(validModelEdges.filter((e) => edgeKindOf(e) === "sequence").map((e) => e.id));
+  const modelAssociationEdgeIds = new Set(validModelEdges.filter((e) => edgeKindOf(e) === "association").map((e) => e.id));
+  const modelMessageEdgeIds = new Set(validModelEdges.filter((e) => edgeKindOf(e) === "message").map((e) => e.id));
 
   // (1) Patch existing nodes' bounds; add new ones; drop deleted.
   for (const n of model.nodes) {
@@ -382,7 +451,9 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     // to a dedicated pass AFTER all flow-node shapes are patched, so the pool
     // bbox can be computed from final bounds (see emitPoolLaneShapes).
     const srcKind = (n.attrs?.__source as { kind?: string } | undefined)?.kind;
-    if (srcKind === "pool") continue;
+    const isPool = n.shape === "bpmn-pool" || srcKind === "pool";
+    const isLane = n.shape === "bpmn-lane" || srcKind === "lane";
+    if (isPool || isLane) continue;
     // Phase B — choose the BPMN container for this node based on parentId.
     // parentId references the id of a subprocess (already in flowById once
     // patched). If unset OR target container missing → fall back to top-level
@@ -549,7 +620,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
 
   // (2) Patch edges — waypoints from model.vertices (+ endpoint anchors derived
   //     from node bounds). Add new ones; drop deleted (already handled above).
-  for (const e of model.edges) {
+  for (const e of validModelEdges) {
     const srcNode = model.nodes.find((n) => n.id === e.source);
     const tgtNode = model.nodes.find((n) => n.id === e.target);
     if (!srcNode || !tgtNode) continue;
@@ -561,6 +632,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     if (!sf) {
       const sourceFe = flowById.get(e.source);
       const targetFe = flowById.get(e.target);
+      if (!sourceFe || !targetFe) continue;
       sf = m.create(bpmnTypeForEdgeKind(kind), {
         id: e.id,
         name: e.label ?? "",
@@ -611,7 +683,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     const fe = flowById.get(n.id);
     if (fe && fe.default) delete fe.default;
   }
-  for (const e of model.edges) {
+  for (const e of validModelEdges) {
     if (!e.attrs?.isDefault) continue;
     if (edgeKindOf(e) !== "sequence") continue;
     const srcFe = flowById.get(e.source);
@@ -639,11 +711,30 @@ function emitPoolLaneShapes(
   diShape: Map<string, ModdleElement>,
   m: BpmnModdle,
 ): void {
-  const pools = model.nodes.filter((n) => (n.attrs?.__source as { kind?: string } | undefined)?.kind === "pool");
+  const pools = model.nodes.filter((n) =>
+    n.shape === "bpmn-pool" ||
+    (n.attrs?.__source as { kind?: string } | undefined)?.kind === "pool",
+  );
   if (!pools.length) return;
+  let collaboration = findCollaboration(definitions);
+  const ensureCollaboration = (): ModdleElement => {
+    if (collaboration) return collaboration;
+    collaboration = m.create("bpmn:Collaboration", { id: "Collaboration_Export" }) as ModdleElement;
+    (definitions.rootElements ??= []).push(collaboration);
+    return collaboration;
+  };
+  const ensureLaneSet = (): ModdleElement => {
+    if ((process.laneSets ?? []).length) return process.laneSets![0];
+    const laneSet = m.create("bpmn:LaneSet", { id: `LaneSet_${process.id ?? "Process_Export"}` }) as ModdleElement;
+    (process.laneSets ??= []).push(laneSet);
+    return laneSet;
+  };
 
   // bbox of all flow nodes (everything that isn't a pool).
-  const flow = model.nodes.filter((n) => (n.attrs?.__source as { kind?: string } | undefined)?.kind !== "pool");
+  const flow = model.nodes.filter((n) =>
+    n.shape !== "bpmn-pool" &&
+    (n.attrs?.__source as { kind?: string } | undefined)?.kind !== "pool",
+  );
   if (!flow.length) return;
   const minX = Math.min(...flow.map((n) => n.x));
   const minY = Math.min(...flow.map((n) => n.y));
@@ -664,9 +755,17 @@ function emitPoolLaneShapes(
     if (pdi?.bounds) {
       pdi.bounds.x = poolX; pdi.bounds.y = poolY; pdi.bounds.width = poolW; pdi.bounds.height = poolH;
     } else {
-      const part = findParticipant(definitions, pool.id);
+      let part = findParticipant(definitions, pool.id);
+      if (!part) {
+        part = m.create("bpmn:Participant", {
+          id: pool.id,
+          name: pool.label ?? "Pool",
+          processRef: process,
+        }) as ModdleElement;
+        (ensureCollaboration().participants ??= []).push(part);
+      }
       pdi = m.create("bpmndi:BPMNShape", {
-        bpmnElement: part ?? (m.create("bpmn:Participant", { id: pool.id }) as ModdleElement),
+        bpmnElement: part,
         bounds: m.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH }),
       }) as ModdleElement;
       const isHorizontal = (pool.attrs?.poolHorizontal as boolean | undefined) !== false;
@@ -691,9 +790,13 @@ function emitPoolLaneShapes(
         if (ldi?.bounds) {
           ldi.bounds.x = laneX; ldi.bounds.y = band.y; ldi.bounds.width = laneW; ldi.bounds.height = band.h;
         } else {
-          const laneEl = findLane(process, ln.id);
+          let laneEl = findLane(process, ln.id);
+          if (!laneEl) {
+            laneEl = m.create("bpmn:Lane", { id: ln.id, name: ln.label ?? ln.id }) as ModdleElement;
+            (ensureLaneSet().lanes ??= []).push(laneEl);
+          }
           ldi = m.create("bpmndi:BPMNShape", {
-            bpmnElement: laneEl ?? (m.create("bpmn:Lane", { id: ln.id }) as ModdleElement),
+            bpmnElement: laneEl,
             bounds: m.create("dc:Bounds", { x: laneX, y: band.y, width: laneW, height: band.h }),
           }) as ModdleElement;
           const isHorizontal = (pool.attrs?.poolHorizontal as boolean | undefined) !== false;
@@ -745,6 +848,62 @@ function laneBands(
   return bands;
 }
 
+function getPortOffset(portId: string | undefined, width: number, height: number): { dx: number; dy: number } {
+  if (!portId) return { dx: width / 2, dy: height / 2 };
+  switch (portId) {
+    case "top":      return { dx: width / 2, dy: 0 };
+    case "top-1":    return { dx: width / 3, dy: 0 };
+    case "top-2":    return { dx: (2 * width) / 3, dy: 0 };
+    
+    case "bottom":   return { dx: width / 2, dy: height };
+    case "bottom-1": return { dx: width / 3, dy: height };
+    case "bottom-2": return { dx: (2 * width) / 3, dy: height };
+    
+    case "left":     return { dx: 0, dy: height / 2 };
+    case "left-1":   return { dx: 0, dy: height / 3 };
+    case "left-2":   return { dx: 0, dy: (2 * height) / 3 };
+    
+    case "right":    return { dx: width, dy: height / 2 };
+    case "right-1":  return { dx: width, dy: height / 3 };
+    case "right-2":  return { dx: width, dy: (2 * height) / 3 };
+    
+    default:         return { dx: width / 2, dy: height / 2 };
+  }
+}
+
+function portIsHorizontal(portId: string | undefined, start: { x: number; y: number }, end: { x: number; y: number }, isSource: boolean): boolean {
+  if (portId) {
+    return portId.startsWith("left") || portId.startsWith("right");
+  }
+  if (isSource) {
+    return Math.abs(end.x - start.x) > Math.abs(end.y - start.y);
+  } else {
+    return Math.abs(end.y - start.y) > Math.abs(end.x - start.x);
+  }
+}
+
+function getOrthogonalWaypoints(
+  start: { x: number; y: number },
+  end: { x: number; y: number },
+  sourcePort: string | undefined,
+  targetPort: string | undefined
+): Array<{ x: number; y: number }> {
+  const isHorizontalSource = portIsHorizontal(sourcePort, start, end, true);
+  const isHorizontalTarget = portIsHorizontal(targetPort, start, end, false);
+  
+  if (isHorizontalSource && !isHorizontalTarget) {
+    return [start, { x: end.x, y: start.y }, end];
+  } else if (!isHorizontalSource && isHorizontalTarget) {
+    return [start, { x: start.x, y: end.y }, end];
+  } else if (isHorizontalSource && isHorizontalTarget) {
+    const mx = (start.x + end.x) / 2;
+    return [start, { x: mx, y: start.y }, { x: mx, y: end.y }, end];
+  } else {
+    const my = (start.y + end.y) / 2;
+    return [start, { x: start.x, y: my }, { x: end.x, y: my }, end];
+  }
+}
+
 function buildWaypoints(
   e: CanvasModel["edges"][number],
   src: CanvasModel["nodes"][number],
@@ -752,18 +911,24 @@ function buildWaypoints(
   m: BpmnModdle,
 ): Array<{ x: number; y: number }> {
   const point = (x: number, y: number) => m.create("dc:Point", { x, y }) as unknown as { x: number; y: number };
-  // Endpoints: honour the precise per-edge anchor captured at import time
-  // (offset from the node's top-left corner). Without this we'd emit the node
-  // CENTRE, so bpmn.io draws every arrow straight through the node body and
-  // diagonally across the diagram. Fall back to centre only when no anchor.
-  const start = e.sourceAnchor
-    ? point(src.x + e.sourceAnchor.dx, src.y + e.sourceAnchor.dy)
-    : point(src.x + src.width / 2, src.y + src.height / 2);
-  const end = e.targetAnchor
-    ? point(tgt.x + e.targetAnchor.dx, tgt.y + e.targetAnchor.dy)
-    : point(tgt.x + tgt.width / 2, tgt.y + tgt.height / 2);
-  const mid = (e.vertices ?? []).map((v) => point(v.x, v.y));
-  return [start, ...mid, end];
+  // Endpoints: honour the precise per-edge anchor captured at import time.
+  // If no anchor is set, calculate the coordinate of the port connected on the node border.
+  // Fall back to center only when no anchor and no port are available.
+  const srcOffset = e.sourceAnchor ?? getPortOffset(e.sourcePort, src.width, src.height);
+  const tgtOffset = e.targetAnchor ?? getPortOffset(e.targetPort, tgt.width, tgt.height);
+
+  const start = { x: src.x + srcOffset.dx, y: src.y + srcOffset.dy };
+  const end = { x: tgt.x + tgtOffset.dx, y: tgt.y + tgtOffset.dy };
+
+  let waypoints: Array<{ x: number; y: number }>;
+  if (e.router === "orth" && (!e.vertices || e.vertices.length === 0)) {
+    waypoints = getOrthogonalWaypoints(start, end, e.sourcePort, e.targetPort);
+  } else {
+    const mid = (e.vertices ?? []);
+    waypoints = [start, ...mid, end];
+  }
+
+  return waypoints.map((w) => point(w.x, w.y));
 }
 
 function pointAtDistance(wps: Array<{ x: number; y: number }>, distance: number): { x: number; y: number } {
@@ -844,6 +1009,29 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     isExecutable: false,
   }) as ModdleElement;
   (defs.rootElements ??= []).push(process);
+  const pools = model.nodes.filter((n) =>
+    n.shape === "bpmn-pool" ||
+    (n.attrs?.__source as { kind?: string } | undefined)?.kind === "pool",
+  );
+  if (pools.length) {
+    const collaboration = m.create("bpmn:Collaboration", { id: "Collaboration_Export" }) as ModdleElement;
+    collaboration.participants = pools.map((pool) => m.create("bpmn:Participant", {
+      id: pool.id,
+      name: pool.label ?? "Pool",
+      processRef: process,
+    }) as ModdleElement);
+    (defs.rootElements ??= []).push(collaboration);
+    const lanes = pools.flatMap((pool) => ((pool.attrs?.lanes as Array<{ id: string; label?: string }> | undefined) ?? []));
+    if (lanes.length) {
+      // Create lane elements now; flowNodeRef will be populated AFTER feById
+      // is built (see the second pass below). Without flowNodeRef the BPMN
+      // viewer cannot tell which nodes belong to which lane.
+      process.laneSets = [m.create("bpmn:LaneSet", {
+        id: `LaneSet_${process.id ?? "Process_Export"}`,
+        lanes: lanes.map((ln) => m.create("bpmn:Lane", { id: ln.id, name: ln.label ?? ln.id })),
+      }) as ModdleElement];
+    }
+  }
 
   // Flow nodes — Phase B: two-pass so a child node (parentId set) can be
   // pushed into its container even when the container appears LATER in the
@@ -853,61 +1041,93 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
   const feById = new Map<string, ModdleElement>();
   process.flowElements = [];
   for (const n of model.nodes) {
+    const srcKind = (n.attrs?.__source as { kind?: string } | undefined)?.kind;
+    if (n.shape === "bpmn-pool" || n.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const fe = m.create(shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs), { id: n.id, name: n.label ?? "" }) as ModdleElement;
     applyBpmnExtras(m, fe, n.shape, (n.attrs ?? {}) as BpmnNodeAttrs);
     feById.set(n.id, fe);
   }
   for (const n of model.nodes) {
+    const srcKind = (n.attrs?.__source as { kind?: string } | undefined)?.kind;
+    if (n.shape === "bpmn-pool" || n.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const fe = feById.get(n.id)!;
     const parent = n.parentId ? feById.get(n.parentId) : undefined;
     const container = parent ?? process;
     (container.flowElements ??= []).push(fe);
   }
+  // Now that feById is populated, backfill flowNodeRef on every Lane so the
+  // BPMN viewer knows which nodes belong to which lane. Without this, all
+  // elements collapse into a single lane or float outside lanes entirely.
+  for (const ls of process.laneSets ?? []) {
+    for (const ln of (ls.lanes ?? []) as ModdleElement[]) {
+      const refs: ModdleElement[] = [];
+      for (const n of model.nodes) {
+        if (n.laneId !== ln.id) continue;
+        const fe = feById.get(n.id);
+        if (fe) refs.push(fe);
+      }
+      ln.flowNodeRef = refs;
+    }
+  }
   // Edges — SequenceFlow on the process; Association as a process artifact;
-  // MessageFlow downgrades to SequenceFlow in the minimal path (no
-  // Collaboration root → nowhere for a MessageFlow to live).
+  // MessageFlow uses bpmn:MessageFlow under the Collaboration root when pools exist,
+  // otherwise downgrades to SequenceFlow on the process.
   const sfById = new Map<string, ModdleElement>();
-  for (const e of model.edges) {
+  const nodeIdSet = new Set(model.nodes.map((n) => n.id));
+  const validEdges = model.edges.filter((e) => nodeIdSet.has(e.source) && nodeIdSet.has(e.target));
+  const collaborationRoot = (defs.rootElements ?? []).find((r) => r.$type === "bpmn:Collaboration") ?? null;
+  
+  for (const e of validEdges) {
     const kind = edgeKindOf(e);
-    const typeStr = kind === "message" ? "bpmn:SequenceFlow" : bpmnTypeForEdgeKind(kind);
+    let typeStr = bpmnTypeForEdgeKind(kind);
+    if (kind === "message" && !collaborationRoot) {
+      typeStr = "bpmn:SequenceFlow";
+    }
     const sf = m.create(typeStr, {
       id: e.id,
       name: e.label ?? "",
       sourceRef: feById.get(e.source),
       targetRef: feById.get(e.target),
     }) as ModdleElement;
-    applyEdgeExtras(m, sf, kind === "message" ? "sequence" : kind, e.attrs);
+    if (!sf.sourceRef || !sf.targetRef) continue;
+    applyEdgeExtras(m, sf, (kind === "message" && !collaborationRoot) ? "sequence" : kind, e.attrs);
     if (kind === "association") {
       (process.artifacts ??= []).push(sf);
+    } else if (kind === "message" && collaborationRoot) {
+      (collaborationRoot.messageFlows ??= []).push(sf);
     } else {
       process.flowElements.push(sf);
     }
     sfById.set(e.id, sf);
   }
   // `default` attribute on source gateway/activity for default sequence flows.
-  for (const e of model.edges) {
+  for (const e of validEdges) {
     if (!e.attrs?.isDefault) continue;
     if (edgeKindOf(e) !== "sequence") continue;
     const srcFe = feById.get(e.source);
     const edgeFe = sfById.get(e.id);
     if (srcFe && edgeFe) srcFe.default = edgeFe;
   }
-  // Diagram
   const plane = m.create("bpmndi:BPMNPlane", {
     id: "Plane_Export",
-    bpmnElement: process,
+    bpmnElement: collaborationRoot ?? process,
     planeElement: [],
   }) as { planeElement?: ModdleElement[]; bpmnElement?: ModdleElement | string };
+  const diShape = new Map<string, ModdleElement>();
   for (const n of model.nodes) {
+    const srcKind = (n.attrs?.__source as { kind?: string } | undefined)?.kind;
+    if (n.shape === "bpmn-pool" || n.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const nLabel = nodeLabelBoundsFromModel(m, n);
-    plane.planeElement!.push(m.create("bpmndi:BPMNShape", {
+    const di = m.create("bpmndi:BPMNShape", {
       id: n.id + "_di",
       bpmnElement: feById.get(n.id),
       bounds: m.create("dc:Bounds", { x: n.x, y: n.y, width: n.width, height: n.height }),
       ...(nLabel ? { label: m.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {}),
-    }));
+    }) as ModdleElement;
+    plane.planeElement!.push(di);
+    diShape.set(n.id, di);
   }
-  for (const e of model.edges) {
+  for (const e of validEdges) {
     const src = model.nodes.find((n) => n.id === e.source);
     const tgt = model.nodes.find((n) => n.id === e.target);
     const sf = sfById.get(e.id);
@@ -921,6 +1141,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       ...(eLabel ? { label: m.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}),
     }));
   }
+  emitPoolLaneShapes(model, defs, process, plane, diShape, m);
   const dia = m.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane }) as ModdleElement;
   (defs.diagrams ??= []).push(dia as never);
 

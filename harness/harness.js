@@ -6,6 +6,7 @@
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
   var __esm = (fn2, res) => function __init() {
     return fn2 && (res = (0, fn2[__getOwnPropNames(fn2)[0]])(fn2 = 0)), res;
   };
@@ -32,6 +33,7 @@
     isNodeMode || !mod3 || !mod3.__esModule ? __defProp(target, "default", { value: mod3, enumerable: true }) : target,
     mod3
   ));
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
   // node_modules/mousetrap/mousetrap.js
   var require_mousetrap = __commonJS({
@@ -1158,31 +1160,6 @@
       };
       IOBuffer = class _IOBuffer {
         /**
-         * Reference to the internal ArrayBuffer object.
-         */
-        buffer;
-        /**
-         * Byte length of the internal ArrayBuffer.
-         */
-        byteLength;
-        /**
-         * Byte offset of the internal ArrayBuffer.
-         */
-        byteOffset;
-        /**
-         * Byte length of the internal ArrayBuffer.
-         */
-        length;
-        /**
-         * The current offset of the buffer's pointer.
-         */
-        offset;
-        lastWrittenByte;
-        littleEndian;
-        _data;
-        _mark;
-        _marks;
-        /**
          * Create a new IOBuffer.
          * @param data - The data to construct the IOBuffer with.
          * If data is a number, it will be the new buffer's length<br>
@@ -1193,6 +1170,31 @@
          * @returns A new IOBuffer instance.
          */
         constructor(data2 = defaultByteLength, options = {}) {
+          /**
+           * Reference to the internal ArrayBuffer object.
+           */
+          __publicField(this, "buffer");
+          /**
+           * Byte length of the internal ArrayBuffer.
+           */
+          __publicField(this, "byteLength");
+          /**
+           * Byte offset of the internal ArrayBuffer.
+           */
+          __publicField(this, "byteOffset");
+          /**
+           * Byte length of the internal ArrayBuffer.
+           */
+          __publicField(this, "length");
+          /**
+           * The current offset of the buffer's pointer.
+           */
+          __publicField(this, "offset");
+          __publicField(this, "lastWrittenByte");
+          __publicField(this, "littleEndian");
+          __publicField(this, "_data");
+          __publicField(this, "_mark");
+          __publicField(this, "_marks");
           let dataIsGiven = false;
           if (typeof data2 === "number") {
             data2 = new ArrayBuffer(data2);
@@ -6296,26 +6298,26 @@
       init_text2();
       init_internalTypes();
       PngDecoder = class extends IOBuffer {
-        _checkCrc;
-        _inflator;
-        _png;
-        _apng;
-        _end;
-        _hasPalette;
-        _palette;
-        _hasTransparency;
-        _transparency;
-        _compressionMethod;
-        _filterMethod;
-        _interlaceMethod;
-        _colorType;
-        _isAnimated;
-        _numberOfFrames;
-        _numberOfPlays;
-        _frames;
-        _writingDataChunks;
         constructor(data2, options = {}) {
           super(data2);
+          __publicField(this, "_checkCrc");
+          __publicField(this, "_inflator");
+          __publicField(this, "_png");
+          __publicField(this, "_apng");
+          __publicField(this, "_end");
+          __publicField(this, "_hasPalette");
+          __publicField(this, "_palette");
+          __publicField(this, "_hasTransparency");
+          __publicField(this, "_transparency");
+          __publicField(this, "_compressionMethod");
+          __publicField(this, "_filterMethod");
+          __publicField(this, "_interlaceMethod");
+          __publicField(this, "_colorType");
+          __publicField(this, "_isAnimated");
+          __publicField(this, "_numberOfFrames");
+          __publicField(this, "_numberOfPlays");
+          __publicField(this, "_frames");
+          __publicField(this, "_writingDataChunks");
           const { checkCrc: checkCrc2 = false } = options;
           this._checkCrc = checkCrc2;
           this._inflator = new Inflate_1();
@@ -70137,58 +70139,58 @@
         // dropped node renders the correct icon immediately.
         // ── 18 common shapes shown by default ──
         // Events (9)
-        { shape: "bpmn-event-start", label: "Start", w: 40, h: 40 },
-        { shape: "bpmn-event-start", label: "Start msg", w: 40, h: 40, seed: { trigger: "message" } },
-        { shape: "bpmn-event-start", label: "Start timer", w: 40, h: 40, seed: { trigger: "timer" } },
-        { shape: "bpmn-event-intermediate", label: "Intermediate", w: 40, h: 40 },
-        { shape: "bpmn-event-intermediate", label: "Inter. msg", w: 40, h: 40, seed: { trigger: "message" } },
-        { shape: "bpmn-event-intermediate", label: "Inter. timer", w: 40, h: 40, seed: { trigger: "timer" } },
-        { shape: "bpmn-event-end", label: "End", w: 40, h: 40 },
-        { shape: "bpmn-event-end", label: "End msg", w: 40, h: 40, seed: { trigger: "message" } },
-        { shape: "bpmn-event-end", label: "Terminate", w: 40, h: 40, seed: { trigger: "terminate" } },
+        { shape: "bpmn-event-start", label: "Start", w: 36, h: 36 },
+        { shape: "bpmn-event-start", label: "Start msg", w: 36, h: 36, seed: { trigger: "message" } },
+        { shape: "bpmn-event-start", label: "Start timer", w: 36, h: 36, seed: { trigger: "timer" } },
+        { shape: "bpmn-event-intermediate", label: "Intermediate", w: 36, h: 36 },
+        { shape: "bpmn-event-intermediate", label: "Inter. msg", w: 36, h: 36, seed: { trigger: "message" } },
+        { shape: "bpmn-event-intermediate", label: "Inter. timer", w: 36, h: 36, seed: { trigger: "timer" } },
+        { shape: "bpmn-event-end", label: "End", w: 36, h: 36 },
+        { shape: "bpmn-event-end", label: "End msg", w: 36, h: 36, seed: { trigger: "message" } },
+        { shape: "bpmn-event-end", label: "Terminate", w: 36, h: 36, seed: { trigger: "terminate" } },
         // Gateways (3)
-        { shape: "bpmn-gateway-x", label: "Exclusive GW", w: 50, h: 50 },
-        { shape: "bpmn-gateway-parallel", label: "Parallel GW", w: 50, h: 50 },
-        { shape: "bpmn-gateway-inclusive", label: "Inclusive GW", w: 50, h: 50 },
+        { shape: "bpmn-gateway-x", label: "Exclusive GW", w: 40, h: 40 },
+        { shape: "bpmn-gateway-parallel", label: "Parallel GW", w: 40, h: 40 },
+        { shape: "bpmn-gateway-inclusive", label: "Inclusive GW", w: 40, h: 40 },
         // Tasks (3)
-        { shape: "bpmn-task", label: "Task", w: 120, h: 60 },
-        { shape: "bpmn-task-user", label: "User task", w: 120, h: 60 },
-        { shape: "bpmn-task-service", label: "Service task", w: 120, h: 60 },
+        { shape: "bpmn-task", label: "Task", w: 100, h: 80 },
+        { shape: "bpmn-task-user", label: "User task", w: 100, h: 80 },
+        { shape: "bpmn-task-service", label: "Service task", w: 100, h: 80 },
         // Activities + swimlanes (3)
         { shape: "bpmn-subprocess", label: "Sub-process", w: 200, h: 120 },
         { shape: "bpmn-lane", label: "Lane", w: 480, h: 140 },
         { shape: "bpmn-pool", label: "Pool", w: 560, h: 200 },
         // ── Load more (hidden by default) ──
         // Remaining event triggers
-        { shape: "bpmn-event-start", label: "Start signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
-        { shape: "bpmn-event-start", label: "Start cond.", w: 40, h: 40, seed: { trigger: "conditional" }, advanced: true },
-        { shape: "bpmn-event-start", label: "Start multi", w: 40, h: 40, seed: { trigger: "multiple" }, advanced: true },
-        { shape: "bpmn-event-intermediate", label: "Inter. signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
-        { shape: "bpmn-event-intermediate", label: "Inter. error", w: 40, h: 40, seed: { trigger: "error" }, advanced: true },
-        { shape: "bpmn-event-intermediate", label: "Inter. escal.", w: 40, h: 40, seed: { trigger: "escalation" }, advanced: true },
-        { shape: "bpmn-event-intermediate", label: "Inter. comp.", w: 40, h: 40, seed: { trigger: "compensation" }, advanced: true },
-        { shape: "bpmn-event-intermediate", label: "Inter. cond.", w: 40, h: 40, seed: { trigger: "conditional" }, advanced: true },
-        { shape: "bpmn-event-intermediate", label: "Inter. link", w: 40, h: 40, seed: { trigger: "link" }, advanced: true },
-        { shape: "bpmn-event-intermediate", label: "Inter. cancel", w: 40, h: 40, seed: { trigger: "cancel" }, advanced: true },
-        { shape: "bpmn-event-end", label: "End signal", w: 40, h: 40, seed: { trigger: "signal" }, advanced: true },
-        { shape: "bpmn-event-end", label: "End error", w: 40, h: 40, seed: { trigger: "error" }, advanced: true },
-        { shape: "bpmn-event-end", label: "End escal.", w: 40, h: 40, seed: { trigger: "escalation" }, advanced: true },
-        { shape: "bpmn-event-end", label: "End comp.", w: 40, h: 40, seed: { trigger: "compensation" }, advanced: true },
-        { shape: "bpmn-event-end", label: "End cancel", w: 40, h: 40, seed: { trigger: "cancel" }, advanced: true },
+        { shape: "bpmn-event-start", label: "Start signal", w: 36, h: 36, seed: { trigger: "signal" }, advanced: true },
+        { shape: "bpmn-event-start", label: "Start cond.", w: 36, h: 36, seed: { trigger: "conditional" }, advanced: true },
+        { shape: "bpmn-event-start", label: "Start multi", w: 36, h: 36, seed: { trigger: "multiple" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. signal", w: 36, h: 36, seed: { trigger: "signal" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. error", w: 36, h: 36, seed: { trigger: "error" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. escal.", w: 36, h: 36, seed: { trigger: "escalation" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. comp.", w: 36, h: 36, seed: { trigger: "compensation" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. cond.", w: 36, h: 36, seed: { trigger: "conditional" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. link", w: 36, h: 36, seed: { trigger: "link" }, advanced: true },
+        { shape: "bpmn-event-intermediate", label: "Inter. cancel", w: 36, h: 36, seed: { trigger: "cancel" }, advanced: true },
+        { shape: "bpmn-event-end", label: "End signal", w: 36, h: 36, seed: { trigger: "signal" }, advanced: true },
+        { shape: "bpmn-event-end", label: "End error", w: 36, h: 36, seed: { trigger: "error" }, advanced: true },
+        { shape: "bpmn-event-end", label: "End escal.", w: 36, h: 36, seed: { trigger: "escalation" }, advanced: true },
+        { shape: "bpmn-event-end", label: "End comp.", w: 36, h: 36, seed: { trigger: "compensation" }, advanced: true },
+        { shape: "bpmn-event-end", label: "End cancel", w: 36, h: 36, seed: { trigger: "cancel" }, advanced: true },
         // Remaining gateways
-        { shape: "bpmn-gateway-event", label: "Event GW", w: 50, h: 50, advanced: true },
-        { shape: "bpmn-gateway-complex", label: "Complex GW", w: 50, h: 50, advanced: true },
+        { shape: "bpmn-gateway-event", label: "Event GW", w: 40, h: 40, advanced: true },
+        { shape: "bpmn-gateway-complex", label: "Complex GW", w: 40, h: 40, advanced: true },
         // Remaining tasks
-        { shape: "bpmn-task-script", label: "Script task", w: 120, h: 60, advanced: true },
-        { shape: "bpmn-task-manual", label: "Manual task", w: 120, h: 60, advanced: true },
-        { shape: "bpmn-task-send", label: "Send task", w: 120, h: 60, advanced: true },
-        { shape: "bpmn-task-receive", label: "Receive task", w: 120, h: 60, advanced: true },
-        { shape: "bpmn-task-rule", label: "Rule task", w: 120, h: 60, advanced: true },
+        { shape: "bpmn-task-script", label: "Script task", w: 100, h: 80, advanced: true },
+        { shape: "bpmn-task-manual", label: "Manual task", w: 100, h: 80, advanced: true },
+        { shape: "bpmn-task-send", label: "Send task", w: 100, h: 80, advanced: true },
+        { shape: "bpmn-task-receive", label: "Receive task", w: 100, h: 80, advanced: true },
+        { shape: "bpmn-task-rule", label: "Rule task", w: 100, h: 80, advanced: true },
         // Remaining activities
         { shape: "bpmn-transaction", label: "Transaction", w: 200, h: 120, advanced: true },
         { shape: "bpmn-event-subprocess", label: "Event sub-process", w: 200, h: 120, advanced: true },
         { shape: "bpmn-adhoc-subprocess", label: "Ad-hoc sub-process", w: 200, h: 120, advanced: true },
-        { shape: "bpmn-call-activity", label: "Call activity", w: 120, h: 60, advanced: true },
+        { shape: "bpmn-call-activity", label: "Call activity", w: 100, h: 80, advanced: true },
         // Data artifacts
         { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
         { shape: "bpmn-data-collection", label: "Data collection", w: 60, h: 76, advanced: true },
@@ -70459,6 +70461,78 @@
       return `<foreignObject x="${num(n2.x)}" y="${num(n2.y)}" width="${num(n2.width)}" height="${num(n2.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
     }).join("");
     return `<svg xmlns="${SVGNS}" class="lk-root" width="${w3}" height="${h3}" viewBox="${x3} ${y3} ${w3} ${h3}"><defs><marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker></defs>` + (css2 ? `<style>${css2}</style>` : "") + (bg && bg !== "transparent" ? `<rect x="${x3}" y="${y3}" width="${w3}" height="${h3}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
+  }
+
+  // src/canvas/bulkAlign.ts
+  function reposition(cells, mut) {
+    return cells.map((c4) => {
+      const next = mut(c4);
+      return { id: c4.id, x: next.x, y: next.y };
+    });
+  }
+  function alignLeft(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const minX = Math.min(...cells.map((c4) => c4.x));
+    return reposition(cells, (c4) => ({ x: minX, y: c4.y }));
+  }
+  function alignCenterH(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const centers = cells.map((c4) => c4.x + c4.width / 2);
+    const avg = centers.reduce((a3, b2) => a3 + b2, 0) / centers.length;
+    return reposition(cells, (c4) => ({ x: Math.round(avg - c4.width / 2), y: c4.y }));
+  }
+  function alignRight(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const maxR = Math.max(...cells.map((c4) => c4.x + c4.width));
+    return reposition(cells, (c4) => ({ x: maxR - c4.width, y: c4.y }));
+  }
+  function alignTop(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const minY = Math.min(...cells.map((c4) => c4.y));
+    return reposition(cells, (c4) => ({ x: c4.x, y: minY }));
+  }
+  function alignMiddleV(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const middles = cells.map((c4) => c4.y + c4.height / 2);
+    const avg = middles.reduce((a3, b2) => a3 + b2, 0) / middles.length;
+    return reposition(cells, (c4) => ({ x: c4.x, y: Math.round(avg - c4.height / 2) }));
+  }
+  function alignBottom(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const maxB = Math.max(...cells.map((c4) => c4.y + c4.height));
+    return reposition(cells, (c4) => ({ x: c4.x, y: maxB - c4.height }));
+  }
+  function distributeH(cells) {
+    if (cells.length < 3) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const sorted = [...cells].sort((a3, b2) => a3.x - b2.x);
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    const totalWidth = sorted.reduce((sum, c4) => sum + c4.width, 0);
+    const span = last.x + last.width - first.x;
+    const gap = Math.max(0, (span - totalWidth) / (sorted.length - 1));
+    let cursor = first.x;
+    const map = /* @__PURE__ */ new Map();
+    for (const c4 of sorted) {
+      map.set(c4.id, { x: Math.round(cursor), y: c4.y });
+      cursor += c4.width + gap;
+    }
+    return cells.map((c4) => ({ id: c4.id, ...map.get(c4.id) }));
+  }
+  function distributeV(cells) {
+    if (cells.length < 3) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const sorted = [...cells].sort((a3, b2) => a3.y - b2.y);
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    const totalHeight = sorted.reduce((sum, c4) => sum + c4.height, 0);
+    const span = last.y + last.height - first.y;
+    const gap = Math.max(0, (span - totalHeight) / (sorted.length - 1));
+    let cursor = first.y;
+    const map = /* @__PURE__ */ new Map();
+    for (const c4 of sorted) {
+      map.set(c4.id, { x: c4.x, y: Math.round(cursor) });
+      cursor += c4.height + gap;
+    }
+    return cells.map((c4) => ({ id: c4.id, ...map.get(c4.id) }));
   }
 
   // node_modules/@dagrejs/dagre/dist/dagre.esm.js
@@ -72218,7 +72292,7 @@
   var ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
   var EDGE_ATTRS = { line: { stroke: EDGE_STROKE2, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
   var EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" };
-  var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle" };
+  var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle", textWrap: { width: 150, breakWord: true, ellipsis: false } };
   var FLOW_TYPE_PRESETS = {
     sequence: { dash: "solid", start: "none", end: "arrow" },
     default: { dash: "solid", start: "def-slash", end: "arrow" },
@@ -72237,6 +72311,7 @@
   var PORT_SIDE = { top: "top", right: "right", bottom: "bottom", left: "left" };
   var OPPOSITE_SIDE = { top: "bottom", right: "left", bottom: "top", left: "right" };
   var PORT_CONNECTION_POINT = { name: "anchor" };
+  var NON_CONNECTABLE_PORT_KINDS = /* @__PURE__ */ new Set(["bpmn-lane", "bpmn-pool", "bpmn-group"]);
   var ACT_WIDTH = 12;
   var FRAME_KINDS = /* @__PURE__ */ new Set([
     "sq-frag-alt",
@@ -72445,7 +72520,7 @@
     const head = style2.end === "none" ? "" : style2.end === "arrow-open" ? `<path d="M20 4 27 9 20 14" fill="none" stroke="currentColor" stroke-width="1.8"/>` : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
     return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
   }
-  var OmniboardCanvas = class _OmniboardCanvas {
+  var _OmniboardCanvas = class _OmniboardCanvas {
     constructor(root2, categories, onChange) {
       this.edgeBar = null;
       this.edgeBarDebounce = null;
@@ -72602,6 +72677,7 @@
         this.panStart = null;
         if (this.tool === "pan") this.graphMount.style.cursor = "grab";
       };
+      this.contextBarRaf = null;
       this.styleClipboard = null;
       this.root = root2;
       this.categories = categories;
@@ -72661,9 +72737,9 @@
         grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
         background: { color: "transparent" },
         connecting: {
-          // Fixed-port mode: keep the magnetic catch area only slightly larger
-          // than the visible port so drops feel precise.
-          snap: { radius: 4 },
+          // Tight 8px snap radius for port circle highlighting, while intelligent
+          // center-alignment at drop time handles straight-line snapping beautifully.
+          snap: { radius: 8 },
           allowBlank: true,
           // drop on empty canvas → "pick shape" picker
           allowLoop: false,
@@ -72685,11 +72761,17 @@
           },
           // Accept drops on fixed node ports, plus empty-canvas drops so allowBlank
           // still opens the "Chèn hình" picker.
-          validateConnection: ({ sourceCell, targetCell }) => !targetCell || targetCell.isNode() && sourceCell !== targetCell,
+          validateConnection: ({ sourceCell, targetCell }) => {
+            if (!targetCell) return true;
+            if (!targetCell.isNode() || sourceCell === targetCell) return false;
+            return !this.isPortDisabledNode(targetCell.id);
+          },
           // Only port circles may start a connection drag; body clicks stay normal
           // selection/edit interactions.
-          validateMagnet: ({ magnet }) => {
-            return !!magnet && magnet.classList?.contains("x6-port-body");
+          validateMagnet: ({ magnet, cell }) => {
+            if (!magnet || !magnet.classList?.contains("x6-port-body")) return false;
+            if (!cell?.isNode?.()) return false;
+            return !this.isPortDisabledNode(cell.id);
           }
         },
         highlighting: {
@@ -72702,7 +72784,14 @@
           // bpmn.io convention.
         }
       });
-      graph.use(new Selection({ rubberband: true, showNodeSelectionBox: true, pointerEvents: "none" }));
+      graph.use(new Selection({
+        enabled: true,
+        multiple: true,
+        rubberband: true,
+        multipleSelectionModifiers: "shift",
+        showNodeSelectionBox: true,
+        pointerEvents: "none"
+      }));
       graph.use(new History());
       graph.use(new Keyboard());
       graph.use(new Snapline({ enabled: true }));
@@ -72710,7 +72799,14 @@
       graph.use(new Clipboard({ useLocalStorage: true }));
       graph.bindKey(["backspace", "delete"], () => {
         const cells = graph.getSelectedCells();
-        if (cells.length) graph.removeCells(cells);
+        if (!cells.length) return;
+        graph.cleanSelection();
+        graph.startBatch("delete");
+        try {
+          graph.removeCells(cells);
+        } finally {
+          graph.stopBatch("delete");
+        }
       });
       graph.bindKey(["ctrl+z", "cmd+z"], () => graph.canUndo() && graph.undo());
       graph.bindKey(["ctrl+shift+z", "cmd+shift+z"], () => graph.canRedo() && graph.redo());
@@ -73006,11 +73102,23 @@
         return "removed";
       }
       const srcPort = edge.getSource()?.port;
+      const candidates = [];
       for (const n2 of this.graph.getNodes()) {
         if (n2.id === src.id) continue;
+        if (this.isPortDisabledNode(n2.id)) continue;
         const b2 = n2.getBBox();
         if (pt2.x < b2.x || pt2.x > b2.x + b2.width || pt2.y < b2.y || pt2.y > b2.y + b2.height) continue;
-        edge.setTarget(portEndpoint(n2.id, nearestFixedPort(n2, pt2)));
+        candidates.push(n2);
+      }
+      if (candidates.length) {
+        const best = candidates.reduce((pick3, cur) => {
+          const pb = pick3.getBBox();
+          const cb = cur.getBBox();
+          const pArea = pb.width * pb.height;
+          const cArea = cb.width * cb.height;
+          return cArea < pArea ? cur : pick3;
+        });
+        edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt2)));
         return "connected";
       }
       this.pendingDrop = edge;
@@ -73032,6 +73140,11 @@
         const targetPort = this.isBpmnEventNode(created.id) ? collapsePortToSideCenter(hint) ?? hint : hint;
         edge.setTarget(portEndpoint(created.id, targetPort));
         edge.setData({ ...edge.getData() });
+        this.normalizeRegularEdgeEndpoints(edge, {
+          type: "target",
+          currentCell: { id: created.id },
+          currentPort: targetPort
+        });
         this.applyMindmapRoutingIfNeeded(edge);
         this.applySeqRoutingIfNeeded(edge);
         this.hidePopup();
@@ -73427,7 +73540,20 @@
         document.addEventListener(type, fn2, true);
         this.docListeners.push({ type, fn: fn2 });
       };
-      const clearDrag = () => this.root.classList.remove("lk-dragging-edge");
+      const clearDrag = () => {
+        this.root.classList.remove("lk-dragging-edge");
+        let changedAny = false;
+        this.graph.getEdges().forEach((edge) => {
+          const e2 = edge;
+          if (e2.__selVertsUserChanged && !e2.__selVertsChangeSaved) {
+            e2.__selVertsChangeSaved = true;
+            changedAny = true;
+          }
+        });
+        if (changedAny) {
+          this.onChange();
+        }
+      };
       addDoc("mouseup", clearDrag);
       addDoc("touchend", clearDrag);
       addDoc("touchcancel", clearDrag);
@@ -73437,6 +73563,7 @@
         const originalVerts = edge.getVertices().map((p4) => ({ x: p4.x, y: p4.y }));
         edge.__selVertsSnapshot = originalVerts;
         edge.__selVertsUserChanged = false;
+        edge.__selVertsChangeSaved = false;
         if (this.isOrthogonalEdge(edge) && originalVerts.length === 0) {
           const bends = this.materializeEditableBends(edge);
           if (bends.length > 0) {
@@ -73444,12 +73571,17 @@
           }
         }
         const dot2 = { tagName: "circle", attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" } };
-        edge.addTools([
-          { name: "segments", args: { threshold: 8 } },
-          { name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } },
+        const isOrth = this.isOrthogonalEdge(edge);
+        const tools = [
           { name: "source-arrowhead", args: dot2 },
           { name: "target-arrowhead", args: dot2 }
-        ]);
+        ];
+        if (isOrth) {
+          tools.push({ name: "segments", args: { threshold: 8 } });
+        } else {
+          tools.push({ name: "vertices", args: { attrs: { r: 5, fill: "#fff", stroke: ACCENT, "stroke-width": 1.6, cursor: "move" }, addable: true, removable: true } });
+        }
+        edge.addTools(tools);
         this.showEdgeBar(edge);
         if (this.padLayer) this.padLayer.style.display = "none";
       });
@@ -73464,6 +73596,7 @@
         }
         delete edge.__selVertsSnapshot;
         delete edge.__selVertsUserChanged;
+        delete edge.__selVertsChangeSaved;
       });
       const canResetEdgeVertices = (edge) => {
         if (this.isSeqLifeline(edge.getSourceCellId() ?? void 0) || this.isSeqLifeline(edge.getTargetCellId() ?? void 0)) return false;
@@ -73473,6 +73606,12 @@
       const resetEdgeVertices = (edge) => {
         if (!canResetEdgeVertices(edge)) return;
         if (edge.getVertices().length) edge.setVertices([]);
+      };
+      const finalizeConnectedEdge = (edge, connected) => {
+        this.normalizeRegularEdgeEndpoints(edge, connected);
+        resetEdgeVertices(edge);
+        this.applySeqRoutingIfNeeded(edge);
+        this.applyMindmapRoutingIfNeeded(edge);
       };
       const onEndpointMoved = ({ edge, options }) => {
         if (options?.toolId) {
@@ -73515,6 +73654,7 @@
       });
       this.graph.on("node:change:position", ({ node: node2, current, previous, options }) => {
         if (options?.["__boundary_follow"]) return;
+        if (options?.["__bulk_follow"]) return;
         if (!current || !previous) return;
         const dx = current.x - previous.x;
         const dy = current.y - previous.y;
@@ -73525,6 +73665,38 @@
           if (child.getData()?.attachedTo !== movedId) continue;
           const p4 = child.getPosition();
           child.setPosition(p4.x + dx, p4.y + dy, { "__boundary_follow": true });
+        }
+        if (!options?.["ui"]) return;
+        const sel = this.graph.getSelectedCells().filter((c4) => c4.isNode?.());
+        if (sel.length < 2) return;
+        if (!sel.some((c4) => c4.id === movedId)) return;
+        const selIds = new Set(sel.map((c4) => c4.id));
+        const isDescendantOfSelected = (n2) => {
+          let p4 = n2.getParent();
+          while (p4) {
+            if (selIds.has(p4.id)) return true;
+            p4 = p4.getParent();
+          }
+          return false;
+        };
+        const isBoundaryOfMoved = (n2) => n2.getData()?.attachedTo === movedId;
+        const selEdges = this.graph.getSelectedCells().filter((c4) => !c4.isNode?.());
+        const allMovingIds = new Set(selIds);
+        for (const peer of sel) {
+          if (peer.id === movedId) continue;
+          if (isDescendantOfSelected(peer)) continue;
+          if (isBoundaryOfMoved(peer)) continue;
+          const p4 = peer.getPosition();
+          peer.setPosition(p4.x + dx, p4.y + dy, { "__bulk_follow": true });
+        }
+        for (const edge of selEdges) {
+          const srcId = edge.getSourceCellId?.();
+          const tgtId = edge.getTargetCellId?.();
+          if (!srcId || !tgtId) continue;
+          if (!allMovingIds.has(srcId) || !allMovingIds.has(tgtId)) continue;
+          const verts = edge.getVertices?.();
+          if (!verts?.length) continue;
+          edge.setVertices(verts.map((v4) => ({ x: v4.x + dx, y: v4.y + dy })));
         }
       });
       this.graph.on("node:resized", () => {
@@ -73565,31 +73737,45 @@
       this.graph.on("node:unselected", ({ node: node2 }) => {
         this.lastSelectedAt.delete(node2.id);
       });
-      this.graph.on("blank:click", () => {
+      this.graph.on("blank:click", ({ e: e2 }) => {
         this.hidePopup();
         this.commitLabel();
-        this.graph.cleanSelection();
+        if (!e2?.shiftKey) this.graph.cleanSelection();
       });
       this.graph.on("blank:mousedown", () => this.hidePopup());
       this.graph.on("edge:connected", ({ edge, isNew, type, currentCell, currentPort }) => {
         if (isNew && !edge.getTargetCellId()) {
           const state = this.handleDragToBlank(edge);
           if (state !== "connected") return;
+          const targetId = edge.getTargetCellId() ?? void 0;
+          const connectedFromBlank = targetId ? {
+            type: "target",
+            currentCell: { id: targetId },
+            currentPort: this.endpointPort(edge, "target") ?? null
+          } : void 0;
+          finalizeConnectedEdge(edge, connectedFromBlank);
+          return;
         }
-        this.normalizeRegularEdgeEndpoints(edge, {
+        finalizeConnectedEdge(edge, {
           type,
           currentCell: currentCell ?? null,
           currentPort: currentPort ?? null
         });
-        resetEdgeVertices(edge);
-        this.applySeqRoutingIfNeeded(edge);
-        this.applyMindmapRoutingIfNeeded(edge);
       });
       this.graphMount.addEventListener("mouseup", () => {
         window.setTimeout(() => {
           if (this.pendingDrop) return;
           const dangling = this.graph.getEdges().find((e2) => !!e2.getSourceCellId() && !e2.getTargetCellId());
-          if (dangling) this.handleDragToBlank(dangling);
+          if (!dangling) return;
+          const state = this.handleDragToBlank(dangling);
+          if (state !== "connected") return;
+          const targetId = dangling.getTargetCellId() ?? void 0;
+          const connectedFromFallback = targetId ? {
+            type: "target",
+            currentCell: { id: targetId },
+            currentPort: this.endpointPort(dangling, "target") ?? null
+          } : void 0;
+          finalizeConnectedEdge(dangling, connectedFromFallback);
         }, 0);
       });
       this.graph.on("node:contextmenu", ({ node: node2, e: e2 }) => {
@@ -73604,10 +73790,11 @@
     togglePorts(node2, visible) {
       const view = this.graph.findViewByCell(node2);
       if (!view) return;
+      const canConnect = !this.isPortDisabledNode(node2.id);
       view.container.querySelectorAll(".x6-port circle").forEach((c4) => {
         const id = c4.getAttribute("port") ?? "";
         const isFixed = FIXED_PORT_IDS.includes(id);
-        c4.style.visibility = visible && isFixed ? "visible" : "hidden";
+        c4.style.visibility = visible && canConnect && isFixed ? "visible" : "hidden";
       });
     }
     // ── Left tool dock (design "PHẦN TỬ" — labeled vertical list) ─────────────
@@ -73657,23 +73844,6 @@
         rail.appendChild(item);
       }
       this.root.appendChild(rail);
-    }
-    static {
-      // Representative shape icon for each diagram category (rail + mobile bar).
-      this.CAT_REP = {
-        "C\u01A1 b\u1EA3n": "bs-rect",
-        "Flowchart": "fc-decision",
-        "ERD": "erd-entity",
-        "UML": "uml-class",
-        "State": "st-state",
-        "Sequence": "sq-actor",
-        "Mindmap": "mm-root",
-        "BPMN": "bpmn-gateway-x"
-      };
-    }
-    static {
-      // Diagram categories that get a dedicated button on the mobile bottom bar (rest → "Sơ đồ khác" sheet).
-      this.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
     }
     /**
      * Mobile toolbar (Excalidraw-style): one bottom bar in the thumb zone.
@@ -73797,7 +73967,6 @@
       const g2 = this.graph;
       if (pan) g2.disableRubberband?.();
       else g2.enableRubberband?.();
-      if (pan) this.graph.cleanSelection();
       const m4 = this.graphMount;
       m4.removeEventListener("pointerdown", this.onPanDown);
       m4.removeEventListener("pointermove", this.onPanMove);
@@ -74233,6 +74402,55 @@
         size: { width: s3.width, height: s3.height }
       };
     }
+    // Story 6.1 — Returns ALL selected node snapshots (empty array when none).
+    // PropertiesPanel uses this for multi-select UX. Single-cell callers should
+    // keep using getSelectedNodeSnapshot() for backwards compatibility.
+    getSelectedNodesSnapshot() {
+      const nodes = this.graph.getSelectedCells().filter((c4) => c4.isNode());
+      return nodes.map((node2) => {
+        const p4 = node2.getPosition();
+        const s3 = node2.getSize();
+        return {
+          id: node2.id,
+          kind: this.nodeKind(node2),
+          label: this.nodeLabel(node2),
+          attrs: { ...node2.getData() ?? {} },
+          style: this.nodeStyle(node2),
+          position: { x: p4.x, y: p4.y },
+          size: { width: s3.width, height: s3.height }
+        };
+      });
+    }
+    // Story 6.1 — Apply the same style patch to every cell in `ids` inside one
+    // X6 batch so undo treats it as a single step. Callers compute the patch
+    // (e.g. from PropertiesPanel) and we just iterate-and-write. Cells with
+    // unknown ids are silently skipped.
+    // [Review][Patch P8] `setStyle` calls `onChange` + `rerender` per cell — N
+    // cells × M keystrokes = N×M re-saves. Use silent in-place update + a single
+    // onChange() at the end of the batch. Also skip onChange when zero patches
+    // landed (all ids resolved to nothing).
+    // [Review][Patch P13] Don't pre-merge here — `setStyle` already merges
+    // prev+patch internally; passing a pre-merged object is wasted work and
+    // bypasses future setStyle normalization.
+    patchNodesBulk(ids, style2) {
+      if (!ids.length) return;
+      let applied = 0;
+      this.graph.startBatch("bulk-style");
+      try {
+        for (const id of ids) {
+          const cell = this.graph.getCellById(id);
+          if (!cell?.isNode()) continue;
+          const node2 = cell;
+          const next = { ...this.nodeStyle(node2), ...style2 };
+          node2.setData({ ...node2.getData(), style: next });
+          this.rerender(node2);
+          applied++;
+        }
+      } finally {
+        this.graph.stopBatch("bulk-style");
+      }
+      if (applied > 0) this.onChange();
+    }
     patchSelectedNode(patch) {
       const nodes = this.graph.getSelectedCells().filter((c4) => c4.isNode());
       if (nodes.length !== 1) return;
@@ -74614,8 +74832,23 @@
       return row;
     }
     // ── Contextual toolbar above selected node ──────────────────────────────
+    // [Review][Patch P14] Rubberband-select 100+ cells fires one node:selected
+    // per cell → without coalescing, refreshContextBar runs N times and each call
+    // rebuilds the DOM + scans every selected node's bbox = O(N²) jank. RAF-debounce
+    // collapses an event burst into a single render once the call stack drains.
     refreshContextBar() {
+      if (this.contextBarRaf != null) return;
+      this.contextBarRaf = requestAnimationFrame(() => {
+        this.contextBarRaf = null;
+        this.renderContextBarNow();
+      });
+    }
+    renderContextBarNow() {
       const nodes = this.graph.getSelectedCells().filter((c4) => c4.isNode());
+      if (nodes.length >= 2) {
+        this.renderBulkBar(nodes);
+        return;
+      }
       if (nodes.length !== 1) {
         this.contextBar.style.display = "none";
         return;
@@ -74719,6 +74952,77 @@
       const rw = this.root.clientWidth;
       this.contextBar.style.left = Math.max(8, Math.min(left4 - bw / 2, rw - bw - 8)) + "px";
       this.contextBar.style.top = Math.max(8, top4 - 42 - bh) + "px";
+    }
+    // Story 6.1 — Bulk toolbar rendered when 2+ nodes are selected.
+    // Action buttons compute new (x, y) via pure bulkAlign helpers and apply
+    // them inside ONE batch so undo/redo treats the operation as a single step.
+    renderBulkBar(nodes) {
+      this.contextBar.innerHTML = "";
+      const mkBtn = (svg3, title2, fn2, disabled = false) => {
+        const b2 = el("button", "lk-cb-btn", svg3);
+        b2.title = title2;
+        if (disabled) b2.setAttribute("disabled", "true");
+        else b2.onclick = fn2;
+        return b2;
+      };
+      const apply4 = (op, opName) => {
+        const live = this.graph.getSelectedCells().filter((c4) => c4.isNode?.());
+        if (live.length < 2) return;
+        const input = live.map((n2) => {
+          const p4 = n2.getPosition();
+          const s4 = n2.getSize();
+          return { id: n2.id, x: p4.x, y: p4.y, width: s4.width, height: s4.height };
+        });
+        const out = op(input);
+        this.graph.startBatch(opName);
+        try {
+          for (const r2 of out) {
+            const cell = this.graph.getCellById(r2.id);
+            if (cell?.isNode()) cell.setPosition(r2.x, r2.y, { "__bulk_follow": true });
+          }
+        } finally {
+          this.graph.stopBatch(opName);
+        }
+        this.onChange();
+      };
+      const I3 = (paths) => `<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+      const ICN_AL = I3('<path d="M3 3v14"/><rect x="5" y="5" width="9" height="4"/><rect x="5" y="11" width="13" height="4"/>');
+      const ICN_AC = I3('<path d="M10 3v14"/><rect x="6" y="5" width="8" height="4"/><rect x="3" y="11" width="14" height="4"/>');
+      const ICN_AR = I3('<path d="M17 3v14"/><rect x="6" y="5" width="9" height="4"/><rect x="2" y="11" width="13" height="4"/>');
+      const ICN_AT = I3('<path d="M3 3h14"/><rect x="5" y="5" width="4" height="9"/><rect x="11" y="5" width="4" height="13"/>');
+      const ICN_AM = I3('<path d="M3 10h14"/><rect x="5" y="6" width="4" height="8"/><rect x="11" y="3" width="4" height="14"/>');
+      const ICN_AB = I3('<path d="M3 17h14"/><rect x="5" y="6" width="4" height="9"/><rect x="11" y="2" width="4" height="13"/>');
+      const ICN_DH = I3('<rect x="2" y="6" width="3" height="8"/><rect x="8.5" y="6" width="3" height="8"/><rect x="15" y="6" width="3" height="8"/>');
+      const ICN_DV = I3('<rect x="6" y="2" width="8" height="3"/><rect x="6" y="8.5" width="8" height="3"/><rect x="6" y="15" width="8" height="3"/>');
+      this.contextBar.appendChild(mkBtn(ICN_AL, "C\u0103n tr\xE1i", () => apply4(alignLeft, "bulk-align-left")));
+      this.contextBar.appendChild(mkBtn(ICN_AC, "C\u0103n gi\u1EEFa (ngang)", () => apply4(alignCenterH, "bulk-align-center-h")));
+      this.contextBar.appendChild(mkBtn(ICN_AR, "C\u0103n ph\u1EA3i", () => apply4(alignRight, "bulk-align-right")));
+      this.contextBar.appendChild(el("div", "lk-cb-sep"));
+      this.contextBar.appendChild(mkBtn(ICN_AT, "C\u0103n tr\xEAn", () => apply4(alignTop, "bulk-align-top")));
+      this.contextBar.appendChild(mkBtn(ICN_AM, "C\u0103n gi\u1EEFa (d\u1ECDc)", () => apply4(alignMiddleV, "bulk-align-middle-v")));
+      this.contextBar.appendChild(mkBtn(ICN_AB, "C\u0103n d\u01B0\u1EDBi", () => apply4(alignBottom, "bulk-align-bottom")));
+      this.contextBar.appendChild(el("div", "lk-cb-sep"));
+      const can3 = nodes.length >= 3;
+      this.contextBar.appendChild(mkBtn(ICN_DH, can3 ? "Ph\xE2n b\u1ED1 \u0111\u1EC1u theo chi\u1EC1u ngang" : "Ph\xE2n b\u1ED1 ngang (c\u1EA7n \u22653 element)", () => apply4(distributeH, "bulk-distribute-h"), !can3));
+      this.contextBar.appendChild(mkBtn(ICN_DV, can3 ? "Ph\xE2n b\u1ED1 \u0111\u1EC1u theo chi\u1EC1u d\u1ECDc" : "Ph\xE2n b\u1ED1 d\u1ECDc (c\u1EA7n \u22653 element)", () => apply4(distributeV, "bulk-distribute-v"), !can3));
+      this.contextBar.style.display = "flex";
+      if (this.isMobile) {
+        this.dockBarAboveMbar(this.contextBar);
+        return;
+      }
+      const xs = nodes.map((n2) => n2.getBBox());
+      const minX = Math.min(...xs.map((b2) => b2.x));
+      const minY = Math.min(...xs.map((b2) => b2.y));
+      const maxX = Math.max(...xs.map((b2) => b2.x + b2.width));
+      const s3 = this.graph.scale().sx;
+      const t3 = this.graph.translate();
+      const cx = (minX + maxX) / 2 * s3 + t3.tx;
+      const top4 = minY * s3 + t3.ty;
+      const bw = this.contextBar.offsetWidth || 320;
+      const bh = this.contextBar.offsetHeight || 40;
+      const rw = this.root.clientWidth;
+      this.contextBar.style.left = Math.max(8, Math.min(cx - bw / 2, rw - bw - 8)) + "px";
+      this.contextBar.style.top = Math.max(8, top4 - 12 - bh) + "px";
     }
     /**
      * Mobile: while a label editor is open, hide only the floating "+" quick-connect
@@ -75019,6 +75323,7 @@
     // ── HTML node helpers ────────────────────────────────────────────────────
     addHtmlNode(kind, x3, y3, w3, h3, label, style2, id, extra, source) {
       const ex = this.mergeExtra(kind, extra);
+      const hasPorts = !NON_CONNECTABLE_PORT_KINDS.has(kind);
       const node2 = this.graph.addNode({
         id,
         shape: "html-node",
@@ -75026,6 +75331,7 @@
         y: y3,
         width: w3,
         height: h3,
+        ports: hasPorts ? void 0 : { items: [] },
         // `__source` carries import provenance (BPMN pool kind, original ids) and
         // MUST survive the load→getModel round-trip — otherwise re-saving the
         // board (e.g. when opened on another device) drops it and the pool/lane
@@ -75523,7 +75829,7 @@
       edge.attr("line/strokeDasharray", EDGE_DASHES[st3.dash ?? "solid"] ?? "", { silent: true });
       edge.attr("line/sourceMarker", buildMarker(st3.start ?? "none", color), { silent: true });
       edge.attr("line/targetMarker", buildMarker(st3.end ?? "arrow", color), { silent: true });
-      this.applyEdgeShape(edge);
+      if (st3.shape || st3.jump) this.applyEdgeShape(edge);
       const view = this.graph.findViewByCell(edge);
       view?.update?.();
     }
@@ -75947,6 +76253,12 @@
       if (!c4 || !c4.isNode()) return false;
       return BPMN_EVENT_KINDS.has(this.nodeKind(c4));
     }
+    isPortDisabledNode(cellId) {
+      if (!cellId) return false;
+      const c4 = this.graph.getCellById(cellId);
+      if (!c4 || !c4.isNode()) return false;
+      return NON_CONNECTABLE_PORT_KINDS.has(this.nodeKind(c4));
+    }
     endpointPort(edge, type) {
       const terminal = type === "source" ? edge.getSource() : edge.getTarget();
       return terminal?.port;
@@ -76012,8 +76324,8 @@
     }
     // ── Model load / serialize ───────────────────────────────────────────────
     loadModel(model) {
-      this.graph.startBatch("load");
       this.graph.clearCells();
+      this.graph.startBatch("load");
       for (const n2 of model.nodes) {
         const a3 = n2.attrs ?? {};
         const style2 = a3.style ?? {};
@@ -76042,6 +76354,10 @@
         if (a3.camunda) phaseD.camunda = a3.camunda;
         if (a3.bpmnProps) phaseD.bpmnProps = a3.bpmnProps;
         if (Object.keys(phaseD).length) node2.setData({ ...node2.getData(), ...phaseD });
+      }
+      const nodeCenterMap = /* @__PURE__ */ new Map();
+      for (const n2 of model.nodes) {
+        nodeCenterMap.set(n2.id, { cx: n2.x + n2.width / 2, cy: n2.y + n2.height / 2 });
       }
       for (const e2 of model.edges) {
         const seq = this.isSeqLifeline(e2.source) && this.isSeqLifeline(e2.target);
@@ -76073,6 +76389,20 @@
         } else if (sourcePort) {
           sourceEnd.port = sourcePort;
           sourceEnd.connectionPoint = PORT_CONNECTION_POINT;
+        } else if (!seq && !mm) {
+          const sc = nodeCenterMap.get(e2.source);
+          const tc = nodeCenterMap.get(e2.target);
+          if (sc && tc) {
+            const dx = tc.cx - sc.cx;
+            const dy = tc.cy - sc.cy;
+            if (dx < 0) {
+              sourceEnd.port = "bottom";
+            } else if (Math.abs(dy) < Math.abs(dx) * 0.5) {
+              sourceEnd.port = "right";
+            } else {
+              sourceEnd.port = dy >= 0 ? "bottom" : "top";
+            }
+          }
         }
         const targetEnd = { cell: e2.target };
         if (e2.targetAnchor) {
@@ -76081,6 +76411,20 @@
         } else if (targetPort) {
           targetEnd.port = targetPort;
           targetEnd.connectionPoint = PORT_CONNECTION_POINT;
+        } else if (!seq && !mm) {
+          const sc = nodeCenterMap.get(e2.source);
+          const tc = nodeCenterMap.get(e2.target);
+          if (sc && tc) {
+            const dx = tc.cx - sc.cx;
+            const dy = tc.cy - sc.cy;
+            if (dx < 0) {
+              targetEnd.port = "bottom";
+            } else if (Math.abs(dy) < Math.abs(dx) * 0.5) {
+              targetEnd.port = "left";
+            } else {
+              targetEnd.port = dy >= 0 ? "top" : "bottom";
+            }
+          }
         }
         const created = this.graph.addEdge({
           id: e2.id,
@@ -76232,7 +76576,30 @@
         const data2 = n2.getData() ?? {};
         const x6Parent = n2.getParent();
         const parentId = x6Parent && x6Parent.isNode() ? x6Parent.id : data2.parentId;
-        const laneId = data2.laneId;
+        let laneId = data2.laneId;
+        if (this.nodeKind(n2) !== "bpmn-pool" && this.nodeKind(n2) !== "bpmn-lane" && this.nodeKind(n2) !== "bpmn-subprocess" && this.nodeKind(n2) !== "bpmn-group" && this.nodeKind(n2) !== "bpmn-annotation") {
+          const cx = p4.x + s3.width / 2;
+          const cy = p4.y + s3.height / 2;
+          const pools = this.graph.getNodes().filter((node2) => this.nodeKind(node2) === "bpmn-pool");
+          for (const pool of pools) {
+            const poolPos = pool.getPosition();
+            const poolSize = pool.getSize();
+            if (cx >= poolPos.x && cx <= poolPos.x + poolSize.width && cy >= poolPos.y && cy <= poolPos.y + poolSize.height) {
+              const poolExtra = this.nodeExtra(pool);
+              const poolLanes = poolExtra.lanes ?? [{ id: "l1", label: "Lane 1" }];
+              if (poolLanes.length > 0) {
+                const laneHeight = poolSize.height / poolLanes.length;
+                const relY = cy - poolPos.y;
+                const laneIdx = Math.max(0, Math.min(poolLanes.length - 1, Math.floor(relY / laneHeight)));
+                laneId = poolLanes[laneIdx].id;
+                if (laneId !== data2.laneId) {
+                  n2.setData({ ...data2, laneId }, { silent: true });
+                }
+                break;
+              }
+            }
+          }
+        }
         return {
           id: n2.id,
           shape: this.nodeKind(n2),
@@ -76606,6 +76973,20 @@
       this.graph.dispose();
     }
   };
+  // Representative shape icon for each diagram category (rail + mobile bar).
+  _OmniboardCanvas.CAT_REP = {
+    "C\u01A1 b\u1EA3n": "bs-rect",
+    "Flowchart": "fc-decision",
+    "ERD": "erd-entity",
+    "UML": "uml-class",
+    "State": "st-state",
+    "Sequence": "sq-actor",
+    "Mindmap": "mm-root",
+    "BPMN": "bpmn-gateway-x"
+  };
+  // Diagram categories that get a dedicated button on the mobile bottom bar (rest → "Sơ đồ khác" sheet).
+  _OmniboardCanvas.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
+  var OmniboardCanvas = _OmniboardCanvas;
 
   // node_modules/min-dash/dist/index.js
   var nativeToString = Object.prototype.toString;
@@ -82910,6 +83291,7 @@
       }
       for (const ar of parent.artifacts ?? []) {
         if (ar.$type === "bpmn:Association") associations2.push(ar);
+        else if (ar.$type === "bpmn:TextAnnotation" || ar.$type === "bpmn:Group") flowNodes.push(ar);
       }
     };
     for (const root2 of definitions.rootElements ?? []) {
@@ -82997,10 +83379,23 @@
       const y3 = bounds?.y ?? 100;
       const width2 = bounds?.width ?? (tagLc.endsWith("Event") ? 36 : 100);
       const height2 = bounds?.height ?? (tagLc.endsWith("Event") ? 36 : 60);
-      const nodeLabelOffset = di?.label?.bounds ? {
-        x: di.label.bounds.x + di.label.bounds.width / 2 - (x3 + width2 / 2),
-        y: di.label.bounds.y + di.label.bounds.height / 2 - (y3 + height2 / 2)
-      } : void 0;
+      const isGw = shape.includes("gateway");
+      const labelBounds = di?.label?.bounds;
+      let nodeLabelOffset;
+      if (labelBounds) {
+        const labelCenterY = labelBounds.y + labelBounds.height / 2;
+        const nodeCenterY = y3 + height2 / 2;
+        const isTop = labelCenterY < nodeCenterY;
+        const defaultY = isGw ? 37 : 36;
+        const defaultOffset = { x: 0, y: isTop ? -defaultY : defaultY };
+        const rawOffset = {
+          x: labelBounds.x + labelBounds.width / 2 - (x3 + width2 / 2) - defaultOffset.x,
+          y: labelCenterY - nodeCenterY - defaultOffset.y
+        };
+        if (Math.abs(rawOffset.x) >= 2.5 || Math.abs(rawOffset.y) >= 2.5) {
+          nodeLabelOffset = rawOffset;
+        }
+      }
       const { fill: fill2, stroke: stroke3 } = diColours(di);
       const style2 = {};
       if (fill2) style2.fill = fill2;
@@ -83055,8 +83450,8 @@
       const wpEnd = wps.length >= 2 ? wps[wps.length - 1] : void 0;
       let sourcePort = wpStart && srcBox ? portFor(wpStart, srcBox) : void 0;
       let targetPort = wpEnd && tgtBox ? portFor(wpEnd, tgtBox) : void 0;
-      const sourceAnchor = !sourcePort && wpStart && srcBox ? { dx: wpStart.x - srcBox.x, dy: wpStart.y - srcBox.y } : void 0;
-      const targetAnchor = !targetPort && wpEnd && tgtBox ? { dx: wpEnd.x - tgtBox.x, dy: wpEnd.y - tgtBox.y } : void 0;
+      const sourceAnchor = wpStart && srcBox ? { dx: wpStart.x - srcBox.x, dy: wpStart.y - srcBox.y } : void 0;
+      const targetAnchor = wpEnd && tgtBox ? { dx: wpEnd.x - tgtBox.x, dy: wpEnd.y - tgtBox.y } : void 0;
       if (!sourceAnchor && !targetAnchor && srcBox && tgtBox && (!sourcePort || !targetPort)) {
         const scx = srcBox.x + srcBox.width / 2;
         const scy = srcBox.y + srcBox.height / 2;
@@ -83065,11 +83460,11 @@
         const dx = tcx - scx;
         const dy = tcy - scy;
         if (Math.abs(dx) >= Math.abs(dy)) {
-          sourcePort ??= dx >= 0 ? "right" : "left";
-          targetPort ??= dx >= 0 ? "left" : "right";
+          sourcePort ?? (sourcePort = dx >= 0 ? "right" : "left");
+          targetPort ?? (targetPort = dx >= 0 ? "left" : "right");
         } else {
-          sourcePort ??= dy >= 0 ? "bottom" : "top";
-          targetPort ??= dy >= 0 ? "top" : "bottom";
+          sourcePort ?? (sourcePort = dy >= 0 ? "bottom" : "top");
+          targetPort ?? (targetPort = dy >= 0 ? "top" : "bottom");
         }
       }
       let labelPos;
@@ -83149,7 +83544,7 @@
       if (root2.$type === "bpmn:Process" && root2.id) processById.set(root2.id, root2);
     }
     const pools = [];
-    const HEADER = 30;
+    const HEADER = 44;
     const LANE_HEAD = 24;
     const PAD = 30;
     const flowNodePoolId = /* @__PURE__ */ new Map();
@@ -83311,6 +83706,59 @@
   function escAttr(value) {
     return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[ch]);
   }
+  var BPMN_ID_START_RE = /^[A-Za-z_]/;
+  var BPMN_ID_CHAR_RE = /[^A-Za-z0-9_.-]/g;
+  function normalizeBpmnId(raw2, prefix2, used) {
+    const seed = String(raw2 ?? "").trim();
+    let base = seed ? seed.replace(BPMN_ID_CHAR_RE, "_") : prefix2;
+    if (!base) base = prefix2;
+    if (!BPMN_ID_START_RE.test(base)) base = `${prefix2}_${base}`;
+    let out = base;
+    let n2 = 1;
+    while (used.has(out)) out = `${base}_${++n2}`;
+    used.add(out);
+    return out;
+  }
+  function normalizeModelIdsForBpmn(model) {
+    const used = /* @__PURE__ */ new Set();
+    const nodeMap = /* @__PURE__ */ new Map();
+    const edgeMap = /* @__PURE__ */ new Map();
+    const laneMap = /* @__PURE__ */ new Map();
+    for (const n2 of model.nodes) nodeMap.set(n2.id, normalizeBpmnId(n2.id, "N", used));
+    for (const e2 of model.edges) edgeMap.set(e2.id, normalizeBpmnId(e2.id, "E", used));
+    for (const n2 of model.nodes) {
+      const lanes = n2.attrs?.lanes ?? [];
+      for (const ln3 of lanes) {
+        if (!ln3.id || laneMap.has(ln3.id)) continue;
+        laneMap.set(ln3.id, normalizeBpmnId(ln3.id, "L", used));
+      }
+    }
+    for (const n2 of model.nodes) {
+      if (!n2.laneId || laneMap.has(n2.laneId)) continue;
+      laneMap.set(n2.laneId, normalizeBpmnId(n2.laneId, "L", used));
+    }
+    return {
+      nodes: model.nodes.map((n2) => {
+        const lanes = n2.attrs?.lanes?.map((ln3) => ({
+          ...ln3,
+          id: laneMap.get(ln3.id) ?? ln3.id
+        }));
+        return {
+          ...n2,
+          id: nodeMap.get(n2.id) ?? n2.id,
+          ...n2.parentId ? { parentId: nodeMap.get(n2.parentId) ?? n2.parentId } : {},
+          ...n2.laneId ? { laneId: laneMap.get(n2.laneId) ?? n2.laneId } : {},
+          attrs: lanes ? { ...n2.attrs ?? {}, lanes } : n2.attrs
+        };
+      }),
+      edges: model.edges.map((e2) => ({
+        ...e2,
+        id: edgeMap.get(e2.id) ?? e2.id,
+        source: nodeMap.get(e2.source) ?? e2.source,
+        target: nodeMap.get(e2.target) ?? e2.target
+      }))
+    };
+  }
   function patchCamundaXml(xml3, model) {
     const nodes = model.nodes.filter((n2) => {
       const attrs = n2.attrs ?? {};
@@ -83386,17 +83834,24 @@
     }
     return void 0;
   }
-  var POOL_HEADER = 30;
+  var POOL_HEADER = 44;
   var LANE_HEADER = 30;
   var POOL_MARGIN = 40;
   async function exportBpmn(model, meta) {
+    const normalizedModel = normalizeModelIdsForBpmn(model);
     const m4 = moddle2();
     if (meta?.format === "bpmn") {
       const raw2 = String(meta.payload?.raw ?? "");
       const diagramIndex = Number(meta.payload?.diagramIndex ?? 0);
-      if (raw2) return patchExisting(raw2, model, m4, Number.isFinite(diagramIndex) ? diagramIndex : 0);
+      if (raw2) {
+        try {
+          return await patchExisting(raw2, normalizedModel, m4, Number.isFinite(diagramIndex) ? diagramIndex : 0);
+        } catch (err2) {
+          console.warn("[omniboard:bpmn] patchExisting failed; falling back to minimal export", err2);
+        }
+      }
     }
-    return emitMinimal(model, m4);
+    return emitMinimal(normalizedModel, m4);
   }
   async function patchExisting(raw2, model, m4, diagramIndex = 0) {
     const { rootElement: defs } = await m4.fromXML(raw2, "bpmn:Definitions");
@@ -83445,14 +83900,22 @@
       }
     }
     const modelNodeIds = new Set(model.nodes.map((n2) => n2.id));
-    const modelEdgeIds = new Set(model.edges.map((e2) => e2.id));
-    const modelEdgeKind = new Map(model.edges.map((e2) => [e2.id, edgeKindOf(e2)]));
-    const modelSequenceEdgeIds = new Set(model.edges.filter((e2) => edgeKindOf(e2) === "sequence").map((e2) => e2.id));
-    const modelAssociationEdgeIds = new Set(model.edges.filter((e2) => edgeKindOf(e2) === "association").map((e2) => e2.id));
-    const modelMessageEdgeIds = new Set(model.edges.filter((e2) => edgeKindOf(e2) === "message").map((e2) => e2.id));
+    const endpointIds = new Set(flowById.keys());
+    for (const ar of process2.artifacts ?? []) if (ar.id) endpointIds.add(ar.id);
+    for (const p4 of collaboration?.participants ?? []) if (p4.id) endpointIds.add(p4.id);
+    const validModelEdges = model.edges.filter(
+      (e2) => (modelNodeIds.has(e2.source) || endpointIds.has(e2.source)) && (modelNodeIds.has(e2.target) || endpointIds.has(e2.target))
+    );
+    const modelEdgeIds = new Set(validModelEdges.map((e2) => e2.id));
+    const modelEdgeKind = new Map(validModelEdges.map((e2) => [e2.id, edgeKindOf(e2)]));
+    const modelSequenceEdgeIds = new Set(validModelEdges.filter((e2) => edgeKindOf(e2) === "sequence").map((e2) => e2.id));
+    const modelAssociationEdgeIds = new Set(validModelEdges.filter((e2) => edgeKindOf(e2) === "association").map((e2) => e2.id));
+    const modelMessageEdgeIds = new Set(validModelEdges.filter((e2) => edgeKindOf(e2) === "message").map((e2) => e2.id));
     for (const n2 of model.nodes) {
       const srcKind = n2.attrs?.__source?.kind;
-      if (srcKind === "pool") continue;
+      const isPool = n2.shape === "bpmn-pool" || srcKind === "pool";
+      const isLane = n2.shape === "bpmn-lane" || srcKind === "lane";
+      if (isPool || isLane) continue;
       const targetContainer = n2.parentId && flowById.get(n2.parentId) || process2;
       let di = diShape.get(n2.id);
       if (di?.bounds) {
@@ -83461,12 +83924,12 @@
         di.bounds.width = n2.width;
         di.bounds.height = n2.height;
         const nLabel = nodeLabelBoundsFromModel(m4, n2);
-        di.label = nLabel ? { bounds: nLabel } : void 0;
+        di.label = nLabel ? m4.create("bpmndi:BPMNLabel", { bounds: nLabel }) : void 0;
         const collapsed = n2.attrs?.collapsed === true;
         di.isExpanded = !collapsed;
         const bpmnFill = n2.attrs?.bpmnFill;
         const bpmnStroke = n2.attrs?.bpmnStroke;
-        const shapeAttrs = di.$attrs ??= {};
+        const shapeAttrs = di.$attrs ?? (di.$attrs = {});
         if (bpmnFill) shapeAttrs["bioc:fill"] = bpmnFill;
         else {
           delete shapeAttrs["bioc:fill"];
@@ -83480,21 +83943,21 @@
       } else {
         const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), { id: n2.id, name: n2.label ?? "" });
         applyBpmnExtras(m4, fe3, n2.shape, n2.attrs ?? {});
-        (targetContainer.flowElements ??= []).push(fe3);
+        (targetContainer.flowElements ?? (targetContainer.flowElements = [])).push(fe3);
         flowById.set(n2.id, fe3);
         containerOf.set(n2.id, targetContainer);
         di = m4.create("bpmndi:BPMNShape", {
           bpmnElement: fe3,
           bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height })
         });
-        (mainPlane.planeElement ??= []).push(di);
+        (mainPlane.planeElement ?? (mainPlane.planeElement = [])).push(di);
         diShape.set(n2.id, di);
       }
       const existing = flowById.get(n2.id);
       const curContainer = containerOf.get(n2.id);
       if (existing && curContainer && curContainer !== targetContainer) {
         curContainer.flowElements = (curContainer.flowElements ?? []).filter((fe3) => fe3.id !== n2.id);
-        (targetContainer.flowElements ??= []).push(existing);
+        (targetContainer.flowElements ?? (targetContainer.flowElements = [])).push(existing);
         containerOf.set(n2.id, targetContainer);
       }
       if (existing) {
@@ -83577,7 +84040,7 @@
       return true;
     });
     emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m4);
-    for (const e2 of model.edges) {
+    for (const e2 of validModelEdges) {
       const srcNode = model.nodes.find((n2) => n2.id === e2.source);
       const tgtNode = model.nodes.find((n2) => n2.id === e2.target);
       if (!srcNode || !tgtNode) continue;
@@ -83588,6 +84051,7 @@
       if (!sf) {
         const sourceFe = flowById.get(e2.source);
         const targetFe = flowById.get(e2.target);
+        if (!sourceFe || !targetFe) continue;
         sf = m4.create(bpmnTypeForEdgeKind(kind), {
           id: e2.id,
           name: e2.label ?? "",
@@ -83597,14 +84061,14 @@
         if (kind === "message") {
           if (!collaboration) {
             sf.$type = "bpmn:SequenceFlow";
-            (process2.flowElements ??= []).push(sf);
+            (process2.flowElements ?? (process2.flowElements = [])).push(sf);
           } else {
-            (collaboration.messageFlows ??= []).push(sf);
+            (collaboration.messageFlows ?? (collaboration.messageFlows = [])).push(sf);
           }
         } else if (kind === "association") {
-          (process2.artifacts ??= []).push(sf);
+          (process2.artifacts ?? (process2.artifacts = [])).push(sf);
         } else {
-          (process2.flowElements ??= []).push(sf);
+          (process2.flowElements ?? (process2.flowElements = [])).push(sf);
         }
         flowById.set(e2.id, sf);
       } else if (typeof e2.label === "string") {
@@ -83622,7 +84086,7 @@
           waypoint: wps,
           ...lb ? { label: m4.create("bpmndi:BPMNLabel", { bounds: lb }) } : {}
         });
-        (mainPlane.planeElement ??= []).push(de3);
+        (mainPlane.planeElement ?? (mainPlane.planeElement = [])).push(de3);
         diEdge.set(e2.id, de3);
       }
     }
@@ -83630,7 +84094,7 @@
       const fe3 = flowById.get(n2.id);
       if (fe3 && fe3.default) delete fe3.default;
     }
-    for (const e2 of model.edges) {
+    for (const e2 of validModelEdges) {
       if (!e2.attrs?.isDefault) continue;
       if (edgeKindOf(e2) !== "sequence") continue;
       const srcFe = flowById.get(e2.source);
@@ -83641,9 +84105,27 @@
     return patchCamundaXml(xml3, model);
   }
   function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m4) {
-    const pools = model.nodes.filter((n2) => n2.attrs?.__source?.kind === "pool");
+    var _a2;
+    const pools = model.nodes.filter(
+      (n2) => n2.shape === "bpmn-pool" || n2.attrs?.__source?.kind === "pool"
+    );
     if (!pools.length) return;
-    const flow = model.nodes.filter((n2) => n2.attrs?.__source?.kind !== "pool");
+    let collaboration = findCollaboration(definitions);
+    const ensureCollaboration = () => {
+      if (collaboration) return collaboration;
+      collaboration = m4.create("bpmn:Collaboration", { id: "Collaboration_Export" });
+      (definitions.rootElements ?? (definitions.rootElements = [])).push(collaboration);
+      return collaboration;
+    };
+    const ensureLaneSet = () => {
+      if ((process2.laneSets ?? []).length) return process2.laneSets[0];
+      const laneSet = m4.create("bpmn:LaneSet", { id: `LaneSet_${process2.id ?? "Process_Export"}` });
+      (process2.laneSets ?? (process2.laneSets = [])).push(laneSet);
+      return laneSet;
+    };
+    const flow = model.nodes.filter(
+      (n2) => n2.shape !== "bpmn-pool" && n2.attrs?.__source?.kind !== "pool"
+    );
     if (!flow.length) return;
     const minX = Math.min(...flow.map((n2) => n2.x));
     const minY = Math.min(...flow.map((n2) => n2.y));
@@ -83662,9 +84144,17 @@
         pdi.bounds.width = poolW;
         pdi.bounds.height = poolH;
       } else {
-        const part = findParticipant(definitions, pool.id);
+        let part = findParticipant(definitions, pool.id);
+        if (!part) {
+          part = m4.create("bpmn:Participant", {
+            id: pool.id,
+            name: pool.label ?? "Pool",
+            processRef: process2
+          });
+          ((_a2 = ensureCollaboration()).participants ?? (_a2.participants = [])).push(part);
+        }
         pdi = m4.create("bpmndi:BPMNShape", {
-          bpmnElement: part ?? m4.create("bpmn:Participant", { id: pool.id }),
+          bpmnElement: part,
           bounds: m4.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
         });
         const isHorizontal = pool.attrs?.poolHorizontal !== false;
@@ -83678,6 +84168,7 @@
       if (lanes.length) {
         const bands = laneBands(lanes, process2, model, poolY, poolH);
         lanes.forEach((ln3, i3) => {
+          var _a3;
           if (!ln3.id) return;
           const band = bands[i3];
           let ldi = diShape.get(ln3.id);
@@ -83687,9 +84178,13 @@
             ldi.bounds.width = laneW;
             ldi.bounds.height = band.h;
           } else {
-            const laneEl = findLane(process2, ln3.id);
+            let laneEl = findLane(process2, ln3.id);
+            if (!laneEl) {
+              laneEl = m4.create("bpmn:Lane", { id: ln3.id, name: ln3.label ?? ln3.id });
+              ((_a3 = ensureLaneSet()).lanes ?? (_a3.lanes = [])).push(laneEl);
+            }
             ldi = m4.create("bpmndi:BPMNShape", {
-              bpmnElement: laneEl ?? m4.create("bpmn:Lane", { id: ln3.id }),
+              bpmnElement: laneEl,
               bounds: m4.create("dc:Bounds", { x: laneX, y: band.y, width: laneW, height: band.h })
             });
             const isHorizontal = pool.attrs?.poolHorizontal !== false;
@@ -83699,7 +84194,7 @@
           }
         });
       }
-      if (prefix2.length) (mainPlane.planeElement ??= []).unshift(...prefix2);
+      if (prefix2.length) (mainPlane.planeElement ?? (mainPlane.planeElement = [])).unshift(...prefix2);
     }
   }
   function laneBands(lanes, process2, model, poolY, poolH) {
@@ -83728,12 +84223,76 @@
     });
     return bands;
   }
+  function getPortOffset(portId, width2, height2) {
+    if (!portId) return { dx: width2 / 2, dy: height2 / 2 };
+    switch (portId) {
+      case "top":
+        return { dx: width2 / 2, dy: 0 };
+      case "top-1":
+        return { dx: width2 / 3, dy: 0 };
+      case "top-2":
+        return { dx: 2 * width2 / 3, dy: 0 };
+      case "bottom":
+        return { dx: width2 / 2, dy: height2 };
+      case "bottom-1":
+        return { dx: width2 / 3, dy: height2 };
+      case "bottom-2":
+        return { dx: 2 * width2 / 3, dy: height2 };
+      case "left":
+        return { dx: 0, dy: height2 / 2 };
+      case "left-1":
+        return { dx: 0, dy: height2 / 3 };
+      case "left-2":
+        return { dx: 0, dy: 2 * height2 / 3 };
+      case "right":
+        return { dx: width2, dy: height2 / 2 };
+      case "right-1":
+        return { dx: width2, dy: height2 / 3 };
+      case "right-2":
+        return { dx: width2, dy: 2 * height2 / 3 };
+      default:
+        return { dx: width2 / 2, dy: height2 / 2 };
+    }
+  }
+  function portIsHorizontal(portId, start, end, isSource) {
+    if (portId) {
+      return portId.startsWith("left") || portId.startsWith("right");
+    }
+    if (isSource) {
+      return Math.abs(end.x - start.x) > Math.abs(end.y - start.y);
+    } else {
+      return Math.abs(end.y - start.y) > Math.abs(end.x - start.x);
+    }
+  }
+  function getOrthogonalWaypoints(start, end, sourcePort, targetPort) {
+    const isHorizontalSource = portIsHorizontal(sourcePort, start, end, true);
+    const isHorizontalTarget = portIsHorizontal(targetPort, start, end, false);
+    if (isHorizontalSource && !isHorizontalTarget) {
+      return [start, { x: end.x, y: start.y }, end];
+    } else if (!isHorizontalSource && isHorizontalTarget) {
+      return [start, { x: start.x, y: end.y }, end];
+    } else if (isHorizontalSource && isHorizontalTarget) {
+      const mx = (start.x + end.x) / 2;
+      return [start, { x: mx, y: start.y }, { x: mx, y: end.y }, end];
+    } else {
+      const my = (start.y + end.y) / 2;
+      return [start, { x: start.x, y: my }, { x: end.x, y: my }, end];
+    }
+  }
   function buildWaypoints(e2, src, tgt, m4) {
     const point = (x3, y3) => m4.create("dc:Point", { x: x3, y: y3 });
-    const start = e2.sourceAnchor ? point(src.x + e2.sourceAnchor.dx, src.y + e2.sourceAnchor.dy) : point(src.x + src.width / 2, src.y + src.height / 2);
-    const end = e2.targetAnchor ? point(tgt.x + e2.targetAnchor.dx, tgt.y + e2.targetAnchor.dy) : point(tgt.x + tgt.width / 2, tgt.y + tgt.height / 2);
-    const mid = (e2.vertices ?? []).map((v4) => point(v4.x, v4.y));
-    return [start, ...mid, end];
+    const srcOffset = e2.sourceAnchor ?? getPortOffset(e2.sourcePort, src.width, src.height);
+    const tgtOffset = e2.targetAnchor ?? getPortOffset(e2.targetPort, tgt.width, tgt.height);
+    const start = { x: src.x + srcOffset.dx, y: src.y + srcOffset.dy };
+    const end = { x: tgt.x + tgtOffset.dx, y: tgt.y + tgtOffset.dy };
+    let waypoints;
+    if (e2.router === "orth" && (!e2.vertices || e2.vertices.length === 0)) {
+      waypoints = getOrthogonalWaypoints(start, end, e2.sourcePort, e2.targetPort);
+    } else {
+      const mid = e2.vertices ?? [];
+      waypoints = [start, ...mid, end];
+    }
+    return waypoints.map((w3) => point(w3.x, w3.y));
   }
   function pointAtDistance(wps, distance) {
     if (!wps.length) return { x: 0, y: 0 };
@@ -83774,13 +84333,20 @@
     });
   }
   function nodeLabelBoundsFromModel(m4, node2) {
-    const off = node2.attrs?.labelOffset;
-    if (!off || !off.x && !off.y) return void 0;
+    const isEvent = node2.shape.includes("event") || node2.shape.includes("bpmn-start") || node2.shape.includes("bpmn-intermediate") || node2.shape.includes("bpmn-end");
+    const isGw = node2.shape.includes("gateway");
+    if (!isEvent && !isGw) return void 0;
     const textLen = (node2.label ?? "").length;
+    if (!textLen) return void 0;
+    const off = node2.attrs?.labelOffset ?? { x: 0, y: 0 };
     const width2 = Math.max(30, Math.min(320, textLen * 7 + 18));
     const height2 = 20;
-    const cx = node2.x + node2.width / 2 + (off.x ?? 0);
-    const cy = node2.y + node2.height / 2 + (off.y ?? 0);
+    const isTop = (off.y ?? 0) < -10;
+    const defaultY = isGw ? 37 : 36;
+    const dy = (isTop ? -defaultY : defaultY) + (off.y ?? 0);
+    const dx = off.x ?? 0;
+    const cx = node2.x + node2.width / 2 + dx;
+    const cy = node2.y + node2.height / 2 + dy;
     return m4.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
   }
   async function emitMinimal(model, m4) {
@@ -83792,39 +84358,82 @@
       id: "Process_Export",
       isExecutable: false
     });
-    (defs.rootElements ??= []).push(process2);
+    (defs.rootElements ?? (defs.rootElements = [])).push(process2);
+    const pools = model.nodes.filter(
+      (n2) => n2.shape === "bpmn-pool" || n2.attrs?.__source?.kind === "pool"
+    );
+    if (pools.length) {
+      const collaboration = m4.create("bpmn:Collaboration", { id: "Collaboration_Export" });
+      collaboration.participants = pools.map((pool) => m4.create("bpmn:Participant", {
+        id: pool.id,
+        name: pool.label ?? "Pool",
+        processRef: process2
+      }));
+      (defs.rootElements ?? (defs.rootElements = [])).push(collaboration);
+      const lanes = pools.flatMap((pool) => pool.attrs?.lanes ?? []);
+      if (lanes.length) {
+        process2.laneSets = [m4.create("bpmn:LaneSet", {
+          id: `LaneSet_${process2.id ?? "Process_Export"}`,
+          lanes: lanes.map((ln3) => m4.create("bpmn:Lane", { id: ln3.id, name: ln3.label ?? ln3.id }))
+        })];
+      }
+    }
     const feById = /* @__PURE__ */ new Map();
     process2.flowElements = [];
     for (const n2 of model.nodes) {
+      const srcKind = n2.attrs?.__source?.kind;
+      if (n2.shape === "bpmn-pool" || n2.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
       const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), { id: n2.id, name: n2.label ?? "" });
       applyBpmnExtras(m4, fe3, n2.shape, n2.attrs ?? {});
       feById.set(n2.id, fe3);
     }
     for (const n2 of model.nodes) {
+      const srcKind = n2.attrs?.__source?.kind;
+      if (n2.shape === "bpmn-pool" || n2.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
       const fe3 = feById.get(n2.id);
       const parent = n2.parentId ? feById.get(n2.parentId) : void 0;
       const container = parent ?? process2;
-      (container.flowElements ??= []).push(fe3);
+      (container.flowElements ?? (container.flowElements = [])).push(fe3);
+    }
+    for (const ls of process2.laneSets ?? []) {
+      for (const ln3 of ls.lanes ?? []) {
+        const refs = [];
+        for (const n2 of model.nodes) {
+          if (n2.laneId !== ln3.id) continue;
+          const fe3 = feById.get(n2.id);
+          if (fe3) refs.push(fe3);
+        }
+        ln3.flowNodeRef = refs;
+      }
     }
     const sfById = /* @__PURE__ */ new Map();
-    for (const e2 of model.edges) {
+    const nodeIdSet = new Set(model.nodes.map((n2) => n2.id));
+    const validEdges = model.edges.filter((e2) => nodeIdSet.has(e2.source) && nodeIdSet.has(e2.target));
+    const collaborationRoot = (defs.rootElements ?? []).find((r2) => r2.$type === "bpmn:Collaboration") ?? null;
+    for (const e2 of validEdges) {
       const kind = edgeKindOf(e2);
-      const typeStr = kind === "message" ? "bpmn:SequenceFlow" : bpmnTypeForEdgeKind(kind);
+      let typeStr = bpmnTypeForEdgeKind(kind);
+      if (kind === "message" && !collaborationRoot) {
+        typeStr = "bpmn:SequenceFlow";
+      }
       const sf = m4.create(typeStr, {
         id: e2.id,
         name: e2.label ?? "",
         sourceRef: feById.get(e2.source),
         targetRef: feById.get(e2.target)
       });
-      applyEdgeExtras(m4, sf, kind === "message" ? "sequence" : kind, e2.attrs);
+      if (!sf.sourceRef || !sf.targetRef) continue;
+      applyEdgeExtras(m4, sf, kind === "message" && !collaborationRoot ? "sequence" : kind, e2.attrs);
       if (kind === "association") {
-        (process2.artifacts ??= []).push(sf);
+        (process2.artifacts ?? (process2.artifacts = [])).push(sf);
+      } else if (kind === "message" && collaborationRoot) {
+        (collaborationRoot.messageFlows ?? (collaborationRoot.messageFlows = [])).push(sf);
       } else {
         process2.flowElements.push(sf);
       }
       sfById.set(e2.id, sf);
     }
-    for (const e2 of model.edges) {
+    for (const e2 of validEdges) {
       if (!e2.attrs?.isDefault) continue;
       if (edgeKindOf(e2) !== "sequence") continue;
       const srcFe = feById.get(e2.source);
@@ -83833,19 +84442,24 @@
     }
     const plane = m4.create("bpmndi:BPMNPlane", {
       id: "Plane_Export",
-      bpmnElement: process2,
+      bpmnElement: collaborationRoot ?? process2,
       planeElement: []
     });
+    const diShape = /* @__PURE__ */ new Map();
     for (const n2 of model.nodes) {
+      const srcKind = n2.attrs?.__source?.kind;
+      if (n2.shape === "bpmn-pool" || n2.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
       const nLabel = nodeLabelBoundsFromModel(m4, n2);
-      plane.planeElement.push(m4.create("bpmndi:BPMNShape", {
+      const di = m4.create("bpmndi:BPMNShape", {
         id: n2.id + "_di",
         bpmnElement: feById.get(n2.id),
         bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height }),
         ...nLabel ? { label: m4.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {}
-      }));
+      });
+      plane.planeElement.push(di);
+      diShape.set(n2.id, di);
     }
-    for (const e2 of model.edges) {
+    for (const e2 of validEdges) {
       const src = model.nodes.find((n2) => n2.id === e2.source);
       const tgt = model.nodes.find((n2) => n2.id === e2.target);
       const sf = sfById.get(e2.id);
@@ -83859,8 +84473,9 @@
         ...eLabel ? { label: m4.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}
       }));
     }
+    emitPoolLaneShapes(model, defs, process2, plane, diShape, m4);
     const dia = m4.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-    (defs.diagrams ??= []).push(dia);
+    (defs.diagrams ?? (defs.diagrams = [])).push(dia);
     const { xml: xml3 } = await m4.toXML(defs, { format: true });
     return patchCamundaXml(xml3, model);
   }

@@ -5,3 +5,10 @@ node_modules/
 .DS_Store
 
 # Build artifacts kept (main.js committed for plugin distribution)
+
+# Harness / dev debug scratch — never commit
+.playwright-mcp/
+harness/sample.bpmn
+tests/dbg_*.mjs
+tests/screenshots/
+tests/test-bpmn-authoring.js

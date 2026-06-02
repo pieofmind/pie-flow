@@ -1,6 +1,7 @@
 import { Plugin, MarkdownView, Editor, MarkdownPostProcessorContext, Menu, Notice, TFile, WorkspaceLeaf, normalizePath, setIcon } from "obsidian";
 import { BoardView, BOARD_VIEW_TYPE } from "./view/BoardView";
 import { serializeBoard, deserializeBoard, OMNIBOARD_SUFFIX } from "./view/boardSerde";
+import { importBpmn } from "./io/bpmn/import";
 import { renderModelToSvg } from "./canvas/staticRender";
 import { render, h } from "preact";
 import { AdapterRegistry } from "./core/registry";
@@ -11,6 +12,10 @@ import { OMNIBOARD_PROPERTIES_VIEW_TYPE, OmniboardPropertiesView } from "./ui/Pr
 import { BpmnIssuesView, OMNIBOARD_ISSUES_VIEW_TYPE } from "./ui/BpmnIssuesView";
 import type { DiagramAdapter } from "./core/adapter";
 import { DiagramsSettings, DEFAULT_SETTINGS, DiagramsSettingTab } from "./settings";
+import { BpmnNativeView, BPMN_NATIVE_VIEW_TYPE } from "./bpmn-native/BpmnNativeView";
+import { MINIMAL_BPMN_XML } from "./bpmn-native/BpmnNativeController";
+import { BpmnPropertiesView, BPMN_PROPERTIES_VIEW_TYPE } from "./bpmn-native/BpmnPropertiesView";
+import { registerBpmnIcons } from "./bpmn-native/bpmn-icons";
 
 import { bpmnAdapter } from "./adapters/bpmn";
 import { erdAdapter } from "./adapters/erd";
@@ -38,14 +43,22 @@ export default class DiagramsPlugin extends Plugin {
 
   async onload(): Promise<void> {
     await this.loadSettings();
+    registerBpmnIcons();
 
     // ── Excalidraw-style board: shares the .md extension with Obsidian, but
     // auto-swaps to the board view when the file's frontmatter marks it as one.
     this.registerView(BOARD_VIEW_TYPE, (leaf) => new BoardView(leaf, this));
     this.registerView(OMNIBOARD_PROPERTIES_VIEW_TYPE, (leaf) => new OmniboardPropertiesView(leaf));
     this.registerView(OMNIBOARD_ISSUES_VIEW_TYPE, (leaf) => new BpmnIssuesView(leaf));
+    // ── BPMN Native Mode (spike): dedicated view for .bpmn files
+    this.registerView(BPMN_NATIVE_VIEW_TYPE, (leaf) => new BpmnNativeView(leaf, this));
+    this.registerView(BPMN_PROPERTIES_VIEW_TYPE, (leaf) => new BpmnPropertiesView(leaf));
+    this.registerExtensions(["bpmn"], BPMN_NATIVE_VIEW_TYPE);
     this.registerEvent(
-      this.app.workspace.on("file-open", (file) => void this.maybeSwapToBoardView(file))
+      this.app.workspace.on("file-open", (file) => {
+        void this.maybeSwapToBoardView(file);
+        void this.maybeSwapToBpmnNativeView(file);
+      })
     );
 
     // Add "Open as Omniboard" entry to the file's More-options menu (and
@@ -79,6 +92,12 @@ export default class DiagramsPlugin extends Plugin {
       id: "new-board",
       name: "New board",
       callback: () => this.createAndOpenBoard(),
+    });
+
+    this.addCommand({
+      id: "new-bpmn",
+      name: "New BPMN diagram",
+      callback: () => this.createAndOpenBpmn(),
     });
 
     this.addCommand({
@@ -126,6 +145,18 @@ export default class DiagramsPlugin extends Plugin {
     });
 
     this.addCommand({
+      id: "open-bpmn-native-properties",
+      name: "Open BPMN Native properties",
+      callback: async () => {
+        const existing = this.app.workspace.getLeavesOfType(BPMN_PROPERTIES_VIEW_TYPE)[0];
+        const leaf = existing ?? this.app.workspace.getRightLeaf(false);
+        if (!leaf) return;
+        await leaf.setViewState({ type: BPMN_PROPERTIES_VIEW_TYPE, active: true });
+        this.app.workspace.revealLeaf(leaf);
+      },
+    });
+
+    this.addCommand({
       id: "open-omniboard-bpmn-issues",
       name: "Open Omniboard BPMN issues",
       callback: async () => {
@@ -134,6 +165,80 @@ export default class DiagramsPlugin extends Plugin {
         if (!leaf) return;
         await leaf.setViewState({ type: OMNIBOARD_ISSUES_VIEW_TYPE, active: true });
         this.app.workspace.revealLeaf(leaf);
+      },
+    });
+
+    this.addCommand({
+      id: "open-bpmn-native",
+      name: "Open BPMN file in native mode",
+      checkCallback: (checking) => {
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf) return false;
+        // @ts-expect-error view.file is available on FileView at runtime
+        const file = leaf.view?.file as TFile | undefined;
+        if (!file || !file.path.endsWith(".bpmn")) return false;
+        if (checking) return true;
+        void leaf.setViewState({ type: BPMN_NATIVE_VIEW_TYPE, state: { file: file.path } });
+        return true;
+      },
+    });
+
+    this.addCommand({
+      id: "open-bpmn-source",
+      name: "Open BPMN file as source",
+      checkCallback: (checking) => {
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf) return false;
+        // @ts-expect-error view.file is available on FileView at runtime
+        const file = leaf.view?.file as TFile | undefined;
+        if (!file || !file.path.endsWith(".bpmn")) return false;
+        if (checking) return true;
+        void leaf.setViewState({ type: "markdown", state: { file: file.path } });
+        return true;
+      },
+    });
+
+    // Story 4.5 — Switch commands for wrapper format `.omniboard.md`.
+    this.addCommand({
+      id: "switch-to-bpmn-native",
+      name: "Switch to BPMN Native view",
+      checkCallback: (checking) => {
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf || leaf.view?.getViewType() !== BOARD_VIEW_TYPE) return false;
+        const file = (leaf.view as BoardView).file;
+        if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return false;
+        if (checking) return true;
+        void (leaf.view as BoardView).switchToBpmnNativeView();
+        return true;
+      },
+    });
+
+    this.addCommand({
+      id: "switch-to-board",
+      name: "Switch to Omniboard view",
+      checkCallback: (checking) => {
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf || leaf.view?.getViewType() !== BPMN_NATIVE_VIEW_TYPE) return false;
+        const view = leaf.view as BpmnNativeView;
+        if (!view.isWrapperMode()) return false;
+        if (checking) return true;
+        void view.switchToBoardView();
+        return true;
+      },
+    });
+
+    this.addCommand({
+      id: "convert-bpmn-to-wrapper",
+      name: "Convert .bpmn to Omniboard wrapper (.omniboard.md)",
+      checkCallback: (checking) => {
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf) return false;
+        // @ts-expect-error view.file is available on FileView at runtime
+        const file = leaf.view?.file as TFile | undefined;
+        if (!file || !file.path.endsWith(".bpmn")) return false;
+        if (checking) return true;
+        void this.convertBpmnToWrapper(file);
+        return true;
       },
     });
 
@@ -160,7 +265,53 @@ export default class DiagramsPlugin extends Plugin {
     this.addSettingTab(new DiagramsSettingTab(this.app, this));
   }
 
+  onunload(): void {
+    const styles = document.getElementById("bpmn-native-styles");
+    if (styles) styles.remove();
+  }
+
   /** Create a fresh, empty .omniboard.md file and return it (or null on failure). */
+  /**
+   * Convert a raw `.bpmn` file into a `.omniboard.md` wrapper next to it, then
+   * open the wrapper in BoardView. Master block is canvas-data imported from
+   * the BPMN XML; the original XML is embedded verbatim as the derived block.
+   */
+  private async convertBpmnToWrapper(bpmnFile: TFile): Promise<void> {
+    try {
+      const xml = await this.app.vault.read(bpmnFile);
+      const { model, sourceMeta } = await importBpmn(xml);
+      const basename = bpmnFile.basename;
+      const dir = bpmnFile.parent?.path ?? "";
+      const wrapperPath = normalizePath(
+        (dir ? dir + "/" : "") + `${basename}${OMNIBOARD_SUFFIX}`,
+      );
+      const content = serializeBoard(model, "", sourceMeta, {
+        compressDrawingData: this.settings.compressDrawingData,
+        bpmnXml: xml,
+      });
+      let wrapperFile: TFile | null = null;
+      try {
+        wrapperFile = await this.app.vault.create(wrapperPath, content);
+      } catch {
+        const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
+        if (existing instanceof TFile) {
+          await this.app.vault.modify(existing, content);
+          wrapperFile = existing;
+        }
+      }
+      if (!wrapperFile) {
+        new Notice("Không tạo được file wrapper .omniboard.md.");
+        return;
+      }
+      const leaf = this.app.workspace.getLeaf(false);
+      await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: wrapperFile.path } });
+      new Notice(`Đã tạo wrapper: ${wrapperFile.path}`);
+    } catch (err) {
+      console.error("[omniboard] convertBpmnToWrapper failed", err);
+      new Notice("Convert BPMN → wrapper thất bại. Xem console để biết chi tiết.");
+    }
+  }
+
   private async createBoardFile(): Promise<TFile | null> {
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -192,6 +343,14 @@ export default class DiagramsPlugin extends Plugin {
     const leaf = this.findLeafForFile(file);
     if (!leaf || leaf.view?.getViewType() === BOARD_VIEW_TYPE) return;
     await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
+  }
+
+  /** Auto-swap .bpmn files to the BPMN Native view. */
+  private async maybeSwapToBpmnNativeView(file: TFile | null): Promise<void> {
+    if (!file || !file.path.endsWith(".bpmn")) return;
+    const leaf = this.findLeafForFile(file);
+    if (!leaf || leaf.view?.getViewType() === BPMN_NATIVE_VIEW_TYPE) return;
+    await leaf.setViewState({ type: BPMN_NATIVE_VIEW_TYPE, state: { file: file.path } });
   }
 
   /** Resolve the marker frontmatter. metadataCache may not have indexed the
@@ -227,6 +386,19 @@ export default class DiagramsPlugin extends Plugin {
     const file = await this.createBoardFile();
     if (!file) return;
     await this.app.workspace.getLeaf("tab").openFile(file);
+  }
+
+  /** Create a new .bpmn file with template XML and open it in BPMN Native view. */
+  private async createAndOpenBpmn(): Promise<void> {
+    const folder = this.app.fileManager.getNewFileParent("");
+    const ts = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 15);
+    const path = normalizePath(`${folder.path}/BPMN-${ts}.bpmn`);
+    try {
+      const file = await this.app.vault.create(path, MINIMAL_BPMN_XML);
+      await this.app.workspace.getLeaf("tab").openFile(file);
+    } catch {
+      new Notice("Không tạo được file BPMN.");
+    }
   }
 
   /** Create a board, embed it at the cursor (`![[...]]`), and open it. */

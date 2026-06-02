@@ -61,8 +61,19 @@ export class OmniboardPropertiesView extends ItemView {
   private render(): void {
     this.contentEl.empty();
     const canvas = this.activeCanvas();
-    const snap = canvas?.getSelectedNodeSnapshot() ?? null;
-    if (!canvas || !snap) {
+    if (!canvas) {
+      this.contentEl.createDiv({
+        cls: "obp-empty",
+        text: "Chọn một node trên Omniboard để chỉnh BPMN metadata, màu DI và Camunda extensions.",
+      });
+      return;
+    }
+    // Story 6.1 — Multi-select branch: when ≥2 nodes selected, render bulk
+    // style editor instead of single-node panel.
+    const all = canvas.getSelectedNodesSnapshot();
+    if (all.length >= 2) { this.renderMulti(canvas, all); return; }
+    const snap = canvas.getSelectedNodeSnapshot();
+    if (!snap) {
       this.contentEl.createDiv({
         cls: "obp-empty",
         text: "Chọn một node trên Omniboard để chỉnh BPMN metadata, màu DI và Camunda extensions.",
@@ -70,6 +81,111 @@ export class OmniboardPropertiesView extends ItemView {
       return;
     }
     this.renderNode(canvas, snap);
+  }
+
+  // Story 6.1 — Multi-select bulk style editor (AC #6).
+  // Shows only the fields shared by ALL selected nodes (Fill/Stroke for now).
+  // Values that differ across cells show "—" (mixed); typing replaces ALL.
+  private renderMulti(canvas: OmniboardCanvas, snaps: SelectedNodeSnapshot[]): void {
+    const title = this.contentEl.createDiv({ cls: "obp-title" });
+    title.createSpan({ cls: "obp-kind", text: `${snaps.length} selected` });
+    title.createEl("strong", { text: "Multi-edit" });
+
+    // Same-kind guard: bulk style only applies cleanly when all cells share a kind.
+    const firstKind = snaps[0].kind;
+    const allSameKind = snaps.every((s) => s.kind === firstKind);
+    if (!allSameKind) {
+      this.contentEl.createDiv({
+        cls: "obp-empty",
+        text: "Chọn các node CÙNG LOẠI để chỉnh hàng loạt (hiện đang trộn nhiều loại).",
+      });
+      return;
+    }
+
+    const mixed = <T,>(get: (s: SelectedNodeSnapshot) => T): T | null => {
+      const first = get(snaps[0]);
+      for (let i = 1; i < snaps.length; i++) if (get(snaps[i]) !== first) return null;
+      return first;
+    };
+
+    const section = (name: string) => {
+      const s = this.contentEl.createDiv({ cls: "lk-psec" });
+      s.createDiv({ cls: "lk-psec-h", text: name });
+      return s;
+    };
+    const field = (parent: HTMLElement, label: string, control: HTMLElement) => {
+      const wrap = parent.createDiv({ cls: "lk-pfield" });
+      wrap.createEl("label", { text: label });
+      wrap.appendChild(control);
+    };
+
+    const ids = snaps.map((s) => s.id);
+
+    // [Review][Patch P12] After a bulk patch, emit selection-change so the
+    // panel re-renders — otherwise the "— (mixed)" placeholder stays even
+    // when all values are now equal.
+    const commit = (patch: Partial<Record<string, unknown>>) => {
+      canvas.patchNodesBulk(ids, patch as Partial<import("../canvas/htmlNode").NodeStyle>);
+      emitOmniboardSelectionChange();
+    };
+
+    // [Review][Patch P2] Validate before commit; switch to onchange (blur) so
+    // typing "#ffaa00" doesn't fire 7 batches and 7 undo entries. We still
+    // give visual swatch feedback on every keystroke (preview only).
+    const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+    const styleColorRow = (key: "fill" | "stroke", label: string) => {
+      const row = el("div", "lk-prow2");
+      const sw = el("div", "lk-pswatch");
+      const current = mixed((s) => s.style[key] as string | undefined);
+      sw.style.background = current ?? "transparent";
+      const input = el("input", "lk-pinput") as HTMLInputElement;
+      input.value = current ?? "";
+      input.placeholder = current === null ? "— (mixed)" : "#ffffff";
+      // Preview only — no commit.
+      input.oninput = () => {
+        const v = input.value.trim();
+        if (!v || HEX_RE.test(v) || v === "transparent") sw.style.background = v || "transparent";
+      };
+      // Commit on blur / Enter — one undo entry per intentional edit.
+      input.onchange = () => {
+        const v = input.value.trim();
+        if (v === "") { commit({ [key]: undefined }); return; }
+        if (v === "transparent" || HEX_RE.test(v)) { commit({ [key]: v }); return; }
+        // Invalid input → revert UI to current value, no commit.
+        input.value = current ?? "";
+        sw.style.background = current ?? "transparent";
+      };
+      input.onkeydown = (ev) => { if (ev.key === "Enter") input.blur(); };
+      row.appendChild(sw);
+      row.appendChild(input);
+      field(this.contentEl, label, row);
+    };
+
+    // [Review][Patch P1] Numeric fields (stroke-width, font-size) — same
+    // commit-on-blur pattern with NaN guard.
+    const styleNumberRow = (key: "borderWidth" | "fontSize", label: string, min: number, max: number) => {
+      const input = el("input", "lk-pinput") as HTMLInputElement;
+      input.type = "number"; input.min = String(min); input.max = String(max); input.step = "1";
+      const current = mixed((s) => (s.style as Record<string, unknown>)[key] as number | undefined);
+      input.value = current != null ? String(current) : "";
+      input.placeholder = current === null ? "— (mixed)" : "";
+      input.onchange = () => {
+        const v = input.value.trim();
+        if (v === "") { commit({ [key]: undefined }); return; }
+        const n = Number(v);
+        if (Number.isFinite(n) && n >= min && n <= max) commit({ [key]: n });
+        else input.value = current != null ? String(current) : "";
+      };
+      input.onkeydown = (ev) => { if (ev.key === "Enter") input.blur(); };
+      field(this.contentEl, label, input);
+    };
+
+    const sec = section("Bulk style");
+    sec.createDiv({ cls: "obp-empty", text: `Áp dụng cho ${snaps.length} node cùng loại "${firstKind}". Trường giá trị khác nhau hiển thị placeholder "— (mixed)". Edit commit on blur/Enter.` });
+    styleColorRow("fill", "Fill");
+    styleColorRow("stroke", "Stroke");
+    styleNumberRow("borderWidth", "Border width", 0, 20);
+    styleNumberRow("fontSize", "Font size", 8, 72);
   }
 
   private renderNode(canvas: OmniboardCanvas, snap: SelectedNodeSnapshot): void {

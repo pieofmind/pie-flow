@@ -870,14 +870,17 @@
   border: 1.6px solid var(--pg-border-strong); background: transparent; box-shadow: var(--sh-sm);
   overflow: hidden; border-radius: 6px; }
 .lk-root .bp-pool.is-vertical { flex-direction: column; }
-.lk-root .bp-pool-head { width: 30px; flex: 0 0 auto;
+.lk-root .bp-pool-head { width: 44px; flex: 0 0 auto;
   background: color-mix(in srgb, var(--pg-accent) 8%, var(--pg-surface));
   border-right: 1.6px solid var(--pg-border-strong);
   display: flex; align-items: center; justify-content: center;
   writing-mode: vertical-rl; transform: rotate(180deg);
-  font-size: 13px; font-weight: 700; color: var(--pg-text); padding: 6px 0; cursor: text; }
+  font-size: 13px; font-weight: 700; color: var(--pg-text);
+  padding: 6px 0; cursor: text;
+  /* Wrap long titles to 2 lines and keep them centered inside the strip. */
+  text-align: center; line-height: 1.25; white-space: normal; word-break: break-word; }
 .lk-root .bp-pool.is-vertical .bp-pool-head {
-  width: auto; height: 30px; writing-mode: horizontal-tb; transform: none;
+  width: auto; height: 44px; writing-mode: horizontal-tb; transform: none;
   border-right: none; border-bottom: 1.6px solid var(--pg-border-strong);
 }
 .lk-root .bp-pool-body { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
@@ -984,3 +987,4 @@
 .lk-fs-input::-webkit-inner-spin-button,
 .lk-fs-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .lk-fs-input[type="number"] { -moz-appearance: textfield; }
+

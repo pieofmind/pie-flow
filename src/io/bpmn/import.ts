@@ -283,8 +283,13 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       }
     }
     // Artifacts live alongside flowElements on Process / SubProcess.
+    // TextAnnotation and Group are NODES (rendered shapes); Association is an EDGE.
+    // Without this, an Association → TextAnnotation edge points at a missing
+    // target cell, which crashes X6's edge render queue and silently drops
+    // every edge that hasn't been processed yet (was 14/39 in a 3-pool BPMN).
     for (const ar of parent.artifacts ?? []) {
       if (ar.$type === "bpmn:Association") associations.push(ar);
+      else if (ar.$type === "bpmn:TextAnnotation" || ar.$type === "bpmn:Group") flowNodes.push(ar);
     }
   };
   for (const root of (definitions as ModdleElement).rootElements ?? []) {
@@ -567,7 +572,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     if (root.$type === "bpmn:Process" && root.id) processById.set(root.id, root);
   }
   const pools: CanvasModel["nodes"] = [];
-  const HEADER = 30;   // vertical pool title strip
+  const HEADER = 44;   // vertical pool title strip (matches CSS bp-pool-head width, fits 2-line titles)
   const LANE_HEAD = 24; // lane title strip
   const PAD = 30;
   const flowNodePoolId = new Map<string, string>();

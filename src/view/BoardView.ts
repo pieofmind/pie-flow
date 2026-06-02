@@ -3,6 +3,7 @@ import { OmniboardCanvas } from "../canvas/OmniboardCanvas";
 import type { CanvasModel } from "../canvas/types";
 import { registerAllShapes, SHAPE_CATEGORIES } from "../canvas/shapes/index";
 import { serializeBoard, deserializeBoard } from "./boardSerde";
+import { exportBpmn } from "../io/bpmn/export";
 import { importFromFile } from "../io/dispatcher";
 import { findById, FORMATS } from "../io/registry";
 import type { SourceMeta } from "../io/types";
@@ -163,6 +164,14 @@ export class BoardView extends TextFileView {
   private rawData = "";
   private invalidFormat = false;
   private readonly plugin: DiagramsPlugin;
+  /**
+   * Derived BPMN 2.0 XML refreshed by `save()` before each persist. Values:
+   *  - `undefined` → never regenerated yet; serializer preserves the previous block.
+   *  - `string`    → embed this XML into the `omniboard-bpmn-xml` block.
+   *  - `""`        → previous regen attempt failed; drop the block (master canvas
+   *                   model is still written, BPMN view will lazy-regenerate).
+   */
+  private cachedBpmnXml: string | undefined = undefined;
 
   constructor(leaf: WorkspaceLeaf, plugin: DiagramsPlugin) {
     super(leaf);
@@ -224,6 +233,11 @@ export class BoardView extends TextFileView {
       m.showAtPosition({ x: r.left, y: r.bottom + 4 });
     });
     bar.createDiv({ cls: "da-tb-divider" });
+    iconBtn(
+      "workflow",
+      "Switch to BPMN Native view",
+      () => void this.switchToBpmnNativeView(),
+    );
     iconBtn("file-text", "Mở dưới dạng Markdown", () => this.openAsMarkdown());
     const imp = bar.createEl("button", { cls: "da-tb-ic" });
     setIcon(imp, "upload"); imp.setAttribute("aria-label", "Import");
@@ -241,6 +255,17 @@ export class BoardView extends TextFileView {
 
   getCanvas(): OmniboardCanvas | null {
     return this.canvas;
+  }
+
+  /**
+   * Switch this leaf to the BPMN Native view on the same wrapper file. The view
+   * type string is hard-coded to avoid a circular import with BpmnNativeView —
+   * it stays in lock-step with `BPMN_NATIVE_VIEW_TYPE` in BpmnNativeView.ts.
+   */
+  async switchToBpmnNativeView(): Promise<void> {
+    if (!this.file) return;
+    await this.save();
+    await this.leaf.setViewState({ type: "bpmn-native", state: { file: this.file.path } });
   }
 
   focusCellId(id: string): boolean {
@@ -365,7 +390,33 @@ export class BoardView extends TextFileView {
     if (this.canvas) this.model = this.canvas.getModel();
     return serializeBoard(this.model, this.rawData, this.pendingSourceMeta ?? undefined, {
       compressDrawingData: this.plugin.settings.compressDrawingData,
+      bpmnXml: this.cachedBpmnXml,
     });
+  }
+
+  /**
+   * Override the persist path so the derived `omniboard-bpmn-xml` block can be
+   * refreshed via the async `exportBpmn(model)` pipeline before the sync
+   * `getViewData()` is invoked by the framework. Best-effort: on failure the
+   * derived block is dropped, never the master canvas data.
+   */
+  async save(clear?: boolean): Promise<void> {
+    if (!this.invalidFormat) {
+      if (this.canvas) this.model = this.canvas.getModel();
+      const start = performance.now();
+      try {
+        const xml = await exportBpmn(this.model, this.pendingSourceMeta ?? undefined);
+        this.cachedBpmnXml = xml;
+      } catch (err) {
+        this.cachedBpmnXml = ""; // explicitly drop the stale derived block
+        console.warn("[omniboard] BPMN regen failed; dropping derived block", err);
+      }
+      const elapsed = performance.now() - start;
+      if (elapsed > 100) {
+        console.warn(`[omniboard] BPMN regen took ${elapsed.toFixed(1)}ms`);
+      }
+    }
+    return super.save(clear);
   }
 
   clear(): void { this.model = EMPTY_MODEL; }

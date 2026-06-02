@@ -345,7 +345,7 @@ function findLane(process: ModdleElement, id: string): ModdleElement | undefined
   return undefined;
 }
 
-const POOL_HEADER = 30;  // pool vertical title strip
+const POOL_HEADER = 44;  // pool vertical title strip (fits 2-line wrapped titles, matches CSS bp-pool-head width)
 const LANE_HEADER = 30;  // lane vertical title strip
 const POOL_MARGIN = 40;  // padding between content bbox and pool edges
 

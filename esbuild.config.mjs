@@ -1,6 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import { copyFile } from "fs/promises";
 
 const banner = `/* obsidian-diagrams — bundled by esbuild. Source: github.com/nguyenkalix84 */`;
 
@@ -24,7 +25,9 @@ const context = await esbuild.context({
 
 if (prod) {
   await context.rebuild();
+  await copyFile("src/bpmn-native/bpmn-native.css", "bpmn-native.css");
   process.exit(0);
 } else {
+  await copyFile("src/bpmn-native/bpmn-native.css", "bpmn-native.css");
   await context.watch();
 }

@@ -82,7 +82,17 @@ Embed a board into a note with `![[Board ….board]]`.
 
 ## 💾 Save format
 
-A board is a single `.board` file containing JSON `CanvasModel { nodes, edges }`. Diagram-specific data (ERD columns, UML members, BPMN lanes, sequence metadata) is stored per node under `attrs`. Plain text → git-friendly, diff-able, searchable.
+A board is a single `.omniboard.md` file — plain Markdown so Obsidian's link graph, search and read-mode all keep working. The plugin reads/writes three optional fenced code blocks inside a `%%`-comment fold:
+
+| Block | Role | Contents |
+|---|---|---|
+| ```` ```omniboard-data ```` | **Master** | `CanvasModel { nodes, edges }` (pako-compressed JSON). The source of truth — every save regenerates other blocks from this one. |
+| ```` ```omniboard-bpmn-xml ```` | **Derived** | Raw BPMN 2.0 XML, regenerated eagerly on each save when the canvas is BPMN-shaped. Enables the BPMN Native view to open the same wrapper file without converting to a separate `.bpmn` file. |
+| ```` ```omniboard-source-meta ```` | Optional | Side data preserved from an original import (e.g. unmapped BPMN elements). |
+
+**Master rule:** `omniboard-data` always wins. If you hand-edit the raw `omniboard-bpmn-xml` block in a text editor, your edits are discarded the next time the BoardView saves — the canvas master is re-exported into that block. Treat the XML block as a cache.
+
+**Switching views.** Open a `.omniboard.md` in BoardView and click the "Switch to BPMN Native view" toolbar button (or run the `Omniboard: Switch to BPMN Native view` command) to flip the same leaf to the BPMN modeler — no file conversion, no second file. The reverse button appears in the BPMN Native toolbar only when viewing a wrapper file. Raw `.bpmn` files keep their existing one-view behaviour, and the `Omniboard: Convert .bpmn to Omniboard wrapper` command pairs an existing `.bpmn` into a fresh `<name>.omniboard.md`.
 
 ---
 

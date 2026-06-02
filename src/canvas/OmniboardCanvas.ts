@@ -10,6 +10,12 @@ import { shapeIcon } from "./shapes/index";
 import { FIXED_PORT_IDS, type FixedPortId } from "./shapes/ports";
 import { nodeHtml, defaultErdCols, defaultUml, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { collectPluginCss } from "./staticRender";
+import {
+  alignLeft, alignCenterH, alignRight,
+  alignTop, alignMiddleV, alignBottom,
+  distributeH, distributeV,
+  type AlignCell, type AlignResult,
+} from "./bulkAlign";
 import * as dagre from "@dagrejs/dagre";
 
 export type { PaletteItem, ShapeCategory, CanvasModel };
@@ -501,7 +507,25 @@ export class OmniboardCanvas {
       },
     });
 
-    graph.use(new Selection({ rubberband: true, showNodeSelectionBox: true, pointerEvents: "none" }));
+    // Story 6.1 — multi-select. [Review][Patch P9] X6 v2 has TWO modifier configs:
+    //  • `modifiers` gates RUBBERBAND activation (which modifier must be held to
+    //     start a rubberband-drag). Leave UNSET so plain click-drag-on-blank
+    //     starts a rubberband (AC#7) — setting it to "shift" would force users
+    //     to hold Shift just to drag-select, breaking the rubberband UX.
+    //  • `multipleSelectionModifiers` gates CLICK-TOGGLE (which modifier toggles
+    //     a clicked cell in/out of the selection). We set this to "shift" so
+    //     Shift+click toggles (bpmn.io / Figma / mxGraph convention — AC#1).
+    //     Default would be ["ctrl", "meta"] which conflicts with copy/paste.
+    //  • Rubberband + Shift unions the new box with the existing selection
+    //    via the multipleSelectionModifiers path.
+    graph.use(new Selection({
+      enabled: true,
+      multiple: true,
+      rubberband: true,
+      multipleSelectionModifiers: "shift",
+      showNodeSelectionBox: true,
+      pointerEvents: "none",
+    } as unknown as ConstructorParameters<typeof Selection>[0]));
     graph.use(new History());
     graph.use(new Keyboard());
     graph.use(new Snapline({ enabled: true }));
@@ -510,7 +534,15 @@ export class OmniboardCanvas {
 
     graph.bindKey(["backspace", "delete"], () => {
       const cells = graph.getSelectedCells();
-      if (cells.length) graph.removeCells(cells);
+      if (!cells.length) return;
+      // Batch the removal — without it, a 30+ cell delete (e.g. Ctrl+A then
+      // Delete on a BPMN import) fires onChange/save once PER cell and freezes
+      // the UI while ports/anchors recompute. Also pre-deselect so the
+      // selection plugin doesn't keep stale references to removed cells.
+      graph.cleanSelection();
+      graph.startBatch("delete");
+      try { graph.removeCells(cells); }
+      finally { graph.stopBatch("delete"); }
     });
     graph.bindKey(["ctrl+z", "cmd+z"], () => graph.canUndo() && graph.undo());
     graph.bindKey(["ctrl+shift+z", "cmd+shift+z"], () => graph.canRedo() && graph.redo());
@@ -1313,18 +1345,69 @@ export class OmniboardCanvas {
     // We hook the granular position-change event (fires per drag tick) and use
     // X6's `previous` arg to read the delta exactly once per change.
     this.graph.on("node:change:position", ({ node, current, previous, options }) => {
-      // Skip our own re-positioning calls (re-entry guard) and X6's silent moves.
+      // Skip our own re-positioning calls (re-entry guards) and X6's silent moves.
       if (options?.["__boundary_follow"]) return;
+      if (options?.["__bulk_follow"]) return;
       if (!current || !previous) return;
       const dx = current.x - previous.x;
       const dy = current.y - previous.y;
       if (dx === 0 && dy === 0) return;
       const movedId = node.id;
+      // Boundary events: fan out to any node whose extra.attachedTo points at this.
       for (const child of this.graph.getNodes()) {
         if (child.id === movedId) continue;
         if (child.getData()?.attachedTo !== movedId) continue;
         const p = child.getPosition();
         child.setPosition(p.x + dx, p.y + dy, { "__boundary_follow": true } as Record<string, unknown>);
+      }
+      // Story 6.1 AC3 — Bulk move: only when the move came from a user-driven
+      // interaction (options.ui === true from X6 drag). This stops programmatic
+      // setPosition calls (dagre layout, loadModel, history.undo) from fanning
+      // out delta to a coincidentally-active selection. [Review][Patch P7]
+      if (!options?.["ui"]) return;
+      const sel = this.graph.getSelectedCells().filter((c) => c.isNode?.()) as Node[];
+      if (sel.length < 2) return;
+      if (!sel.some((c) => c.id === movedId)) return;
+      const selIds = new Set(sel.map((c) => c.id));
+      // Skip descendants of selected ancestors — X6 auto-translates embedded
+      // children when their parent moves, so applying delta again would double-shift.
+      const isDescendantOfSelected = (n: Node): boolean => {
+        let p = n.getParent();
+        while (p) {
+          if (selIds.has(p.id)) return true;
+          p = p.getParent();
+        }
+        return false;
+      };
+      // [Review][Patch P4] Skip boundary events attached to movedId — the
+      // boundary-follow pass above already shifted them by the same delta.
+      // Without this guard, a boundary event that is ALSO in the selection
+      // gets shifted twice (boundary-follow + bulk-follow).
+      const isBoundaryOfMoved = (n: Node): boolean => n.getData()?.attachedTo === movedId;
+      // [Review][Patch P3] Collect edges whose BOTH endpoints sit in the
+      // selection so we can translate their vertices alongside the nodes.
+      // Edges with one endpoint in / one out follow the node naturally via X6.
+      const selEdges = this.graph.getSelectedCells().filter((c) => !c.isNode?.()) as Edge[];
+      const allMovingIds = new Set(selIds);
+      for (const peer of sel) {
+        if (peer.id === movedId) continue;
+        if (isDescendantOfSelected(peer)) continue;
+        if (isBoundaryOfMoved(peer)) continue;
+        const p = peer.getPosition();
+        peer.setPosition(p.x + dx, p.y + dy, { "__bulk_follow": true } as Record<string, unknown>);
+      }
+      // Translate edges where both endpoints are inside the moving group:
+      //   - both endpoints in node selection → vertices shift by same delta
+      //   - edge itself in selection AND its source+target are nodes in the
+      //     moving group → translate vertices
+      for (const edge of selEdges) {
+        const srcId = edge.getSourceCellId?.();
+        const tgtId = edge.getTargetCellId?.();
+        if (!srcId || !tgtId) continue;
+        if (!allMovingIds.has(srcId) || !allMovingIds.has(tgtId)) continue;
+        const verts = edge.getVertices?.();
+        if (!verts?.length) continue;
+        edge.setVertices(verts.map((v) => ({ x: v.x + dx, y: v.y + dy })));
       }
     });
     this.graph.on("node:resized", () => { this.refreshContextBar(); this.refreshContextPad(); });
@@ -1365,7 +1448,14 @@ export class OmniboardCanvas {
     // reliably clear on a plain blank click, so do it explicitly (this is the
     // "can't unselect" the user hit). blank:click only fires on a click without
     // a drag, so it won't fight rubberband box-select.
-    this.graph.on("blank:click", () => { this.hidePopup(); this.commitLabel(); this.graph.cleanSelection(); });
+    // Story 6.1 AC7 — Shift+blank-click MUST preserve current selection (only a
+    // plain blank-click clears it). X6's blank:click handler receives the native
+    // MouseEvent in `e`; we gate cleanSelection on the shift modifier.
+    this.graph.on("blank:click", ({ e }: { e?: MouseEvent }) => {
+      this.hidePopup();
+      this.commitLabel();
+      if (!e?.shiftKey) this.graph.cleanSelection();
+    });
     this.graph.on("blank:mousedown", () => this.hidePopup());
 
     // Sequence messages: when both endpoints are sequence lifelines, swap the
@@ -1617,7 +1707,10 @@ export class OmniboardCanvas {
     // Disable the rubberband (blue selection box) while panning.
     const g = this.graph as unknown as { enableRubberband?: () => void; disableRubberband?: () => void };
     if (pan) g.disableRubberband?.(); else g.enableRubberband?.();
-    if (pan) this.graph.cleanSelection();
+    // [Review][Patch P11] AC#7 — preserve selection across tool switches
+    // (pan/zoom → select). Previously `cleanSelection()` ran on every switch
+    // to pan, wiping the user's multi-selection. Selection indicators stay
+    // visible during pan (Figma/Excalidraw convention).
     // Pan is implemented manually via Pointer Events (X6's built-in panning only
     // listens for mouse, so it doesn't work on touch). touch-action:none stops
     // the browser from turning the drag into a page scroll.
@@ -2129,6 +2222,55 @@ export class OmniboardCanvas {
     };
   }
 
+  // Story 6.1 — Returns ALL selected node snapshots (empty array when none).
+  // PropertiesPanel uses this for multi-select UX. Single-cell callers should
+  // keep using getSelectedNodeSnapshot() for backwards compatibility.
+  getSelectedNodesSnapshot(): SelectedNodeSnapshot[] {
+    const nodes = this.graph.getSelectedCells().filter((c) => c.isNode()) as Node[];
+    return nodes.map((node) => {
+      const p = node.getPosition();
+      const s = node.getSize();
+      return {
+        id: node.id,
+        kind: this.nodeKind(node),
+        label: this.nodeLabel(node),
+        attrs: { ...(node.getData() ?? {}) },
+        style: this.nodeStyle(node),
+        position: { x: p.x, y: p.y },
+        size: { width: s.width, height: s.height },
+      };
+    });
+  }
+
+  // Story 6.1 — Apply the same style patch to every cell in `ids` inside one
+  // X6 batch so undo treats it as a single step. Callers compute the patch
+  // (e.g. from PropertiesPanel) and we just iterate-and-write. Cells with
+  // unknown ids are silently skipped.
+  // [Review][Patch P8] `setStyle` calls `onChange` + `rerender` per cell — N
+  // cells × M keystrokes = N×M re-saves. Use silent in-place update + a single
+  // onChange() at the end of the batch. Also skip onChange when zero patches
+  // landed (all ids resolved to nothing).
+  // [Review][Patch P13] Don't pre-merge here — `setStyle` already merges
+  // prev+patch internally; passing a pre-merged object is wasted work and
+  // bypasses future setStyle normalization.
+  patchNodesBulk(ids: string[], style: Partial<NodeStyle>): void {
+    if (!ids.length) return;
+    let applied = 0;
+    this.graph.startBatch("bulk-style");
+    try {
+      for (const id of ids) {
+        const cell = this.graph.getCellById(id);
+        if (!cell?.isNode()) continue;
+        const node = cell as Node;
+        const next = { ...this.nodeStyle(node), ...style };
+        node.setData({ ...node.getData(), style: next });
+        this.rerender(node);
+        applied++;
+      }
+    } finally { this.graph.stopBatch("bulk-style"); }
+    if (applied > 0) this.onChange();
+  }
+
   patchSelectedNode(patch: {
     label?: string;
     attrs?: Record<string, unknown>;
@@ -2432,8 +2574,22 @@ export class OmniboardCanvas {
   }
 
   // ── Contextual toolbar above selected node ──────────────────────────────
+  // [Review][Patch P14] Rubberband-select 100+ cells fires one node:selected
+  // per cell → without coalescing, refreshContextBar runs N times and each call
+  // rebuilds the DOM + scans every selected node's bbox = O(N²) jank. RAF-debounce
+  // collapses an event burst into a single render once the call stack drains.
   private refreshContextBar() {
+    if (this.contextBarRaf != null) return;
+    this.contextBarRaf = requestAnimationFrame(() => {
+      this.contextBarRaf = null;
+      this.renderContextBarNow();
+    });
+  }
+  private contextBarRaf: number | null = null;
+  private renderContextBarNow() {
     const nodes = this.graph.getSelectedCells().filter((c) => c.isNode()) as Node[];
+    // Story 6.1 AC5 — multi-select bulk toolbar: align (≥2) + distribute (≥3).
+    if (nodes.length >= 2) { this.renderBulkBar(nodes); return; }
     if (nodes.length !== 1) { this.contextBar.style.display = "none"; return; }
     const node = nodes[0];
     // Mindmap nodes use the floating "+" fabs (top/right/bottom) for their
@@ -2530,6 +2686,81 @@ export class OmniboardCanvas {
     this.contextBar.style.left = Math.max(8, Math.min(left - bw / 2, rw - bw - 8)) + "px";
     // Sit above the top "+" pad (pad center at top-24, r≈11) so they don't overlap.
     this.contextBar.style.top = Math.max(8, top - 42 - bh) + "px";
+  }
+
+  // Story 6.1 — Bulk toolbar rendered when 2+ nodes are selected.
+  // Action buttons compute new (x, y) via pure bulkAlign helpers and apply
+  // them inside ONE batch so undo/redo treats the operation as a single step.
+  private renderBulkBar(nodes: Node[]) {
+    this.contextBar.innerHTML = "";
+    const mkBtn = (svg: string, title: string, fn: () => void, disabled = false) => {
+      const b = el("button", "lk-cb-btn", svg); b.title = title;
+      if (disabled) b.setAttribute("disabled", "true");
+      else b.onclick = fn;
+      return b;
+    };
+    const apply = (op: (cells: AlignCell[]) => AlignResult, opName: string) => {
+      // [Review][Patch P6] Re-fetch the live selection at click time — the
+      // closure `nodes` is captured at bar-render time and may include cells
+      // that have since been deleted, deselected, or replaced. Stale Cell
+      // refs will throw inside getPosition().
+      const live = this.graph.getSelectedCells().filter((c) => c.isNode?.()) as Node[];
+      if (live.length < 2) return;
+      const input: AlignCell[] = live.map((n) => {
+        const p = n.getPosition(); const s = n.getSize();
+        return { id: n.id, x: p.x, y: p.y, width: s.width, height: s.height };
+      });
+      const out = op(input);
+      this.graph.startBatch(opName);
+      try {
+        for (const r of out) {
+          const cell = this.graph.getCellById(r.id);
+          // Pass `__bulk_follow` so node:change:position's bulk-move handler
+          // skips this update (otherwise the per-iter delta gets fan-out to
+          // peers and the loop fights itself, leaving cells off-position).
+          if (cell?.isNode()) cell.setPosition(r.x, r.y, { "__bulk_follow": true } as Record<string, unknown>);
+        }
+      } finally { this.graph.stopBatch(opName); }
+      this.onChange();
+    };
+    // Icons: simple, monochrome SVG — match existing context-bar style.
+    const I = (paths: string) => `<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+    const ICN_AL = I('<path d="M3 3v14"/><rect x="5" y="5" width="9" height="4"/><rect x="5" y="11" width="13" height="4"/>');
+    const ICN_AC = I('<path d="M10 3v14"/><rect x="6" y="5" width="8" height="4"/><rect x="3" y="11" width="14" height="4"/>');
+    const ICN_AR = I('<path d="M17 3v14"/><rect x="6" y="5" width="9" height="4"/><rect x="2" y="11" width="13" height="4"/>');
+    const ICN_AT = I('<path d="M3 3h14"/><rect x="5" y="5" width="4" height="9"/><rect x="11" y="5" width="4" height="13"/>');
+    const ICN_AM = I('<path d="M3 10h14"/><rect x="5" y="6" width="4" height="8"/><rect x="11" y="3" width="4" height="14"/>');
+    const ICN_AB = I('<path d="M3 17h14"/><rect x="5" y="6" width="4" height="9"/><rect x="11" y="2" width="4" height="13"/>');
+    const ICN_DH = I('<rect x="2" y="6" width="3" height="8"/><rect x="8.5" y="6" width="3" height="8"/><rect x="15" y="6" width="3" height="8"/>');
+    const ICN_DV = I('<rect x="6" y="2" width="8" height="3"/><rect x="6" y="8.5" width="8" height="3"/><rect x="6" y="15" width="8" height="3"/>');
+
+    this.contextBar.appendChild(mkBtn(ICN_AL, "Căn trái",            () => apply(alignLeft,     "bulk-align-left")));
+    this.contextBar.appendChild(mkBtn(ICN_AC, "Căn giữa (ngang)",    () => apply(alignCenterH,  "bulk-align-center-h")));
+    this.contextBar.appendChild(mkBtn(ICN_AR, "Căn phải",            () => apply(alignRight,    "bulk-align-right")));
+    this.contextBar.appendChild(el("div", "lk-cb-sep"));
+    this.contextBar.appendChild(mkBtn(ICN_AT, "Căn trên",            () => apply(alignTop,      "bulk-align-top")));
+    this.contextBar.appendChild(mkBtn(ICN_AM, "Căn giữa (dọc)",      () => apply(alignMiddleV,  "bulk-align-middle-v")));
+    this.contextBar.appendChild(mkBtn(ICN_AB, "Căn dưới",            () => apply(alignBottom,   "bulk-align-bottom")));
+    this.contextBar.appendChild(el("div", "lk-cb-sep"));
+    const can3 = nodes.length >= 3;
+    this.contextBar.appendChild(mkBtn(ICN_DH, can3 ? "Phân bố đều theo chiều ngang" : "Phân bố ngang (cần ≥3 element)", () => apply(distributeH, "bulk-distribute-h"), !can3));
+    this.contextBar.appendChild(mkBtn(ICN_DV, can3 ? "Phân bố đều theo chiều dọc"   : "Phân bố dọc (cần ≥3 element)",   () => apply(distributeV, "bulk-distribute-v"), !can3));
+
+    this.contextBar.style.display = "flex";
+    if (this.isMobile) { this.dockBarAboveMbar(this.contextBar); return; }
+    // Float above the bounding box of the whole selection.
+    const xs = nodes.map((n) => n.getBBox());
+    const minX = Math.min(...xs.map((b) => b.x));
+    const minY = Math.min(...xs.map((b) => b.y));
+    const maxX = Math.max(...xs.map((b) => b.x + b.width));
+    const s = this.graph.scale().sx; const t = this.graph.translate();
+    const cx = ((minX + maxX) / 2) * s + t.tx;
+    const top = minY * s + t.ty;
+    const bw = this.contextBar.offsetWidth || 320;
+    const bh = this.contextBar.offsetHeight || 40;
+    const rw = this.root.clientWidth;
+    this.contextBar.style.left = Math.max(8, Math.min(cx - bw / 2, rw - bw - 8)) + "px";
+    this.contextBar.style.top = Math.max(8, top - 12 - bh) + "px";
   }
 
   /**
@@ -3692,8 +3923,8 @@ export class OmniboardCanvas {
 
   // ── Model load / serialize ───────────────────────────────────────────────
   loadModel(model: CanvasModel) {
-    this.graph.startBatch("load");
     this.graph.clearCells();
+    this.graph.startBatch("load");
     for (const n of model.nodes) {
       const a = n.attrs ?? {};
       const style = (a.style as NodeStyle) ?? {};
@@ -3783,9 +4014,12 @@ export class OmniboardCanvas {
       const targetPort = this.normalizeLegacyBpmnEventPort(e.target, e.targetPort);
       const sourceEnd: Record<string, unknown> = { cell: e.source };
       if (e.sourceAnchor) {
+        // NOTE: must NOT set `port` here — X6's topLeft anchor would resolve
+        // its (dx, dy) against the PORT's tiny bbox (~5x5px) instead of the
+        // node's bbox, collapsing the endpoint to a stub near the port marker.
+        // The sourcePort is still preserved on canvas data for export.
         sourceEnd.anchor = { name: "topLeft", args: { dx: e.sourceAnchor.dx, dy: e.sourceAnchor.dy } };
         sourceEnd.connectionPoint = { name: "anchor" };
-        sourceEnd.port = e.sourcePort;
       } else if (sourcePort) {
         sourceEnd.port = sourcePort;
         sourceEnd.connectionPoint = PORT_CONNECTION_POINT;
@@ -3819,9 +4053,10 @@ export class OmniboardCanvas {
       }
       const targetEnd: Record<string, unknown> = { cell: e.target };
       if (e.targetAnchor) {
+        // Same caveat as sourceAnchor — never set `port` alongside the
+        // topLeft anchor (X6 would resolve dx/dy against the port's bbox).
         targetEnd.anchor = { name: "topLeft", args: { dx: e.targetAnchor.dx, dy: e.targetAnchor.dy } };
         targetEnd.connectionPoint = { name: "anchor" };
-        targetEnd.port = e.targetPort;
       } else if (targetPort) {
         targetEnd.port = targetPort;
         targetEnd.connectionPoint = PORT_CONNECTION_POINT;

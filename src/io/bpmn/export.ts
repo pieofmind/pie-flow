@@ -710,6 +710,7 @@ function emitPoolLaneShapes(
   mainPlane: { planeElement?: ModdleElement[]; bpmnElement?: ModdleElement | string },
   diShape: Map<string, ModdleElement>,
   m: BpmnModdle,
+  processByPoolId?: Map<string, ModdleElement>,
 ): void {
   const pools = model.nodes.filter((n) =>
     n.shape === "bpmn-pool" ||
@@ -723,10 +724,14 @@ function emitPoolLaneShapes(
     (definitions.rootElements ??= []).push(collaboration);
     return collaboration;
   };
-  const ensureLaneSet = (): ModdleElement => {
-    if ((process.laneSets ?? []).length) return process.laneSets![0];
-    const laneSet = m.create("bpmn:LaneSet", { id: `LaneSet_${process.id ?? "Process_Export"}` }) as ModdleElement;
-    (process.laneSets ??= []).push(laneSet);
+  // Resolve "process for this pool" — falls back to the single shared
+  // `process` arg when no per-pool map is provided (legacy single-pool path).
+  const processForPool = (poolId: string): ModdleElement =>
+    processByPoolId?.get(poolId) ?? process;
+  const ensureLaneSetIn = (proc: ModdleElement): ModdleElement => {
+    if ((proc.laneSets ?? []).length) return proc.laneSets![0];
+    const laneSet = m.create("bpmn:LaneSet", { id: `LaneSet_${proc.id ?? "Process_Export"}` }) as ModdleElement;
+    (proc.laneSets ??= []).push(laneSet);
     return laneSet;
   };
 
@@ -749,6 +754,7 @@ function emitPoolLaneShapes(
   // Single pool is the realistic case; for >1 just stack them (rare).
   for (const pool of pools) {
     const prefix: ModdleElement[] = [];
+    const poolProcess = processForPool(pool.id);
 
     // Participant shape — patch existing or create new.
     let pdi = diShape.get(pool.id);
@@ -760,7 +766,8 @@ function emitPoolLaneShapes(
         part = m.create("bpmn:Participant", {
           id: pool.id,
           name: pool.label ?? "Pool",
-          processRef: process,
+          // Each participant references its OWN process when multi-pool.
+          processRef: poolProcess,
         }) as ModdleElement;
         (ensureCollaboration().participants ??= []).push(part);
       }
@@ -782,7 +789,7 @@ function emitPoolLaneShapes(
     if (lanes.length) {
       // Build contiguous bands. If a lane has no member info we fall back to an
       // equal split so the bands always exactly tile poolH.
-      const bands = laneBands(lanes, process, model, poolY, poolH);
+      const bands = laneBands(lanes, poolProcess, model, poolY, poolH);
       lanes.forEach((ln, i) => {
         if (!ln.id) return;
         const band = bands[i];
@@ -790,10 +797,13 @@ function emitPoolLaneShapes(
         if (ldi?.bounds) {
           ldi.bounds.x = laneX; ldi.bounds.y = band.y; ldi.bounds.width = laneW; ldi.bounds.height = band.h;
         } else {
-          let laneEl = findLane(process, ln.id);
+          // Lane lives in THIS pool's process (multi-pool) or the shared
+          // process (single-pool). findLane must look in the right process,
+          // else we'd create a duplicate lane element when emitting DI.
+          let laneEl = findLane(poolProcess, ln.id);
           if (!laneEl) {
             laneEl = m.create("bpmn:Lane", { id: ln.id, name: ln.label ?? ln.id }) as ModdleElement;
-            (ensureLaneSet().lanes ??= []).push(laneEl);
+            (ensureLaneSetIn(poolProcess).lanes ??= []).push(laneEl);
           }
           ldi = m.create("bpmndi:BPMNShape", {
             bpmnElement: laneEl,
@@ -1004,42 +1014,120 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     id: "Definitions_Export",
     targetNamespace: "http://omniboard.local/bpmn",
   }) as ModdleElement;
-  const process = m.create("bpmn:Process", {
-    id: "Process_Export",
-    isExecutable: false,
-  }) as ModdleElement;
-  (defs.rootElements ??= []).push(process);
   const pools = model.nodes.filter((n) =>
     n.shape === "bpmn-pool" ||
     (n.attrs?.__source as { kind?: string } | undefined)?.kind === "pool",
   );
+
+  // ── Process(es) ────────────────────────────────────────────────────────
+  // Multi-pool BPMN spec rule: each participant MUST reference its own
+  // process. Sharing a single process across N participants is invalid —
+  // bpmn-js's BpmnImporter walks DI per-participant and re-adds the shared
+  // process's elements N times, throwing "element X already exists" for
+  // every flow node, lane, and sequence flow. With ≥2 pools we emit one
+  // bpmn:Process per pool; with 0–1 pools we keep the single Process_Export.
+  const processByPoolId = new Map<string, ModdleElement>();
+  const multiPool = pools.length >= 2;
+  let process: ModdleElement;
+  if (multiPool) {
+    for (const pool of pools) {
+      const proc = m.create("bpmn:Process", {
+        id: `Process_${pool.id}`,
+        isExecutable: false,
+      }) as ModdleElement;
+      proc.flowElements = [];
+      (defs.rootElements ??= []).push(proc);
+      processByPoolId.set(pool.id, proc);
+    }
+    // `process` (the variable) below is used by legacy single-pool code paths
+    // for orphan handling and `emitPoolLaneShapes`. Use the first pool's
+    // process as the default sink for elements that can't be mapped to any
+    // pool (rare; usually means model is inconsistent).
+    process = processByPoolId.get(pools[0].id)!;
+  } else {
+    process = m.create("bpmn:Process", {
+      id: "Process_Export",
+      isExecutable: false,
+    }) as ModdleElement;
+    process.flowElements = [];
+    (defs.rootElements ??= []).push(process);
+  }
+
   if (pools.length) {
     const collaboration = m.create("bpmn:Collaboration", { id: "Collaboration_Export" }) as ModdleElement;
     collaboration.participants = pools.map((pool) => m.create("bpmn:Participant", {
       id: pool.id,
       name: pool.label ?? "Pool",
-      processRef: process,
+      // Multi-pool: each participant → its own process. Single-pool: shared.
+      processRef: multiPool ? processByPoolId.get(pool.id) : process,
     }) as ModdleElement);
     (defs.rootElements ??= []).push(collaboration);
-    const lanes = pools.flatMap((pool) => ((pool.attrs?.lanes as Array<{ id: string; label?: string }> | undefined) ?? []));
-    if (lanes.length) {
-      // Create lane elements now; flowNodeRef will be populated AFTER feById
-      // is built (see the second pass below). Without flowNodeRef the BPMN
-      // viewer cannot tell which nodes belong to which lane.
-      process.laneSets = [m.create("bpmn:LaneSet", {
-        id: `LaneSet_${process.id ?? "Process_Export"}`,
-        lanes: lanes.map((ln) => m.create("bpmn:Lane", { id: ln.id, name: ln.label ?? ln.id })),
-      }) as ModdleElement];
+
+    // Lane sets — per pool when multi-pool, single laneSet on shared process
+    // when single-pool. Dedupe lane ids GLOBALLY (across all pools): bpmn-js's
+    // Canvas elementRegistry is per-modeler, not per-process, so two lanes
+    // with the same id in different processes still collide on import.
+    const globalSeenLaneIds = new Set<string>();
+    for (const pool of pools) {
+      const poolLanes = (pool.attrs?.lanes as Array<{ id: string; label?: string }> | undefined) ?? [];
+      if (!poolLanes.length) continue;
+      const lanes = poolLanes.map((ln) => {
+        if (!globalSeenLaneIds.has(ln.id)) {
+          globalSeenLaneIds.add(ln.id);
+          return ln;
+        }
+        let suffix = 2;
+        let fresh = `${ln.id}_${suffix}`;
+        while (globalSeenLaneIds.has(fresh)) {
+          suffix += 1;
+          fresh = `${ln.id}_${suffix}`;
+        }
+        globalSeenLaneIds.add(fresh);
+        return { ...ln, id: fresh };
+      });
+      const targetProcess = multiPool ? processByPoolId.get(pool.id)! : process;
+      if (!targetProcess.laneSets || !targetProcess.laneSets.length) {
+        targetProcess.laneSets = [m.create("bpmn:LaneSet", {
+          id: `LaneSet_${targetProcess.id}`,
+          lanes: [],
+        }) as ModdleElement];
+      }
+      const laneSet = targetProcess.laneSets[0];
+      laneSet.lanes ??= [];
+      for (const ln of lanes) {
+        laneSet.lanes.push(m.create("bpmn:Lane", { id: ln.id, name: ln.label ?? ln.id }) as ModdleElement);
+      }
     }
   }
 
-  // Flow nodes — Phase B: two-pass so a child node (parentId set) can be
-  // pushed into its container even when the container appears LATER in the
-  // model.nodes array. Pass 1 creates every element + indexes by id; Pass 2
-  // assigns each to its parent.flowElements (top-level process or a sibling
-  // subprocess element from pass 1).
+  // Helper: which pool (process) owns a given node? Resolution order:
+  //  1. n.parentId pointing to a pool
+  //  2. n.laneId matching a lane inside some pool's `attrs.lanes`
+  //  3. Spatial containment (node center inside pool bbox)
+  //  4. Default = `process` (single-pool case or orphan in multi-pool)
+  const findOwningProcess = (n: CanvasModel["nodes"][number]): ModdleElement => {
+    if (!multiPool) return process;
+    if (n.parentId && processByPoolId.has(n.parentId)) return processByPoolId.get(n.parentId)!;
+    if (n.laneId) {
+      for (const pool of pools) {
+        const ls = (pool.attrs?.lanes as Array<{ id: string }> | undefined) ?? [];
+        if (ls.some((l) => l.id === n.laneId)) return processByPoolId.get(pool.id)!;
+      }
+    }
+    const cx = n.x + n.width / 2;
+    const cy = n.y + n.height / 2;
+    for (const pool of pools) {
+      if (cx >= pool.x && cx <= pool.x + pool.width && cy >= pool.y && cy <= pool.y + pool.height) {
+        return processByPoolId.get(pool.id)!;
+      }
+    }
+    return process; // fallback to first pool's process
+  };
+
+  // Flow nodes — two-pass: create + index, then push into owning container.
+  // Container = parent subprocess (n.parentId points to subprocess) OR the
+  // owning pool's process.
   const feById = new Map<string, ModdleElement>();
-  process.flowElements = [];
   for (const n of model.nodes) {
     const srcKind = (n.attrs?.__source as { kind?: string } | undefined)?.kind;
     if (n.shape === "bpmn-pool" || n.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
@@ -1052,37 +1140,47 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     if (n.shape === "bpmn-pool" || n.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const fe = feById.get(n.id)!;
     const parent = n.parentId ? feById.get(n.parentId) : undefined;
-    const container = parent ?? process;
+    const container = parent ?? findOwningProcess(n);
     (container.flowElements ??= []).push(fe);
   }
-  // Now that feById is populated, backfill flowNodeRef on every Lane so the
-  // BPMN viewer knows which nodes belong to which lane. Without this, all
-  // elements collapse into a single lane or float outside lanes entirely.
-  for (const ls of process.laneSets ?? []) {
-    for (const ln of (ls.lanes ?? []) as ModdleElement[]) {
-      const refs: ModdleElement[] = [];
-      for (const n of model.nodes) {
-        if (n.laneId !== ln.id) continue;
-        const fe = feById.get(n.id);
-        if (fe) refs.push(fe);
+  // Backfill flowNodeRef on every Lane across every process.
+  const allProcesses = multiPool ? [...processByPoolId.values()] : [process];
+  for (const proc of allProcesses) {
+    for (const ls of proc.laneSets ?? []) {
+      for (const ln of (ls.lanes ?? []) as ModdleElement[]) {
+        const refs: ModdleElement[] = [];
+        for (const n of model.nodes) {
+          if (n.laneId !== ln.id) continue;
+          const fe = feById.get(n.id);
+          if (fe) refs.push(fe);
+        }
+        ln.flowNodeRef = refs;
       }
-      ln.flowNodeRef = refs;
     }
   }
-  // Edges — SequenceFlow on the process; Association as a process artifact;
-  // MessageFlow uses bpmn:MessageFlow under the Collaboration root when pools exist,
-  // otherwise downgrades to SequenceFlow on the process.
+  // Edges — route by source node's owning process. Cross-pool sequence flow
+  // is invalid BPMN; upgrade to MessageFlow on the collaboration root.
   const sfById = new Map<string, ModdleElement>();
   const nodeIdSet = new Set(model.nodes.map((n) => n.id));
   const validEdges = model.edges.filter((e) => nodeIdSet.has(e.source) && nodeIdSet.has(e.target));
   const collaborationRoot = (defs.rootElements ?? []).find((r) => r.$type === "bpmn:Collaboration") ?? null;
-  
+  const nodeById = new Map(model.nodes.map((n) => [n.id, n] as const));
+
   for (const e of validEdges) {
     const kind = edgeKindOf(e);
+    const srcNode = nodeById.get(e.source);
+    const tgtNode = nodeById.get(e.target);
+    const srcProc = srcNode ? findOwningProcess(srcNode) : process;
+    const tgtProc = tgtNode ? findOwningProcess(tgtNode) : process;
+    const isCrossPool = multiPool && srcProc !== tgtProc;
+
     let typeStr = bpmnTypeForEdgeKind(kind);
-    if (kind === "message" && !collaborationRoot) {
-      typeStr = "bpmn:SequenceFlow";
+    if (kind === "message" && !collaborationRoot) typeStr = "bpmn:SequenceFlow";
+    // Cross-pool sequence/conditional flow must be a MessageFlow per BPMN spec.
+    if (isCrossPool && kind === "sequence" && collaborationRoot) {
+      typeStr = "bpmn:MessageFlow";
     }
+
     const sf = m.create(typeStr, {
       id: e.id,
       name: e.label ?? "",
@@ -1090,13 +1188,20 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       targetRef: feById.get(e.target),
     }) as ModdleElement;
     if (!sf.sourceRef || !sf.targetRef) continue;
-    applyEdgeExtras(m, sf, (kind === "message" && !collaborationRoot) ? "sequence" : kind, e.attrs);
-    if (kind === "association") {
-      (process.artifacts ??= []).push(sf);
+    const extrasKind = (typeStr === "bpmn:MessageFlow")
+      ? "sequence"
+      : (kind === "message" && !collaborationRoot)
+        ? "sequence"
+        : kind;
+    applyEdgeExtras(m, sf, extrasKind, e.attrs);
+    if (typeStr === "bpmn:MessageFlow" && collaborationRoot) {
+      (collaborationRoot.messageFlows ??= []).push(sf);
+    } else if (kind === "association") {
+      (srcProc.artifacts ??= []).push(sf);
     } else if (kind === "message" && collaborationRoot) {
       (collaborationRoot.messageFlows ??= []).push(sf);
     } else {
-      process.flowElements.push(sf);
+      (srcProc.flowElements ??= []).push(sf);
     }
     sfById.set(e.id, sf);
   }
@@ -1141,7 +1246,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       ...(eLabel ? { label: m.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}),
     }));
   }
-  emitPoolLaneShapes(model, defs, process, plane, diShape, m);
+  emitPoolLaneShapes(model, defs, process, plane, diShape, m, multiPool ? processByPoolId : undefined);
   const dia = m.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane }) as ModdleElement;
   (defs.diagrams ??= []).push(dia as never);
 

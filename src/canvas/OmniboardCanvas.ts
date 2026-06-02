@@ -3032,7 +3032,7 @@ export class OmniboardCanvas {
   private seedExtra(kind: string): NodeExtra {
     if (kind === "erd-entity") return { cols: defaultErdCols() };
     if (kind === "uml-class" || kind === "uml-interface") return defaultUml(kind);
-    if (kind === "bpmn-pool") return { lanes: [{ id: "l1", label: "Lane 1" }] };
+    if (kind === "bpmn-pool") return { lanes: [{ id: this.newLaneId(), label: "Lane 1" }] };
     return {};
   }
   private mergeExtra(kind: string, data?: NodeExtra): NodeExtra {
@@ -3263,6 +3263,53 @@ export class OmniboardCanvas {
 
   // ── BPMN Pool lane operations ───────────────────────────────────────────
   private newLaneId(): string { return "l" + Math.random().toString(36).slice(2, 8); }
+
+  /**
+   * Rename duplicate lane ids across pools (heal-on-load). Pool defaults used
+   * to hardcode "l1" so files with multiple pools collide. We keep the FIRST
+   * pool's lane id and rename collisions in later pools with `newLaneId()`.
+   * Also update child nodes whose `laneId` references the renamed lane within
+   * the same pool — best-effort by spatial containment (pool bbox).
+   */
+  private dedupeLaneIdsAcrossPools(model: CanvasModel): CanvasModel {
+    const seen = new Set<string>();
+    let changed = false;
+    const newNodes = model.nodes.map((n) => {
+      if (n.shape !== "bpmn-pool") return n;
+      const lanes = (n.attrs?.lanes as Array<{ id: string; label?: string }> | undefined) ?? [];
+      if (!lanes.length) return n;
+      const remap: Record<string, string> = {};
+      const newLanes = lanes.map((ln) => {
+        if (!seen.has(ln.id)) {
+          seen.add(ln.id);
+          return ln;
+        }
+        const fresh = this.newLaneId();
+        remap[ln.id] = fresh;
+        seen.add(fresh);
+        changed = true;
+        return { ...ln, id: fresh };
+      });
+      if (!Object.keys(remap).length) return n;
+      // Heuristic: remap any child node whose laneId points to a renamed lane
+      // AND sits inside this pool's bbox. Children outside this pool keep
+      // their (still-valid) laneId — they belong to a different pool.
+      const poolBox = { x: n.x, y: n.y, w: n.width, h: n.height };
+      for (const child of model.nodes) {
+        const childLane = child.laneId;
+        if (!childLane || !remap[childLane]) continue;
+        const cx = child.x + child.width / 2;
+        const cy = child.y + child.height / 2;
+        if (cx >= poolBox.x && cx <= poolBox.x + poolBox.w && cy >= poolBox.y && cy <= poolBox.y + poolBox.h) {
+          (child as { laneId?: string }).laneId = remap[childLane];
+        }
+      }
+      return { ...n, attrs: { ...(n.attrs ?? {}), lanes: newLanes } };
+    });
+    if (!changed) return model;
+    console.info("[omniboard] dedupeLaneIdsAcrossPools: renamed duplicate lane ids on load");
+    return { ...model, nodes: newNodes };
+  }
 
   private addLaneToPool(node: Node, where: "above" | "below"): void {
     const ex = this.nodeExtra(node);
@@ -3923,6 +3970,13 @@ export class OmniboardCanvas {
 
   // ── Model load / serialize ───────────────────────────────────────────────
   loadModel(model: CanvasModel) {
+    // Migration: legacy pool defaults hardcoded lane id "l1", so files with
+    // ≥2 pools have duplicate lane ids across pools. exportBpmn dồn lanes
+    // vào 1 laneSet → invalid BPMN (Canvas._ensureValid: "element already
+    // exists"). Rename collisions BEFORE rendering so subsequent exports
+    // emit unique ids. Children's `data.laneId` is recomputed by spatial
+    // overlap during `getModel()`, so we only need to rename pool lanes.
+    model = this.dedupeLaneIdsAcrossPools(model);
     this.graph.clearCells();
     this.graph.startBatch("load");
     for (const n of model.nodes) {

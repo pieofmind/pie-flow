@@ -41399,7 +41399,7 @@ __export(main_exports18, {
   default: () => DiagramsPlugin
 });
 module.exports = __toCommonJS(main_exports18);
-var import_obsidian8 = require("obsidian");
+var import_obsidian9 = require("obsidian");
 
 // src/view/BoardView.ts
 var import_obsidian3 = require("obsidian");
@@ -83266,7 +83266,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   seedExtra(kind) {
     if (kind === "erd-entity") return { cols: defaultErdCols() };
     if (kind === "uml-class" || kind === "uml-interface") return defaultUml(kind);
-    if (kind === "bpmn-pool") return { lanes: [{ id: "l1", label: "Lane 1" }] };
+    if (kind === "bpmn-pool") return { lanes: [{ id: this.newLaneId(), label: "Lane 1" }] };
     return {};
   }
   mergeExtra(kind, data2) {
@@ -83537,6 +83537,50 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   // ── BPMN Pool lane operations ───────────────────────────────────────────
   newLaneId() {
     return "l" + Math.random().toString(36).slice(2, 8);
+  }
+  /**
+   * Rename duplicate lane ids across pools (heal-on-load). Pool defaults used
+   * to hardcode "l1" so files with multiple pools collide. We keep the FIRST
+   * pool's lane id and rename collisions in later pools with `newLaneId()`.
+   * Also update child nodes whose `laneId` references the renamed lane within
+   * the same pool — best-effort by spatial containment (pool bbox).
+   */
+  dedupeLaneIdsAcrossPools(model) {
+    const seen = /* @__PURE__ */ new Set();
+    let changed = false;
+    const newNodes = model.nodes.map((n4) => {
+      var _a3, _b2, _c;
+      if (n4.shape !== "bpmn-pool") return n4;
+      const lanes = (_b2 = (_a3 = n4.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
+      if (!lanes.length) return n4;
+      const remap = {};
+      const newLanes = lanes.map((ln3) => {
+        if (!seen.has(ln3.id)) {
+          seen.add(ln3.id);
+          return ln3;
+        }
+        const fresh = this.newLaneId();
+        remap[ln3.id] = fresh;
+        seen.add(fresh);
+        changed = true;
+        return { ...ln3, id: fresh };
+      });
+      if (!Object.keys(remap).length) return n4;
+      const poolBox = { x: n4.x, y: n4.y, w: n4.width, h: n4.height };
+      for (const child of model.nodes) {
+        const childLane = child.laneId;
+        if (!childLane || !remap[childLane]) continue;
+        const cx = child.x + child.width / 2;
+        const cy = child.y + child.height / 2;
+        if (cx >= poolBox.x && cx <= poolBox.x + poolBox.w && cy >= poolBox.y && cy <= poolBox.y + poolBox.h) {
+          child.laneId = remap[childLane];
+        }
+      }
+      return { ...n4, attrs: { ...(_c = n4.attrs) != null ? _c : {}, lanes: newLanes } };
+    });
+    if (!changed) return model;
+    console.info("[omniboard] dedupeLaneIdsAcrossPools: renamed duplicate lane ids on load");
+    return { ...model, nodes: newNodes };
   }
   addLaneToPool(node3, where) {
     var _a3;
@@ -84277,6 +84321,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   // ── Model load / serialize ───────────────────────────────────────────────
   loadModel(model) {
     var _a3, _b2, _c, _d, _e3, _f, _g, _h;
+    model = this.dedupeLaneIdsAcrossPools(model);
     this.graph.clearCells();
     this.graph.startBatch("load");
     for (const n4 of model.nodes) {
@@ -85472,7 +85517,7 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
   const { xml: xml3 } = await m7.toXML(definitions, { format: true });
   return patchCamundaXml(xml3, model);
 }
-function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7) {
+function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7, processByPoolId) {
   var _a3, _b2, _c, _d, _e3, _f, _g;
   const pools = model.nodes.filter(
     (n4) => {
@@ -85489,11 +85534,15 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
     ((_a4 = definitions.rootElements) != null ? _a4 : definitions.rootElements = []).push(collaboration);
     return collaboration;
   };
-  const ensureLaneSet = () => {
+  const processForPool = (poolId) => {
+    var _a4;
+    return (_a4 = processByPoolId == null ? void 0 : processByPoolId.get(poolId)) != null ? _a4 : process2;
+  };
+  const ensureLaneSetIn = (proc) => {
     var _a4, _b3, _c2;
-    if (((_a4 = process2.laneSets) != null ? _a4 : []).length) return process2.laneSets[0];
-    const laneSet = m7.create("bpmn:LaneSet", { id: `LaneSet_${(_b3 = process2.id) != null ? _b3 : "Process_Export"}` });
-    ((_c2 = process2.laneSets) != null ? _c2 : process2.laneSets = []).push(laneSet);
+    if (((_a4 = proc.laneSets) != null ? _a4 : []).length) return proc.laneSets[0];
+    const laneSet = m7.create("bpmn:LaneSet", { id: `LaneSet_${(_b3 = proc.id) != null ? _b3 : "Process_Export"}` });
+    ((_c2 = proc.laneSets) != null ? _c2 : proc.laneSets = []).push(laneSet);
     return laneSet;
   };
   const flow = model.nodes.filter(
@@ -85513,6 +85562,7 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
   const poolH = maxY - minY + POOL_MARGIN * 2;
   for (const pool of pools) {
     const prefix2 = [];
+    const poolProcess = processForPool(pool.id);
     let pdi = diShape.get(pool.id);
     if (pdi == null ? void 0 : pdi.bounds) {
       pdi.bounds.x = poolX;
@@ -85525,7 +85575,8 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
         part = m7.create("bpmn:Participant", {
           id: pool.id,
           name: (_a3 = pool.label) != null ? _a3 : "Pool",
-          processRef: process2
+          // Each participant references its OWN process when multi-pool.
+          processRef: poolProcess
         });
         ((_c = (_b2 = ensureCollaboration()).participants) != null ? _c : _b2.participants = []).push(part);
       }
@@ -85542,7 +85593,7 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
     const laneX = poolX + POOL_HEADER;
     const laneW = poolW - POOL_HEADER;
     if (lanes.length) {
-      const bands = laneBands(lanes, process2, model, poolY, poolH);
+      const bands = laneBands(lanes, poolProcess, model, poolY, poolH);
       lanes.forEach((ln3, i6) => {
         var _a4, _b3, _c2, _d2;
         if (!ln3.id) return;
@@ -85554,10 +85605,10 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
           ldi.bounds.width = laneW;
           ldi.bounds.height = band.h;
         } else {
-          let laneEl = findLane(process2, ln3.id);
+          let laneEl = findLane(poolProcess, ln3.id);
           if (!laneEl) {
             laneEl = m7.create("bpmn:Lane", { id: ln3.id, name: (_a4 = ln3.label) != null ? _a4 : ln3.id });
-            ((_c2 = (_b3 = ensureLaneSet()).lanes) != null ? _c2 : _b3.lanes = []).push(laneEl);
+            ((_c2 = (_b3 = ensureLaneSetIn(poolProcess)).lanes) != null ? _c2 : _b3.lanes = []).push(laneEl);
           }
           ldi = m7.create("bpmndi:BPMNShape", {
             bpmnElement: laneEl,
@@ -85733,22 +85784,39 @@ function nodeLabelBoundsFromModel(m7, node3) {
   return m7.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
 }
 async function emitMinimal(model, m7) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A;
   const defs = m7.create("bpmn:Definitions", {
     id: "Definitions_Export",
     targetNamespace: "http://omniboard.local/bpmn"
   });
-  const process2 = m7.create("bpmn:Process", {
-    id: "Process_Export",
-    isExecutable: false
-  });
-  ((_a3 = defs.rootElements) != null ? _a3 : defs.rootElements = []).push(process2);
   const pools = model.nodes.filter(
     (n4) => {
       var _a4, _b3;
       return n4.shape === "bpmn-pool" || ((_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
     }
   );
+  const processByPoolId = /* @__PURE__ */ new Map();
+  const multiPool = pools.length >= 2;
+  let process2;
+  if (multiPool) {
+    for (const pool of pools) {
+      const proc = m7.create("bpmn:Process", {
+        id: `Process_${pool.id}`,
+        isExecutable: false
+      });
+      proc.flowElements = [];
+      ((_a3 = defs.rootElements) != null ? _a3 : defs.rootElements = []).push(proc);
+      processByPoolId.set(pool.id, proc);
+    }
+    process2 = processByPoolId.get(pools[0].id);
+  } else {
+    process2 = m7.create("bpmn:Process", {
+      id: "Process_Export",
+      isExecutable: false
+    });
+    process2.flowElements = [];
+    ((_b2 = defs.rootElements) != null ? _b2 : defs.rootElements = []).push(process2);
+  }
   if (pools.length) {
     const collaboration = m7.create("bpmn:Collaboration", { id: "Collaboration_Export" });
     collaboration.participants = pools.map((pool) => {
@@ -85756,81 +85824,131 @@ async function emitMinimal(model, m7) {
       return m7.create("bpmn:Participant", {
         id: pool.id,
         name: (_a4 = pool.label) != null ? _a4 : "Pool",
-        processRef: process2
+        // Multi-pool: each participant → its own process. Single-pool: shared.
+        processRef: multiPool ? processByPoolId.get(pool.id) : process2
       });
     });
-    ((_b2 = defs.rootElements) != null ? _b2 : defs.rootElements = []).push(collaboration);
-    const lanes = pools.flatMap((pool) => {
-      var _a4, _b3;
-      return (_b3 = (_a4 = pool.attrs) == null ? void 0 : _a4.lanes) != null ? _b3 : [];
-    });
-    if (lanes.length) {
-      process2.laneSets = [m7.create("bpmn:LaneSet", {
-        id: `LaneSet_${(_c = process2.id) != null ? _c : "Process_Export"}`,
-        lanes: lanes.map((ln3) => {
-          var _a4;
-          return m7.create("bpmn:Lane", { id: ln3.id, name: (_a4 = ln3.label) != null ? _a4 : ln3.id });
-        })
-      })];
+    ((_c = defs.rootElements) != null ? _c : defs.rootElements = []).push(collaboration);
+    const globalSeenLaneIds = /* @__PURE__ */ new Set();
+    for (const pool of pools) {
+      const poolLanes = (_e3 = (_d = pool.attrs) == null ? void 0 : _d.lanes) != null ? _e3 : [];
+      if (!poolLanes.length) continue;
+      const lanes = poolLanes.map((ln3) => {
+        if (!globalSeenLaneIds.has(ln3.id)) {
+          globalSeenLaneIds.add(ln3.id);
+          return ln3;
+        }
+        let suffix = 2;
+        let fresh = `${ln3.id}_${suffix}`;
+        while (globalSeenLaneIds.has(fresh)) {
+          suffix += 1;
+          fresh = `${ln3.id}_${suffix}`;
+        }
+        globalSeenLaneIds.add(fresh);
+        return { ...ln3, id: fresh };
+      });
+      const targetProcess = multiPool ? processByPoolId.get(pool.id) : process2;
+      if (!targetProcess.laneSets || !targetProcess.laneSets.length) {
+        targetProcess.laneSets = [m7.create("bpmn:LaneSet", {
+          id: `LaneSet_${targetProcess.id}`,
+          lanes: []
+        })];
+      }
+      const laneSet = targetProcess.laneSets[0];
+      (_f = laneSet.lanes) != null ? _f : laneSet.lanes = [];
+      for (const ln3 of lanes) {
+        laneSet.lanes.push(m7.create("bpmn:Lane", { id: ln3.id, name: (_g = ln3.label) != null ? _g : ln3.id }));
+      }
     }
   }
+  const findOwningProcess = (n4) => {
+    var _a4, _b3;
+    if (!multiPool) return process2;
+    if (n4.parentId && processByPoolId.has(n4.parentId)) return processByPoolId.get(n4.parentId);
+    if (n4.laneId) {
+      for (const pool of pools) {
+        const ls = (_b3 = (_a4 = pool.attrs) == null ? void 0 : _a4.lanes) != null ? _b3 : [];
+        if (ls.some((l5) => l5.id === n4.laneId)) return processByPoolId.get(pool.id);
+      }
+    }
+    const cx = n4.x + n4.width / 2;
+    const cy = n4.y + n4.height / 2;
+    for (const pool of pools) {
+      if (cx >= pool.x && cx <= pool.x + pool.width && cy >= pool.y && cy <= pool.y + pool.height) {
+        return processByPoolId.get(pool.id);
+      }
+    }
+    return process2;
+  };
   const feById = /* @__PURE__ */ new Map();
-  process2.flowElements = [];
-  for (const n4 of model.nodes) {
-    const srcKind = (_e3 = (_d = n4.attrs) == null ? void 0 : _d.__source) == null ? void 0 : _e3.kind;
-    if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
-    const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), { id: n4.id, name: (_f = n4.label) != null ? _f : "" });
-    applyBpmnExtras(m7, fe3, n4.shape, (_g = n4.attrs) != null ? _g : {});
-    feById.set(n4.id, fe3);
-  }
   for (const n4 of model.nodes) {
     const srcKind = (_i = (_h = n4.attrs) == null ? void 0 : _h.__source) == null ? void 0 : _i.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
+    const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), { id: n4.id, name: (_j = n4.label) != null ? _j : "" });
+    applyBpmnExtras(m7, fe3, n4.shape, (_k = n4.attrs) != null ? _k : {});
+    feById.set(n4.id, fe3);
+  }
+  for (const n4 of model.nodes) {
+    const srcKind = (_m = (_l = n4.attrs) == null ? void 0 : _l.__source) == null ? void 0 : _m.kind;
+    if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const fe3 = feById.get(n4.id);
     const parent = n4.parentId ? feById.get(n4.parentId) : void 0;
-    const container = parent != null ? parent : process2;
-    ((_j = container.flowElements) != null ? _j : container.flowElements = []).push(fe3);
+    const container = parent != null ? parent : findOwningProcess(n4);
+    ((_n2 = container.flowElements) != null ? _n2 : container.flowElements = []).push(fe3);
   }
-  for (const ls of (_k = process2.laneSets) != null ? _k : []) {
-    for (const ln3 of (_l = ls.lanes) != null ? _l : []) {
-      const refs = [];
-      for (const n4 of model.nodes) {
-        if (n4.laneId !== ln3.id) continue;
-        const fe3 = feById.get(n4.id);
-        if (fe3) refs.push(fe3);
+  const allProcesses = multiPool ? [...processByPoolId.values()] : [process2];
+  for (const proc of allProcesses) {
+    for (const ls of (_o = proc.laneSets) != null ? _o : []) {
+      for (const ln3 of (_p = ls.lanes) != null ? _p : []) {
+        const refs = [];
+        for (const n4 of model.nodes) {
+          if (n4.laneId !== ln3.id) continue;
+          const fe3 = feById.get(n4.id);
+          if (fe3) refs.push(fe3);
+        }
+        ln3.flowNodeRef = refs;
       }
-      ln3.flowNodeRef = refs;
     }
   }
   const sfById = /* @__PURE__ */ new Map();
   const nodeIdSet = new Set(model.nodes.map((n4) => n4.id));
   const validEdges = model.edges.filter((e5) => nodeIdSet.has(e5.source) && nodeIdSet.has(e5.target));
-  const collaborationRoot = (_n2 = ((_m = defs.rootElements) != null ? _m : []).find((r5) => r5.$type === "bpmn:Collaboration")) != null ? _n2 : null;
+  const collaborationRoot = (_r = ((_q = defs.rootElements) != null ? _q : []).find((r5) => r5.$type === "bpmn:Collaboration")) != null ? _r : null;
+  const nodeById2 = new Map(model.nodes.map((n4) => [n4.id, n4]));
   for (const e5 of validEdges) {
     const kind = edgeKindOf(e5);
+    const srcNode = nodeById2.get(e5.source);
+    const tgtNode = nodeById2.get(e5.target);
+    const srcProc = srcNode ? findOwningProcess(srcNode) : process2;
+    const tgtProc = tgtNode ? findOwningProcess(tgtNode) : process2;
+    const isCrossPool = multiPool && srcProc !== tgtProc;
     let typeStr = bpmnTypeForEdgeKind(kind);
-    if (kind === "message" && !collaborationRoot) {
-      typeStr = "bpmn:SequenceFlow";
+    if (kind === "message" && !collaborationRoot) typeStr = "bpmn:SequenceFlow";
+    if (isCrossPool && kind === "sequence" && collaborationRoot) {
+      typeStr = "bpmn:MessageFlow";
     }
     const sf = m7.create(typeStr, {
       id: e5.id,
-      name: (_o = e5.label) != null ? _o : "",
+      name: (_s = e5.label) != null ? _s : "",
       sourceRef: feById.get(e5.source),
       targetRef: feById.get(e5.target)
     });
     if (!sf.sourceRef || !sf.targetRef) continue;
-    applyEdgeExtras(m7, sf, kind === "message" && !collaborationRoot ? "sequence" : kind, e5.attrs);
-    if (kind === "association") {
-      ((_p = process2.artifacts) != null ? _p : process2.artifacts = []).push(sf);
+    const extrasKind = typeStr === "bpmn:MessageFlow" ? "sequence" : kind === "message" && !collaborationRoot ? "sequence" : kind;
+    applyEdgeExtras(m7, sf, extrasKind, e5.attrs);
+    if (typeStr === "bpmn:MessageFlow" && collaborationRoot) {
+      ((_t3 = collaborationRoot.messageFlows) != null ? _t3 : collaborationRoot.messageFlows = []).push(sf);
+    } else if (kind === "association") {
+      ((_u = srcProc.artifacts) != null ? _u : srcProc.artifacts = []).push(sf);
     } else if (kind === "message" && collaborationRoot) {
-      ((_q = collaborationRoot.messageFlows) != null ? _q : collaborationRoot.messageFlows = []).push(sf);
+      ((_v = collaborationRoot.messageFlows) != null ? _v : collaborationRoot.messageFlows = []).push(sf);
     } else {
-      process2.flowElements.push(sf);
+      ((_w = srcProc.flowElements) != null ? _w : srcProc.flowElements = []).push(sf);
     }
     sfById.set(e5.id, sf);
   }
   for (const e5 of validEdges) {
-    if (!((_r = e5.attrs) == null ? void 0 : _r.isDefault)) continue;
+    if (!((_x = e5.attrs) == null ? void 0 : _x.isDefault)) continue;
     if (edgeKindOf(e5) !== "sequence") continue;
     const srcFe = feById.get(e5.source);
     const edgeFe = sfById.get(e5.id);
@@ -85843,7 +85961,7 @@ async function emitMinimal(model, m7) {
   });
   const diShape = /* @__PURE__ */ new Map();
   for (const n4 of model.nodes) {
-    const srcKind = (_t3 = (_s = n4.attrs) == null ? void 0 : _s.__source) == null ? void 0 : _t3.kind;
+    const srcKind = (_z = (_y = n4.attrs) == null ? void 0 : _y.__source) == null ? void 0 : _z.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const nLabel = nodeLabelBoundsFromModel(m7, n4);
     const di = m7.create("bpmndi:BPMNShape", {
@@ -85869,9 +85987,9 @@ async function emitMinimal(model, m7) {
       ...eLabel ? { label: m7.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}
     }));
   }
-  emitPoolLaneShapes(model, defs, process2, plane, diShape, m7);
+  emitPoolLaneShapes(model, defs, process2, plane, diShape, m7, multiPool ? processByPoolId : void 0);
   const dia = m7.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-  ((_u = defs.diagrams) != null ? _u : defs.diagrams = []).push(dia);
+  ((_A = defs.diagrams) != null ? _A : defs.diagrams = []).push(dia);
   const { xml: xml3 } = await m7.toXML(defs, { format: true });
   return patchCamundaXml(xml3, model);
 }
@@ -120102,6 +120220,51 @@ var BpmnPropertiesView = class extends import_obsidian7.ItemView {
   }
 };
 
+// src/bpmn-native/bpmn-icons.ts
+var import_obsidian8 = require("obsidian");
+var svgWrap = (content5) => `<g transform="scale(4.167)">${content5}</g>`;
+function registerBpmnIcons() {
+  const icons3 = {
+    // --- TASKS ---
+    "bpmn-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-user-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 9.5a2 2 0 100-4 2 2 0 000 4zM7.5 15.5c0-2 2-3 4.5-3s4.5 1 4.5 3" stroke="currentColor" stroke-width="2" fill="none"/>`),
+    "bpmn-service-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 8.5v1M12 14.5v1M8.5 12h1M14.5 12h1" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-script-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`),
+    "bpmn-business-rule-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 8h10M7 12h10M7 16h10M11 8v8" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-send-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 9l6 3.5 6-3.5M6 15V9h12v6z" stroke="currentColor" stroke-width="1.5" fill="none"/>`),
+    "bpmn-receive-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 9l6 3 6-3M6 15l4.5-3M18 15l-4.5-3" stroke="currentColor" stroke-width="1.5" fill="none"/>`),
+    "bpmn-manual-task": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 15c0-1.5 1-2.5 2.5-2.5s2.5 1 2.5 2.5M11 15c0-1.5 1-2.5 2.5-2.5s2.5 1 2.5 2.5M16 15c0-1.5 1-2.5 2.5-2.5s2.5 1 2.5 2.5" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-call-activity": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="3.5"/>`),
+    "bpmn-sub-process": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="10" y="13" width="4" height="4" fill="none" stroke="currentColor" stroke-width="1"/><path d="M12 14v2M11 15h2" stroke="currentColor" stroke-width="1"/>`),
+    "bpmn-transaction": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="5" y="7" width="14" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1"/>`),
+    "bpmn-event-sub-process": svgWrap(`<rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2,2"/><circle cx="7" cy="9" r="2.5" stroke="currentColor" stroke-width="1" fill="none"/>`),
+    // --- GATEWAYS ---
+    "bpmn-gateway-xor": svgWrap(`<path d="M12 2l9 10-9 10-9-10z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`),
+    "bpmn-gateway-and": svgWrap(`<path d="M12 2l9 10-9 10-9-10z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>`),
+    "bpmn-gateway-or": svgWrap(`<path d="M12 2l9 10-9 10-9-10z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="2" fill="none"/>`),
+    "bpmn-gateway-complex": svgWrap(`<path d="M12 2l9 10-9 10-9-10z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v10M7 12h10M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-gateway-event": svgWrap(`<path d="M12 2l9 10-9 10-9-10z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1" fill="none"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1" fill="none"/><polygon points="12,10 13.5,11 13,13 11,13 10.5,11" stroke="currentColor" stroke-width="1" fill="none"/>`),
+    // --- EVENTS ---
+    "bpmn-start-event": svgWrap(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-catch-event": svgWrap(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1"/>`),
+    "bpmn-throw-event": svgWrap(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-boundary-event": svgWrap(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2,2"/><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1"/>`),
+    "bpmn-end-event": svgWrap(`<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="3"/>`),
+    // --- DATA & OTHERS ---
+    "bpmn-data-object": svgWrap(`<path d="M7 3h6.5l4.5 4.5V21H7z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13.5 3v4.5H18" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-data-store": svgWrap(`<ellipse cx="12" cy="6" rx="6" ry="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 6v6c0 1.5 2.7 2.5 6 2.5s6-1 6-2.5V6M6 12v6c0 1.5 2.7 2.5 6 2.5s6-1 6-2.5v-6" fill="none" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-data-input": svgWrap(`<path d="M7 3h6.5l4.5 4.5V21H7z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13.5 3v4.5H18" stroke="currentColor" stroke-width="2"/><path d="M10 12h4m-2-2v4" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-data-output": svgWrap(`<path d="M7 3h6.5l4.5 4.5V21H7z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13.5 3v4.5H18" stroke="currentColor" stroke-width="2"/><path d="M10 13h4" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-participant": svgWrap(`<rect x="3" y="4" width="18" height="16" rx="1" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 4v16" stroke="currentColor" stroke-width="2"/>`),
+    "bpmn-lane": svgWrap(`<rect x="3" y="6" width="18" height="12" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3 6h6v12H3z" stroke="currentColor" stroke-width="1.5"/>`),
+    "bpmn-group": svgWrap(`<rect x="3" y="4" width="18" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4,3"/>`),
+    "bpmn-text-annotation": svgWrap(`<path d="M9 4H5v16h4" fill="none" stroke="currentColor" stroke-width="2"/>`)
+  };
+  for (const [id, svgContent] of Object.entries(icons3)) {
+    (0, import_obsidian8.addIcon)(id, svgContent);
+  }
+}
+
 // src/ui/Placeholder.tsx
 function PlaceholderRenderer({ model }) {
   return /* @__PURE__ */ u4("pre", { class: "diagrams-placeholder-render", children: model.trim() || "(empty diagram)" });
@@ -120460,7 +120623,7 @@ var ALL_ADAPTERS = [
   mindmapAdapter,
   mermaidAdapter
 ];
-var DiagramsPlugin = class extends import_obsidian8.Plugin {
+var DiagramsPlugin = class extends import_obsidian9.Plugin {
   constructor() {
     super(...arguments);
     this.registry = new AdapterRegistry();
@@ -120468,6 +120631,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
   }
   async onload() {
     await this.loadSettings();
+    registerBpmnIcons();
     this.registerView(BOARD_VIEW_TYPE3, (leaf) => new BoardView(leaf, this));
     this.registerView(OMNIBOARD_PROPERTIES_VIEW_TYPE, (leaf) => new OmniboardPropertiesView(leaf));
     this.registerView(OMNIBOARD_ISSUES_VIEW_TYPE, (leaf) => new BpmnIssuesView(leaf));
@@ -120483,7 +120647,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file, source) => {
         var _a3;
-        if (!(file instanceof import_obsidian8.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        if (!(file instanceof import_obsidian9.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
         const leaf = this.findLeafForFile(file);
         const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE3;
         menu.addItem((item) => {
@@ -120679,7 +120843,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
       const { model, sourceMeta } = await importBpmn(xml3);
       const basename = bpmnFile.basename;
       const dir = (_b2 = (_a3 = bpmnFile.parent) == null ? void 0 : _a3.path) != null ? _b2 : "";
-      const wrapperPath = (0, import_obsidian8.normalizePath)(
+      const wrapperPath = (0, import_obsidian9.normalizePath)(
         (dir ? dir + "/" : "") + `${basename}${OMNIBOARD_SUFFIX}`
       );
       const content5 = serializeBoard(model, "", sourceMeta, {
@@ -120687,8 +120851,8 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
         bpmnXml: xml3
       });
       const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
-      if (existing instanceof import_obsidian8.TFile) {
-        new import_obsidian8.Notice(
+      if (existing instanceof import_obsidian9.TFile) {
+        new import_obsidian9.Notice(
           `\u0110\xE3 t\u1ED3n t\u1EA1i "${wrapperPath}". Xo\xE1 ho\u1EB7c \u0111\u1ED5i t\xEAn file \u0111\xF3 tr\u01B0\u1EDBc khi convert.`,
           7e3
         );
@@ -120699,26 +120863,26 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
         wrapperFile = await this.app.vault.create(wrapperPath, content5);
       } catch (createErr) {
         console.error("[omniboard] vault.create failed for wrapper", createErr);
-        new import_obsidian8.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
+        new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
         return;
       }
       const leaf = this.app.workspace.getLeaf(false);
       if (!leaf) {
-        new import_obsidian8.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
+        new import_obsidian9.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
         return;
       }
       await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: wrapperFile.path } });
-      new import_obsidian8.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
+      new import_obsidian9.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
     } catch (err2) {
       console.error("[omniboard] convertBpmnToWrapper failed", err2);
-      new import_obsidian8.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
+      new import_obsidian9.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
   async createBoardFile() {
     const d4 = /* @__PURE__ */ new Date();
     const pad = (n4) => String(n4).padStart(2, "0");
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
-    const path2 = (0, import_obsidian8.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
+    const path2 = (0, import_obsidian9.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
     const content5 = serializeBoard({ nodes: [], edges: [] }, "", void 0, {
       compressDrawingData: this.settings.compressDrawingData
     });
@@ -120726,8 +120890,8 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
       return await this.app.vault.create(path2, content5);
     } catch (e5) {
       const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing instanceof import_obsidian8.TFile) return existing;
-      new import_obsidian8.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
+      if (existing instanceof import_obsidian9.TFile) return existing;
+      new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
       return null;
     }
   }
@@ -120789,12 +120953,12 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
   async createAndOpenBpmn() {
     const folder = this.app.fileManager.getNewFileParent("");
     const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/[-:T]/g, "").slice(0, 15);
-    const path2 = (0, import_obsidian8.normalizePath)(`${folder.path}/BPMN-${ts}.bpmn`);
+    const path2 = (0, import_obsidian9.normalizePath)(`${folder.path}/BPMN-${ts}.bpmn`);
     try {
       const file = await this.app.vault.create(path2, MINIMAL_BPMN_XML);
       await this.app.workspace.getLeaf("tab").openFile(file);
     } catch (e5) {
-      new import_obsidian8.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file BPMN.");
+      new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file BPMN.");
     }
   }
   /** Create a board, embed it at the cursor (`![[...]]`), and open it. */
@@ -120812,7 +120976,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
-    if (!(file instanceof import_obsidian8.TFile)) return;
+    if (!(file instanceof import_obsidian9.TFile)) return;
     host.dataset.daRendered = "1";
     host.empty();
     host.addClass("da-embed");
@@ -120821,7 +120985,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
     head.createSpan({ cls: "da-embed-ttl", text: file.basename });
     const meta = head.createSpan({ cls: "da-embed-meta" });
     const open4 = head.createEl("button", { cls: "da-embed-open" });
-    (0, import_obsidian8.setIcon)(open4, "external-link");
+    (0, import_obsidian9.setIcon)(open4, "external-link");
     open4.createSpan({ text: "M\u1EDF" });
     open4.onclick = (e5) => {
       e5.preventDefault();
@@ -120846,9 +121010,9 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
   }
   /** Insert from the ribbon menu — needs to find the active markdown editor itself. */
   insertDiagramIntoActiveEditor(adapter) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian8.MarkdownView);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
     if (!view) {
-      new import_obsidian8.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
+      new import_obsidian9.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
       return;
     }
     this.insertDiagram(view.editor, adapter);
@@ -120878,7 +121042,7 @@ var DiagramsPlugin = class extends import_obsidian8.Plugin {
   }
   /** Rewrite the fenced block that produced `el` with new content. */
   replaceCodeBlock(el4, ctx, lang, newText) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian8.MarkdownView);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
     if (!view) return;
     const info = ctx.getSectionInfo(el4);
     if (!info) return;

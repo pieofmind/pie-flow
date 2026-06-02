@@ -121,12 +121,18 @@ export class BpmnNativeView extends TextFileView {
     // only edit its derived BPMN block via the modeler.
     const wrapperByExt = this.file?.path?.endsWith(OMNIBOARD_SUFFIX) ?? false;
     const wrapperByMarker = isOmniboardMarkdown(data);
-    this.isWrapper = wrapperByExt || wrapperByMarker;
+    // H2: extension alone is NOT authoritative — a user-created `*.omniboard.md`
+    // without the plugin marker AND without a valid omniboard-data block must
+    // not be treated as a wrapper, else the first BPMN edit rewrites the file
+    // body and destroys the user's markdown. Require the marker, OR the
+    // extension PLUS a parseable canvas.
+    const parsedCanvas = deserializeBoard(data);
+    this.isWrapper = wrapperByMarker || (wrapperByExt && parsedCanvas !== null);
 
     let xmlToMount = data;
     if (this.isWrapper) {
       this.wrapperRaw = data;
-      const canvas = deserializeBoard(data) ?? { nodes: [], edges: [] };
+      const canvas = parsedCanvas ?? { nodes: [], edges: [] };
       this.wrapperCanvas = canvas;
       this.wrapperSourceMeta = (deserializeSourceMeta(data) as SourceMeta | null) ?? null;
 
@@ -159,6 +165,12 @@ export class BpmnNativeView extends TextFileView {
       this.wrapperBpmnIds = new Set();
       this.wrapperSourceMeta = null;
     }
+
+    // H1: rebuild top bar so the wrapper-only "Switch to Omniboard view"
+    // button appears. onOpen() runs buildTopBar() before Obsidian calls
+    // setViewData(), so isWrapper was still false then and the button was
+    // never created.
+    this.buildTopBar();
 
     await this.mountModeler(xmlToMount);
   }
@@ -260,9 +272,16 @@ export class BpmnNativeView extends TextFileView {
     }
   }
 
-  private onModelerChanged(): void {
+  private async onModelerChanged(): Promise<void> {
     this.dirty = true;
-    void this.flushModelerData();
+    // H3: await flush BEFORE requesting Obsidian save so getViewData() sees
+    // the new this.data. Fire-and-forget here would race the debounced
+    // framework save and persist stale content.
+    try {
+      await this.flushModelerData();
+    } catch (err) {
+      console.error("[BpmnNative] flushModelerData failed in onModelerChanged", err);
+    }
     this.requestSave();
     this.scheduleSave();
   }
@@ -280,8 +299,21 @@ export class BpmnNativeView extends TextFileView {
 
   private async persistXml(): Promise<void> {
     if (!this.controller.isMounted) return;
+    // H4: snapshot the file at entry. If Obsidian swaps `this.file` mid-flight
+    // (file switch on the same leaf), abort rather than write fileA's data to
+    // fileB.
+    const targetFile = this.file;
     try {
-      await this.flushModelerData();
+      const ok = await this.flushModelerData();
+      if (!ok) {
+        // Empty modeler XML or wrapper-merge failure — do NOT clear dirty,
+        // do NOT call super.save() (would persist stale this.data).
+        return;
+      }
+      if (this.file !== targetFile) {
+        console.warn("[BpmnNative] File changed during persistXml; aborting save");
+        return;
+      }
       await super.save();
       this.dirty = false;
     } catch (err: unknown) {
@@ -290,15 +322,34 @@ export class BpmnNativeView extends TextFileView {
   }
 
   async save(clear?: boolean): Promise<void> {
-    await this.flushModelerData();
+    const targetFile = this.file;
+    const ok = await this.flushModelerData();
+    if (!ok) {
+      // Mirror persistXml: don't clobber file with stale data.
+      return;
+    }
+    if (this.file !== targetFile) {
+      console.warn("[BpmnNative] File changed during save(); aborting");
+      return;
+    }
     await super.save(clear);
     this.dirty = false;
   }
 
-  private async flushModelerData(): Promise<void> {
-    if (!this.controller.isMounted) return;
+  /**
+   * Sync modeler state into `this.data` (and, for wrappers, into the full
+   * `.omniboard.md` body). Returns `true` on success; returns `false` to
+   * tell callers to skip super.save() because writing would corrupt the file
+   * (empty XML, or wrapper-mode merge failure).
+   */
+  private async flushModelerData(): Promise<boolean> {
+    if (!this.controller.isMounted) return false;
     const xml = await this.controller.saveXml();
-    if (!xml) return;
+    // H5: empty XML means the modeler is in a transient state (mid-mount,
+    // mid-dispose, or transformation in flight). Do NOT update this.data and
+    // signal the caller to skip super.save(), otherwise we persist stale
+    // content and clear dirty.
+    if (!xml) return false;
 
     if (this.isWrapper) {
       // Wrapper mode: BPMN edit must round-trip back into the canvas master.
@@ -328,15 +379,27 @@ export class BpmnNativeView extends TextFileView {
         this.wrapperRaw = fullDoc;
         this.wrapperCanvas = merged.model;
         this.wrapperBpmnIds = collectIds(newImport);
-        return;
+        return true;
       } catch (err) {
-        console.error("[BpmnNative] Wrapper merge failed; falling back to raw XML write", err);
-        // Fall through to raw write — preserves user's edit at the cost of
-        // dropping merge guarantees for this single save.
+        // C1: wrapper-mode merge failed. We MUST NOT fall through to
+        // `this.data = xml` because that writes raw BPMN XML to a
+        // `.omniboard.md` file, destroying frontmatter + master canvas +
+        // sticky notes + source-meta. Keep this.data at the previous
+        // wrapperRaw and tell the caller to skip super.save() so disk
+        // content is left untouched. The user's BPMN edit stays in the
+        // modeler — a subsequent edit may succeed, or they can export
+        // manually.
+        console.error(
+          "[BpmnNative] Wrapper merge failed; preserving wrapper on disk (user BPMN edit kept in modeler only)",
+          err,
+        );
+        new Notice("Lưu BPMN thất bại — wrapper trên đĩa được giữ nguyên. Xem console để biết chi tiết.", 6000);
+        return false;
       }
     }
 
     this.data = xml;
+    return true;
   }
 
   private resetPendingSave(): void {
@@ -373,7 +436,18 @@ export class BpmnNativeView extends TextFileView {
   }
 
   private buildTopBar(): void {
+    // Idempotent: remove existing topbar so callers can rebuild after
+    // isWrapper / file changes (H1).
+    const existing = this.contentEl.querySelector(":scope > .da-topbar");
+    if (existing) existing.remove();
+
     const bar = this.contentEl.createDiv({ cls: "da-topbar" });
+    // Ensure topbar precedes the bpmn container in DOM order even when
+    // rebuilt after onOpen (CSS flex order does not change semantic order
+    // for screen readers / keyboard nav).
+    if (this.bpmnContainer && bar.nextSibling !== this.bpmnContainer) {
+      this.contentEl.insertBefore(bar, this.bpmnContainer);
+    }
 
     // Close button
     const close = bar.createEl("button", { cls: "da-tb-close" });
@@ -414,11 +488,18 @@ export class BpmnNativeView extends TextFileView {
 
     bar.createDiv({ cls: "da-tb-divider" });
 
+    // Import button (load .bpmn from disk into current modeler)
+    const imp = bar.createEl("button", { cls: "da-tb-ic" });
+    setIcon(imp, "upload");
+    imp.setAttribute("aria-label", "Import .bpmn");
+    imp.title = "Import .bpmn file";
+    imp.onclick = () => void this.handleImportBpmn();
+
     // Export button
     const exp = bar.createEl("button", { cls: "da-tb-ic" });
     setIcon(exp, "download");
     exp.setAttribute("aria-label", "Export");
-    exp.title = "Export SVG / PNG";
+    exp.title = "Export BPMN / SVG / PNG";
     exp.onclick = (e) => this.showExportMenu(e);
 
     // Save & Close button
@@ -569,6 +650,12 @@ export class BpmnNativeView extends TextFileView {
     const menu = new Menu();
     menu.addItem((i) =>
       i
+        .setTitle("Export as .bpmn (XML)")
+        .setIcon("file-code-2")
+        .onClick(() => void this.handleExportBpmn())
+    );
+    menu.addItem((i) =>
+      i
         .setTitle("Export as SVG")
         .setIcon("file-code")
         .onClick(() => void this.handleExportSvg())
@@ -584,6 +671,44 @@ export class BpmnNativeView extends TextFileView {
     if (target) {
       const rect = target.getBoundingClientRect();
       menu.showAtPosition({ x: rect.left, y: rect.bottom + 4 });
+    }
+  }
+
+  private async handleExportBpmn(): Promise<void> {
+    if (!this.controller.isMounted) return;
+    try {
+      const xml = await this.controller.saveXml();
+      if (!xml) {
+        new Notice("Không lấy được BPMN XML từ modeler.");
+        return;
+      }
+      const saved = await saveToLocal(xml, this.suggestedName(".bpmn"), "application/xml");
+      if (saved) new Notice(`Đã export BPMN: ${saved}`);
+    } catch (err) {
+      console.error("[BpmnNative] Export BPMN failed:", err);
+      new Notice("Export BPMN lỗi.");
+    }
+  }
+
+  private async handleImportBpmn(): Promise<void> {
+    const xml = await pickLocalBpmnFile();
+    if (!xml) return; // user cancelled
+    if (this.dirty) {
+      const proceed = confirm(
+        "Modeler đang có thay đổi chưa lưu. Import sẽ ghi đè nội dung hiện tại. Tiếp tục?",
+      );
+      if (!proceed) return;
+    }
+    try {
+      await this.mountModeler(xml);
+      this.dirty = true;
+      // Persist into current file via the normal flush path so wrapper or
+      // raw `.bpmn` files both round-trip correctly.
+      await this.persistXml();
+      new Notice("Đã import BPMN.");
+    } catch (err) {
+      console.error("[BpmnNative] Import BPMN failed:", err);
+      new Notice("Import BPMN lỗi. Xem console để biết chi tiết.");
     }
   }
 
@@ -628,6 +753,55 @@ interface FsPickerWindow {
     }>;
     name: string;
   }>;
+}
+
+/**
+ * Show a file picker (or fall back to a hidden `<input type="file">`) and
+ * return the BPMN XML text. Returns `null` if the user cancels or selects
+ * an unreadable file.
+ */
+async function pickLocalBpmnFile(): Promise<string | null> {
+  return await new Promise<string | null>((resolve) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".bpmn,.xml,application/xml,text/xml";
+    input.style.display = "none";
+    const cleanup = () => {
+      input.remove();
+    };
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) {
+        cleanup();
+        resolve(null);
+        return;
+      }
+      try {
+        const text = await file.text();
+        cleanup();
+        resolve(text);
+      } catch (err) {
+        console.error("[BpmnNative] Read picked file failed:", err);
+        cleanup();
+        resolve(null);
+      }
+    };
+    // Cancel cleanup: the browser does not always fire change on cancel,
+    // so we attach a one-shot focus handler to detect dismiss.
+    const onFocus = () => {
+      window.removeEventListener("focus", onFocus);
+      setTimeout(() => {
+        if (!input.files?.length) {
+          cleanup();
+          resolve(null);
+        }
+      }, 300);
+    };
+    window.addEventListener("focus", onFocus, { once: true });
+
+    document.body.appendChild(input);
+    input.click();
+  });
 }
 
 async function saveToLocal(

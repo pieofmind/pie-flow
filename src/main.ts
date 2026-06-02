@@ -289,21 +289,30 @@ export default class DiagramsPlugin extends Plugin {
         compressDrawingData: this.settings.compressDrawingData,
         bpmnXml: xml,
       });
-      let wrapperFile: TFile | null = null;
+      // H7: do NOT silently overwrite an existing wrapper — caller is a
+      // *convert* command, not "merge into existing". Bail with a Notice so
+      // the user can rename or move the existing file first.
+      const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
+      if (existing instanceof TFile) {
+        new Notice(
+          `Đã tồn tại "${wrapperPath}". Xoá hoặc đổi tên file đó trước khi convert.`,
+          7000,
+        );
+        return;
+      }
+      let wrapperFile: TFile;
       try {
         wrapperFile = await this.app.vault.create(wrapperPath, content);
-      } catch {
-        const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
-        if (existing instanceof TFile) {
-          await this.app.vault.modify(existing, content);
-          wrapperFile = existing;
-        }
-      }
-      if (!wrapperFile) {
-        new Notice("Không tạo được file wrapper .omniboard.md.");
+      } catch (createErr) {
+        console.error("[omniboard] vault.create failed for wrapper", createErr);
+        new Notice("Không tạo được file wrapper .omniboard.md (xem console).");
         return;
       }
       const leaf = this.app.workspace.getLeaf(false);
+      if (!leaf) {
+        new Notice("Không lấy được leaf để mở wrapper. File đã tạo: " + wrapperFile.path);
+        return;
+      }
       await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: wrapperFile.path } });
       new Notice(`Đã tạo wrapper: ${wrapperFile.path}`);
     } catch (err) {

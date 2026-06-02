@@ -225,13 +225,6 @@ export class BoardView extends TextFileView {
     iconBtn("trash-2", "Xóa", () => this.canvas?.deleteSelection());
     iconBtn("sliders-horizontal", "BPMN properties", () => this.openPropertiesLeaf());
     iconBtn("alert-triangle", "BPMN issues", () => this.openIssuesLeaf());
-    const layoutBtn = iconBtn("workflow", "Tự sắp xếp (auto layout)", () => {
-      const m = new Menu();
-      m.addItem((i) => i.setTitle("Sắp xếp ngang →").setIcon("arrow-right").onClick(() => this.canvas?.autoLayout("LR")));
-      m.addItem((i) => i.setTitle("Sắp xếp dọc ↓").setIcon("arrow-down").onClick(() => this.canvas?.autoLayout("TB")));
-      const r = layoutBtn.getBoundingClientRect();
-      m.showAtPosition({ x: r.left, y: r.bottom + 4 });
-    });
     bar.createDiv({ cls: "da-tb-divider" });
     iconBtn(
       "workflow",
@@ -359,6 +352,10 @@ export class BoardView extends TextFileView {
 
   // Obsidian → view
   setViewData(data: string, _clear: boolean): void {
+    // H6: clear per-file derived state so a stale cached BPMN from the
+    // previously-opened file does not bleed into the next file's first save.
+    // Obsidian reuses BoardView instances when switching files on the same leaf.
+    this.cachedBpmnXml = undefined;
     this.rawData = data;
     if (this.boardTitleEl) this.boardTitleEl.setText(this.file?.basename ?? "Board");
     const parsed = deserializeBoard(data);

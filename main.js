@@ -86812,19 +86812,6 @@ var BoardView = class extends import_obsidian3.TextFileView {
     });
     iconBtn("sliders-horizontal", "BPMN properties", () => this.openPropertiesLeaf());
     iconBtn("alert-triangle", "BPMN issues", () => this.openIssuesLeaf());
-    const layoutBtn = iconBtn("workflow", "T\u1EF1 s\u1EAFp x\u1EBFp (auto layout)", () => {
-      const m7 = new import_obsidian3.Menu();
-      m7.addItem((i6) => i6.setTitle("S\u1EAFp x\u1EBFp ngang \u2192").setIcon("arrow-right").onClick(() => {
-        var _a4;
-        return (_a4 = this.canvas) == null ? void 0 : _a4.autoLayout("LR");
-      }));
-      m7.addItem((i6) => i6.setTitle("S\u1EAFp x\u1EBFp d\u1ECDc \u2193").setIcon("arrow-down").onClick(() => {
-        var _a4;
-        return (_a4 = this.canvas) == null ? void 0 : _a4.autoLayout("TB");
-      }));
-      const r5 = layoutBtn.getBoundingClientRect();
-      m7.showAtPosition({ x: r5.left, y: r5.bottom + 4 });
-    });
     bar.createDiv({ cls: "da-tb-divider" });
     iconBtn(
       "workflow",
@@ -86948,6 +86935,7 @@ var BoardView = class extends import_obsidian3.TextFileView {
   // Obsidian → view
   setViewData(data2, _clear) {
     var _a3, _b2;
+    this.cachedBpmnXml = void 0;
     this.rawData = data2;
     if (this.boardTitleEl) this.boardTitleEl.setText((_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Board");
     const parsed = deserializeBoard(data2);
@@ -119233,7 +119221,7 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
     return this.data;
   }
   async setViewData(data2, clear3) {
-    var _a3, _b2, _c, _d, _e3, _f;
+    var _a3, _b2, _c, _d, _e3;
     if (clear3 && this.dirty && this.controller.isMounted) {
       await this.persistXml();
     }
@@ -119243,19 +119231,20 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
     this.dirty = false;
     const wrapperByExt = (_c = (_b2 = (_a3 = this.file) == null ? void 0 : _a3.path) == null ? void 0 : _b2.endsWith(OMNIBOARD_SUFFIX)) != null ? _c : false;
     const wrapperByMarker = isOmniboardMarkdown(data2);
-    this.isWrapper = wrapperByExt || wrapperByMarker;
+    const parsedCanvas = deserializeBoard(data2);
+    this.isWrapper = wrapperByMarker || wrapperByExt && parsedCanvas !== null;
     let xmlToMount = data2;
     if (this.isWrapper) {
       this.wrapperRaw = data2;
-      const canvas = (_d = deserializeBoard(data2)) != null ? _d : { nodes: [], edges: [] };
+      const canvas = parsedCanvas != null ? parsedCanvas : { nodes: [], edges: [] };
       this.wrapperCanvas = canvas;
-      this.wrapperSourceMeta = (_e3 = deserializeSourceMeta(data2)) != null ? _e3 : null;
+      this.wrapperSourceMeta = (_d = deserializeSourceMeta(data2)) != null ? _d : null;
       const existingXml = deserializeBpmnXml(data2);
       if (existingXml && existingXml.trim().length) {
         xmlToMount = existingXml;
       } else {
         try {
-          xmlToMount = await exportBpmn(canvas, (_f = this.wrapperSourceMeta) != null ? _f : void 0);
+          xmlToMount = await exportBpmn(canvas, (_e3 = this.wrapperSourceMeta) != null ? _e3 : void 0);
         } catch (err2) {
           console.warn("[BpmnNative] Lazy regen failed; falling back to empty BPMN", err2);
           xmlToMount = MINIMAL_BPMN_FALLBACK;
@@ -119274,6 +119263,7 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
       this.wrapperBpmnIds = /* @__PURE__ */ new Set();
       this.wrapperSourceMeta = null;
     }
+    this.buildTopBar();
     await this.mountModeler(xmlToMount);
   }
   clear() {
@@ -119346,9 +119336,13 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
       new import_obsidian6.Notice(`BPMN import l\u1ED7i: ${msg}`, 5e3);
     }
   }
-  onModelerChanged() {
+  async onModelerChanged() {
     this.dirty = true;
-    void this.flushModelerData();
+    try {
+      await this.flushModelerData();
+    } catch (err2) {
+      console.error("[BpmnNative] flushModelerData failed in onModelerChanged", err2);
+    }
     this.requestSave();
     this.scheduleSave();
   }
@@ -119364,8 +119358,16 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
   }
   async persistXml() {
     if (!this.controller.isMounted) return;
+    const targetFile = this.file;
     try {
-      await this.flushModelerData();
+      const ok = await this.flushModelerData();
+      if (!ok) {
+        return;
+      }
+      if (this.file !== targetFile) {
+        console.warn("[BpmnNative] File changed during persistXml; aborting save");
+        return;
+      }
       await super.save();
       this.dirty = false;
     } catch (err2) {
@@ -119373,15 +119375,29 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
     }
   }
   async save(clear3) {
-    await this.flushModelerData();
+    const targetFile = this.file;
+    const ok = await this.flushModelerData();
+    if (!ok) {
+      return;
+    }
+    if (this.file !== targetFile) {
+      console.warn("[BpmnNative] File changed during save(); aborting");
+      return;
+    }
     await super.save(clear3);
     this.dirty = false;
   }
+  /**
+   * Sync modeler state into `this.data` (and, for wrappers, into the full
+   * `.omniboard.md` body). Returns `true` on success; returns `false` to
+   * tell callers to skip super.save() because writing would corrupt the file
+   * (empty XML, or wrapper-mode merge failure).
+   */
   async flushModelerData() {
     var _a3, _b2;
-    if (!this.controller.isMounted) return;
+    if (!this.controller.isMounted) return false;
     const xml3 = await this.controller.saveXml();
-    if (!xml3) return;
+    if (!xml3) return false;
     if (this.isWrapper) {
       try {
         const { model: newImport } = await importBpmn(xml3);
@@ -119405,12 +119421,18 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
         this.wrapperRaw = fullDoc;
         this.wrapperCanvas = merged.model;
         this.wrapperBpmnIds = collectIds(newImport);
-        return;
+        return true;
       } catch (err2) {
-        console.error("[BpmnNative] Wrapper merge failed; falling back to raw XML write", err2);
+        console.error(
+          "[BpmnNative] Wrapper merge failed; preserving wrapper on disk (user BPMN edit kept in modeler only)",
+          err2
+        );
+        new import_obsidian6.Notice("L\u01B0u BPMN th\u1EA5t b\u1EA1i \u2014 wrapper tr\xEAn \u0111\u0129a \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.", 6e3);
+        return false;
       }
     }
     this.data = xml3;
+    return true;
   }
   resetPendingSave() {
     if (this.saveTimer) {
@@ -119444,7 +119466,12 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
   }
   buildTopBar() {
     var _a3, _b2;
+    const existing = this.contentEl.querySelector(":scope > .da-topbar");
+    if (existing) existing.remove();
     const bar = this.contentEl.createDiv({ cls: "da-topbar" });
+    if (this.bpmnContainer && bar.nextSibling !== this.bpmnContainer) {
+      this.contentEl.insertBefore(bar, this.bpmnContainer);
+    }
     const close = bar.createEl("button", { cls: "da-tb-close" });
     (0, import_obsidian6.setIcon)(close, "x");
     close.createSpan({ text: "\u0110\xF3ng" });
@@ -119472,10 +119499,15 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
       switchBtn.onclick = () => void this.switchToBoardView();
     }
     bar.createDiv({ cls: "da-tb-divider" });
+    const imp = bar.createEl("button", { cls: "da-tb-ic" });
+    (0, import_obsidian6.setIcon)(imp, "upload");
+    imp.setAttribute("aria-label", "Import .bpmn");
+    imp.title = "Import .bpmn file";
+    imp.onclick = () => void this.handleImportBpmn();
     const exp = bar.createEl("button", { cls: "da-tb-ic" });
     (0, import_obsidian6.setIcon)(exp, "download");
     exp.setAttribute("aria-label", "Export");
-    exp.title = "Export SVG / PNG";
+    exp.title = "Export BPMN / SVG / PNG";
     exp.onclick = (e5) => this.showExportMenu(e5);
     const save = bar.createEl("button", { cls: "da-tb-save" });
     (0, import_obsidian6.setIcon)(save, "check");
@@ -119598,6 +119630,9 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
   showExportMenu(e5) {
     const menu = new import_obsidian6.Menu();
     menu.addItem(
+      (i6) => i6.setTitle("Export as .bpmn (XML)").setIcon("file-code-2").onClick(() => void this.handleExportBpmn())
+    );
+    menu.addItem(
       (i6) => i6.setTitle("Export as SVG").setIcon("file-code").onClick(() => void this.handleExportSvg())
     );
     menu.addItem(
@@ -119607,6 +119642,40 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
     if (target) {
       const rect2 = target.getBoundingClientRect();
       menu.showAtPosition({ x: rect2.left, y: rect2.bottom + 4 });
+    }
+  }
+  async handleExportBpmn() {
+    if (!this.controller.isMounted) return;
+    try {
+      const xml3 = await this.controller.saveXml();
+      if (!xml3) {
+        new import_obsidian6.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c BPMN XML t\u1EEB modeler.");
+        return;
+      }
+      const saved = await saveToLocal2(xml3, this.suggestedName(".bpmn"), "application/xml");
+      if (saved) new import_obsidian6.Notice(`\u0110\xE3 export BPMN: ${saved}`);
+    } catch (err2) {
+      console.error("[BpmnNative] Export BPMN failed:", err2);
+      new import_obsidian6.Notice("Export BPMN l\u1ED7i.");
+    }
+  }
+  async handleImportBpmn() {
+    const xml3 = await pickLocalBpmnFile();
+    if (!xml3) return;
+    if (this.dirty) {
+      const proceed = confirm(
+        "Modeler \u0111ang c\xF3 thay \u0111\u1ED5i ch\u01B0a l\u01B0u. Import s\u1EBD ghi \u0111\xE8 n\u1ED9i dung hi\u1EC7n t\u1EA1i. Ti\u1EBFp t\u1EE5c?"
+      );
+      if (!proceed) return;
+    }
+    try {
+      await this.mountModeler(xml3);
+      this.dirty = true;
+      await this.persistXml();
+      new import_obsidian6.Notice("\u0110\xE3 import BPMN.");
+    } catch (err2) {
+      console.error("[BpmnNative] Import BPMN failed:", err2);
+      new import_obsidian6.Notice("Import BPMN l\u1ED7i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
   suggestedName(ext) {
@@ -119637,6 +119706,48 @@ var BpmnNativeView = class extends import_obsidian6.TextFileView {
     }
   }
 };
+async function pickLocalBpmnFile() {
+  return await new Promise((resolve3) => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".bpmn,.xml,application/xml,text/xml";
+    input.style.display = "none";
+    const cleanup = () => {
+      input.remove();
+    };
+    input.onchange = async () => {
+      var _a3;
+      const file = (_a3 = input.files) == null ? void 0 : _a3[0];
+      if (!file) {
+        cleanup();
+        resolve3(null);
+        return;
+      }
+      try {
+        const text4 = await file.text();
+        cleanup();
+        resolve3(text4);
+      } catch (err2) {
+        console.error("[BpmnNative] Read picked file failed:", err2);
+        cleanup();
+        resolve3(null);
+      }
+    };
+    const onFocus = () => {
+      window.removeEventListener("focus", onFocus);
+      setTimeout(() => {
+        var _a3;
+        if (!((_a3 = input.files) == null ? void 0 : _a3.length)) {
+          cleanup();
+          resolve3(null);
+        }
+      }, 300);
+    };
+    window.addEventListener("focus", onFocus, { once: true });
+    document.body.appendChild(input);
+    input.click();
+  });
+}
 async function saveToLocal2(data2, suggestedName, mimeType) {
   var _a3, _b2;
   const blob = data2 instanceof Blob ? data2 : new Blob([data2], { type: mimeType });
@@ -120621,21 +120732,27 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
         compressDrawingData: this.settings.compressDrawingData,
         bpmnXml: xml3
       });
-      let wrapperFile = null;
+      const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
+      if (existing instanceof import_obsidian9.TFile) {
+        new import_obsidian9.Notice(
+          `\u0110\xE3 t\u1ED3n t\u1EA1i "${wrapperPath}". Xo\xE1 ho\u1EB7c \u0111\u1ED5i t\xEAn file \u0111\xF3 tr\u01B0\u1EDBc khi convert.`,
+          7e3
+        );
+        return;
+      }
+      let wrapperFile;
       try {
         wrapperFile = await this.app.vault.create(wrapperPath, content5);
-      } catch (e5) {
-        const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
-        if (existing instanceof import_obsidian9.TFile) {
-          await this.app.vault.modify(existing, content5);
-          wrapperFile = existing;
-        }
-      }
-      if (!wrapperFile) {
-        new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md.");
+      } catch (createErr) {
+        console.error("[omniboard] vault.create failed for wrapper", createErr);
+        new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
         return;
       }
       const leaf = this.app.workspace.getLeaf(false);
+      if (!leaf) {
+        new import_obsidian9.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
+        return;
+      }
       await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: wrapperFile.path } });
       new import_obsidian9.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
     } catch (err2) {

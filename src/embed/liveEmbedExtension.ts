@@ -33,9 +33,11 @@ import {
 } from "@codemirror/view";
 import { syntaxTree } from "@codemirror/language";
 import { TFile, setIcon } from "obsidian";
+import { render, h } from "preact";
 import type DiagramsPlugin from "../main";
 import { deserializeBoard } from "../view/boardSerde";
 import { renderModelToSvg } from "../canvas/staticRender";
+import { EmbedCard } from "../ui/EmbedCard";
 import { isOmniboardLink } from "./linkUtils";
 
 // Re-export the pure check so existing callers needn't switch imports.
@@ -67,66 +69,65 @@ class OmniboardEmbedWidget extends WidgetType {
   toDOM(_view: EditorView): HTMLElement {
     const host = document.createElement("div");
     host.addClass("omniboard-embed-host");
-    host.addClass("da-embed");
     this.mounted = host;
 
-    const card = host.createDiv({ cls: "da-embed-card" });
-    const head = card.createDiv({ cls: "da-embed-head" });
-    head.createSpan({ cls: "da-embed-ttl", text: this.file.basename });
-    const meta = head.createSpan({ cls: "da-embed-meta" });
-    const open = head.createEl("button", { cls: "da-embed-open" });
-    setIcon(open, "external-link");
-    open.createSpan({ text: "Mở" });
-    open.onclick = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      void this.plugin.app.workspace.getLeaf("tab").openFile(this.file);
+    // Initial loading mount via the shared <EmbedCard>. We then re-render
+    // on completion of the async vault read with full props. Same Preact
+    // tree → React reconciler-style update, not a full DOM replace.
+    const mount = (
+      svg: string | undefined,
+      nodes: number,
+      edges: number,
+      error?: string,
+    ): void => {
+      if (this.mounted !== host || !host.isConnected) return;
+      render(
+        h(EmbedCard, {
+          filename: this.file.basename,
+          nodeCount: nodes,
+          edgeCount: edges,
+          svg,
+          errorMessage: error,
+          onOpen: () => {
+            void this.plugin.app.workspace.getLeaf("tab").openFile(this.file);
+          },
+          setIcon: (el, name) => setIcon(el, name),
+        }),
+        host,
+      );
     };
 
-    const body = card.createDiv({ cls: "da-embed-body" });
-    const loading = body.createDiv({
-      cls: "da-embed-loading",
-      text: "Đang tải…",
-    });
+    // Initial loading state (svg=undefined → "Đang tải…")
+    mount(undefined, 0, 0);
 
-    // Read asynchronously so toDOM() returns synchronously — required by
-    // CodeMirror's widget contract. Abort on unmount via mounted check.
+    // Async load + re-render. The mounted guard aborts touch-after-detach.
     void (async () => {
       try {
         const raw = await this.plugin.app.vault.cachedRead(this.file);
-        // Widget may have been destroyed (scrolled out, file closed)
-        // before the read resolved.
         if (this.mounted !== host || !host.isConnected) return;
         const model = deserializeBoard(raw);
-        if (!model) throw new Error("invalid omniboard");
-        loading.remove();
-        const nodes = model.nodes?.length ?? 0;
-        meta.setText(`${nodes} phần tử · ${model.edges?.length ?? 0} nối`);
-        if (!nodes) {
-          body.createDiv({
-            cls: "da-embed-empty",
-            text: "Board trống — bấm Mở để vẽ.",
-          });
+        if (!model) {
+          mount("", 0, 0, "File không đúng định dạng Omniboard.");
           return;
         }
-        const wrap = body.createDiv({ cls: "da-embed-svg" });
-        wrap.innerHTML = renderModelToSvg(model, "", 16, "transparent");
+        const nodes = model.nodes?.length ?? 0;
+        const edges = model.edges?.length ?? 0;
+        const svg =
+          nodes > 0 ? renderModelToSvg(model, "", 16, "transparent") : "";
+        mount(svg, nodes, edges);
       } catch {
         if (this.mounted !== host) return;
-        loading.remove();
-        body.createDiv({
-          cls: "da-embed-empty",
-          text: "Không đọc được board.",
-        });
+        mount("", 0, 0, "Không đọc được board.");
       }
     })();
 
     return host;
   }
 
-  destroy(_dom: HTMLElement): void {
-    // Signal in-flight async reads to abort. Story 7-11 will mount a
-    // Preact tree here and add `render(null, _dom)` for proper unmount.
+  destroy(dom: HTMLElement): void {
+    // Unmount the Preact tree before signaling abort — releases hook
+    // state + event listeners attached during render.
+    render(null, dom);
     this.mounted = null;
   }
 

@@ -8,6 +8,7 @@ import { AdapterRegistry } from "./core/registry";
 import { EditModal } from "./core/modal";
 import { readObsidianTheme } from "./core/theme";
 import { DiagramCard } from "./ui/DiagramCard";
+import { EmbedCard } from "./ui/EmbedCard";
 import { OMNIBOARD_PROPERTIES_VIEW_TYPE, OmniboardPropertiesView } from "./ui/PropertiesPanel";
 import { BpmnIssuesView, OMNIBOARD_ISSUES_VIEW_TYPE } from "./ui/BpmnIssuesView";
 import type { DiagramAdapter } from "./core/adapter";
@@ -447,32 +448,41 @@ export default class DiagramsPlugin extends Plugin {
     if (!(file instanceof TFile)) return;
     host.dataset.daRendered = "1";
     host.empty();
-    host.addClass("da-embed");
 
-    const card = host.createDiv({ cls: "da-embed-card" });
-    const head = card.createDiv({ cls: "da-embed-head" });
-    head.createSpan({ cls: "da-embed-ttl", text: file.basename });
-    const meta = head.createSpan({ cls: "da-embed-meta" });
-    const open = head.createEl("button", { cls: "da-embed-open" });
-    setIcon(open, "external-link");
-    open.createSpan({ text: "Mở" });
-    open.onclick = (e) => { e.preventDefault(); void this.app.workspace.getLeaf("tab").openFile(file); };
-
-    const body = card.createDiv({ cls: "da-embed-body" });
+    // Story 7-11 — render via shared <EmbedCard> so the inline code-block
+    // card (Story 7-7), Reading-mode embed (this path), and Live Preview
+    // embed (liveEmbedExtension.ts) all share the same visual layout.
+    let nodeCount = 0;
+    let edgeCount = 0;
+    let svg: string | undefined = undefined;
+    let errorMessage: string | undefined = undefined;
     try {
       const raw = await this.app.vault.cachedRead(file);
       const model = deserializeBoard(raw);
-      if (!model) throw new Error("invalid omniboard");
-      const nodes = model.nodes?.length ?? 0;
-      meta.setText(`${nodes} phần tử · ${model.edges?.length ?? 0} nối`);
-      if (!nodes) { body.createDiv({ cls: "da-embed-empty", text: "Board trống — bấm Mở để vẽ." }); return; }
-      // Inline SVG inside the document inherits the loaded plugin stylesheet,
-      // so no CSS needs embedding — just the `lk-root` class (set by the renderer).
-      const wrap = body.createDiv({ cls: "da-embed-svg" });
-      wrap.innerHTML = renderModelToSvg(model, "", 16, "transparent");
+      if (!model) {
+        errorMessage = "File không đúng định dạng Omniboard.";
+      } else {
+        nodeCount = model.nodes?.length ?? 0;
+        edgeCount = model.edges?.length ?? 0;
+        // Empty board → svg="" so the empty-state copy renders.
+        svg = nodeCount > 0 ? renderModelToSvg(model, "", 16, "transparent") : "";
+      }
     } catch {
-      body.createDiv({ cls: "da-embed-empty", text: "Không đọc được board." });
+      errorMessage = "Không đọc được board.";
     }
+
+    render(
+      h(EmbedCard, {
+        filename: file.basename,
+        nodeCount,
+        edgeCount,
+        svg,
+        errorMessage,
+        onOpen: () => void this.app.workspace.getLeaf("tab").openFile(file),
+        setIcon: (el, name) => setIcon(el, name),
+      }),
+      host,
+    );
   }
 
   /** Insert from the ribbon menu — needs to find the active markdown editor itself. */

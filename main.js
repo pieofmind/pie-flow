@@ -88294,6 +88294,83 @@ function DiagramCard(props) {
   ] });
 }
 
+// src/ui/EmbedCard.tsx
+function EmbedCard(props) {
+  var _a3, _b2;
+  const typeLabel = (_a3 = props.typeLabel) != null ? _a3 : "Omniboard";
+  const setIconRef = (name2) => (el4) => {
+    var _a4;
+    if (!el4 || el4.dataset.iconApplied) return;
+    el4.dataset.iconApplied = "1";
+    (_a4 = props.setIcon) == null ? void 0 : _a4.call(props, el4, name2);
+  };
+  const meta = props.errorMessage ? props.errorMessage : `${props.nodeCount} ph\u1EA7n t\u1EED \xB7 ${props.edgeCount} n\u1ED1i`;
+  return /* @__PURE__ */ u2("div", { class: "diagrams-card diagrams-card-embed", "data-testid": "diagrams-embed-card", children: [
+    /* @__PURE__ */ u2("div", { class: "diagrams-card-header", children: [
+      /* @__PURE__ */ u2(
+        "div",
+        {
+          class: "diagrams-card-chip",
+          onClick: (e5) => e5.stopPropagation(),
+          children: [
+            /* @__PURE__ */ u2(
+              "span",
+              {
+                ref: setIconRef("shapes"),
+                class: "diagrams-card-chip-icon",
+                "aria-hidden": "true"
+              }
+            ),
+            /* @__PURE__ */ u2("span", { class: "diagrams-card-chip-label", children: typeLabel })
+          ]
+        }
+      ),
+      /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-title", "data-testid": "diagrams-embed-title", children: props.filename }),
+      /* @__PURE__ */ u2("div", { class: "diagrams-card-spacer" }),
+      /* @__PURE__ */ u2(
+        "button",
+        {
+          type: "button",
+          class: "diagrams-card-btn diagrams-card-btn-primary",
+          "data-testid": "diagrams-embed-open",
+          onClick: (e5) => {
+            e5.stopPropagation();
+            props.onOpen();
+          },
+          children: [
+            /* @__PURE__ */ u2(
+              "span",
+              {
+                ref: setIconRef("external-link"),
+                class: "diagrams-card-btn-icon",
+                "aria-hidden": "true"
+              }
+            ),
+            /* @__PURE__ */ u2("span", { class: "diagrams-card-btn-label", children: "M\u1EDF" })
+          ]
+        }
+      )
+    ] }),
+    /* @__PURE__ */ u2(
+      "div",
+      {
+        class: "diagrams-card-preview diagrams-card-embed-preview",
+        "data-testid": "diagrams-embed-preview",
+        children: [
+          /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-meta", children: meta }),
+          props.svg === void 0 ? /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-loading", children: "\u0110ang t\u1EA3i\u2026" }) : props.svg === "" || props.errorMessage ? /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-empty", children: (_b2 = props.errorMessage) != null ? _b2 : "Board tr\u1ED1ng \u2014 b\u1EA5m M\u1EDF \u0111\u1EC3 v\u1EBD." }) : /* @__PURE__ */ u2(
+            "div",
+            {
+              class: "diagrams-card-embed-svg",
+              dangerouslySetInnerHTML: { __html: props.svg }
+            }
+          )
+        ]
+      }
+    )
+  ] });
+}
+
 // src/settings.ts
 var import_obsidian6 = require("obsidian");
 var DEFAULT_SETTINGS = {
@@ -122425,56 +122502,48 @@ var OmniboardEmbedWidget = class _OmniboardEmbedWidget extends import_view12.Wid
   toDOM(_view) {
     const host = document.createElement("div");
     host.addClass("omniboard-embed-host");
-    host.addClass("da-embed");
     this.mounted = host;
-    const card = host.createDiv({ cls: "da-embed-card" });
-    const head = card.createDiv({ cls: "da-embed-head" });
-    head.createSpan({ cls: "da-embed-ttl", text: this.file.basename });
-    const meta = head.createSpan({ cls: "da-embed-meta" });
-    const open4 = head.createEl("button", { cls: "da-embed-open" });
-    (0, import_obsidian10.setIcon)(open4, "external-link");
-    open4.createSpan({ text: "M\u1EDF" });
-    open4.onclick = (e5) => {
-      e5.preventDefault();
-      e5.stopPropagation();
-      void this.plugin.app.workspace.getLeaf("tab").openFile(this.file);
+    const mount = (svg3, nodes, edges, error4) => {
+      if (this.mounted !== host || !host.isConnected) return;
+      R(
+        k(EmbedCard, {
+          filename: this.file.basename,
+          nodeCount: nodes,
+          edgeCount: edges,
+          svg: svg3,
+          errorMessage: error4,
+          onOpen: () => {
+            void this.plugin.app.workspace.getLeaf("tab").openFile(this.file);
+          },
+          setIcon: (el4, name2) => (0, import_obsidian10.setIcon)(el4, name2)
+        }),
+        host
+      );
     };
-    const body = card.createDiv({ cls: "da-embed-body" });
-    const loading = body.createDiv({
-      cls: "da-embed-loading",
-      text: "\u0110ang t\u1EA3i\u2026"
-    });
+    mount(void 0, 0, 0);
     void (async () => {
       var _a3, _b2, _c, _d;
       try {
         const raw2 = await this.plugin.app.vault.cachedRead(this.file);
         if (this.mounted !== host || !host.isConnected) return;
         const model = deserializeBoard(raw2);
-        if (!model) throw new Error("invalid omniboard");
-        loading.remove();
-        const nodes = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
-        meta.setText(`${nodes} ph\u1EA7n t\u1EED \xB7 ${(_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0} n\u1ED1i`);
-        if (!nodes) {
-          body.createDiv({
-            cls: "da-embed-empty",
-            text: "Board tr\u1ED1ng \u2014 b\u1EA5m M\u1EDF \u0111\u1EC3 v\u1EBD."
-          });
+        if (!model) {
+          mount("", 0, 0, "File kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng Omniboard.");
           return;
         }
-        const wrap = body.createDiv({ cls: "da-embed-svg" });
-        wrap.innerHTML = renderModelToSvg(model, "", 16, "transparent");
+        const nodes = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
+        const edges = (_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0;
+        const svg3 = nodes > 0 ? renderModelToSvg(model, "", 16, "transparent") : "";
+        mount(svg3, nodes, edges);
       } catch (e5) {
         if (this.mounted !== host) return;
-        loading.remove();
-        body.createDiv({
-          cls: "da-embed-empty",
-          text: "Kh\xF4ng \u0111\u1ECDc \u0111\u01B0\u1EE3c board."
-        });
+        mount("", 0, 0, "Kh\xF4ng \u0111\u1ECDc \u0111\u01B0\u1EE3c board.");
       }
     })();
     return host;
   }
-  destroy(_dom) {
+  destroy(dom) {
+    R(null, dom);
     this.mounted = null;
   }
   // The widget is purely decorative — events on it shouldn't end up in
@@ -123487,34 +123556,35 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     if (!(file instanceof import_obsidian12.TFile)) return;
     host.dataset.daRendered = "1";
     host.empty();
-    host.addClass("da-embed");
-    const card = host.createDiv({ cls: "da-embed-card" });
-    const head = card.createDiv({ cls: "da-embed-head" });
-    head.createSpan({ cls: "da-embed-ttl", text: file.basename });
-    const meta = head.createSpan({ cls: "da-embed-meta" });
-    const open4 = head.createEl("button", { cls: "da-embed-open" });
-    (0, import_obsidian12.setIcon)(open4, "external-link");
-    open4.createSpan({ text: "M\u1EDF" });
-    open4.onclick = (e5) => {
-      e5.preventDefault();
-      void this.app.workspace.getLeaf("tab").openFile(file);
-    };
-    const body = card.createDiv({ cls: "da-embed-body" });
+    let nodeCount = 0;
+    let edgeCount = 0;
+    let svg3 = void 0;
+    let errorMessage = void 0;
     try {
       const raw2 = await this.app.vault.cachedRead(file);
       const model = deserializeBoard(raw2);
-      if (!model) throw new Error("invalid omniboard");
-      const nodes = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
-      meta.setText(`${nodes} ph\u1EA7n t\u1EED \xB7 ${(_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0} n\u1ED1i`);
-      if (!nodes) {
-        body.createDiv({ cls: "da-embed-empty", text: "Board tr\u1ED1ng \u2014 b\u1EA5m M\u1EDF \u0111\u1EC3 v\u1EBD." });
-        return;
+      if (!model) {
+        errorMessage = "File kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng Omniboard.";
+      } else {
+        nodeCount = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
+        edgeCount = (_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0;
+        svg3 = nodeCount > 0 ? renderModelToSvg(model, "", 16, "transparent") : "";
       }
-      const wrap = body.createDiv({ cls: "da-embed-svg" });
-      wrap.innerHTML = renderModelToSvg(model, "", 16, "transparent");
     } catch (e5) {
-      body.createDiv({ cls: "da-embed-empty", text: "Kh\xF4ng \u0111\u1ECDc \u0111\u01B0\u1EE3c board." });
+      errorMessage = "Kh\xF4ng \u0111\u1ECDc \u0111\u01B0\u1EE3c board.";
     }
+    R(
+      k(EmbedCard, {
+        filename: file.basename,
+        nodeCount,
+        edgeCount,
+        svg: svg3,
+        errorMessage,
+        onOpen: () => void this.app.workspace.getLeaf("tab").openFile(file),
+        setIcon: (el4, name2) => (0, import_obsidian12.setIcon)(el4, name2)
+      }),
+      host
+    );
   }
   /** Insert from the ribbon menu — needs to find the active markdown editor itself. */
   insertDiagramIntoActiveEditor(adapter) {

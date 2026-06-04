@@ -1537,3 +1537,50 @@ body.is-mobile .diagrams-card-header {
   caret-color: var(--text-normal);
   color: var(--text-normal);
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Story 7-11 — EmbedCard (file embed variant of DiagramCard)
+ * Same chip+button styling as the inline card, plus a filename title
+ * row between the chip and the right-aligned "Mở" button.
+ * ────────────────────────────────────────────────────────────────────────── */
+.diagrams-card-embed .diagrams-card-embed-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-normal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 0 1 auto;
+}
+.diagrams-card-embed-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.diagrams-card-embed-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-monospace);
+}
+.diagrams-card-embed-loading,
+.diagrams-card-embed-empty {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.diagrams-card-embed-svg {
+  width: 100%;
+  overflow: auto;
+}
+.diagrams-card-embed-svg svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+/* Host attached by CM6 widget — flex so the card stretches naturally */
+.omniboard-embed-host {
+  display: block;
+  margin: 8px 0;
+}

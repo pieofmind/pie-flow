@@ -17,6 +17,7 @@ import { MINIMAL_BPMN_XML } from "./bpmn-native/BpmnNativeController";
 import { BpmnPropertiesView, BPMN_PROPERTIES_VIEW_TYPE } from "./bpmn-native/BpmnPropertiesView";
 import { registerBpmnIcons } from "./bpmn-native/bpmn-icons";
 import { omniboardEmbedEditorExtension } from "./embed/liveEmbedExtension";
+import { exportDiagramCard, copyCardAsImage } from "./io/cardExports";
 
 import { bpmnAdapter } from "./adapters/bpmn";
 import { erdAdapter } from "./adapters/erd";
@@ -496,6 +497,34 @@ export default class DiagramsPlugin extends Plugin {
             source,
             theme,
             onEdit: () => this.openEditor(adapter, source, el, ctx),
+            // Story 7-20 — real export backends via cardExports helper.
+            onExport: async (format) => {
+              try {
+                const model = adapter.parse(source);
+                const baseName =
+                  this.app.workspace.getActiveFile()?.basename ??
+                  `diagram-${adapter.codeBlockLanguage}`;
+                const saved = await exportDiagramCard(
+                  adapter,
+                  model,
+                  format,
+                  baseName,
+                );
+                if (saved) new Notice(`Đã export: ${saved}`);
+              } catch (err) {
+                console.warn("[omniboard] card export failed", err);
+                new Notice(`Export ${format.toUpperCase()} thất bại — xem console.`);
+              }
+            },
+            onCopyImage: async () => {
+              const model = adapter.parse(source);
+              const ok = await copyCardAsImage(adapter, model);
+              new Notice(
+                ok
+                  ? "Đã copy vào clipboard"
+                  : "Copy clipboard thất bại (browser có thể không hỗ trợ image clipboard)",
+              );
+            },
           }),
           mount
         );

@@ -122538,6 +122538,150 @@ function omniboardEmbedEditorExtension(plugin) {
   return [pluginExt];
 }
 
+// src/io/cardExports.ts
+function isCanvasModel(model) {
+  if (typeof model !== "object" || model === null) return false;
+  const m7 = model;
+  return Array.isArray(m7.nodes) && Array.isArray(m7.edges);
+}
+function exportSvg(model) {
+  return renderModelToSvg(model, "", 24, "#ffffff");
+}
+async function exportPng(model, scale2 = 2) {
+  const svg3 = exportSvg(model);
+  const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg3);
+  const img = new Image();
+  await new Promise((resolve3, reject) => {
+    img.onload = () => resolve3();
+    img.onerror = () => reject(new Error("SVG decode failed"));
+    img.src = url;
+  });
+  const w5 = img.width || 800;
+  const h5 = img.height || 600;
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(w5 * scale2));
+  canvas.height = Math.max(1, Math.round(h5 * scale2));
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("No 2D context");
+  ctx.scale(scale2, scale2);
+  ctx.drawImage(img, 0, 0);
+  return await new Promise(
+    (resolve3, reject) => canvas.toBlob(
+      (b4) => b4 ? resolve3(b4) : reject(new Error("canvas.toBlob failed")),
+      "image/png"
+    )
+  );
+}
+async function exportPdf(model) {
+  const { jsPDF } = await Promise.resolve().then(() => (init_jspdf_es_min(), jspdf_es_min_exports));
+  const blob = await exportPng(model, 2);
+  const dataUrl = await new Promise((resolve3, reject) => {
+    const r5 = new FileReader();
+    r5.onload = () => resolve3(r5.result);
+    r5.onerror = () => reject(new Error("read PNG failed"));
+    r5.readAsDataURL(blob);
+  });
+  const img = new Image();
+  await new Promise((resolve3, reject) => {
+    img.onload = () => resolve3();
+    img.onerror = () => reject(new Error("decode PNG failed"));
+    img.src = dataUrl;
+  });
+  const orient = img.width >= img.height ? "landscape" : "portrait";
+  const pdf = new jsPDF({ orientation: orient, unit: "mm", format: "a4" });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 10;
+  const maxW = pageW - margin * 2;
+  const maxH = pageH - margin * 2;
+  const ratio2 = Math.min(maxW / img.width, maxH / img.height);
+  const drawW = img.width * ratio2;
+  const drawH = img.height * ratio2;
+  const x5 = (pageW - drawW) / 2;
+  const y5 = (pageH - drawH) / 2;
+  pdf.addImage(dataUrl, "PNG", x5, y5, drawW, drawH);
+  return new Uint8Array(pdf.output("arraybuffer"));
+}
+async function saveToDisk(data2, suggestedName, mimeType) {
+  var _a3;
+  let blob;
+  if (data2 instanceof Blob) {
+    blob = data2;
+  } else if (data2 instanceof Uint8Array) {
+    blob = new Blob([data2.buffer.slice(data2.byteOffset, data2.byteOffset + data2.byteLength)], { type: mimeType });
+  } else {
+    blob = new Blob([data2], { type: mimeType });
+  }
+  const w5 = window;
+  if (typeof w5.showSaveFilePicker === "function") {
+    try {
+      const handle = await w5.showSaveFilePicker({
+        suggestedName,
+        types: [
+          {
+            description: mimeType,
+            accept: { [mimeType]: ["." + suggestedName.split(".").pop()] }
+          }
+        ]
+      });
+      const stream = await handle.createWritable();
+      await stream.write(blob);
+      await stream.close();
+      return (_a3 = handle.name) != null ? _a3 : suggestedName;
+    } catch (e5) {
+      return null;
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a5 = document.createElement("a");
+  a5.href = url;
+  a5.download = suggestedName;
+  document.body.appendChild(a5);
+  a5.click();
+  a5.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1e3);
+  return suggestedName;
+}
+async function exportDiagramCard(adapter, model, format2, baseName) {
+  if (isCanvasModel(model)) {
+    switch (format2) {
+      case "svg": {
+        const svg3 = exportSvg(model);
+        return saveToDisk(svg3, `${baseName}.svg`, "image/svg+xml");
+      }
+      case "png": {
+        const png = await exportPng(model, 2);
+        return saveToDisk(png, `${baseName}.png`, "image/png");
+      }
+      case "pdf": {
+        const pdf = await exportPdf(model);
+        return saveToDisk(pdf, `${baseName}.pdf`, "application/pdf");
+      }
+    }
+  }
+  const text4 = adapter.serialize(model);
+  const ext = adapter.codeBlockLanguage || "txt";
+  return saveToDisk(text4, `${baseName}.${ext}`, "text/plain");
+}
+async function copyCardAsImage(adapter, model) {
+  if (isCanvasModel(model)) {
+    try {
+      const png = await exportPng(model, 2);
+      const item = new ClipboardItem({ "image/png": png });
+      await navigator.clipboard.write([item]);
+      return true;
+    } catch (e5) {
+      return false;
+    }
+  }
+  try {
+    await navigator.clipboard.writeText(adapter.serialize(model));
+    return true;
+  } catch (e5) {
+    return false;
+  }
+}
+
 // src/ui/Placeholder.tsx
 function PlaceholderRenderer({ model }) {
   return /* @__PURE__ */ u2("pre", { class: "diagrams-placeholder-render", children: model.trim() || "(empty diagram)" });
@@ -123309,7 +123453,32 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
             adapter,
             source,
             theme,
-            onEdit: () => this.openEditor(adapter, source, el4, ctx)
+            onEdit: () => this.openEditor(adapter, source, el4, ctx),
+            // Story 7-20 — real export backends via cardExports helper.
+            onExport: async (format2) => {
+              var _a3, _b2;
+              try {
+                const model = adapter.parse(source);
+                const baseName = (_b2 = (_a3 = this.app.workspace.getActiveFile()) == null ? void 0 : _a3.basename) != null ? _b2 : `diagram-${adapter.codeBlockLanguage}`;
+                const saved = await exportDiagramCard(
+                  adapter,
+                  model,
+                  format2,
+                  baseName
+                );
+                if (saved) new import_obsidian11.Notice(`\u0110\xE3 export: ${saved}`);
+              } catch (err2) {
+                console.warn("[omniboard] card export failed", err2);
+                new import_obsidian11.Notice(`Export ${format2.toUpperCase()} th\u1EA5t b\u1EA1i \u2014 xem console.`);
+              }
+            },
+            onCopyImage: async () => {
+              const model = adapter.parse(source);
+              const ok = await copyCardAsImage(adapter, model);
+              new import_obsidian11.Notice(
+                ok ? "\u0110\xE3 copy v\xE0o clipboard" : "Copy clipboard th\u1EA5t b\u1EA1i (browser c\xF3 th\u1EC3 kh\xF4ng h\u1ED7 tr\u1EE3 image clipboard)"
+              );
+            }
           }),
           mount
         );

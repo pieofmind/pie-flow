@@ -1281,3 +1281,101 @@ body.is-mobile .diagrams-canvas-mount {
   flex: 1 1 auto;
   min-height: 240px;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Story 7-7 — DiagramCard polish (chip + Export + Sửa + ⋯)
+ * Replaces the M0 text-only header with the Claude Design layout:
+ * [icon chip displayName] [spacer] [Export] [Sửa] [⋯]
+ * ────────────────────────────────────────────────────────────────────────── */
+.diagrams-card-header {
+  /* Override the M0 space-between — new layout is icon-chip + spacer + actions */
+  gap: 8px;
+}
+.diagrams-card-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: default;
+  /* Reset the .diagrams-card-type text-transform from the M0 styling */
+  text-transform: none;
+  letter-spacing: 0;
+}
+.diagrams-card-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--interactive-accent);
+}
+.diagrams-card-chip-icon .svg-icon {
+  width: 14px;
+  height: 14px;
+}
+.diagrams-card-chip-label {
+  white-space: nowrap;
+}
+.diagrams-card-spacer {
+  flex: 1 1 auto;
+}
+.diagrams-card-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-normal);
+  cursor: pointer;
+  min-height: 28px;
+  transition: background-color 80ms ease, border-color 80ms ease;
+}
+.diagrams-card-btn:hover {
+  background: var(--background-modifier-hover);
+}
+.diagrams-card-btn:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+.diagrams-card-btn-primary {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+.diagrams-card-btn-primary:hover {
+  background: var(--interactive-accent-hover);
+}
+.diagrams-card-btn-more {
+  padding: 4px 6px;
+}
+.diagrams-card-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+.diagrams-card-btn-icon .svg-icon {
+  width: 14px;
+  height: 14px;
+}
+.diagrams-card-btn-label {
+  white-space: nowrap;
+}
+/* Mobile — keep min 36px touch target per Apple HIG */
+body.is-mobile .diagrams-card-btn {
+  min-height: 36px;
+  padding: 6px 12px;
+}
+body.is-mobile .diagrams-card-header {
+  flex-wrap: wrap;
+}

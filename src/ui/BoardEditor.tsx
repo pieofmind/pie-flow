@@ -79,6 +79,21 @@ export interface BoardEditorProps<TModel> {
   canvasModel?: CanvasModel;
   /** Fired when the canvas emits a change. */
   onCanvasChange?: (model: CanvasModel) => void;
+  /**
+   * Fired once the underlying `OmniboardCanvas` instance is constructed.
+   * Hosts (BoardView in tab mode, EditModal in modal mode) use this to
+   * capture the imperative canvas reference so existing toolbar/export
+   * methods can continue to dispatch into it.
+   *
+   * Latest callback identity wins (`<OmniboardCanvasMount>` mirrors the
+   * `latestOnCanvasReadyRef` pattern), so parents may lazy-provide this
+   * prop without missing the canvas hand-off.
+   *
+   * **Memory caveat:** holding the returned reference past unmount keeps
+   * the X6 graph in memory. Clear in the same effect that re-renders
+   * without `onCanvasReady`, or in the host view's `onClose()`.
+   */
+  onCanvasReady?: (canvas: import("../canvas/OmniboardCanvas").OmniboardCanvas) => void;
 }
 
 /**
@@ -164,6 +179,7 @@ export function BoardEditor<TModel>(
             categories={props.shapeCategories!}
             initialModel={props.canvasModel!}
             onChange={props.onCanvasChange}
+            onCanvasReady={props.onCanvasReady}
           />
         )}
         {showProperties && (

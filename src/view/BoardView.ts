@@ -1,4 +1,5 @@
 import { TextFileView, WorkspaceLeaf, setIcon, Notice, Menu, Modal } from "obsidian";
+import { render, h, type ComponentType } from "preact";
 import { OmniboardCanvas } from "../canvas/OmniboardCanvas";
 import type { CanvasModel } from "../canvas/types";
 import { registerAllShapes, SHAPE_CATEGORIES } from "../canvas/shapes/index";
@@ -11,6 +12,9 @@ import { emitOmniboardSelectionChange, OMNIBOARD_PROPERTIES_VIEW_TYPE } from "..
 import { emitBpmnIssuesRefresh, OMNIBOARD_ISSUES_VIEW_TYPE } from "../ui/BpmnIssuesView";
 import { validateBpmnModel } from "../io/bpmn/validator";
 import type DiagramsPlugin from "../main";
+import { BoardEditor, type BoardEditorProps } from "../ui/BoardEditor";
+import { readObsidianTheme } from "../core/theme";
+import type { DiagramAdapter } from "../core/adapter";
 
 registerAllShapes();
 
@@ -153,6 +157,34 @@ export const BOARD_EXTENSION = "omniboard.md";
 const EMPTY_MODEL: CanvasModel = { nodes: [], edges: [] };
 
 /**
+ * Story 7-4 — BoardView's "adapter" stub.
+ *
+ * `<BoardEditor>` requires an `adapter` prop (used by Story 7-7's header
+ * for chip/title rendering). BoardView is a *multi-diagram canvas master*,
+ * not a single-adapter view — none of the adapter methods are actually
+ * exercised in tab mode by Story 7-4's body-only wiring. Stub fields are
+ * placeholders; if Story 7-7's header reads these, they'll show a generic
+ * "Board" label which BoardView's own custom topbar overrides anyway.
+ */
+const BOARD_TAB_STUB_ADAPTER: DiagramAdapter<CanvasModel> = {
+  id: "flowchart",
+  displayName: "Board",
+  codeBlockLanguage: "omniboard",
+  icon: "shapes",
+  parse: () => EMPTY_MODEL,
+  serialize: () => "",
+  emptyTemplate: () => "",
+  // Cast via `unknown` to satisfy ComponentType<RendererProps<CanvasModel>>
+  // — these are placeholders never invoked at runtime in tab mode (Story 7-7
+  // header will introduce real usage). The Story 7-7 wiring is expected to
+  // replace this stub with a real per-diagram adapter or a board-aware one.
+  Renderer: (() => null) as unknown as DiagramAdapter<CanvasModel>["Renderer"],
+  Editor: (() => null) as unknown as DiagramAdapter<CanvasModel>["Editor"],
+  exportFormats: ["svg", "png", "pdf"],
+  validate: () => ({ ok: true, errors: [] }),
+};
+
+/**
  * Excalidraw-style full-screen board view. One file = one board.
  * Opening the file opens the canvas directly — no code block, no modal.
  */
@@ -192,10 +224,51 @@ export class BoardView extends TextFileView {
     this.host = this.contentEl.createDiv({ cls: "da-board-host" });
     this.host.style.cssText = "position:relative; flex:1; min-height:0;";
 
-    this.canvas = new OmniboardCanvas(this.host, SHAPE_CATEGORIES, () => { this.requestSave(); emitBpmnIssuesRefresh(); });
-    this.canvas.setSelectionChangeHandler(emitOmniboardSelectionChange);
-    this.canvas.loadModel(this.model);
-    emitBpmnIssuesRefresh();
+    // Story 7-4 — mount <BoardEditor mode="tab"> into the host instead of
+    // constructing OmniboardCanvas directly. The canvas instance is captured
+    // via `onCanvasReady` so existing methods (export, undo, focus, save)
+    // continue to reference `this.canvas`. The custom Lark-style topbar
+    // above stays intact in this story; header redesign is Story 7-7.
+    //
+    // P1 cleanup: `onClose()` below calls `render(null, this.host)` which
+    // triggers OmniboardCanvasMount's effect cleanup → `canvas.destroy()`.
+    const props: BoardEditorProps<CanvasModel> = {
+      adapter: BOARD_TAB_STUB_ADAPTER,
+      initialModel: this.model,
+      theme: readObsidianTheme(),
+      mode: "tab",
+      // Save/close in tab mode are owned by TextFileView's framework
+      // contract + the custom topbar's "Lưu & đóng" button.
+      onSave: () => {},
+      onClose: () => {},
+      shapeCategories: SHAPE_CATEGORIES,
+      canvasModel: this.model,
+      onCanvasChange: () => {
+        // BoardView keeps `this.model` in sync via canvas.getModel() at
+        // save time (see getViewData / save). Here we just trigger the
+        // existing change pipeline.
+        this.requestSave();
+        emitBpmnIssuesRefresh();
+      },
+      onCanvasReady: (canvas) => {
+        this.canvas = canvas;
+        // Resync to the latest `this.model` in case setViewData fired
+        // between mount and useEffect drain (the model passed at render
+        // time may already be stale by the time the effect runs).
+        canvas.loadModel(this.model);
+        canvas.setSelectionChangeHandler(emitOmniboardSelectionChange);
+        emitBpmnIssuesRefresh();
+      },
+    };
+    // Cast through `ComponentType<BoardEditorProps<CanvasModel>>` to pin the
+    // generic — `h()` infers the component's prop type from its first arg.
+    // BoardEditor is generic over TModel and Preact's `h()` typings don't
+    // resolve the generic from props inference alone.
+    type Specialized = ComponentType<BoardEditorProps<CanvasModel>>;
+    render(
+      h(BoardEditor as unknown as Specialized, props),
+      this.host,
+    );
   }
 
   private buildTopBar(): void {
@@ -528,8 +601,17 @@ export class BoardView extends TextFileView {
   }
 
   async onClose(): Promise<void> {
+    // Story 7-4: clear the selection handler BEFORE unmount so any pending
+    // X6 selection events during teardown don't fire into a half-disposed
+    // properties panel.
     this.canvas?.setSelectionChangeHandler(null);
-    this.canvas?.destroy();
+    // Unmount the Preact tree → OmniboardCanvasMount's useEffect cleanup
+    // calls `canvas.destroy()` exactly once (idempotent via destroyedRef
+    // guard added in Story 7-3). This replaces the previous direct
+    // `this.canvas.destroy()` call.
+    if (this.host) {
+      render(null, this.host);
+    }
     this.canvas = null;
     emitBpmnIssuesRefresh();
   }

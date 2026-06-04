@@ -88169,9 +88169,12 @@ function buildMoreMenu(adapter, props, exportTriggerEvent) {
   return menu;
 }
 function DiagramCard(props) {
+  var _a3, _b2;
   const { adapter, source, theme, onEdit } = props;
   const model = adapter.parse(source);
   const Renderer2 = adapter.Renderer;
+  const issues = (_b2 = (_a3 = adapter.validateSource) == null ? void 0 : _a3.call(adapter, source)) != null ? _b2 : [];
+  const errorIssue = issues.find((i6) => i6.severity === "error");
   const setIconRef = (name2) => (el4) => {
     if (el4 && !el4.dataset.iconApplied) {
       (0, import_obsidian5.setIcon)(el4, name2);
@@ -88245,7 +88248,49 @@ function DiagramCard(props) {
         }
       )
     ] }),
-    /* @__PURE__ */ u2("div", { class: "diagrams-card-preview", "data-testid": "diagrams-card-preview", children: /* @__PURE__ */ u2(Renderer2, { model, theme }) })
+    /* @__PURE__ */ u2("div", { class: "diagrams-card-preview", "data-testid": "diagrams-card-preview", children: errorIssue ? /* @__PURE__ */ u2(
+      "div",
+      {
+        class: "diagrams-card-warning",
+        "data-testid": "diagrams-card-warning",
+        role: "alert",
+        children: [
+          /* @__PURE__ */ u2(
+            "span",
+            {
+              ref: setIconRef("alert-triangle"),
+              class: "diagrams-card-warning-icon",
+              "aria-hidden": "true"
+            }
+          ),
+          /* @__PURE__ */ u2("div", { class: "diagrams-card-warning-body", children: [
+            /* @__PURE__ */ u2("div", { class: "diagrams-card-warning-title", children: [
+              errorIssue.message,
+              errorIssue.line !== void 0 && /* @__PURE__ */ u2("span", { class: "diagrams-card-warning-loc", children: [
+                " \xB7 ",
+                adapter.codeBlockLanguage,
+                " \xB7 d\xF2ng ",
+                errorIssue.line
+              ] })
+            ] }),
+            /* @__PURE__ */ u2(
+              "button",
+              {
+                type: "button",
+                class: "diagrams-card-warning-btn",
+                "data-testid": "diagrams-card-warning-edit",
+                onClick: (e5) => {
+                  var _a4;
+                  e5.stopPropagation();
+                  ((_a4 = props.onSourceEdit) != null ? _a4 : onEdit)();
+                },
+                children: "M\u1EDF editor \u0111\u1EC3 s\u1EEDa"
+              }
+            )
+          ] })
+        ]
+      }
+    ) : /* @__PURE__ */ u2(Renderer2, { model, theme }) })
   ] });
 }
 

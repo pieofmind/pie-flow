@@ -330,6 +330,90 @@ describe("DiagramCard — AC4 3-dot menu", () => {
   });
 });
 
+describe("DiagramCard — Story 7-6 warning state", () => {
+  it("renders the preview (no warning) when adapter has no validateSource", () => {
+    const root = asVNode(
+      DiagramCard({ adapter: bpmnAdapter, source: "", theme, onEdit: () => {} }),
+    );
+    expect(findByTestId(root, "diagrams-card-warning")).toBeUndefined();
+    expect(findByTestId(root, "diagrams-card-preview")).toBeDefined();
+  });
+
+  it("renders the preview (no warning) when validateSource returns []", () => {
+    const adapter: DiagramAdapter<string> = {
+      ...bpmnAdapter,
+      validateSource: () => [],
+    };
+    const root = asVNode(
+      DiagramCard({ adapter, source: "", theme, onEdit: () => {} }),
+    );
+    expect(findByTestId(root, "diagrams-card-warning")).toBeUndefined();
+  });
+
+  it("renders the warning card when validateSource returns an error issue", () => {
+    const adapter: DiagramAdapter<string> = {
+      ...bpmnAdapter,
+      validateSource: () => [
+        { severity: "error", message: "Không phân tích được diagram", line: 5 },
+      ],
+    };
+    const root = asVNode(
+      DiagramCard({ adapter, source: "", theme, onEdit: () => {} }),
+    );
+    const warning = findByTestId(root, "diagrams-card-warning");
+    expect(warning).toBeDefined();
+    // The error message must appear in the warning title
+    const titles = collectAll(
+      root,
+      (v) => v.props.class === "diagrams-card-warning-title",
+    );
+    expect(titles.length).toBe(1);
+  });
+
+  it("ignores warning-severity issues — only errors trigger the warning card", () => {
+    const adapter: DiagramAdapter<string> = {
+      ...bpmnAdapter,
+      validateSource: () => [
+        { severity: "warning", message: "minor hint" },
+      ],
+    };
+    const root = asVNode(
+      DiagramCard({ adapter, source: "", theme, onEdit: () => {} }),
+    );
+    expect(findByTestId(root, "diagrams-card-warning")).toBeUndefined();
+  });
+
+  it('warning card "Mở editor để sửa" button falls back to onEdit when no onSourceEdit', () => {
+    const onEdit = vi.fn();
+    const adapter: DiagramAdapter<string> = {
+      ...bpmnAdapter,
+      validateSource: () => [{ severity: "error", message: "syntax error" }],
+    };
+    const root = asVNode(
+      DiagramCard({ adapter, source: "", theme, onEdit }),
+    );
+    const btn = findByTestId(root, "diagrams-card-warning-edit");
+    (btn?.props.onClick as (e: MouseEvent) => void)(makeMouseEvent());
+    expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it('warning card "Mở editor để sửa" button uses onSourceEdit when provided', () => {
+    const onEdit = vi.fn();
+    const onSourceEdit = vi.fn();
+    const adapter: DiagramAdapter<string> = {
+      ...bpmnAdapter,
+      validateSource: () => [{ severity: "error", message: "syntax error" }],
+    };
+    const root = asVNode(
+      DiagramCard({ adapter, source: "", theme, onEdit, onSourceEdit }),
+    );
+    const btn = findByTestId(root, "diagrams-card-warning-edit");
+    (btn?.props.onClick as (e: MouseEvent) => void)(makeMouseEvent());
+    expect(onSourceEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+});
+
 describe("DiagramCard — AC6 click propagation", () => {
   it("the card body wrapper itself has onEdit on the root div (preserves M0 convenience)", () => {
     const onEdit = vi.fn();

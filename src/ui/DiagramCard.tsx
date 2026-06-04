@@ -125,6 +125,13 @@ export function DiagramCard(props: DiagramCardProps): VNode {
   const model = adapter.parse(source);
   const Renderer = adapter.Renderer;
 
+  // Story 7-6 — source-level validation. Adapters that don't implement
+  // `validateSource` are treated as always-valid (best-effort parse
+  // contract per P3). An issue array with severity="error" triggers the
+  // warning card variant.
+  const issues = adapter.validateSource?.(source) ?? [];
+  const errorIssue = issues.find((i) => i.severity === "error");
+
   // setIcon is imperative DOM mutation — call via callback refs so we
   // don't depend on preact/hooks (which require a render context that
   // unit tests calling the component as a plain function don't provide).
@@ -200,7 +207,45 @@ export function DiagramCard(props: DiagramCardProps): VNode {
       </div>
 
       <div class="diagrams-card-preview" data-testid="diagrams-card-preview">
-        <Renderer model={model} theme={theme} />
+        {errorIssue ? (
+          <div
+            class="diagrams-card-warning"
+            data-testid="diagrams-card-warning"
+            role="alert"
+          >
+            <span
+              ref={setIconRef("alert-triangle")}
+              class="diagrams-card-warning-icon"
+              aria-hidden="true"
+            />
+            <div class="diagrams-card-warning-body">
+              <div class="diagrams-card-warning-title">
+                {errorIssue.message}
+                {errorIssue.line !== undefined && (
+                  <span class="diagrams-card-warning-loc">
+                    {" · "}
+                    {adapter.codeBlockLanguage}
+                    {" · dòng "}
+                    {errorIssue.line}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                class="diagrams-card-warning-btn"
+                data-testid="diagrams-card-warning-edit"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  (props.onSourceEdit ?? onEdit)();
+                }}
+              >
+                Mở editor để sửa
+              </button>
+            </div>
+          </div>
+        ) : (
+          <Renderer model={model} theme={theme} />
+        )}
       </div>
     </div>
   );

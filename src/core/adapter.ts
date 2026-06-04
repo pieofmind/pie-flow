@@ -30,6 +30,21 @@ export interface ValidationResult {
   errors: string[];
 }
 
+/**
+ * Source-level parse issue surfaced to the user via the inline card's
+ * warning UI (Story 7-6). Returned by the optional
+ * `DiagramAdapter.validateSource()` method. Distinct from `ValidationResult`
+ * which validates a *parsed model* (post-parse semantic check).
+ */
+export interface ParseIssue {
+  severity: "error" | "warning";
+  message: string;
+  /** 1-based line number where the issue starts, if known. */
+  line?: number;
+  /** 1-based column number where the issue starts, if known. */
+  column?: number;
+}
+
 export interface RendererProps<TModel> {
   model: TModel;
   theme: Theme;
@@ -70,4 +85,20 @@ export interface DiagramAdapter<TModel = any> {
 
   exportFormats: ExportFormat[];
   validate(model: TModel): ValidationResult;
+
+  /**
+   * Story 7-6 — optional source-level validation surfacing parse issues
+   * to the inline card's warning UI. Called with the raw code-block text
+   * BEFORE `parse()` is invoked. Return an empty array (or omit the
+   * method entirely) when the source is valid.
+   *
+   * Contract:
+   * - MUST NEVER THROW. Best-effort: return `[]` rather than throwing on
+   *   unexpected input.
+   * - Severity `"error"` triggers the yellow warning card; `"warning"`
+   *   may be surfaced as an inline hint in future stories.
+   * - Issues are display-only — they do NOT prevent `parse()` from being
+   *   called (per P3, parse remains best-effort and never throws).
+   */
+  validateSource?(source: string): ParseIssue[];
 }

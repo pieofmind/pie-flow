@@ -35,6 +35,21 @@ describe("PropertiesSidebar — AC3 header", () => {
     const header = findByTestId(root, "diagrams-properties-header");
     expect(header).toBeUndefined();
   });
+
+  it("renders BOTH header AND empty state when sectionTitle is set but fields=[]", () => {
+    // Common real-world case: a node is selected but the adapter hasn't
+    // wired any property fields yet (Stories 7-3 / 7-8). The header
+    // identifies the selection while the body shows the empty-state copy.
+    const root = asVNode(
+      PropertiesSidebar({
+        sectionTitle: "Lane",
+        sectionSubtitle: "bpmn",
+        fields: [],
+      }),
+    );
+    expect(findByTestId(root, "diagrams-properties-header")).toBeDefined();
+    expect(findByTestId(root, "diagrams-properties-empty")).toBeDefined();
+  });
 });
 
 describe("PropertiesSidebar — AC3 empty state", () => {
@@ -126,8 +141,8 @@ describe("PropertiesSidebar — AC3 select field", () => {
     const root = asVNode(PropertiesSidebar({ fields }));
     const segments = collectAll(
       root,
-      (v) => v.props.class === "diagrams-properties-segment" ||
-            v.props.class === "diagrams-properties-segment diagrams-properties-segment-active",
+      (v) => String(v.props.class ?? "").includes("diagrams-properties-segment") &&
+            v.type === "button",
     );
     expect(segments.length).toBe(2);
     // The active segment must contain the active modifier class
@@ -135,6 +150,34 @@ describe("PropertiesSidebar — AC3 select field", () => {
       String(s.props.class ?? "").includes("diagrams-properties-segment-active"),
     );
     expect(activeSegments.length).toBe(1);
+  });
+
+  it("renders segmented buttons at the EXACT boundary (options.length === 3)", () => {
+    // Pin the `<=` semantics — a future careless `<` swap would silently
+    // convert 3-option fields into dropdowns, breaking the design contract.
+    const fields: PropertyFieldSchema[] = [
+      {
+        kind: "select",
+        key: "size",
+        label: "Size",
+        value: "M",
+        options: [
+          { value: "S", label: "S" },
+          { value: "M", label: "M" },
+          { value: "L", label: "L" },
+        ],
+      },
+    ];
+    const root = asVNode(PropertiesSidebar({ fields }));
+    const segments = collectAll(
+      root,
+      (v) =>
+        String(v.props.class ?? "").includes("diagrams-properties-segment") &&
+        v.type === "button",
+    );
+    expect(segments.length).toBe(3);
+    // And NO dropdown
+    expect(collectAll(root, (v) => v.type === "select").length).toBe(0);
   });
 
   it("renders a <select> dropdown when options.length > 3", () => {

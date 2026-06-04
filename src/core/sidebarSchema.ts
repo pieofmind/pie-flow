@@ -17,7 +17,7 @@
  * (palette item drag-and-drop, X6 dispatch) lands in Story 7-3 (canvas
  * wiring) and Story 7-8 (BPMN adapter migration provides concrete items).
  */
-export interface PaletteItem {
+export interface PaletteSidebarItem {
   /** Stable unique id within a single palette (e.g., `"start-event"`). */
   id: string;
   /** Short label shown under the icon (max ~12 chars works best). */

@@ -1227,9 +1227,10 @@
   left: 2px;
   width: 16px;
   height: 16px;
-  background: #fff;
+  background: var(--background-primary);
   border-radius: 999px;
   transition: transform 120ms ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 .diagrams-properties-toggle-on .diagrams-properties-toggle-thumb {
   transform: translateX(16px);
@@ -1249,4 +1250,34 @@ body.is-mobile .diagrams-properties-sidebar {
   flex: 0 0 auto;
   border-left: none;
   border-top: 1px solid var(--background-modifier-border);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Story 7-3 — BoardEditor body row composition + canvas mount
+ * When the body has children (palette / canvas / properties), it becomes a
+ * horizontal flexbox row. The Story 7-1 vanilla body remains for the empty
+ * skeleton case (back-compat with Story 7-1's existing tests).
+ * ────────────────────────────────────────────────────────────────────────── */
+.diagrams-board-editor-body-composed {
+  flex-direction: row;
+  overflow: hidden;
+}
+.diagrams-canvas-mount {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+  background: var(--background-primary);
+}
+
+/* Mobile (Obsidian iOS / Android): switch the body row to a column so each
+ * panel stacks vertically. Story 7-9 will add a drawer behavior on top. */
+body.is-mobile .diagrams-board-editor-body-composed {
+  flex-direction: column;
+}
+body.is-mobile .diagrams-canvas-mount {
+  /* Give the canvas a reasonable default height when stacked; real sizing
+   * comes from the surrounding view's measurement in Story 7-4 / 7-5. */
+  flex: 1 1 auto;
+  min-height: 240px;
 }

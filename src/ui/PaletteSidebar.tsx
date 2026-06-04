@@ -1,5 +1,5 @@
 import { type VNode } from "preact";
-import type { PaletteItem } from "../core/sidebarSchema";
+import type { PaletteSidebarItem } from "../core/sidebarSchema";
 
 /**
  * Props for `<PaletteSidebar>`.
@@ -11,7 +11,7 @@ import type { PaletteItem } from "../core/sidebarSchema";
  */
 export interface PaletteSidebarProps {
   /** Items to render. Pass `[]` to render an empty palette frame. */
-  items: ReadonlyArray<PaletteItem>;
+  items: ReadonlyArray<PaletteSidebarItem>;
   /** Id of the currently active item (cursor mode, selected tool). */
   selectedId?: string;
   /**
@@ -28,10 +28,10 @@ export interface PaletteSidebarProps {
  * renderer can emit headers in a stable sequence.
  */
 function groupItems(
-  items: ReadonlyArray<PaletteItem>,
-): Array<{ group: string | undefined; items: PaletteItem[] }> {
+  items: ReadonlyArray<PaletteSidebarItem>,
+): Array<{ group: string | undefined; items: PaletteSidebarItem[] }> {
   const order: Array<string | undefined> = [];
-  const buckets = new Map<string | undefined, PaletteItem[]>();
+  const buckets = new Map<string | undefined, PaletteSidebarItem[]>();
   for (const item of items) {
     const key = item.group;
     if (!buckets.has(key)) {
@@ -67,8 +67,9 @@ export function PaletteSidebar(props: PaletteSidebarProps): VNode {
       data-testid="diagrams-palette-sidebar"
     >
       {groups.map(({ group, items }) => (
-        <div class="diagrams-palette-group" key={group ?? "__ungrouped"}>
-          {group !== undefined && (
+        <div class="diagrams-palette-group" key={group || "__ungrouped"}>
+          {/* Empty-string group is treated as "no group" (no header rendered) */}
+          {group !== undefined && group.length > 0 && (
             <div class="diagrams-palette-group-header">{group}</div>
           )}
           {items.map((item) => {
@@ -82,7 +83,11 @@ export function PaletteSidebar(props: PaletteSidebarProps): VNode {
                 type="button"
                 class={itemClass}
                 data-testid={`diagrams-palette-item-${item.id}`}
-                aria-pressed={isSelected}
+                // `aria-current="true"` is the correct ARIA pattern for
+                // single-selection "active tool" semantics. `aria-pressed`
+                // (used previously) is for toggle buttons and causes screen
+                // readers to announce all non-selected items as "not pressed".
+                aria-current={isSelected ? "true" : undefined}
                 onClick={() => {
                   props.onSelectItem?.(item.id);
                   item.onActivate?.();

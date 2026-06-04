@@ -1,5 +1,13 @@
 import { h, type VNode } from "preact";
 import type { DiagramAdapter, Theme } from "../core/adapter";
+import type {
+  PaletteSidebarItem,
+  PropertyFieldSchema,
+} from "../core/sidebarSchema";
+import type { CanvasModel, ShapeCategory } from "../canvas/types";
+import { PaletteSidebar } from "./PaletteSidebar";
+import { PropertiesSidebar } from "./PropertiesSidebar";
+import { OmniboardCanvasMount } from "./OmniboardCanvasMount";
 
 /**
  * Display mode for the unified diagram editor.
@@ -14,9 +22,15 @@ export type BoardEditorMode = "modal" | "tab";
 /**
  * Props for the unified `<BoardEditor>` component.
  *
- * Story 7-1 scaffolds the skeleton only. Sub-components (palette, canvas,
- * properties) are wired in Stories 7-2 / 7-3. Header/footer slot content is
- * filled by Stories 7-4 / 7-5 / 7-7. Title editing is Story 7-14.
+ * Story 7-1 scaffolded the skeleton. Story 7-3 wires the body slot: when
+ * `shapeCategories` + `canvasModel` are provided, the canvas mounts; when
+ * `paletteItems` is provided, the left palette sidebar renders; when
+ * `propertyFields` is provided, the right properties sidebar renders. All
+ * three are optional — adapters lacking one or more simply collapse those
+ * slots.
+ *
+ * Header/footer slot content is filled by Stories 7-4 / 7-5 / 7-7. Title
+ * editing wiring is Story 7-14.
  *
  * @template TModel - Diagram-specific model type owned by the adapter.
  */
@@ -37,6 +51,34 @@ export interface BoardEditorProps<TModel> {
   title?: string;
   /** Optional title change callback — paired with `title` (Story 7-14). */
   onTitleChange?: (title: string) => void;
+
+  // ── Story 7-3: body slot composition (all optional, additive) ──
+
+  /** Palette items for the left sidebar. Omit to collapse the palette. */
+  paletteItems?: ReadonlyArray<PaletteSidebarItem>;
+  /** Currently selected palette item id (cursor mode). */
+  selectedPaletteId?: string;
+  /** Called when user clicks a palette item. */
+  onSelectPaletteItem?: (id: string) => void;
+  /** Property fields for the right sidebar. Omit to collapse properties. */
+  propertyFields?: ReadonlyArray<PropertyFieldSchema>;
+  /** Section title shown in the properties sidebar header. */
+  propertiesTitle?: string;
+  /** Optional chip beside the properties title (e.g., adapter id). */
+  propertiesSubtitle?: string;
+  /** Custom empty-state copy when `propertyFields` is empty. */
+  propertiesEmptyText?: string;
+  /**
+   * X6 shape categories driving the canvas palette + spawn behavior.
+   * Adapter-specific. Omit to skip canvas mount (sidebars only).
+   * Captured once at mount by `<OmniboardCanvasMount>` — to swap adapters
+   * at runtime, pass a different `key` prop on `<BoardEditor>` itself.
+   */
+  shapeCategories?: ReadonlyArray<ShapeCategory>;
+  /** Initial canvas model. Required when `shapeCategories` is provided. */
+  canvasModel?: CanvasModel;
+  /** Fired when the canvas emits a change. */
+  onCanvasChange?: (model: CanvasModel) => void;
 }
 
 /**
@@ -72,10 +114,9 @@ export interface BoardEditorProps<TModel> {
  * Skipping cleanup violates P1 (Plugin is tenant of Obsidian) and leaks
  * Preact trees + listeners across reload cycles (Error Pattern #4).
  *
- * **Story 7-1 scope:** Renders the layout shell (header / body / footer
- * slots) with mode modifier class only. All sub-components and behaviors
- * are added in subsequent stories per the architecture in
- * `_bmad-output/planning-artifacts/inline-card-modal-architecture.md`.
+ * Note: the body slot is divided into three flex regions only when content
+ * is provided. With all body props omitted (Story 7-1 behavior), the body
+ * renders an empty `<div>` placeholder so existing tests continue to pass.
  */
 export function BoardEditor<TModel>(
   props: BoardEditorProps<TModel>,
@@ -87,6 +128,13 @@ export function BoardEditor<TModel>(
       ? "diagrams-board-editor-mode-modal"
       : "diagrams-board-editor-mode-tab";
 
+  const showPalette =
+    props.paletteItems !== undefined && props.paletteItems.length > 0;
+  const showCanvas =
+    props.shapeCategories !== undefined && props.canvasModel !== undefined;
+  const showProperties = props.propertyFields !== undefined;
+  const bodyHasContent = showPalette || showCanvas || showProperties;
+
   return (
     <div
       class={`diagrams-board-editor ${modeClass}`}
@@ -97,9 +145,36 @@ export function BoardEditor<TModel>(
         data-testid="diagrams-board-editor-header"
       />
       <div
-        class="diagrams-board-editor-body"
+        class={
+          bodyHasContent
+            ? "diagrams-board-editor-body diagrams-board-editor-body-composed"
+            : "diagrams-board-editor-body"
+        }
         data-testid="diagrams-board-editor-body"
-      />
+      >
+        {showPalette && (
+          <PaletteSidebar
+            items={props.paletteItems!}
+            selectedId={props.selectedPaletteId}
+            onSelectItem={props.onSelectPaletteItem}
+          />
+        )}
+        {showCanvas && (
+          <OmniboardCanvasMount
+            categories={props.shapeCategories!}
+            initialModel={props.canvasModel!}
+            onChange={props.onCanvasChange}
+          />
+        )}
+        {showProperties && (
+          <PropertiesSidebar
+            sectionTitle={props.propertiesTitle}
+            sectionSubtitle={props.propertiesSubtitle}
+            fields={props.propertyFields!}
+            emptyStateText={props.propertiesEmptyText}
+          />
+        )}
+      </div>
       <footer
         class="diagrams-board-editor-footer"
         data-testid="diagrams-board-editor-footer"

@@ -124,7 +124,10 @@ function renderToggle(field: PropertyFieldToggle): VNode {
 
 function renderField(field: PropertyFieldSchema): VNode {
   // Exhaustive narrowing — TypeScript will error if a new kind is added
-  // without a branch here (caught at compile time via `never`).
+  // without a branch here (caught at compile time via `never`). At RUNTIME,
+  // if invalid data sneaks past the types (e.g. adapter reading from a JSON
+  // config in a future story), throw loud rather than returning `undefined`
+  // and silently rendering nothing (which would be hard to diagnose).
   switch (field.kind) {
     case "text":
       return renderText(field);
@@ -134,6 +137,12 @@ function renderField(field: PropertyFieldSchema): VNode {
       return renderToggle(field);
     default: {
       const _exhaustive: never = field;
+      const unknownKind = (field as { kind?: unknown }).kind;
+      throw new Error(
+        `PropertiesSidebar: unhandled field kind "${String(unknownKind)}" — ` +
+          `update renderField() to cover the new PropertyFieldSchema variant.`,
+      );
+      // Unreachable, but keeps `_exhaustive` referenced for tooling.
       return _exhaustive;
     }
   }

@@ -1440,3 +1440,100 @@ body.is-mobile .diagrams-card-header {
 .diagrams-card-warning-btn:hover {
   background: var(--background-modifier-hover);
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Story 7-21 — SourceEditorModal (CodeMirror 6 raw-source editor)
+ * ────────────────────────────────────────────────────────────────────────── */
+.diagrams-source-editor-modal .modal-content {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  height: 80vh;
+  max-height: 720px;
+}
+.diagrams-source-editor-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+}
+.diagrams-source-editor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.diagrams-source-editor-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--interactive-accent);
+}
+.diagrams-source-editor-chip-icon .svg-icon {
+  width: 14px;
+  height: 14px;
+}
+.diagrams-source-editor-spacer {
+  flex: 1 1 auto;
+}
+.diagrams-source-editor-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 30px;
+}
+.diagrams-source-editor-btn:hover {
+  background: var(--background-modifier-hover);
+}
+.diagrams-source-editor-btn-primary {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: transparent;
+}
+.diagrams-source-editor-btn-primary:hover {
+  background: var(--interactive-accent-hover);
+}
+.diagrams-source-editor-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+.diagrams-source-editor-btn-icon .svg-icon {
+  width: 14px;
+  height: 14px;
+}
+.diagrams-source-editor-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+}
+.diagrams-source-editor-body .cm-editor {
+  flex: 1 1 auto;
+  background: var(--background-primary);
+}
+.diagrams-source-editor-body .cm-content {
+  caret-color: var(--text-normal);
+  color: var(--text-normal);
+}

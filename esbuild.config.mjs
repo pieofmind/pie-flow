@@ -55,6 +55,7 @@ const context = await esbuild.context({
     "@codemirror/view",
     "@codemirror/state",
     "@codemirror/language",
+    "@codemirror/commands",
     ...builtins,
   ],
   format: "cjs",

@@ -18,6 +18,7 @@ import { BpmnPropertiesView, BPMN_PROPERTIES_VIEW_TYPE } from "./bpmn-native/Bpm
 import { registerBpmnIcons } from "./bpmn-native/bpmn-icons";
 import { omniboardEmbedEditorExtension } from "./embed/liveEmbedExtension";
 import { exportDiagramCard, copyCardAsImage } from "./io/cardExports";
+import { SourceEditorModal } from "./ui/SourceEditorModal";
 
 import { bpmnAdapter } from "./adapters/bpmn";
 import { erdAdapter } from "./adapters/erd";
@@ -524,6 +525,16 @@ export default class DiagramsPlugin extends Plugin {
                   ? "Đã copy vào clipboard"
                   : "Copy clipboard thất bại (browser có thể không hỗ trợ image clipboard)",
               );
+            },
+            // Story 7-21 — raw source editor via CodeMirror 6 modal.
+            onSourceEdit: () => {
+              new SourceEditorModal({
+                app: this.app,
+                initialText: source,
+                language: adapter.codeBlockLanguage,
+                onSave: (newText) =>
+                  this.replaceCodeBlock(el, ctx, adapter.codeBlockLanguage, newText),
+              }).open();
             },
           }),
           mount

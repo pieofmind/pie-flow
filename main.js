@@ -41399,7 +41399,7 @@ __export(main_exports18, {
   default: () => DiagramsPlugin
 });
 module.exports = __toCommonJS(main_exports18);
-var import_obsidian11 = require("obsidian");
+var import_obsidian12 = require("obsidian");
 
 // src/view/BoardView.ts
 var import_obsidian3 = require("obsidian");
@@ -79787,90 +79787,90 @@ __decorate23([
 
 // node_modules/@antv/x6-plugin-history/es/api.js
 Graph.prototype.isHistoryEnabled = function() {
-  const history = this.getPlugin("history");
-  if (history) {
-    return history.isEnabled();
+  const history2 = this.getPlugin("history");
+  if (history2) {
+    return history2.isEnabled();
   }
   return false;
 };
 Graph.prototype.enableHistory = function() {
-  const history = this.getPlugin("history");
-  if (history) {
-    history.enable();
+  const history2 = this.getPlugin("history");
+  if (history2) {
+    history2.enable();
   }
   return this;
 };
 Graph.prototype.disableHistory = function() {
-  const history = this.getPlugin("history");
-  if (history) {
-    history.disable();
+  const history2 = this.getPlugin("history");
+  if (history2) {
+    history2.disable();
   }
   return this;
 };
 Graph.prototype.toggleHistory = function(enabled) {
-  const history = this.getPlugin("history");
-  if (history) {
-    history.toggleEnabled(enabled);
+  const history2 = this.getPlugin("history");
+  if (history2) {
+    history2.toggleEnabled(enabled);
   }
   return this;
 };
 Graph.prototype.undo = function(options) {
-  const history = this.getPlugin("history");
-  if (history) {
-    history.undo(options);
+  const history2 = this.getPlugin("history");
+  if (history2) {
+    history2.undo(options);
   }
   return this;
 };
 Graph.prototype.redo = function(options) {
-  const history = this.getPlugin("history");
-  if (history) {
-    history.redo(options);
+  const history2 = this.getPlugin("history");
+  if (history2) {
+    history2.redo(options);
   }
   return this;
 };
 Graph.prototype.undoAndCancel = function(options) {
-  const history = this.getPlugin("history");
-  if (history) {
-    history.cancel(options);
+  const history2 = this.getPlugin("history");
+  if (history2) {
+    history2.cancel(options);
   }
   return this;
 };
 Graph.prototype.canUndo = function() {
-  const history = this.getPlugin("history");
-  if (history) {
-    return history.canUndo();
+  const history2 = this.getPlugin("history");
+  if (history2) {
+    return history2.canUndo();
   }
   return false;
 };
 Graph.prototype.canRedo = function() {
-  const history = this.getPlugin("history");
-  if (history) {
-    return history.canRedo();
+  const history2 = this.getPlugin("history");
+  if (history2) {
+    return history2.canRedo();
   }
   return false;
 };
 Graph.prototype.cleanHistory = function(options) {
-  const history = this.getPlugin("history");
-  if (history) {
-    history.clean(options);
+  const history2 = this.getPlugin("history");
+  if (history2) {
+    history2.clean(options);
   }
   return this;
 };
 Graph.prototype.getHistoryStackSize = function() {
-  const history = this.getPlugin("history");
-  return history.getSize();
+  const history2 = this.getPlugin("history");
+  return history2.getSize();
 };
 Graph.prototype.getUndoStackSize = function() {
-  const history = this.getPlugin("history");
-  return history.getUndoSize();
+  const history2 = this.getPlugin("history");
+  return history2.getUndoSize();
 };
 Graph.prototype.getRedoStackSize = function() {
-  const history = this.getPlugin("history");
-  return history.getRedoSize();
+  const history2 = this.getPlugin("history");
+  return history2.getRedoSize();
 };
 Graph.prototype.getUndoRemainSize = function() {
-  const history = this.getPlugin("history");
-  return history.getUndoRemainSize();
+  const history2 = this.getPlugin("history");
+  return history2.getUndoRemainSize();
 };
 
 // node_modules/@antv/x6-plugin-history/es/index.js
@@ -122682,6 +122682,89 @@ async function copyCardAsImage(adapter, model) {
   }
 }
 
+// src/ui/SourceEditorModal.ts
+var import_obsidian11 = require("obsidian");
+var import_view13 = require("@codemirror/view");
+var import_state2 = require("@codemirror/state");
+var import_commands = require("@codemirror/commands");
+var SourceEditorModal = class extends import_obsidian11.Modal {
+  constructor(opts) {
+    super(opts.app);
+    this.view = null;
+    this.opts = opts;
+  }
+  onOpen() {
+    const { contentEl, modalEl } = this;
+    modalEl.addClass("diagrams-source-editor-modal");
+    contentEl.empty();
+    const header = contentEl.createDiv({ cls: "diagrams-source-editor-header" });
+    const chip = header.createDiv({ cls: "diagrams-source-editor-chip" });
+    const chipIcon = chip.createSpan({ cls: "diagrams-source-editor-chip-icon" });
+    (0, import_obsidian11.setIcon)(chipIcon, "code");
+    chip.createSpan({
+      cls: "diagrams-source-editor-chip-label",
+      text: `S\u1EEDa m\xE3 ngu\u1ED3n \xB7 ${this.opts.language}`
+    });
+    header.createDiv({ cls: "diagrams-source-editor-spacer" });
+    const cancel = header.createEl("button", {
+      cls: "diagrams-source-editor-btn"
+    });
+    const cancelIcon = cancel.createSpan({ cls: "diagrams-source-editor-btn-icon" });
+    (0, import_obsidian11.setIcon)(cancelIcon, "x");
+    cancel.createSpan({ text: "H\u1EE7y" });
+    cancel.onclick = () => this.close();
+    const save = header.createEl("button", {
+      cls: "diagrams-source-editor-btn diagrams-source-editor-btn-primary"
+    });
+    const saveIcon = save.createSpan({ cls: "diagrams-source-editor-btn-icon" });
+    (0, import_obsidian11.setIcon)(saveIcon, "check");
+    save.createSpan({ text: "L\u01B0u" });
+    save.onclick = () => void this.commit();
+    const editorHost = contentEl.createDiv({
+      cls: "diagrams-source-editor-body"
+    });
+    const state = import_state2.EditorState.create({
+      doc: this.opts.initialText,
+      extensions: [
+        (0, import_view13.lineNumbers)(),
+        (0, import_view13.highlightActiveLine)(),
+        (0, import_commands.history)(),
+        import_view13.keymap.of([...import_commands.defaultKeymap, ...import_commands.historyKeymap]),
+        import_view13.EditorView.theme(
+          {
+            "&": { height: "100%", fontSize: "13px" },
+            ".cm-scroller": { fontFamily: "var(--font-monospace)" }
+          },
+          { dark: document.body.classList.contains("theme-dark") }
+        )
+      ]
+    });
+    this.view = new import_view13.EditorView({ state, parent: editorHost });
+    setTimeout(() => {
+      var _a3;
+      return (_a3 = this.view) == null ? void 0 : _a3.focus();
+    }, 0);
+  }
+  async commit() {
+    if (!this.view) return;
+    const newText = this.view.state.doc.toString();
+    try {
+      await this.opts.onSave(newText);
+      new import_obsidian11.Notice("\u0110\xE3 l\u01B0u m\xE3 ngu\u1ED3n");
+      this.close();
+    } catch (err2) {
+      console.warn("[omniboard] source-edit save failed", err2);
+      new import_obsidian11.Notice("L\u01B0u m\xE3 ngu\u1ED3n th\u1EA5t b\u1EA1i \u2014 xem console.");
+    }
+  }
+  onClose() {
+    var _a3;
+    (_a3 = this.view) == null ? void 0 : _a3.destroy();
+    this.view = null;
+    this.contentEl.empty();
+  }
+};
+
 // src/ui/Placeholder.tsx
 function PlaceholderRenderer({ model }) {
   return /* @__PURE__ */ u2("pre", { class: "diagrams-placeholder-render", children: model.trim() || "(empty diagram)" });
@@ -123040,7 +123123,7 @@ var ALL_ADAPTERS = [
   mindmapAdapter,
   mermaidAdapter
 ];
-var DiagramsPlugin = class extends import_obsidian11.Plugin {
+var DiagramsPlugin = class extends import_obsidian12.Plugin {
   constructor() {
     super(...arguments);
     this.registry = new AdapterRegistry();
@@ -123064,7 +123147,7 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file, source) => {
         var _a3;
-        if (!(file instanceof import_obsidian11.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        if (!(file instanceof import_obsidian12.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
         const leaf = this.findLeafForFile(file);
         const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE3;
         menu.addItem((item) => {
@@ -123268,7 +123351,7 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
       const { model, sourceMeta } = await importBpmn(xml3);
       const basename = bpmnFile.basename;
       const dir = (_b2 = (_a3 = bpmnFile.parent) == null ? void 0 : _a3.path) != null ? _b2 : "";
-      const wrapperPath = (0, import_obsidian11.normalizePath)(
+      const wrapperPath = (0, import_obsidian12.normalizePath)(
         (dir ? dir + "/" : "") + `${basename}${OMNIBOARD_SUFFIX}`
       );
       const content5 = serializeBoard(model, "", sourceMeta, {
@@ -123276,8 +123359,8 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
         bpmnXml: xml3
       });
       const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
-      if (existing instanceof import_obsidian11.TFile) {
-        new import_obsidian11.Notice(
+      if (existing instanceof import_obsidian12.TFile) {
+        new import_obsidian12.Notice(
           `\u0110\xE3 t\u1ED3n t\u1EA1i "${wrapperPath}". Xo\xE1 ho\u1EB7c \u0111\u1ED5i t\xEAn file \u0111\xF3 tr\u01B0\u1EDBc khi convert.`,
           7e3
         );
@@ -123288,26 +123371,26 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
         wrapperFile = await this.app.vault.create(wrapperPath, content5);
       } catch (createErr) {
         console.error("[omniboard] vault.create failed for wrapper", createErr);
-        new import_obsidian11.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
+        new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
         return;
       }
       const leaf = this.app.workspace.getLeaf(false);
       if (!leaf) {
-        new import_obsidian11.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
+        new import_obsidian12.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
         return;
       }
       await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: wrapperFile.path } });
-      new import_obsidian11.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
+      new import_obsidian12.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
     } catch (err2) {
       console.error("[omniboard] convertBpmnToWrapper failed", err2);
-      new import_obsidian11.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
+      new import_obsidian12.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
   async createBoardFile() {
     const d4 = /* @__PURE__ */ new Date();
     const pad = (n4) => String(n4).padStart(2, "0");
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
-    const path2 = (0, import_obsidian11.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
+    const path2 = (0, import_obsidian12.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
     const content5 = serializeBoard({ nodes: [], edges: [] }, "", void 0, {
       compressDrawingData: this.settings.compressDrawingData
     });
@@ -123315,8 +123398,8 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
       return await this.app.vault.create(path2, content5);
     } catch (e5) {
       const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing instanceof import_obsidian11.TFile) return existing;
-      new import_obsidian11.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
+      if (existing instanceof import_obsidian12.TFile) return existing;
+      new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
       return null;
     }
   }
@@ -123378,12 +123461,12 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
   async createAndOpenBpmn() {
     const folder = this.app.fileManager.getNewFileParent("");
     const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/[-:T]/g, "").slice(0, 15);
-    const path2 = (0, import_obsidian11.normalizePath)(`${folder.path}/BPMN-${ts}.bpmn`);
+    const path2 = (0, import_obsidian12.normalizePath)(`${folder.path}/BPMN-${ts}.bpmn`);
     try {
       const file = await this.app.vault.create(path2, MINIMAL_BPMN_XML);
       await this.app.workspace.getLeaf("tab").openFile(file);
     } catch (e5) {
-      new import_obsidian11.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file BPMN.");
+      new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file BPMN.");
     }
   }
   /** Create a board, embed it at the cursor (`![[...]]`), and open it. */
@@ -123401,7 +123484,7 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
-    if (!(file instanceof import_obsidian11.TFile)) return;
+    if (!(file instanceof import_obsidian12.TFile)) return;
     host.dataset.daRendered = "1";
     host.empty();
     host.addClass("da-embed");
@@ -123410,7 +123493,7 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
     head.createSpan({ cls: "da-embed-ttl", text: file.basename });
     const meta = head.createSpan({ cls: "da-embed-meta" });
     const open4 = head.createEl("button", { cls: "da-embed-open" });
-    (0, import_obsidian11.setIcon)(open4, "external-link");
+    (0, import_obsidian12.setIcon)(open4, "external-link");
     open4.createSpan({ text: "M\u1EDF" });
     open4.onclick = (e5) => {
       e5.preventDefault();
@@ -123435,9 +123518,9 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
   }
   /** Insert from the ribbon menu — needs to find the active markdown editor itself. */
   insertDiagramIntoActiveEditor(adapter) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian11.MarkdownView);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian12.MarkdownView);
     if (!view) {
-      new import_obsidian11.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
+      new import_obsidian12.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
       return;
     }
     this.insertDiagram(view.editor, adapter);
@@ -123466,18 +123549,27 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
                   format2,
                   baseName
                 );
-                if (saved) new import_obsidian11.Notice(`\u0110\xE3 export: ${saved}`);
+                if (saved) new import_obsidian12.Notice(`\u0110\xE3 export: ${saved}`);
               } catch (err2) {
                 console.warn("[omniboard] card export failed", err2);
-                new import_obsidian11.Notice(`Export ${format2.toUpperCase()} th\u1EA5t b\u1EA1i \u2014 xem console.`);
+                new import_obsidian12.Notice(`Export ${format2.toUpperCase()} th\u1EA5t b\u1EA1i \u2014 xem console.`);
               }
             },
             onCopyImage: async () => {
               const model = adapter.parse(source);
               const ok = await copyCardAsImage(adapter, model);
-              new import_obsidian11.Notice(
+              new import_obsidian12.Notice(
                 ok ? "\u0110\xE3 copy v\xE0o clipboard" : "Copy clipboard th\u1EA5t b\u1EA1i (browser c\xF3 th\u1EC3 kh\xF4ng h\u1ED7 tr\u1EE3 image clipboard)"
               );
+            },
+            // Story 7-21 — raw source editor via CodeMirror 6 modal.
+            onSourceEdit: () => {
+              new SourceEditorModal({
+                app: this.app,
+                initialText: source,
+                language: adapter.codeBlockLanguage,
+                onSave: (newText) => this.replaceCodeBlock(el4, ctx, adapter.codeBlockLanguage, newText)
+              }).open();
             }
           }),
           mount
@@ -123492,7 +123584,7 @@ var DiagramsPlugin = class extends import_obsidian11.Plugin {
   }
   /** Rewrite the fenced block that produced `el` with new content. */
   replaceCodeBlock(el4, ctx, lang, newText) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian11.MarkdownView);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian12.MarkdownView);
     if (!view) return;
     const info = ctx.getSectionInfo(el4);
     if (!info) return;

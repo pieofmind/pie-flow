@@ -1017,3 +1017,236 @@
 }
 /* Modifier hook reserved for Story 7-5 (modal-specific sizing): .diagrams-board-editor-mode-modal */
 /* Modifier hook reserved for Story 7-4 (tab leaf full-height layout): .diagrams-board-editor-mode-tab */
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * Story 7-2 — PaletteSidebar + PropertiesSidebar
+ * Declarative sidebars consumed by <BoardEditor>. Schemas come from
+ * adapters (paletteItems / propertyFields). Story 7-2 ships layout +
+ * interaction states; real content wiring is Stories 7-3 / 7-8 / 7-14.
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/* --- PaletteSidebar (left) --- */
+.diagrams-palette-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 80px;
+  flex: 0 0 80px;
+  padding: 12px 8px;
+  background: var(--background-primary);
+  border-right: 1px solid var(--background-modifier-border);
+  overflow-y: auto;
+}
+.diagrams-palette-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.diagrams-palette-group-header {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 6px 4px 2px;
+  user-select: none;
+}
+.diagrams-palette-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-normal);
+  font-size: 11px;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: center;
+  transition: background-color 80ms ease, border-color 80ms ease;
+}
+.diagrams-palette-item:hover {
+  background: var(--background-modifier-hover);
+}
+.diagrams-palette-item:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 1px;
+}
+.diagrams-palette-item-selected {
+  background: var(--background-modifier-active-hover, var(--background-secondary));
+  border-color: var(--interactive-accent);
+}
+.diagrams-palette-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+.diagrams-palette-item-selected .diagrams-palette-icon {
+  color: var(--interactive-accent);
+}
+.diagrams-palette-label {
+  word-break: break-word;
+}
+.diagrams-palette-shortcut {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-family: var(--font-monospace);
+  font-size: 9px;
+  color: var(--text-muted);
+  padding: 1px 3px;
+  border-radius: 3px;
+  background: var(--background-modifier-border);
+}
+
+/* --- PropertiesSidebar (right) --- */
+.diagrams-properties-sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  flex: 0 0 280px;
+  background: var(--background-primary);
+  border-left: 1px solid var(--background-modifier-border);
+  overflow-y: auto;
+}
+.diagrams-properties-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.diagrams-properties-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-normal);
+}
+.diagrams-properties-subtitle {
+  font-size: 11px;
+  font-family: var(--font-monospace);
+  color: var(--text-muted);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--background-modifier-border);
+}
+.diagrams-properties-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+.diagrams-properties-empty {
+  padding: 24px 18px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.5;
+}
+.diagrams-properties-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.diagrams-properties-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.diagrams-properties-input,
+.diagrams-properties-dropdown {
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+  font-size: 13px;
+  font-family: inherit;
+}
+.diagrams-properties-input:focus,
+.diagrams-properties-dropdown:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+.diagrams-properties-segmented {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: var(--background-secondary);
+  border-radius: 8px;
+}
+.diagrams-properties-segment {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 80ms ease, color 80ms ease;
+}
+.diagrams-properties-segment:hover {
+  background: var(--background-modifier-hover);
+}
+.diagrams-properties-segment-active {
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border-color: var(--background-modifier-border);
+}
+.diagrams-properties-field-toggle {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.diagrams-properties-toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  border: none;
+  background: var(--background-modifier-border);
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+.diagrams-properties-toggle-on {
+  background: var(--interactive-accent);
+}
+.diagrams-properties-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 999px;
+  transition: transform 120ms ease;
+}
+.diagrams-properties-toggle-on .diagrams-properties-toggle-thumb {
+  transform: translateX(16px);
+}
+
+/* --- Mobile responsive — Story 7-9 will add real drawer behavior --- */
+body.is-mobile .diagrams-palette-sidebar {
+  width: 100%;
+  flex: 0 0 auto;
+  flex-direction: row;
+  border-right: none;
+  border-bottom: 1px solid var(--background-modifier-border);
+  overflow-x: auto;
+}
+body.is-mobile .diagrams-properties-sidebar {
+  width: 100%;
+  flex: 0 0 auto;
+  border-left: none;
+  border-top: 1px solid var(--background-modifier-border);
+}

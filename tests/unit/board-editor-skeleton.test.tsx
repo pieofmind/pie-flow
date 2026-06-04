@@ -68,54 +68,10 @@ function buildProps(
 }
 
 // ── VNode walking helpers ────────────────────────────────────────────────────
+// Shared with sidebar tests via tests/unit/_helpers/vnode-inspect.ts so we
+// avoid duplicating the inspection logic across test files.
 
-/**
- * Preact VNode shape (subset we rely on for inspection). Using a loose
- * structural type here keeps the test resilient if Preact bumps minor
- * internals — we only assert what the contract promises (type, props.class,
- * props.children, data-* attributes).
- */
-interface InspectableVNode {
-  type: string | unknown;
-  props: {
-    class?: string;
-    "data-testid"?: string;
-    children?: unknown;
-  };
-}
-
-function asVNode(value: unknown): InspectableVNode {
-  return value as InspectableVNode;
-}
-
-/**
- * Normalize the `props.children` slot into an array of VNodes, tolerating
- * the variations Preact may produce:
- * - Array (when multiple siblings): drop null/false/undefined/string/number
- *   entries (conditional children like `{cond && <h1/>}` evaluate to `false`)
- * - Single VNode object (when one child): wrap in array
- * - null / undefined (no children): empty array
- * - Primitive (string/number): empty array (no further walking possible)
- */
-function childrenArray(vnode: InspectableVNode): InspectableVNode[] {
-  const children = vnode.props.children;
-  const toArray = Array.isArray(children) ? children : [children];
-  return toArray
-    .filter((c): c is object => c != null && typeof c === "object")
-    .map(asVNode);
-}
-
-function findByTestId(
-  vnode: InspectableVNode,
-  testId: string,
-): InspectableVNode | undefined {
-  if (vnode.props["data-testid"] === testId) return vnode;
-  for (const child of childrenArray(vnode)) {
-    const hit = findByTestId(child, testId);
-    if (hit) return hit;
-  }
-  return undefined;
-}
+import { asVNode, findByTestId } from "./_helpers/vnode-inspect";
 
 // ── Tests ────────────────────────────────────────────────────────────────────
 

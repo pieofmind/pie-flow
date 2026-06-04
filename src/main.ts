@@ -16,6 +16,7 @@ import { BpmnNativeView, BPMN_NATIVE_VIEW_TYPE } from "./bpmn-native/BpmnNativeV
 import { MINIMAL_BPMN_XML } from "./bpmn-native/BpmnNativeController";
 import { BpmnPropertiesView, BPMN_PROPERTIES_VIEW_TYPE } from "./bpmn-native/BpmnPropertiesView";
 import { registerBpmnIcons } from "./bpmn-native/bpmn-icons";
+import { omniboardEmbedEditorExtension } from "./embed/liveEmbedExtension";
 
 import { bpmnAdapter } from "./adapters/bpmn";
 import { erdAdapter } from "./adapters/erd";
@@ -242,12 +243,29 @@ export default class DiagramsPlugin extends Plugin {
       },
     });
 
-    // Read-mode: render ![[x.omniboard.md]] embeds as a live preview card.
+    // Render ![[x.omniboard]] / ![[x.omniboard.md]] embeds as a preview card.
+    // Two routes, mutually exclusive at runtime:
+    //   - Reading mode: post-processor scans `.internal-embed` wrappers in
+    //     the rendered HTML. Story 7-12 keeps this route — it works
+    //     reliably and covers the read-only viewing case.
+    //   - Live Preview: CodeMirror 6 editorExtension intercepts the
+    //     internal-embed widget BEFORE Obsidian renders the embedded file
+    //     content as raw markdown. See src/embed/liveEmbedExtension.ts.
+    const isOmniboardSrc = (src: string): boolean => {
+      const path = src.replace(/#.*$/, "");
+      return path.endsWith(OMNIBOARD_SUFFIX) || path.endsWith(".omniboard");
+    };
     this.registerMarkdownPostProcessor((el, ctx) => {
-      el.querySelectorAll<HTMLElement>('.internal-embed[src$=".omniboard.md"]').forEach(
-        (node) => void this.renderBoardEmbed(node, ctx.sourcePath)
-      );
+      el.querySelectorAll<HTMLElement>(".internal-embed").forEach((node) => {
+        const src = node.getAttribute("src") ?? "";
+        if (!isOmniboardSrc(src)) return;
+        void this.renderBoardEmbed(node, ctx.sourcePath);
+      });
     });
+
+    // Story 7-12 — Live Preview embed rendering via CodeMirror 6.
+    // registerEditorExtension is auto-cleaned up on plugin unload (P1).
+    this.registerEditorExtension(omniboardEmbedEditorExtension(this));
 
     // ── Inline code-block diagrams (spec model) — kept alongside the board ──
     for (const adapter of ALL_ADAPTERS) {

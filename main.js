@@ -41399,7 +41399,7 @@ __export(main_exports18, {
   default: () => DiagramsPlugin
 });
 module.exports = __toCommonJS(main_exports18);
-var import_obsidian9 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 
 // src/view/BoardView.ts
 var import_obsidian3 = require("obsidian");
@@ -122238,6 +122238,148 @@ function registerBpmnIcons() {
   }
 }
 
+// src/embed/liveEmbedExtension.ts
+var import_state = require("@codemirror/state");
+var import_view12 = require("@codemirror/view");
+var import_language = require("@codemirror/language");
+var import_obsidian9 = require("obsidian");
+init_boardSerde();
+
+// src/embed/linkUtils.ts
+init_boardSerde();
+function isOmniboardLink(linkText) {
+  const path2 = linkText.replace(/#.*$/, "");
+  return path2.endsWith(OMNIBOARD_SUFFIX) || path2.endsWith(".omniboard");
+}
+
+// src/embed/liveEmbedExtension.ts
+var OmniboardEmbedWidget = class _OmniboardEmbedWidget extends import_view12.WidgetType {
+  constructor(file, plugin) {
+    super();
+    this.file = file;
+    this.plugin = plugin;
+    /** Tracks attached DOM so we can abort an in-flight cachedRead. */
+    this.mounted = null;
+  }
+  eq(other) {
+    return other instanceof _OmniboardEmbedWidget && other.file.path === this.file.path;
+  }
+  toDOM(_view) {
+    const host = document.createElement("div");
+    host.addClass("omniboard-embed-host");
+    host.addClass("da-embed");
+    this.mounted = host;
+    const card = host.createDiv({ cls: "da-embed-card" });
+    const head = card.createDiv({ cls: "da-embed-head" });
+    head.createSpan({ cls: "da-embed-ttl", text: this.file.basename });
+    const meta = head.createSpan({ cls: "da-embed-meta" });
+    const open4 = head.createEl("button", { cls: "da-embed-open" });
+    (0, import_obsidian9.setIcon)(open4, "external-link");
+    open4.createSpan({ text: "M\u1EDF" });
+    open4.onclick = (e5) => {
+      e5.preventDefault();
+      e5.stopPropagation();
+      void this.plugin.app.workspace.getLeaf("tab").openFile(this.file);
+    };
+    const body = card.createDiv({ cls: "da-embed-body" });
+    const loading = body.createDiv({
+      cls: "da-embed-loading",
+      text: "\u0110ang t\u1EA3i\u2026"
+    });
+    void (async () => {
+      var _a3, _b2, _c, _d;
+      try {
+        const raw2 = await this.plugin.app.vault.cachedRead(this.file);
+        if (this.mounted !== host || !host.isConnected) return;
+        const model = deserializeBoard(raw2);
+        if (!model) throw new Error("invalid omniboard");
+        loading.remove();
+        const nodes = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
+        meta.setText(`${nodes} ph\u1EA7n t\u1EED \xB7 ${(_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0} n\u1ED1i`);
+        if (!nodes) {
+          body.createDiv({
+            cls: "da-embed-empty",
+            text: "Board tr\u1ED1ng \u2014 b\u1EA5m M\u1EDF \u0111\u1EC3 v\u1EBD."
+          });
+          return;
+        }
+        const wrap = body.createDiv({ cls: "da-embed-svg" });
+        wrap.innerHTML = renderModelToSvg(model, "", 16, "transparent");
+      } catch (e5) {
+        if (this.mounted !== host) return;
+        loading.remove();
+        body.createDiv({
+          cls: "da-embed-empty",
+          text: "Kh\xF4ng \u0111\u1ECDc \u0111\u01B0\u1EE3c board."
+        });
+      }
+    })();
+    return host;
+  }
+  destroy(_dom) {
+    this.mounted = null;
+  }
+  // The widget is purely decorative — events on it shouldn't end up in
+  // the editor's text manipulation pipeline (selection, drag, etc.).
+  ignoreEvent(_event) {
+    return true;
+  }
+};
+function buildDecorations(view, plugin) {
+  var _a3, _b2;
+  const builder = new import_state.RangeSetBuilder();
+  const doc = view.state.doc;
+  const sourcePath = (_b2 = (_a3 = plugin.app.workspace.getActiveFile()) == null ? void 0 : _a3.path) != null ? _b2 : "";
+  for (const { from, to } of view.visibleRanges) {
+    (0, import_language.syntaxTree)(view.state).iterate({
+      from,
+      to,
+      enter(node3) {
+        const typeName = node3.type.name;
+        if (!typeName.includes("hmd-internal-link")) return;
+        const startOfLink = node3.from - 3;
+        if (startOfLink < 0) return;
+        if (doc.sliceString(startOfLink, node3.from) !== "![[") return;
+        const linkText = doc.sliceString(node3.from, node3.to).trim();
+        if (!isOmniboardLink(linkText)) return;
+        const file = plugin.app.metadataCache.getFirstLinkpathDest(
+          linkText.replace(/#.*$/, ""),
+          sourcePath
+        );
+        if (!(file instanceof import_obsidian9.TFile)) return;
+        const fullStart = startOfLink;
+        const fullEnd = node3.to + 2;
+        builder.add(
+          fullStart,
+          fullEnd,
+          import_view12.Decoration.replace({
+            widget: new OmniboardEmbedWidget(file, plugin),
+            block: true,
+            inclusive: false
+          })
+        );
+      }
+    });
+  }
+  return builder.finish();
+}
+function omniboardEmbedEditorExtension(plugin) {
+  const pluginExt = import_view12.ViewPlugin.fromClass(
+    class {
+      constructor(view) {
+        this.decorations = buildDecorations(view, plugin);
+      }
+      update(u6) {
+        if (u6.docChanged || u6.viewportChanged || u6.geometryChanged) {
+          this.decorations = buildDecorations(u6.view, plugin);
+        }
+      }
+    },
+    { decorations: (v6) => v6.decorations }
+  );
+  return [pluginExt];
+}
+
 // src/ui/Placeholder.tsx
 function PlaceholderRenderer({ model }) {
   return /* @__PURE__ */ u2("pre", { class: "diagrams-placeholder-render", children: model.trim() || "(empty diagram)" });
@@ -122596,7 +122738,7 @@ var ALL_ADAPTERS = [
   mindmapAdapter,
   mermaidAdapter
 ];
-var DiagramsPlugin = class extends import_obsidian9.Plugin {
+var DiagramsPlugin = class extends import_obsidian10.Plugin {
   constructor() {
     super(...arguments);
     this.registry = new AdapterRegistry();
@@ -122620,7 +122762,7 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file, source) => {
         var _a3;
-        if (!(file instanceof import_obsidian9.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        if (!(file instanceof import_obsidian10.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
         const leaf = this.findLeafForFile(file);
         const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE3;
         menu.addItem((item) => {
@@ -122781,11 +122923,19 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
         return true;
       }
     });
+    const isOmniboardSrc = (src) => {
+      const path2 = src.replace(/#.*$/, "");
+      return path2.endsWith(OMNIBOARD_SUFFIX) || path2.endsWith(".omniboard");
+    };
     this.registerMarkdownPostProcessor((el4, ctx) => {
-      el4.querySelectorAll('.internal-embed[src$=".omniboard.md"]').forEach(
-        (node3) => void this.renderBoardEmbed(node3, ctx.sourcePath)
-      );
+      el4.querySelectorAll(".internal-embed").forEach((node3) => {
+        var _a3;
+        const src = (_a3 = node3.getAttribute("src")) != null ? _a3 : "";
+        if (!isOmniboardSrc(src)) return;
+        void this.renderBoardEmbed(node3, ctx.sourcePath);
+      });
     });
+    this.registerEditorExtension(omniboardEmbedEditorExtension(this));
     for (const adapter of ALL_ADAPTERS) {
       this.registry.register(adapter);
       this.registerCodeBlock(adapter);
@@ -122816,7 +122966,7 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
       const { model, sourceMeta } = await importBpmn(xml3);
       const basename = bpmnFile.basename;
       const dir = (_b2 = (_a3 = bpmnFile.parent) == null ? void 0 : _a3.path) != null ? _b2 : "";
-      const wrapperPath = (0, import_obsidian9.normalizePath)(
+      const wrapperPath = (0, import_obsidian10.normalizePath)(
         (dir ? dir + "/" : "") + `${basename}${OMNIBOARD_SUFFIX}`
       );
       const content5 = serializeBoard(model, "", sourceMeta, {
@@ -122824,8 +122974,8 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
         bpmnXml: xml3
       });
       const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
-      if (existing instanceof import_obsidian9.TFile) {
-        new import_obsidian9.Notice(
+      if (existing instanceof import_obsidian10.TFile) {
+        new import_obsidian10.Notice(
           `\u0110\xE3 t\u1ED3n t\u1EA1i "${wrapperPath}". Xo\xE1 ho\u1EB7c \u0111\u1ED5i t\xEAn file \u0111\xF3 tr\u01B0\u1EDBc khi convert.`,
           7e3
         );
@@ -122836,26 +122986,26 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
         wrapperFile = await this.app.vault.create(wrapperPath, content5);
       } catch (createErr) {
         console.error("[omniboard] vault.create failed for wrapper", createErr);
-        new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
+        new import_obsidian10.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
         return;
       }
       const leaf = this.app.workspace.getLeaf(false);
       if (!leaf) {
-        new import_obsidian9.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
+        new import_obsidian10.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
         return;
       }
       await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: wrapperFile.path } });
-      new import_obsidian9.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
+      new import_obsidian10.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
     } catch (err2) {
       console.error("[omniboard] convertBpmnToWrapper failed", err2);
-      new import_obsidian9.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
+      new import_obsidian10.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
   async createBoardFile() {
     const d4 = /* @__PURE__ */ new Date();
     const pad = (n4) => String(n4).padStart(2, "0");
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
-    const path2 = (0, import_obsidian9.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
+    const path2 = (0, import_obsidian10.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
     const content5 = serializeBoard({ nodes: [], edges: [] }, "", void 0, {
       compressDrawingData: this.settings.compressDrawingData
     });
@@ -122863,8 +123013,8 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
       return await this.app.vault.create(path2, content5);
     } catch (e5) {
       const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing instanceof import_obsidian9.TFile) return existing;
-      new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
+      if (existing instanceof import_obsidian10.TFile) return existing;
+      new import_obsidian10.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
       return null;
     }
   }
@@ -122926,12 +123076,12 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
   async createAndOpenBpmn() {
     const folder = this.app.fileManager.getNewFileParent("");
     const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/[-:T]/g, "").slice(0, 15);
-    const path2 = (0, import_obsidian9.normalizePath)(`${folder.path}/BPMN-${ts}.bpmn`);
+    const path2 = (0, import_obsidian10.normalizePath)(`${folder.path}/BPMN-${ts}.bpmn`);
     try {
       const file = await this.app.vault.create(path2, MINIMAL_BPMN_XML);
       await this.app.workspace.getLeaf("tab").openFile(file);
     } catch (e5) {
-      new import_obsidian9.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file BPMN.");
+      new import_obsidian10.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file BPMN.");
     }
   }
   /** Create a board, embed it at the cursor (`![[...]]`), and open it. */
@@ -122949,7 +123099,7 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
-    if (!(file instanceof import_obsidian9.TFile)) return;
+    if (!(file instanceof import_obsidian10.TFile)) return;
     host.dataset.daRendered = "1";
     host.empty();
     host.addClass("da-embed");
@@ -122958,7 +123108,7 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
     head.createSpan({ cls: "da-embed-ttl", text: file.basename });
     const meta = head.createSpan({ cls: "da-embed-meta" });
     const open4 = head.createEl("button", { cls: "da-embed-open" });
-    (0, import_obsidian9.setIcon)(open4, "external-link");
+    (0, import_obsidian10.setIcon)(open4, "external-link");
     open4.createSpan({ text: "M\u1EDF" });
     open4.onclick = (e5) => {
       e5.preventDefault();
@@ -122983,9 +123133,9 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
   }
   /** Insert from the ribbon menu — needs to find the active markdown editor itself. */
   insertDiagramIntoActiveEditor(adapter) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian10.MarkdownView);
     if (!view) {
-      new import_obsidian9.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
+      new import_obsidian10.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
       return;
     }
     this.insertDiagram(view.editor, adapter);
@@ -123015,7 +123165,7 @@ var DiagramsPlugin = class extends import_obsidian9.Plugin {
   }
   /** Rewrite the fenced block that produced `el` with new content. */
   replaceCodeBlock(el4, ctx, lang, newText) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian9.MarkdownView);
+    const view = this.app.workspace.getActiveViewOfType(import_obsidian10.MarkdownView);
     if (!view) return;
     const info = ctx.getSectionInfo(el4);
     if (!info) return;

@@ -46,7 +46,17 @@ const context = await esbuild.context({
   banner: { js: banner },
   entryPoints: ["src/main.ts"],
   bundle: true,
-  external: ["obsidian", "electron", ...builtins],
+  external: [
+    "obsidian",
+    "electron",
+    // CodeMirror 6 packages are provided by Obsidian at runtime; bundling
+    // them would create duplicate instances and break editor extensions.
+    // Same convention as Excalidraw, Dataview, and other major plugins.
+    "@codemirror/view",
+    "@codemirror/state",
+    "@codemirror/language",
+    ...builtins,
+  ],
   format: "cjs",
   target: "es2018",
   logLevel: "info",

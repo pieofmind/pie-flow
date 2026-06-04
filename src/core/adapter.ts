@@ -101,4 +101,30 @@ export interface DiagramAdapter<TModel = any> {
    *   called (per P3, parse remains best-effort and never throws).
    */
   validateSource?(source: string): ParseIssue[];
+
+  /**
+   * Story 7-14 — optional human-readable title accessor for the diagram.
+   * Used by `<BoardEditor>` header when rendering the chip+title pair
+   * shown in the Claude Design (e.g., "BPMN 2.0  Quy trình bán hàng KALIX").
+   *
+   * Contract:
+   * - Returns `undefined` (or omits the method) when the adapter has no
+   *   concept of a title or the model doesn't carry one.
+   * - Pure read — must not mutate the model.
+   */
+  getTitle?(model: TModel): string | undefined;
+
+  /**
+   * Story 7-14 — optional title setter. Returns a NEW model with the
+   * title applied (immutable per project rule). When absent, the
+   * BoardEditor header's title input renders read-only.
+   *
+   * Contract:
+   * - MUST be immutable: do not mutate the input `model`; return a fresh
+   *   one with the title applied (deep-clone or structural-share as
+   *   appropriate per adapter).
+   * - Empty string `""` is a valid title (means "no title"). Adapters
+   *   should treat it consistently with `getTitle` returning undefined.
+   */
+  setTitle?(model: TModel, title: string): TModel;
 }

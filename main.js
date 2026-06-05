@@ -77019,7 +77019,7 @@ var COLUMN_RE = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+([^\s\[\n]+)(?:\s*\[([^\]]*)\])?
 var INLINE_REF_RE = /ref:\s*([<>]+|<>)\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)/i;
 var REF_RE = /Ref(?:\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*([<>]+|<>)\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)/g;
 var TABLEGROUP_RE = /TableGroup\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\n\}/g;
-var CLUSTER_PALETTE = ["#5E8FB9", "#C99A2E", "#E07B5C", "#7BAE7F", "#9A6BB5", "#C76B6B"];
+var CLUSTER_PALETTE = ["#C99A2E", "#E07B5C", "#7BAE7F", "#9A6BB5", "#C76B6B", "#3D7BCC"];
 function stripComments(src) {
   let out = "";
   let i6 = 0;
@@ -82463,7 +82463,7 @@ function edgePath(s5, sPort, t6, tPort) {
   return `M ${s5.x} ${s5.y} L ${p1.x} ${p1.y} L ${bend.x} ${bend.y} L ${p22.x} ${p22.y} L ${t6.x} ${t6.y}`;
 }
 var esc2 = (s5) => String(s5 != null ? s5 : "").replace(/[&<>"]/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c6]);
-function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
+function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff", responsive = false) {
   var _a3, _b2;
   const nodes = (_a3 = model.nodes) != null ? _a3 : [];
   const edges = (_b2 = model.edges) != null ? _b2 : [];
@@ -82516,7 +82516,8 @@ function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
     const num = (v6) => Number(v6) || 0;
     return `<foreignObject x="${num(n4.x)}" y="${num(n4.y)}" width="${num(n4.width)}" height="${num(n4.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
   }).join("");
-  return `<svg xmlns="${SVGNS}" class="lk-root" width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}"><defs><marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker></defs><style>foreignObject{overflow:visible}${css2}</style>` + (bg && bg !== "transparent" ? `<rect x="${x5}" y="${y5}" width="${w5}" height="${h5}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
+  const dims = responsive ? `viewBox="${x5} ${y5} ${w5} ${h5}" preserveAspectRatio="xMidYMid meet"` : `width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}"`;
+  return `<svg xmlns="${SVGNS}" class="lk-root" ${dims}><defs><marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker></defs><style>foreignObject{overflow:visible}${css2}</style>` + (bg && bg !== "transparent" ? `<rect x="${x5}" y="${y5}" width="${w5}" height="${h5}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
 }
 
 // src/canvas/bulkAlign.ts
@@ -124975,7 +124976,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       } else {
         nodeCount = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
         edgeCount = (_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0;
-        svg3 = nodeCount > 0 ? renderModelToSvg(model, "", 16, "transparent") : "";
+        svg3 = nodeCount > 0 ? renderModelToSvg(model, "", 16, "transparent", true) : "";
       }
     } catch (e5) {
       errorMessage = "Kh\xF4ng \u0111\u1ECDc \u0111\u01B0\u1EE3c board.";

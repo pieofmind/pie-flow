@@ -40,7 +40,9 @@ const REF_RE = /Ref(?:\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:\s*([A-Za-z_][A-Za-z0-9_]
 const TABLEGROUP_RE = /TableGroup\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\n\}/g;
 
 /** dbdiagram.io-style 6-color palette for cluster headers. Cycles for >6 groups. */
-const CLUSTER_PALETTE = ["#5E8FB9", "#C99A2E", "#E07B5C", "#7BAE7F", "#9A6BB5", "#C76B6B"];
+// Skip blueish #5E8FB9 — matches the default --pg-accent ERD header color
+// so a cluster picking it would render visually indistinguishable.
+const CLUSTER_PALETTE = ["#C99A2E", "#E07B5C", "#7BAE7F", "#9A6BB5", "#C76B6B", "#3D7BCC"];
 
 /** Strip /* ... *​/, //... and -- ... comments. Preserves line count to keep
  * positions roughly intact (each comment becomes spaces of same length). */

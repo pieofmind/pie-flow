@@ -219,7 +219,11 @@
 .lk-root.lk-dragging-edge .x6-port circle[port="top"],
 .lk-root.lk-dragging-edge .x6-port circle[port="bottom"],
 .lk-root.lk-dragging-edge .x6-port circle[port="left"],
-.lk-root.lk-dragging-edge .x6-port circle[port="right"] {
+.lk-root.lk-dragging-edge .x6-port circle[port="right"],
+/* ERD col ports (`col:NAME-left|right`, see erdPorts.ts) — must stay active
+   during drag so user can drop on a specific column. Without this rule the
+   col port magnet is `display:none` and silently rejects drops. */
+.lk-root.lk-dragging-edge .x6-port circle[port^="col:"] {
   display: block !important;
   visibility: visible !important;
 }

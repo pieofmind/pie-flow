@@ -29,17 +29,25 @@ export interface ErdColPort {
 export function buildErdColumnPorts(cols: ErdCol[], width: number): ErdColPort[] {
   if (!cols || cols.length === 0) return [];
   const ports: ErdColPort[] = [];
+  // Disambiguate duplicate column names — X6 throws "Duplicated port id" if any
+  // two ports share the same id. Common when user clicks "+ Thêm cột" repeatedly
+  // (default name "field"). Suffix with row index when collision: "field~2".
+  // Parser side (export.ts portToCol) strips the ~N suffix on emit.
+  const seen = new Map<string, number>();
   for (let i = 0; i < cols.length; i++) {
     const col = cols[i];
     if (!col || !col.name) continue;
+    const count = (seen.get(col.name) ?? 0) + 1;
+    seen.set(col.name, count);
+    const portName = count === 1 ? col.name : `${col.name}~${i}`;
     const y = HEAD_H + i * ROW_H + ROW_H / 2;
     ports.push({
-      id: `col:${col.name}-left`,
+      id: `col:${portName}-left`,
       group: "erdColLeft",
       args: { x: 0, y },
     });
     ports.push({
-      id: `col:${col.name}-right`,
+      id: `col:${portName}-right`,
       group: "erdColRight",
       args: { x: width, y },
     });

@@ -3181,15 +3181,102 @@ export class OmniboardCanvas {
 
   // Update ERD cols / UML members, then re-render + grow node height to fit.
   private setExtra(n: Node, patch: NodeExtra) {
-    n.setData({ ...n.getData(), ...patch });
+    // Snapshot OLD cols + edges BEFORE setData — needed to re-route edges to
+    // renamed col ports after the rebuild (Story 4.2, Option B).
+    const isErd = this.nodeKind(n) === "erd-entity";
+    const oldCols: ErdCol[] | null = isErd ? (this.nodeExtra(n).cols ?? []).slice() : null;
+    // CRITICAL: X6 setData defaults to deep-merge via ObjectExt.merge — for
+    // array fields (cols, fields, methods, lanes...) it MERGES BY INDEX and
+    // keeps extra elements from prev. That broke deletes silently: passing
+    // [a,b,c] over prev [a,b,c,d] yielded [a,b,c,d]. Force shallow merge
+    // (deep:false → Object.assign) so the new array fully replaces the old.
+    n.setData({ ...n.getData(), ...patch }, { deep: false });
     this.rerender(n);
     this.autoHeight(n);
+    if (isErd) this.refreshErdPorts(n, oldCols);
     this.onChange();
   }
+
+  /** Rebuild col:* ports from current `cols` and re-attach edges that were
+   *  connected to the OLD col ports. Re-attach by INDEX — rename works,
+   *  insert/delete in the middle reflows correctly; orphaned edges (col
+   *  deleted) keep their old endpoint and X6 falls back to nearest anchor. */
+  private refreshErdPorts(node: Node, oldCols: ErdCol[] | null) {
+    const ex = this.nodeExtra(node);
+    const newCols = ex.cols ?? [];
+    // Capture edges currently connected to this node's col:* ports.
+    type EdgeSnapshot = { edge: Edge; terminal: Edge.TerminalType; oldPortId: string; side: "left" | "right" };
+    const snapshots: EdgeSnapshot[] = [];
+    for (const edge of this.graph.getEdges()) {
+      for (const terminal of ["source", "target"] as Edge.TerminalType[]) {
+        const term = (terminal === "source" ? edge.getSource() : edge.getTarget()) as { cell?: string; port?: string };
+        if (term?.cell !== node.id) continue;
+        const port = term?.port;
+        if (!port || !port.startsWith("col:")) continue;
+        const m = /^col:(.+)-(left|right)$/.exec(port);
+        if (!m) continue;
+        snapshots.push({ edge, terminal, oldPortId: port, side: m[2] as "left" | "right" });
+      }
+    }
+    // STEP A — DETACH edges from col ports before rewriting the port list.
+    // X6 auto-removes edges whose terminal port disappears during setPropByPath
+    // (saw 6→5 edges + corrupted {} src on rename via dev:cdp test). Detaching
+    // (cell preserved, port cleared) tells X6 the edge is intentionally
+    // node-anchored, so the port rewrite doesn't trigger cleanup.
+    for (const s of snapshots) {
+      const term = { cell: node.id };  // no port → node-anchored, no auto-cleanup
+      if (s.terminal === "source") s.edge.setSource(term);
+      else s.edge.setTarget(term);
+    }
+    // STEP B — Replace ports atomically via ONE setPropByPath. removePort +
+    // addPort each trigger their own reactive update — even inside batchUpdate,
+    // the port manager runs validation between them and throws "Duplicated
+    // port id". Building the complete new list (cardinal + col) and writing
+    // once avoids the intermediate invalid state entirely.
+    const allCurrent = node.getPorts();
+    const nonCol = allCurrent.filter((p) => !(typeof p.id === "string" && p.id.startsWith("col:")));
+    const w = node.getSize().width;
+    const newColPorts = newCols.length ? buildErdColumnPorts(newCols, w) : [];
+    (node as never as { setPropByPath: (path: string, val: unknown, opts?: { rewrite?: boolean }) => void })
+      .setPropByPath("ports/items", [...nonCol, ...newColPorts], { rewrite: true });
+    // STEP C — Re-attach saved edges. Strategy depends on the change kind:
+    //   • RENAME (same length): re-route by index — newCols[oldIdx] is the
+    //     renamed col, even if it has a different name now.
+    //   • ADD/DELETE (length changed): re-route by NAME match — if oldName
+    //     still exists in newCols, reconnect to it; otherwise the col was
+    //     deleted/replaced and the edge stays node-anchored (orphan-safe).
+    //     Avoids the semantic surprise of an edge silently jumping to the
+    //     col that just happened to shift into the deleted col's slot.
+    if (!oldCols) return;
+    const isPureRename = oldCols.length === newCols.length;
+    for (const s of snapshots) {
+      const oldName = /^col:(.+)-(left|right)$/.exec(s.oldPortId)?.[1];
+      if (!oldName) continue;
+      let newName: string | undefined;
+      if (isPureRename) {
+        const idx = oldCols.findIndex((c) => c.name === oldName);
+        if (idx < 0) continue;
+        newName = newCols[idx]?.name;
+      } else {
+        // Length changed — only reconnect if same name still exists.
+        newName = newCols.find((c) => c.name === oldName)?.name;
+      }
+      if (!newName) continue;  // col gone — leave edge node-anchored
+      const newPortId = `col:${newName}-${s.side}`;
+      if (s.terminal === "source") {
+        s.edge.setSource({ cell: node.id, port: newPortId });
+      } else {
+        s.edge.setTarget({ cell: node.id, port: newPortId });
+      }
+    }
+  }
+
   private autoHeight(n: Node) {
     const kind = this.nodeKind(n); const ex = this.nodeExtra(n);
     let h = 0;
-    if (kind === "erd-entity") h = 34 + (ex.cols?.length ?? 0) * 25;
+    // ERD constants MUST stay in sync with erdPorts.ts (HEAD_H=38, ROW_H=27,
+    // +12 padding bottom) or col ports compute Y past the node height edge.
+    if (kind === "erd-entity") h = 38 + (ex.cols?.length ?? 0) * 27 + 12;
     else if (kind === "uml-class" || kind === "uml-interface") {
       const f = ex.fields?.length ?? 0, m = ex.methods?.length ?? 0;
       h = 38 + (f ? 14 + f * 20 : 0) + (m ? 14 + m * 20 : 0);

@@ -77211,8 +77211,8 @@ function markersToKind(start, end) {
 }
 function portToCol(port2) {
   if (!port2 || !port2.startsWith("col:")) return "id";
-  const stripped = port2.slice("col:".length);
-  return stripped.replace(/-(left|right)$/, "") || "id";
+  const stripped = port2.slice("col:".length).replace(/-(left|right)$/, "");
+  return stripped.replace(/~\d+$/, "") || "id";
 }
 function nodeColumns(attrs) {
   const src = attrs == null ? void 0 : attrs.__source;
@@ -82341,19 +82341,24 @@ __decorate30([
 var HEAD_H = 38;
 var ROW_H = 27;
 function buildErdColumnPorts(cols, width2) {
+  var _a3;
   if (!cols || cols.length === 0) return [];
   const ports = [];
+  const seen = /* @__PURE__ */ new Map();
   for (let i6 = 0; i6 < cols.length; i6++) {
     const col = cols[i6];
     if (!col || !col.name) continue;
+    const count = ((_a3 = seen.get(col.name)) != null ? _a3 : 0) + 1;
+    seen.set(col.name, count);
+    const portName = count === 1 ? col.name : `${col.name}~${i6}`;
     const y5 = HEAD_H + i6 * ROW_H + ROW_H / 2;
     ports.push({
-      id: `col:${col.name}-left`,
+      id: `col:${portName}-left`,
       group: "erdColLeft",
       args: { x: 0, y: y5 }
     });
     ports.push({
-      id: `col:${col.name}-right`,
+      id: `col:${portName}-right`,
       group: "erdColRight",
       args: { x: width2, y: y5 }
     });
@@ -86049,17 +86054,73 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   // Update ERD cols / UML members, then re-render + grow node height to fit.
   setExtra(n4, patch) {
-    n4.setData({ ...n4.getData(), ...patch });
+    var _a3;
+    const isErd = this.nodeKind(n4) === "erd-entity";
+    const oldCols = isErd ? ((_a3 = this.nodeExtra(n4).cols) != null ? _a3 : []).slice() : null;
+    n4.setData({ ...n4.getData(), ...patch }, { deep: false });
     this.rerender(n4);
     this.autoHeight(n4);
+    if (isErd) this.refreshErdPorts(n4, oldCols);
     this.onChange();
+  }
+  /** Rebuild col:* ports from current `cols` and re-attach edges that were
+   *  connected to the OLD col ports. Re-attach by INDEX — rename works,
+   *  insert/delete in the middle reflows correctly; orphaned edges (col
+   *  deleted) keep their old endpoint and X6 falls back to nearest anchor. */
+  refreshErdPorts(node3, oldCols) {
+    var _a3, _b2, _c, _d;
+    const ex = this.nodeExtra(node3);
+    const newCols = (_a3 = ex.cols) != null ? _a3 : [];
+    const snapshots = [];
+    for (const edge of this.graph.getEdges()) {
+      for (const terminal of ["source", "target"]) {
+        const term = terminal === "source" ? edge.getSource() : edge.getTarget();
+        if ((term == null ? void 0 : term.cell) !== node3.id) continue;
+        const port2 = term == null ? void 0 : term.port;
+        if (!port2 || !port2.startsWith("col:")) continue;
+        const m7 = /^col:(.+)-(left|right)$/.exec(port2);
+        if (!m7) continue;
+        snapshots.push({ edge, terminal, oldPortId: port2, side: m7[2] });
+      }
+    }
+    for (const s5 of snapshots) {
+      const term = { cell: node3.id };
+      if (s5.terminal === "source") s5.edge.setSource(term);
+      else s5.edge.setTarget(term);
+    }
+    const allCurrent = node3.getPorts();
+    const nonCol = allCurrent.filter((p6) => !(typeof p6.id === "string" && p6.id.startsWith("col:")));
+    const w5 = node3.getSize().width;
+    const newColPorts = newCols.length ? buildErdColumnPorts(newCols, w5) : [];
+    node3.setPropByPath("ports/items", [...nonCol, ...newColPorts], { rewrite: true });
+    if (!oldCols) return;
+    const isPureRename = oldCols.length === newCols.length;
+    for (const s5 of snapshots) {
+      const oldName = (_b2 = /^col:(.+)-(left|right)$/.exec(s5.oldPortId)) == null ? void 0 : _b2[1];
+      if (!oldName) continue;
+      let newName;
+      if (isPureRename) {
+        const idx = oldCols.findIndex((c6) => c6.name === oldName);
+        if (idx < 0) continue;
+        newName = (_c = newCols[idx]) == null ? void 0 : _c.name;
+      } else {
+        newName = (_d = newCols.find((c6) => c6.name === oldName)) == null ? void 0 : _d.name;
+      }
+      if (!newName) continue;
+      const newPortId = `col:${newName}-${s5.side}`;
+      if (s5.terminal === "source") {
+        s5.edge.setSource({ cell: node3.id, port: newPortId });
+      } else {
+        s5.edge.setTarget({ cell: node3.id, port: newPortId });
+      }
+    }
   }
   autoHeight(n4) {
     var _a3, _b2, _c, _d, _e3, _f;
     const kind = this.nodeKind(n4);
     const ex = this.nodeExtra(n4);
     let h5 = 0;
-    if (kind === "erd-entity") h5 = 34 + ((_b2 = (_a3 = ex.cols) == null ? void 0 : _a3.length) != null ? _b2 : 0) * 25;
+    if (kind === "erd-entity") h5 = 38 + ((_b2 = (_a3 = ex.cols) == null ? void 0 : _a3.length) != null ? _b2 : 0) * 27 + 12;
     else if (kind === "uml-class" || kind === "uml-interface") {
       const f6 = (_d = (_c = ex.fields) == null ? void 0 : _c.length) != null ? _d : 0, m7 = (_f = (_e3 = ex.methods) == null ? void 0 : _e3.length) != null ? _f : 0;
       h5 = 38 + (f6 ? 14 + f6 * 20 : 0) + (m7 ? 14 + m7 * 20 : 0);

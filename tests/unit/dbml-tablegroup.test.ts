@@ -79,9 +79,11 @@ TableGroup g7 {\n  g\n}
     const { model } = importDbml(tables + groups);
     const colorOf = (id: string) =>
       (model.nodes.find((n) => n.id === id)?.attrs as any)?.__headerColor;
-    expect(colorOf("a")).toBe("#5E8FB9");
-    expect(colorOf("f")).toBe("#C76B6B");
+    // Palette reordered 2026-06-05 (Story 3.1 follow-up) — skipped blueish
+    // #5E8FB9 that matched default --pg-accent so 1st cluster was invisible.
+    expect(colorOf("a")).toBe("#C99A2E");
+    expect(colorOf("f")).toBe("#3D7BCC");
     // 7th cluster cycles back to first color
-    expect(colorOf("g")).toBe("#5E8FB9");
+    expect(colorOf("g")).toBe("#C99A2E");
   });
 });

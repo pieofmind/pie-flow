@@ -23,11 +23,14 @@ function markersToKind(start: string | undefined, end: string | undefined): Dbml
 }
 
 /** Extract the column name from an X6 port id like "col:user_id-right".
- *  Returns "id" as fallback for cardinal ports or missing port. */
+ *  Returns "id" as fallback for cardinal ports or missing port.
+ *  Strips dedup suffix "~N" produced by buildErdColumnPorts when two columns
+ *  share a name (X6 forbids duplicate port ids; the user's column name is
+ *  preserved in node.attrs.cols — DBML emit uses that). */
 function portToCol(port: string | undefined): string {
   if (!port || !port.startsWith("col:")) return "id";
-  const stripped = port.slice("col:".length);
-  return stripped.replace(/-(left|right)$/, "") || "id";
+  const stripped = port.slice("col:".length).replace(/-(left|right)$/, "");
+  return stripped.replace(/~\d+$/, "") || "id";
 }
 
 function nodeColumns(attrs: Record<string, unknown> | undefined): SourceCol[] | null {

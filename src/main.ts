@@ -19,7 +19,6 @@ import { BoardTypePicker, ExistingBoardPicker, type BoardTypeChoice } from "./ui
 import type { CanvasModel } from "./canvas/types";
 
 import { bpmnAdapter } from "./adapters/bpmn";
-import { dbmlAdapter } from "./adapters/dbml";
 import { erdAdapter } from "./adapters/erd";
 import { flowchartAdapter } from "./adapters/flowchart";
 import { umlAdapter } from "./adapters/uml";
@@ -30,7 +29,6 @@ import { mermaidAdapter } from "./adapters/mermaid";
 
 const ALL_ADAPTERS: DiagramAdapter[] = [
   bpmnAdapter,
-  dbmlAdapter,
   erdAdapter,
   flowchartAdapter,
   umlAdapter,

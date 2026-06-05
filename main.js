@@ -24458,7 +24458,7 @@ var require_make_built_in = __commonJS({
       return defineProperty4(function() {
       }, "length", { value: 8 }).length !== 8;
     });
-    var TEMPLATE3 = String(String).split("String");
+    var TEMPLATE2 = String(String).split("String");
     var makeBuiltIn = module2.exports = function(value, name2, options) {
       if (stringSlice($String(name2), 0, 7) === "Symbol(") {
         name2 = "[" + replace($String(name2), /^Symbol\(([^)]*)\).*$/, "$1") + "]";
@@ -24480,7 +24480,7 @@ var require_make_built_in = __commonJS({
       }
       var state = enforceInternalState(value);
       if (!hasOwn(state, "source")) {
-        state.source = join(TEMPLATE3, typeof name2 == "string" ? name2 : "");
+        state.source = join(TEMPLATE2, typeof name2 == "string" ? name2 : "");
       }
       return value;
     };
@@ -123243,123 +123243,6 @@ function PlaceholderEditor({ initialModel, onSave, onClose }) {
   ] });
 }
 
-// src/adapters/dbml/Renderer.tsx
-function DbmlRenderer({ model }) {
-  const canvasModel = T3(() => {
-    try {
-      return importDbml(model).model;
-    } catch (e5) {
-      return { nodes: [], edges: [] };
-    }
-  }, [model]);
-  return /* @__PURE__ */ u2(CanvasPreview, { model: canvasModel });
-}
-
-// src/adapters/dbml/palette.ts
-var dbmlPaletteItems = [
-  // BẢNG
-  { id: "table", label: "Table", icon: "table", shortcut: "T", group: "B\u1EA2NG" },
-  // QUAN HỆ
-  { id: "ref-one-to-one", label: "Ref 1\u21941", icon: "arrow-left-right", group: "QUAN H\u1EC6" },
-  { id: "ref-one-to-many", label: "Ref 1\u2194n", icon: "git-fork", group: "QUAN H\u1EC6" },
-  { id: "ref-many-to-many", label: "Ref n\u2194n", icon: "network", group: "QUAN H\u1EC6" },
-  // KHÁC
-  { id: "enum", label: "Enum", icon: "list", group: "KH\xC1C" },
-  { id: "table-group", label: "Table Group", icon: "layers", group: "KH\xC1C" }
-];
-
-// src/adapters/dbml/sourceOps.ts
-var MAX_VALIDATE_SOURCE_LENGTH2 = 4 * 1024 * 1024;
-var TABLE_RE2 = /^Table\s+\S+/m;
-var PROJECT_TAG_RE = /^Project\s+("[^"]*"|\S+)\s*\{[^}]*\}/m;
-function validateDbmlSource(source) {
-  if (!source || !source.trim()) {
-    return [{ severity: "error", message: "Source r\u1ED7ng" }];
-  }
-  if (source.length > MAX_VALIDATE_SOURCE_LENGTH2) {
-    return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
-  }
-  if (!TABLE_RE2.test(source)) {
-    return [{ severity: "error", message: "Thi\u1EBFu khai b\xE1o Table" }];
-  }
-  return [];
-}
-function getDbmlTitle(source) {
-  const m7 = source.match(PROJECT_TAG_RE);
-  if (!m7) return void 0;
-  let name2 = m7[1].trim();
-  if (name2.startsWith('"') && name2.endsWith('"') && name2.length >= 2) {
-    name2 = name2.slice(1, -1);
-  }
-  return name2 === "" ? void 0 : name2;
-}
-function setDbmlTitle(source, title2) {
-  if (title2 === "") return source;
-  const safeTitle = title2.replace(/"/g, "");
-  const escaped = needsQuoting(safeTitle) ? `"${safeTitle}"` : safeTitle;
-  const hasProject = PROJECT_TAG_RE.test(source);
-  if (hasProject) {
-    return source.replace(
-      PROJECT_TAG_RE,
-      (full) => full.replace(/^Project\s+("[^"]*"|\S+)/, () => `Project ${escaped}`)
-    );
-  }
-  return `Project ${escaped} {
-  database_type: 'omniboard'
-}
-
-${source}`;
-}
-function needsQuoting(s5) {
-  return /[\s'{}()\[\]]/.test(s5);
-}
-
-// src/adapters/dbml/index.ts
-var TEMPLATE2 = `Project example {
-  database_type: 'omniboard'
-}
-
-Table users {
-  id int [pk]
-  email varchar
-  created_at timestamp
-}
-
-Table orders {
-  id int [pk]
-  user_id int [ref: > users.id]
-  total decimal
-}`;
-var dbmlAdapter = {
-  id: "dbml",
-  displayName: "DBML",
-  codeBlockLanguage: "dbml",
-  icon: "database",
-  exportFormats: ["svg", "png"],
-  parse: (source) => source,
-  serialize: (model) => model,
-  emptyTemplate: () => TEMPLATE2,
-  Renderer: DbmlRenderer,
-  Editor: PlaceholderEditor,
-  validate: () => ({ ok: true, errors: [] }),
-  validateSource: validateDbmlSource,
-  getTitle: getDbmlTitle,
-  setTitle: setDbmlTitle,
-  paletteItems: dbmlPaletteItems,
-  // Story 7-5d — unified canvas editor (importDbml/exportDbml are sync).
-  toEditor: (source) => {
-    const r5 = importDbml(source);
-    return {
-      model: r5.model,
-      title: getDbmlTitle(source),
-      serialize: (m7, title2) => {
-        const s5 = exportDbml(m7, r5.sourceMeta);
-        return title2 !== void 0 ? setDbmlTitle(s5, title2) : s5;
-      }
-    };
-  }
-};
-
 // src/adapters/makeStubAdapter.ts
 function makeStubAdapter(spec) {
   var _a3;
@@ -123403,17 +123286,17 @@ function ErdRenderer({ model }) {
 }
 
 // src/adapters/erd/sourceOps.ts
-var MAX_VALIDATE_SOURCE_LENGTH3 = 4 * 1024 * 1024;
-var TABLE_RE3 = /^Table\s+\S+/m;
+var MAX_VALIDATE_SOURCE_LENGTH2 = 4 * 1024 * 1024;
+var TABLE_RE2 = /^Table\s+\S+/m;
 var TITLE_COMMENT_RE = /^\/\/\s*@diagram-title:\s*(.+)$/m;
 function validateErdSource(source) {
   if (!source || !source.trim()) {
     return [{ severity: "error", message: "Source r\u1ED7ng" }];
   }
-  if (source.length > MAX_VALIDATE_SOURCE_LENGTH3) {
+  if (source.length > MAX_VALIDATE_SOURCE_LENGTH2) {
     return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
   }
-  if (!TABLE_RE3.test(source)) {
+  if (!TABLE_RE2.test(source)) {
     return [{ severity: "error", message: "Thi\u1EBFu khai b\xE1o Table" }];
   }
   return [];
@@ -123513,12 +123396,12 @@ var flowchartPaletteItems = [
 ];
 
 // src/adapters/flowchart/sourceOps.ts
-var MAX_VALIDATE_SOURCE_LENGTH4 = 4 * 1024 * 1024;
+var MAX_VALIDATE_SOURCE_LENGTH3 = 4 * 1024 * 1024;
 function validateFlowchartSource(source) {
   if (!source || !source.trim()) {
     return [{ severity: "error", message: "Source r\u1ED7ng" }];
   }
-  if (source.length > MAX_VALIDATE_SOURCE_LENGTH4) {
+  if (source.length > MAX_VALIDATE_SOURCE_LENGTH3) {
     return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
   }
   let parsed;
@@ -123930,14 +123813,14 @@ function SequenceRenderer({ model }) {
 }
 
 // src/adapters/sequence/sourceOps.ts
-var MAX_VALIDATE_SOURCE_LENGTH5 = 4 * 1024 * 1024;
+var MAX_VALIDATE_SOURCE_LENGTH4 = 4 * 1024 * 1024;
 var HEADER_RE = /^\s*sequenceDiagram\b/m;
 var TITLE_LINE_RE = /^title\s+(.+)$/m;
 function validateSequenceSource(source) {
   if (!source || !source.trim()) {
     return [{ severity: "error", message: "Source r\u1ED7ng" }];
   }
-  if (source.length > MAX_VALIDATE_SOURCE_LENGTH5) {
+  if (source.length > MAX_VALIDATE_SOURCE_LENGTH4) {
     return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
   }
   if (!HEADER_RE.test(source)) {
@@ -124523,7 +124406,7 @@ function setMermaidTitle(source, title2) {
   const fmMatch = source.match(FRONTMATTER_RE2);
   if (!fmMatch) {
     if (title2 === "") return source;
-    const quoted = needsQuoting2(title2) ? `'${title2.replace(/'/g, "''")}'` : title2;
+    const quoted = needsQuoting(title2) ? `'${title2.replace(/'/g, "''")}'` : title2;
     return `---
 title: ${quoted}
 ---
@@ -124536,7 +124419,7 @@ ${source}`;
     if (!hasTitle) return source;
     newBody = fmBody.replace(/(^|\n)title:\s*.+(?=\n|$)/, "").replace(/^\n/, "");
   } else {
-    const quoted = needsQuoting2(title2) ? `'${title2.replace(/'/g, "''")}'` : title2;
+    const quoted = needsQuoting(title2) ? `'${title2.replace(/'/g, "''")}'` : title2;
     if (hasTitle) {
       newBody = fmBody.replace(FRONTMATTER_TITLE_RE2, (_m, lead) => `${lead}title: ${quoted}`);
     } else {
@@ -124551,7 +124434,7 @@ title: ${quoted}`;
 ${newBody}
 ---`);
 }
-function needsQuoting2(s5) {
+function needsQuoting(s5) {
   return /[:#&*!|>'"%@`{}\[\]]|^\s|\s$/.test(s5);
 }
 
@@ -124579,7 +124462,6 @@ var mermaidAdapter = {
 // src/main.ts
 var ALL_ADAPTERS = [
   bpmnAdapter,
-  dbmlAdapter,
   erdAdapter,
   flowchartAdapter,
   umlAdapter,

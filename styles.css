@@ -1719,6 +1719,16 @@ body.is-mobile .diagrams-card-header {
   display: block;
   margin: 0 auto;
 }
+/* Mobile two-layer card composite (Error Pattern #8): edges in an SVG layer +
+   real positioned HTML nodes, scaled to fit by fitCardStage(). `.ob-card-fit`
+   reserves the scaled height (transform doesn't affect layout box). */
+.diagrams-card-embed-svg .ob-card-fit {
+  width: 100%;
+  overflow: hidden;
+}
+.diagrams-card-embed-svg .ob-card-stage {
+  will-change: transform;
+}
 /* Host attached by CM6 widget — flex so the card stretches naturally */
 .omniboard-embed-host {
   display: block;

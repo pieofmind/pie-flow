@@ -28943,7 +28943,7 @@ function normalizeColor(color) {
     return color;
   }
   var rgbParts = 3;
-  var normalizedColor = color.replace(/\d+(\.\d+)?/g, (num, isFloat) => rgbParts-- && isFloat ? String(Math.round(parseFloat(num))) : num);
+  var normalizedColor = color.replace(/\d+(\.\d+)?/g, (num2, isFloat) => rgbParts-- && isFloat ? String(Math.round(parseFloat(num2))) : num2);
   return normalizedColor;
 }
 function findSelectorMatch(selector, regex) {
@@ -45639,21 +45639,21 @@ function random(lower2, upper) {
 function isPercentage(val) {
   return typeof val === "string" && val.slice(-1) === "%";
 }
-function normalizePercentage(num, ref2) {
-  if (num == null) {
+function normalizePercentage(num2, ref2) {
+  if (num2 == null) {
     return 0;
   }
   let raw2;
-  if (typeof num === "string") {
-    raw2 = parseFloat(num);
-    if (isPercentage(num)) {
+  if (typeof num2 === "string") {
+    raw2 = parseFloat(num2);
+    if (isPercentage(num2)) {
       raw2 /= 100;
       if (Number.isFinite(raw2)) {
         return raw2 * ref2;
       }
     }
   } else {
-    raw2 = num;
+    raw2 = num2;
   }
   if (!Number.isFinite(raw2)) {
     return 0;
@@ -49487,10 +49487,10 @@ var Color = class _Color {
   function lum(color, amt) {
     if (typeof color === "string") {
       const pound = color[0] === "#";
-      const num = parseInt(pound ? color.substr(1) : color, 16);
-      const r5 = number_exports.clamp((num >> 16) + amt, 0, 255);
-      const g4 = number_exports.clamp((num >> 8 & 255) + amt, 0, 255);
-      const b4 = number_exports.clamp((num & 255) + amt, 0, 255);
+      const num2 = parseInt(pound ? color.substr(1) : color, 16);
+      const r5 = number_exports.clamp((num2 >> 16) + amt, 0, 255);
+      const g4 = number_exports.clamp((num2 >> 8 & 255) + amt, 0, 255);
+      const b4 = number_exports.clamp((num2 & 255) + amt, 0, 255);
       return `${pound ? "#" : ""}${(b4 | g4 << 8 | r5 << 16).toString(16)}`;
     }
     const hex = rgb2hex(color[0], color[1], color[2]);
@@ -50116,8 +50116,8 @@ var Angle;
 // node_modules/@antv/x6-geometry/es/util.js
 var GeometryUtil;
 (function(GeometryUtil2) {
-  function round15(num, precision = 0) {
-    return Number.isInteger(num) ? num : +num.toFixed(precision);
+  function round15(num2, precision = 0) {
+    return Number.isInteger(num2) ? num2 : +num2.toFixed(precision);
   }
   GeometryUtil2.round = round15;
   function random2(min5, max9) {
@@ -51865,7 +51865,7 @@ function arcToCurves(x0, y0, r1, r22, angle = 0, largeArcFlag = 0, sweepFlag = 0
     x22 = x32 + dx;
     y22 = y32 + dy;
   }
-  return result.map((num) => +num.toFixed(2));
+  return result.map((num2) => +num2.toFixed(2));
 }
 function drawArc(startX, startY, rx, ry, xAxisRotation = 0, largeArcFlag = 0, sweepFlag = 0, stopX, stopY) {
   const data2 = [];
@@ -55072,8 +55072,8 @@ __export(main_exports6, {
 function getString(value, defaultValue) {
   return value != null ? value : defaultValue;
 }
-function getNumber2(num, defaultValue) {
-  return num != null && Number.isFinite(num) ? num : defaultValue;
+function getNumber2(num2, defaultValue) {
+  return num2 != null && Number.isFinite(num2) ? num2 : defaultValue;
 }
 
 // node_modules/@antv/x6/es/registry/filter/outline.js
@@ -60675,11 +60675,11 @@ function resolve(fn2) {
 }
 function getPointAtEdge(edgeView, value) {
   const isPercentage2 = number_exports.isPercentage(value);
-  const num = typeof value === "string" ? parseFloat(value) : value;
+  const num2 = typeof value === "string" ? parseFloat(value) : value;
   if (isPercentage2) {
-    return edgeView.getPointAtRatio(num / 100);
+    return edgeView.getPointAtRatio(num2 / 100);
   }
-  return edgeView.getPointAtLength(num);
+  return edgeView.getPointAtLength(num2);
 }
 
 // node_modules/@antv/x6/es/registry/node-anchor/orth.js
@@ -82463,11 +82463,8 @@ function edgePath(s5, sPort, t6, tPort) {
   return `M ${s5.x} ${s5.y} L ${p1.x} ${p1.y} L ${bend.x} ${bend.y} L ${p22.x} ${p22.y} L ${t6.x} ${t6.y}`;
 }
 var esc2 = (s5) => String(s5 != null ? s5 : "").replace(/[&<>"]/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c6]);
-function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
-  var _a3, _b2;
-  const nodes = (_a3 = model.nodes) != null ? _a3 : [];
-  const edges = (_b2 = model.edges) != null ? _b2 : [];
-  const byId = new Map(nodes.map((n4) => [n4.id, n4]));
+var num = (v6) => Number(v6) || 0;
+function computeBounds(nodes, pad) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const n4 of nodes) {
     minX = Math.min(minX, n4.x);
@@ -82481,9 +82478,15 @@ function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
     maxX = 400;
     maxY = 300;
   }
-  const x5 = minX - pad, y5 = minY - pad;
-  const w5 = Math.ceil(maxX - minX + pad * 2), h5 = Math.ceil(maxY - minY + pad * 2);
-  const edgeSvg = edges.map((e5) => {
+  return {
+    x: minX - pad,
+    y: minY - pad,
+    w: Math.ceil(maxX - minX + pad * 2),
+    h: Math.ceil(maxY - minY + pad * 2)
+  };
+}
+function edgesMarkup(edges, byId) {
+  return (edges != null ? edges : []).map((e5) => {
     const sn2 = byId.get(e5.source), tn2 = byId.get(e5.target);
     if (!sn2 || !tn2) return "";
     const s5 = anchor2(sn2, e5.sourcePort), t6 = anchor2(tn2, e5.targetPort);
@@ -82492,31 +82495,78 @@ function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
     const label = e5.label ? `<text x="${(s5.x + t6.x) / 2}" y="${(s5.y + t6.y) / 2 - 4}" text-anchor="middle" font-size="12" fill="#1f2329" style="font-family:var(--font-body,system-ui)">${esc2(e5.label)}</text>` : "";
     return line2 + label;
   }).join("");
+}
+function nodeInnerHtml(n4) {
+  var _a3, _b2;
+  const a5 = (_a3 = n4.attrs) != null ? _a3 : {};
+  const style2 = (_b2 = a5.style) != null ? _b2 : {};
+  const extra = {
+    cols: a5.cols,
+    fields: a5.fields,
+    methods: a5.methods,
+    who: a5.who,
+    labelOffset: a5.labelOffset,
+    lanes: a5.lanes,
+    poolHorizontal: a5.poolHorizontal,
+    blackBox: a5.blackBox,
+    trigger: a5.trigger,
+    throwing: a5.throwing,
+    interrupting: a5.interrupting,
+    attachedTo: a5.attachedTo,
+    markers: a5.markers,
+    collapsed: a5.collapsed
+  };
+  return nodeHtml(n4.shape, n4.label, style2, extra);
+}
+var ARROW_DEF = `<marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker>`;
+function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
+  var _a3;
+  const nodes = (_a3 = model.nodes) != null ? _a3 : [];
+  const byId = new Map(nodes.map((n4) => [n4.id, n4]));
+  const { x: x5, y: y5, w: w5, h: h5 } = computeBounds(nodes, pad);
+  const edgeSvg = edgesMarkup(model.edges, byId);
   const nodeSvg = nodes.map((n4) => {
-    var _a4, _b3;
-    const a5 = (_a4 = n4.attrs) != null ? _a4 : {};
-    const style2 = (_b3 = a5.style) != null ? _b3 : {};
-    const extra = {
-      cols: a5.cols,
-      fields: a5.fields,
-      methods: a5.methods,
-      who: a5.who,
-      labelOffset: a5.labelOffset,
-      lanes: a5.lanes,
-      poolHorizontal: a5.poolHorizontal,
-      blackBox: a5.blackBox,
-      trigger: a5.trigger,
-      throwing: a5.throwing,
-      interrupting: a5.interrupting,
-      attachedTo: a5.attachedTo,
-      markers: a5.markers,
-      collapsed: a5.collapsed
-    };
-    const inner = nodeHtml(n4.shape, n4.label, style2, extra);
-    const num = (v6) => Number(v6) || 0;
+    const inner = nodeInnerHtml(n4);
     return `<foreignObject x="${num(n4.x)}" y="${num(n4.y)}" width="${num(n4.width)}" height="${num(n4.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
   }).join("");
-  return `<svg xmlns="${SVGNS}" class="lk-root" width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}"><defs><marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker></defs><style>foreignObject{overflow:visible}${css2}</style>` + (bg && bg !== "transparent" ? `<rect x="${x5}" y="${y5}" width="${w5}" height="${h5}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
+  return `<svg xmlns="${SVGNS}" class="lk-root" width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}"><defs>${ARROW_DEF}</defs><style>foreignObject{overflow:visible}${css2}</style>` + (bg && bg !== "transparent" ? `<rect x="${x5}" y="${y5}" width="${w5}" height="${h5}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
+}
+function renderModelToCard(model, pad = 16, bg = "transparent") {
+  var _a3;
+  const nodes = (_a3 = model.nodes) != null ? _a3 : [];
+  const byId = new Map(nodes.map((n4) => [n4.id, n4]));
+  const { x: x5, y: y5, w: w5, h: h5 } = computeBounds(nodes, pad);
+  const edgeSvg = `<svg xmlns="${SVGNS}" class="ob-card-edges" width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}" style="position:absolute;left:0;top:0;width:${w5}px;height:${h5}px;overflow:visible;pointer-events:none"><defs>${ARROW_DEF}</defs>${edgesMarkup(model.edges, byId)}</svg>`;
+  const nodeDivs = nodes.map((n4) => {
+    const inner = nodeInnerHtml(n4);
+    const left4 = num(n4.x) - x5, top4 = num(n4.y) - y5;
+    return `<div class="hn" style="position:absolute;left:${left4}px;top:${top4}px;width:${num(n4.width)}px;height:${num(n4.height)}px">${inner}</div>`;
+  }).join("");
+  const stageBg = bg && bg !== "transparent" ? `;background:${bg}` : "";
+  return `<div class="ob-card-fit lk-root"><div class="ob-card-stage" data-ob-w="${w5}" data-ob-h="${h5}" style="position:relative;width:${w5}px;height:${h5}px;transform-origin:top left${stageBg}">` + edgeSvg + nodeDivs + `</div></div>`;
+}
+function fitCardStage(root2) {
+  const fit2 = root2.querySelector(".ob-card-fit");
+  const stage = root2.querySelector(".ob-card-stage");
+  if (!fit2 || !stage) return () => {
+  };
+  const natW = num(stage.dataset.obW), natH = num(stage.dataset.obH);
+  if (natW <= 0 || natH <= 0) return () => {
+  };
+  const apply4 = () => {
+    const avail = fit2.clientWidth;
+    if (avail <= 0) return;
+    const k5 = Math.min(1, avail / natW);
+    stage.style.transform = `scale(${k5})`;
+    fit2.style.height = `${Math.round(natH * k5)}px`;
+  };
+  apply4();
+  const ResizeObs = typeof ResizeObserver !== "undefined" ? ResizeObserver : null;
+  if (!ResizeObs) return () => {
+  };
+  const ro = new ResizeObs(() => apply4());
+  ro.observe(fit2);
+  return () => ro.disconnect();
 }
 
 // src/canvas/bulkAlign.ts
@@ -124495,6 +124545,10 @@ var mermaidAdapter = {
 };
 
 // src/main.ts
+var isObsidianMobile = () => {
+  var _a3;
+  return typeof document !== "undefined" && !!((_a3 = document.body) == null ? void 0 : _a3.classList.contains("is-mobile"));
+};
 var ALL_ADAPTERS = [
   bpmnAdapter,
   erdAdapter,
@@ -124975,7 +125029,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       } else {
         nodeCount = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
         edgeCount = (_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0;
-        svg3 = nodeCount > 0 ? renderModelToSvg(model, "", 16, "transparent") : "";
+        svg3 = nodeCount > 0 ? isObsidianMobile() ? renderModelToCard(model, 16, "transparent") : renderModelToSvg(model, "", 16, "transparent") : "";
       }
     } catch (e5) {
       errorMessage = "Kh\xF4ng \u0111\u1ECDc \u0111\u01B0\u1EE3c board.";
@@ -124994,6 +125048,9 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       }),
       wrap
     );
+    if (isObsidianMobile() && nodeCount > 0 && !errorMessage) {
+      this.register(fitCardStage(wrap));
+    }
   }
   /** Export menu (SVG / PNG / PDF) for a board model — shared by embed cards.
    *  Uses the standalone static renderer (self-contained SVG via collectPluginCss)

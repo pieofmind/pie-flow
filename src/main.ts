@@ -2,7 +2,7 @@ import { Plugin, MarkdownView, Editor, Menu, Notice, TFile, WorkspaceLeaf, norma
 import { BoardView, BOARD_VIEW_TYPE } from "./view/BoardView";
 import { serializeBoard, deserializeBoard, OMNIBOARD_SUFFIX } from "./view/boardSerde";
 import { importBpmn } from "./io/bpmn/import";
-import { renderModelToSvg } from "./canvas/staticRender";
+import { renderModelToSvg, renderModelToCard, fitCardStage } from "./canvas/staticRender";
 import { render, h } from "preact";
 import { AdapterRegistry } from "./core/registry";
 import { EmbedCard } from "./ui/EmbedCard";
@@ -26,6 +26,12 @@ import { sequenceAdapter } from "./adapters/sequence";
 import { stateAdapter } from "./adapters/state";
 import { mindmapAdapter } from "./adapters/mindmap";
 import { mermaidAdapter } from "./adapters/mermaid";
+
+/** Mobile detection — mirror the OmniboardCanvas / BpmnNativeView pattern.
+ *  `Platform.isMobile` is unreliable on some iPhone builds; the `is-mobile` body
+ *  class set by Obsidian's mobile bootstrap is the source of truth. */
+const isObsidianMobile = (): boolean =>
+  typeof document !== "undefined" && !!document.body?.classList.contains("is-mobile");
 
 const ALL_ADAPTERS: DiagramAdapter[] = [
   bpmnAdapter,
@@ -568,7 +574,13 @@ export default class DiagramsPlugin extends Plugin {
         nodeCount = model.nodes?.length ?? 0;
         edgeCount = model.edges?.length ?? 0;
         // Empty board → svg="" so the empty-state copy renders.
-        svg = nodeCount > 0 ? renderModelToSvg(model, "", 16, "transparent") : "";
+        // Mobile (iOS WebKit) mis-positions offset <foreignObject> nodes, so use
+        // the foreignObject-free two-layer card composite there (Error Pattern #8).
+        svg = nodeCount > 0
+          ? (isObsidianMobile()
+            ? renderModelToCard(model, 16, "transparent")
+            : renderModelToSvg(model, "", 16, "transparent"))
+          : "";
       }
     } catch {
       errorMessage = "Không đọc được board.";
@@ -590,6 +602,13 @@ export default class DiagramsPlugin extends Plugin {
       }),
       wrap,
     );
+
+    // Mobile card composite needs runtime fit-to-width scaling (transform on a
+    // real <div> — safe on iOS, unlike transforms inside foreignObject). Register
+    // the ResizeObserver cleanup so it's released on plugin unload.
+    if (isObsidianMobile() && nodeCount > 0 && !errorMessage) {
+      this.register(fitCardStage(wrap));
+    }
   }
 
   /** Export menu (SVG / PNG / PDF) for a board model — shared by embed cards.

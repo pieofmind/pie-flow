@@ -50,6 +50,9 @@ export interface ErdCol { k: "" | "PK" | "FK"; name: string; type: string; }
 /** Editable per-node payload for data-driven shapes (ERD/UML/BPMN). */
 export interface NodeExtra {
   cols?: ErdCol[]; fields?: string[]; methods?: string[]; who?: string;
+  /** ERD cluster header color (Story 2.1). 6-color palette cycling per TableGroup.
+   *  Set by importDbml when DBML has `TableGroup` blocks. */
+  headerColor?: string;
   labelOffset?: { x: number; y: number };
   lanes?: Array<{ id: string; label: string }>;  // BPMN pool lanes (top→bottom)
   poolHorizontal?: boolean;
@@ -189,13 +192,14 @@ export function nodeHtml(kind: string, label: string, ov?: NodeStyle, extra?: No
 }
 
 // ── Data-driven renderers ──
-function erdHtml(label: string, cols: ErdCol[]): string {
+function erdHtml(label: string, cols: ErdCol[], headerColor?: string): string {
   const rows = cols.map((c, i) => {
     // Whitelist the key marker so it can never inject into the class attribute.
     const k = c.k === "PK" || c.k === "FK" ? c.k : "";
-    return `<div class="erd-col" data-col-idx="${i}"><span class="kk ${k.toLowerCase()}">${k}</span><span class="cname">${esc(c.name)}</span><span class="ctype">${esc(c.type)}</span></div>`;
+    return `<div class="erd-col" data-col-idx="${i}" data-col-name="${esc(c.name)}"><span class="kk ${k.toLowerCase()}">${k}</span><span class="cname">${esc(c.name)}</span><span class="ctype">${esc(c.type)}</span></div>`;
   }).join("");
-  return `<div class="erd-table"><div class="erd-th">${KEY}${esc(label) || "Table"}</div>${rows}</div>`;
+  const headerStyle = headerColor ? ` style="background:${cssSafe(headerColor)}"` : "";
+  return `<div class="erd-table"><div class="erd-th"${headerStyle}>${KEY}${esc(label) || "Table"}</div>${rows}</div>`;
 }
 function umlLine(s: string, comp: string, idx: number): string {
   const m = String(s).match(/^\s*([+\-#~])\s*(.*)$/);
@@ -242,7 +246,7 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
     case "fc-connector": return `<div class="fc round" style="font-size:11px">${L}</div>`;
 
     // ── ERD ──
-    case "erd-entity": return erdHtml(label, extra?.cols ?? defaultErdCols());
+    case "erd-entity": return erdHtml(label, extra?.cols ?? defaultErdCols(), extra?.headerColor);
     case "erd-relationship": return `<div class="fc diamond">${L}</div>`;
     case "erd-attribute": return `<div class="fc round">${L}</div>`;
     case "erd-key": return `<div class="fc round" style="text-decoration:underline;font-weight:700">${L}</div>`;

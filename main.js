@@ -73781,12 +73781,13 @@ function renderMarkers(markers) {
 function nodeHtml(kind, label, ov, extra) {
   return withStyle(nodeHtmlBase(kind, label, extra), styleStr(ov));
 }
-function erdHtml(label, cols) {
+function erdHtml(label, cols, headerColor) {
   const rows = cols.map((c6, i6) => {
     const k5 = c6.k === "PK" || c6.k === "FK" ? c6.k : "";
-    return `<div class="erd-col" data-col-idx="${i6}"><span class="kk ${k5.toLowerCase()}">${k5}</span><span class="cname">${esc(c6.name)}</span><span class="ctype">${esc(c6.type)}</span></div>`;
+    return `<div class="erd-col" data-col-idx="${i6}" data-col-name="${esc(c6.name)}"><span class="kk ${k5.toLowerCase()}">${k5}</span><span class="cname">${esc(c6.name)}</span><span class="ctype">${esc(c6.type)}</span></div>`;
   }).join("");
-  return `<div class="erd-table"><div class="erd-th">${KEY}${esc(label) || "Table"}</div>${rows}</div>`;
+  const headerStyle = headerColor ? ` style="background:${cssSafe(headerColor)}"` : "";
+  return `<div class="erd-table"><div class="erd-th"${headerStyle}>${KEY}${esc(label) || "Table"}</div>${rows}</div>`;
 }
 function umlLine(s5, comp, idx) {
   const m7 = String(s5).match(/^\s*([+\-#~])\s*(.*)$/);
@@ -73846,7 +73847,7 @@ function nodeHtmlBase(kind, label, extra) {
     case "fc-connector":
       return `<div class="fc round" style="font-size:11px">${L4}</div>`;
     case "erd-entity":
-      return erdHtml(label, (_a3 = extra == null ? void 0 : extra.cols) != null ? _a3 : defaultErdCols());
+      return erdHtml(label, (_a3 = extra == null ? void 0 : extra.cols) != null ? _a3 : defaultErdCols(), extra == null ? void 0 : extra.headerColor);
     case "erd-relationship":
       return `<div class="fc diamond">${L4}</div>`;
     case "erd-attribute":
@@ -76993,10 +76994,32 @@ var sr = { graphlib: z2, version: U, layout: he, debug: fe, util: { time: P2, no
 var To = sr;
 
 // src/io/dbml/import.ts
+function extractOndelete(flags) {
+  const m1 = /\b(?:on)?delete\s*[:=]\s*([a-z\-]+)/i.exec(flags);
+  if (m1) return `ondelete: ${m1[1].toUpperCase()}`;
+  return void 0;
+}
+function cardinalityMarkers(kind, srcNullable) {
+  const opt = (m7) => srcNullable ? m7 === "bar" ? "circle-bar" : m7 === "crow" ? "crow-circle" : m7 : m7;
+  switch (kind) {
+    case ">":
+      return { source: opt("crow"), target: "bar" };
+    case "<":
+      return { source: opt("bar"), target: "crow" };
+    case "<>":
+      return { source: opt("crow"), target: "crow" };
+    case "-":
+      return { source: opt("bar"), target: "bar" };
+    default:
+      return { source: "crow", target: "bar" };
+  }
+}
 var TABLE_RE = /Table\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:as\s+\w+\s*)?\{([\s\S]*?)\n\}/g;
 var COLUMN_RE = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+([^\s\[\n]+)(?:\s*\[([^\]]*)\])?\s*$/;
 var INLINE_REF_RE = /ref:\s*([<>]+|<>)\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)/i;
 var REF_RE = /Ref(?:\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*([<>]+|<>)\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)/g;
+var TABLEGROUP_RE = /TableGroup\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\n\}/g;
+var CLUSTER_PALETTE = ["#5E8FB9", "#C99A2E", "#E07B5C", "#7BAE7F", "#9A6BB5", "#C76B6B"];
 function stripComments(src) {
   let out = "";
   let i6 = 0;
@@ -77039,11 +77062,18 @@ function importDbml(raw2) {
         cols.push({ name: cm[1], type: cm[2], flags: (cm[3] || "").trim() });
         const ir2 = INLINE_REF_RE.exec(cm[3] || "");
         if (ir2) {
+          const flags = (cm[3] || "").toLowerCase();
+          const isPk = /\bpk\b|\bprimary\s+key\b/.test(flags);
+          const isNotNull = /\bnot\s+null\b/.test(flags);
+          const explicitNull = /\bnull\b(?!\s+null)/.test(flags) && !isNotNull;
+          const srcNullable = !isPk && !isNotNull ? explicitNull || true : false;
           refs.push({
             id: `__ref_${++refSeq}`,
             src: `${name2}.${cm[1]}`,
             tgt: `${ir2[2]}.${ir2[3]}`,
-            kind: ir2[1]
+            kind: ir2[1],
+            srcNullable,
+            tooltip: extractOndelete(cm[3] || "")
           });
         }
       }
@@ -77060,10 +77090,35 @@ function importDbml(raw2) {
     });
   }
   if (tables.length === 0) warnings.push("Kh\xF4ng t\xECm th\u1EA5y table n\xE0o trong DBML.");
+  const tableToGroup = /* @__PURE__ */ new Map();
+  const groupOrder = [];
+  const tableSet = new Set(tables.map((t6) => t6.name));
+  TABLEGROUP_RE.lastIndex = 0;
+  let gm;
+  while ((gm = TABLEGROUP_RE.exec(stripped)) !== null) {
+    const groupName = gm[1];
+    const body = gm[2];
+    if (!groupOrder.includes(groupName)) groupOrder.push(groupName);
+    for (const rawLine of body.split(/\r?\n/)) {
+      const tableName = rawLine.trim().replace(/[,;]+$/, "");
+      if (!tableName) continue;
+      if (!tableSet.has(tableName)) {
+        warnings.push(`TableGroup '${groupName}' references unknown table '${tableName}'; skipped`);
+        continue;
+      }
+      if (tableToGroup.has(tableName)) {
+        warnings.push(
+          `Table '${tableName}' belongs to multiple TableGroups; using '${tableToGroup.get(tableName)}'`
+        );
+        continue;
+      }
+      tableToGroup.set(tableName, groupName);
+    }
+  }
   const model = { nodes: [], edges: [] };
   const TABLE_W = 220;
-  const ROW_H2 = 27;
-  const HEAD_H = 38;
+  const ROW_H3 = 27;
+  const HEAD_H2 = 38;
   const idByTable = /* @__PURE__ */ new Map();
   for (const t6 of tables) {
     const id = t6.name;
@@ -77074,7 +77129,9 @@ function importDbml(raw2) {
       const isFk = /\bref\s*:/.test(flags);
       return { k: isPk ? "PK" : isFk ? "FK" : "", name: c6.name, type: c6.type };
     });
-    const height2 = HEAD_H + Math.max(1, erdCols.length) * ROW_H2 + 12;
+    const height2 = HEAD_H2 + Math.max(1, erdCols.length) * ROW_H3 + 12;
+    const groupName = tableToGroup.get(t6.name);
+    const headerColor = groupName ? CLUSTER_PALETTE[groupOrder.indexOf(groupName) % CLUSTER_PALETTE.length] : void 0;
     model.nodes.push({
       id,
       shape: "erd-entity",
@@ -77085,31 +77142,46 @@ function importDbml(raw2) {
       label: t6.name,
       attrs: {
         cols: erdCols,
-        __source: { format: "dbml", sourceId: t6.name, kind: "table", columns: t6.columns }
+        __source: { format: "dbml", sourceId: t6.name, kind: "table", columns: t6.columns },
+        ...groupName ? { __group: groupName, __headerColor: headerColor } : {}
       }
     });
   }
-  const seenPairs = /* @__PURE__ */ new Set();
   for (const r5 of refs) {
-    const [sTab] = r5.src.split(".");
-    const [tTab] = r5.tgt.split(".");
-    if (!idByTable.has(sTab) || !idByTable.has(tTab)) continue;
-    const key = `${sTab}->${tTab}`;
-    if (seenPairs.has(key)) continue;
-    seenPairs.add(key);
+    const [sTab, sCol] = r5.src.split(".");
+    const [tTab, tCol] = r5.tgt.split(".");
+    if (!idByTable.has(sTab)) {
+      warnings.push(`Ref skipped: source table '${sTab}' not found`);
+      continue;
+    }
+    if (!idByTable.has(tTab)) {
+      warnings.push(`Ref skipped: target table '${tTab}' not found`);
+      continue;
+    }
+    const markers = cardinalityMarkers(r5.kind, r5.srcNullable);
     model.edges.push({
       id: r5.id,
       source: sTab,
+      sourcePort: `col:${sCol}-right`,
       target: tTab,
+      targetPort: `col:${tCol || "id"}-left`,
       label: r5.kind,
-      style: { stroke: "#7a8aa6", width: 1 }
+      router: "orth",
+      style: { stroke: "#7a8aa6", width: 1, start: markers.source, end: markers.target },
+      ...r5.tooltip ? { attrs: { tooltip: r5.tooltip } } : {}
     });
   }
   if (model.nodes.length) {
-    const g4 = new To.graphlib.Graph();
-    g4.setGraph({ rankdir: "LR", nodesep: 40, ranksep: 80, marginx: 60, marginy: 60 });
+    const g4 = new To.graphlib.Graph({ compound: true });
+    g4.setGraph({ rankdir: "LR", nodesep: 60, ranksep: 120, marginx: 60, marginy: 60 });
     g4.setDefaultEdgeLabel(() => ({}));
     for (const n4 of model.nodes) g4.setNode(n4.id, { width: n4.width, height: n4.height });
+    for (const groupName of groupOrder) {
+      g4.setNode(`__cluster:${groupName}`, {});
+    }
+    for (const [tableName, groupName] of tableToGroup) {
+      g4.setParent(tableName, `__cluster:${groupName}`);
+    }
     for (const e5 of model.edges) g4.setEdge(e5.source, e5.target);
     To.layout(g4);
     for (const n4 of model.nodes) {
@@ -82230,6 +82302,58 @@ __decorate30([
   Transform3.parseOptionGroup = parseOptionGroup;
 })(Transform || (Transform = {}));
 
+// src/canvas/erdPorts.ts
+var HEAD_H = 38;
+var ROW_H = 27;
+function buildErdColumnPorts(cols, width2) {
+  if (!cols || cols.length === 0) return [];
+  const ports = [];
+  for (let i6 = 0; i6 < cols.length; i6++) {
+    const col = cols[i6];
+    if (!col || !col.name) continue;
+    const y5 = HEAD_H + i6 * ROW_H + ROW_H / 2;
+    ports.push({
+      id: `col:${col.name}-left`,
+      group: "erdColLeft",
+      args: { x: 0, y: y5 }
+    });
+    ports.push({
+      id: `col:${col.name}-right`,
+      group: "erdColRight",
+      args: { x: width2, y: y5 }
+    });
+  }
+  return ports;
+}
+var ERD_COL_PORT_GROUPS = {
+  erdColLeft: {
+    position: { name: "absolute" },
+    attrs: {
+      circle: {
+        r: 11,
+        magnet: true,
+        stroke: "#5E8FB9",
+        strokeWidth: 0,
+        fill: "rgba(94,143,185,0.001)",
+        cursor: "crosshair"
+      }
+    }
+  },
+  erdColRight: {
+    position: { name: "absolute" },
+    attrs: {
+      circle: {
+        r: 11,
+        magnet: true,
+        stroke: "#5E8FB9",
+        strokeWidth: 0,
+        fill: "rgba(94,143,185,0.001)",
+        cursor: "crosshair"
+      }
+    }
+  }
+};
+
 // src/canvas/staticRender.ts
 var SVGNS = "http://www.w3.org/2000/svg";
 var XHTMLNS = "http://www.w3.org/1999/xhtml";
@@ -82725,6 +82849,10 @@ function buildMarker(kind, color) {
       return { name: "path", d: "M16 -8 2 0 16 8 M16 0 2 0 M14 -8 14 8", fill: "none", stroke: color, "stroke-width": 1.5 };
     case "bar-bar":
       return { name: "path", d: "M5 -8 5 8 M10 -8 10 8", fill: "none", stroke: color, "stroke-width": 1.5 };
+    case "circle-bar":
+      return { name: "path", d: "M14 -8 14 8 M9 0 a4 4 0 1 0 -8 0 a4 4 0 1 0 8 0", fill: "none", stroke: color, "stroke-width": 1.5 };
+    case "crow-circle":
+      return { name: "path", d: "M18 -8 4 0 18 8 M18 0 4 0 M3 0 a3 3 0 1 0 -6 0 a3 3 0 1 0 6 0", fill: "none", stroke: color, "stroke-width": 1.5 };
     case "def-slash":
       return { name: "path", d: "M2 -6 10 6", fill: "none", stroke: color, "stroke-width": 1.8 };
     case "none":
@@ -82732,7 +82860,7 @@ function buildMarker(kind, color) {
       return null;
   }
 }
-var EDGE_MARKER_KINDS = ["none", "arrow", "arrow-open", "triangle", "triangle-f", "diamond", "diamond-o", "circle", "circle-f", "crow", "bar", "crow-bar", "bar-bar"];
+var EDGE_MARKER_KINDS = ["none", "arrow", "arrow-open", "triangle", "triangle-f", "diamond", "diamond-o", "circle", "circle-f", "crow", "bar", "crow-bar", "bar-bar", "circle-bar", "crow-circle"];
 var EDGE_MARKER_LABEL = {
   none: "Kh\xF4ng",
   arrow: "M\u0169i t\xEAn",
@@ -82746,7 +82874,9 @@ var EDGE_MARKER_LABEL = {
   crow: "Crow nhi\u1EC1u (n)",
   bar: "M\u1ED9t (1)",
   "crow-bar": "M\u1ED9t-ho\u1EB7c-nhi\u1EC1u (1..n)",
-  "bar-bar": "\u0110\xFAng m\u1ED9t (1,1)"
+  "bar-bar": "\u0110\xFAng m\u1ED9t (1,1)",
+  "circle-bar": "Kh\xF4ng-ho\u1EB7c-m\u1ED9t (0..1)",
+  "crow-circle": "Kh\xF4ng-ho\u1EB7c-nhi\u1EC1u (0..n)"
 };
 var EDGE_WIDTHS = [1.4, 2.4, 3.6];
 var EDGE_SHAPES = {
@@ -84067,11 +84197,27 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const view = this.graph.findViewByCell(node3);
     if (!view) return;
     const canConnect2 = !this.isPortDisabledNode(node3.id);
+    const isErd = this.nodeKind(node3) === "erd-entity";
     view.container.querySelectorAll(".x6-port circle").forEach((c6) => {
       var _a3;
       const id = (_a3 = c6.getAttribute("port")) != null ? _a3 : "";
       const isFixed = FIXED_PORT_IDS.includes(id);
-      c6.style.visibility = visible && canConnect2 && isFixed ? "visible" : "hidden";
+      const isErdCol = id.startsWith("col:");
+      const allowed = isErd ? isErdCol : isFixed;
+      const show = visible && canConnect2 && allowed;
+      c6.style.visibility = show ? "visible" : "hidden";
+      if (isErdCol) {
+        if (show) {
+          c6.setAttribute("r", "4");
+          c6.setAttribute("fill", "#fff");
+          c6.setAttribute("stroke", "#5E8FB9");
+          c6.setAttribute("stroke-width", "1.2");
+        } else {
+          c6.setAttribute("r", "11");
+          c6.setAttribute("fill", "rgba(94,143,185,0.001)");
+          c6.setAttribute("stroke-width", "0");
+        }
+      }
     });
   }
   // ── Left tool dock (design "PHẦN TỬ" — labeled vertical list) ─────────────
@@ -85638,6 +85784,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   // ── HTML node helpers ────────────────────────────────────────────────────
   addHtmlNode(kind, x5, y5, w5, h5, label, style2, id, extra, source) {
+    var _a3;
     const ex = this.mergeExtra(kind, extra);
     const hasPorts = !NON_CONNECTABLE_PORT_KINDS.has(kind);
     const node3 = this.graph.addNode({
@@ -85659,6 +85806,16 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.scheduleMindmapAutoGrow(node3);
     }
     if (FRAME_KINDS.has(kind)) node3.toBack();
+    if (kind === "erd-entity" && ((_a3 = ex.cols) == null ? void 0 : _a3.length)) {
+      const colPorts = buildErdColumnPorts(ex.cols, w5);
+      if (colPorts.length) {
+        for (const [groupId, groupSpec] of Object.entries(ERD_COL_PORT_GROUPS)) {
+          node3;
+          node3.prop(`ports/groups/${groupId}`, groupSpec);
+        }
+        node3.addPorts(colPorts);
+      }
+    }
     return node3;
   }
   /** Defer autoGrow past X6's mount + fitWhenReady race so DOM is measurable. */
@@ -86741,7 +86898,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   // ── Model load / serialize ───────────────────────────────────────────────
   loadModel(model) {
-    var _a3, _b2, _c, _d, _e3, _f, _g, _h;
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l;
     model = this.dedupeLaneIdsAcrossPools(model);
     this.graph.clearCells();
     this.graph.startBatch("load");
@@ -86762,7 +86919,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         interrupting: a5.interrupting,
         attachedTo: a5.attachedTo,
         markers: a5.markers,
-        collapsed: a5.collapsed
+        collapsed: a5.collapsed,
+        // Story 2.1 — ERD cluster header color from DBML TableGroup.
+        headerColor: a5.__headerColor
       };
       const migrated = migrateBpmnEventKind(n4.shape, extra);
       const node3 = this.addHtmlNode(migrated.kind, n4.x, n4.y, n4.width, n4.height, n4.label, style2, n4.id, migrated.extra, a5.__source);
@@ -86859,12 +87018,19 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       });
       if (e5.style || data2.style) this.applyEdgeStyle(created);
       if (mm) this.applyMindmapRoutingIfNeeded(created);
+      const srcNode = this.graph.getCellById(e5.source);
+      const tgtNode = this.graph.getCellById(e5.target);
+      const srcKind = srcNode && ((_i = (_h = srcNode.getData) == null ? void 0 : _h.call(srcNode)) == null ? void 0 : _i.kind);
+      const tgtKind = tgtNode && ((_k = (_j = tgtNode.getData) == null ? void 0 : _j.call(tgtNode)) == null ? void 0 : _k.kind);
+      if (srcKind === "erd-entity" && tgtKind === "erd-entity") {
+        created.setZIndex(-1);
+      }
     }
     for (const n4 of model.nodes) {
       if (!n4.parentId && !n4.laneId) continue;
       const child = this.graph.getCellById(n4.id);
       if (!child || !child.isNode()) continue;
-      const prev = (_h = child.getData()) != null ? _h : {};
+      const prev = (_l = child.getData()) != null ? _l : {};
       child.setData({
         ...prev,
         ...n4.parentId ? { parentId: n4.parentId } : {},
@@ -124068,7 +124234,7 @@ var mindmapPaletteItems = [
 // src/adapters/mindmap/parse.ts
 var HEADING_RE = /^(#{1,6})\s+(.+?)\s*$/;
 var COL_W2 = 240;
-var ROW_H = 64;
+var ROW_H2 = 64;
 function parseMindmapToCanvas(source) {
   const lines = source.split(/\r?\n/);
   const nodes = [];
@@ -124100,7 +124266,7 @@ function parseMindmapToCanvas(source) {
   const assignY = (id) => {
     const n4 = byId.get(id);
     if (n4.children.length === 0) {
-      n4.y = slot++ * ROW_H;
+      n4.y = slot++ * ROW_H2;
       return n4.y;
     }
     const ys = n4.children.map(assignY);

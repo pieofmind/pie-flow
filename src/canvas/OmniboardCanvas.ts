@@ -9,6 +9,7 @@ import type { PaletteItem, ShapeCategory, CanvasModel } from "./types";
 import { shapeIcon } from "./shapes/index";
 import { FIXED_PORT_IDS, type FixedPortId } from "./shapes/ports";
 import { nodeHtml, defaultErdCols, defaultUml, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
+import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
 import {
   alignLeft, alignCenterH, alignRight,
@@ -295,16 +296,20 @@ function buildMarker(kind: string | undefined, color: string): Record<string, un
     case "bar": return { name: "path", d: "M6 -8 6 8", fill: "none", stroke: color, "stroke-width": 1.5 };                         // one (1)
     case "crow-bar": return { name: "path", d: "M16 -8 2 0 16 8 M16 0 2 0 M14 -8 14 8", fill: "none", stroke: color, "stroke-width": 1.5 }; // one-or-many (1..n)
     case "bar-bar": return { name: "path", d: "M5 -8 5 8 M10 -8 10 8", fill: "none", stroke: color, "stroke-width": 1.5 };          // exactly one (1,1)
+    // Story 2.4 — crow's foot zero-variants (DBML nullable FK).
+    case "circle-bar": return { name: "path", d: "M14 -8 14 8 M9 0 a4 4 0 1 0 -8 0 a4 4 0 1 0 8 0", fill: "none", stroke: color, "stroke-width": 1.5 }; // zero-or-one (0..1)
+    case "crow-circle": return { name: "path", d: "M18 -8 4 0 18 8 M18 0 4 0 M3 0 a3 3 0 1 0 -6 0 a3 3 0 1 0 6 0", fill: "none", stroke: color, "stroke-width": 1.5 }; // zero-or-many (0..n)
     // BPMN Default Flow marker — diagonal slash at source end (Đợt C).
     case "def-slash": return { name: "path", d: "M2 -6 10 6", fill: "none", stroke: color, "stroke-width": 1.8 };
     case "none": default: return null;
   }
 }
-const EDGE_MARKER_KINDS = ["none", "arrow", "arrow-open", "triangle", "triangle-f", "diamond", "diamond-o", "circle", "circle-f", "crow", "bar", "crow-bar", "bar-bar"] as const;
+const EDGE_MARKER_KINDS = ["none", "arrow", "arrow-open", "triangle", "triangle-f", "diamond", "diamond-o", "circle", "circle-f", "crow", "bar", "crow-bar", "bar-bar", "circle-bar", "crow-circle"] as const;
 const EDGE_MARKER_LABEL: Record<string, string> = {
   none: "Không", arrow: "Mũi tên", "arrow-open": "Mũi tên hở", triangle: "Tam giác rỗng",
   "triangle-f": "Tam giác đặc", diamond: "Thoi đặc", "diamond-o": "Thoi rỗng", circle: "Tròn rỗng", "circle-f": "Tròn đặc",
   crow: "Crow nhiều (n)", bar: "Một (1)", "crow-bar": "Một-hoặc-nhiều (1..n)", "bar-bar": "Đúng một (1,1)",
+  "circle-bar": "Không-hoặc-một (0..1)", "crow-circle": "Không-hoặc-nhiều (0..n)",
 };
 const EDGE_WIDTHS = [1.4, 2.4, 3.6];
 // Line shape presets → router + connector.
@@ -1518,12 +1523,30 @@ export class OmniboardCanvas {
     const view = this.graph.findViewByCell(node);
     if (!view) return;
     const canConnect = !this.isPortDisabledNode(node.id);
-    // Show all 12 fixed ports (3 per side). X6 writes the port id onto the
-    // <circle> element (port-attr), not the <g>.
+    // ERD entities: ONLY show per-column ports (col:*) at row centres — cleaner
+    // visual + edges always neo theo cột, không cần 12 cardinal nữa.
+    // All other shapes (BPMN/flowchart/UML/state/sequence/mindmap): keep the
+    // legacy 12 fixed cardinal ports behaviour.
+    const isErd = this.nodeKind(node) === "erd-entity";
     (view.container as Element).querySelectorAll<SVGElement>(".x6-port circle").forEach((c) => {
       const id = c.getAttribute("port") ?? "";
       const isFixed = FIXED_PORT_IDS.includes(id as FixedPortId);
-      c.style.visibility = visible && canConnect && isFixed ? "visible" : "hidden";
+      const isErdCol = id.startsWith("col:");
+      const allowed = isErd ? isErdCol : isFixed;
+      const show = visible && canConnect && allowed;
+      c.style.visibility = show ? "visible" : "hidden";
+      if (isErdCol) {
+        if (show) {
+          c.setAttribute("r", "4");
+          c.setAttribute("fill", "#fff");
+          c.setAttribute("stroke", "#5E8FB9");
+          c.setAttribute("stroke-width", "1.2");
+        } else {
+          c.setAttribute("r", "11");
+          c.setAttribute("fill", "rgba(94,143,185,0.001)");
+          c.setAttribute("stroke-width", "0");
+        }
+      }
     });
   }
 
@@ -3021,6 +3044,22 @@ export class OmniboardCanvas {
     // Container/frame shapes (fragments, sub-process, lanes, pool, annotation)
     // sit behind regular nodes so they visually group them.
     if (FRAME_KINDS.has(kind)) node.toBack();
+    // Story 2.2 — ERD per-column ports. Add absolute-positioned col:NAME-left/-right
+    // ports on top of the 12 cardinal ports so edges can dock at row Y.
+    if (kind === "erd-entity" && ex.cols?.length) {
+      const colPorts = buildErdColumnPorts(ex.cols, w);
+      if (colPorts.length) {
+        // setPorts merges groups + items; existing 12 cardinal ports from
+        // makePorts() are preserved (no group-name collision).
+        for (const [groupId, groupSpec] of Object.entries(ERD_COL_PORT_GROUPS)) {
+          (node as never as { setPortProp: (id: string, path: string, val: unknown) => void });
+          // X6 lacks a stable per-group add API; use the Node.addPorts shortcut.
+          // Empty groups are ignored, real groups defined via prop "ports/groups".
+          node.prop(`ports/groups/${groupId}`, groupSpec);
+        }
+        node.addPorts(colPorts);
+      }
+    }
     return node;
   }
 
@@ -4017,6 +4056,8 @@ export class OmniboardCanvas {
         attachedTo: a.attachedTo as string | undefined,
         markers: a.markers as NodeExtra["markers"],
         collapsed: a.collapsed as boolean | undefined,
+        // Story 2.1 — ERD cluster header color from DBML TableGroup.
+        headerColor: a.__headerColor as string | undefined,
       };
       // Migration shim (Đợt A, 2026-06-01): collapse legacy event kinds to the
       // unified bpmn-event-{start,intermediate,end} + trigger/throwing in extra.
@@ -4168,6 +4209,16 @@ export class OmniboardCanvas {
       // populated above for message/association/default/conditional).
       if (e.style || data.style) this.applyEdgeStyle(created);
       if (mm) this.applyMindmapRoutingIfNeeded(created); // re-anchor right/left ports (old boards had none)
+      // ERD edges (both endpoints are erd-entity): push to back so arrows
+      // don't cover col port circles and tables sit on top visually —
+      // matches dbdiagram.io's "edges under nodes" rendering.
+      const srcNode = this.graph.getCellById(e.source);
+      const tgtNode = this.graph.getCellById(e.target);
+      const srcKind = srcNode && (srcNode as Node).getData?.()?.kind;
+      const tgtKind = tgtNode && (tgtNode as Node).getData?.()?.kind;
+      if (srcKind === "erd-entity" && tgtKind === "erd-entity") {
+        created.setZIndex(-1);
+      }
       // Generic edges: saved ports (sourcePort/targetPort) are honoured as-is.
       // Body-drop endpoints (no port) float via the edge's anchor=center + boundary crop.
     }

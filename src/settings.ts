@@ -7,12 +7,16 @@ export interface DiagramsSettings {
   /** When false (default), plain JSON is stored — readable by AI agents and humans.
    *  When true, drawing data is Gzip+Base64 compressed (smaller files but opaque). */
   compressDrawingData: boolean;
+  /** Folder where new `.omniboard.md` files are created when inserting a board
+   *  into a note. Empty string → vault root. */
+  boardFolder: string;
 }
 
 export const DEFAULT_SETTINGS: DiagramsSettings = {
   defaultLayout: "LR",
   validateBpmnBeforeExport: true,
   compressDrawingData: false,
+  boardFolder: "Omniboards",
 };
 
 export class DiagramsSettingTab extends PluginSettingTab {
@@ -65,6 +69,22 @@ export class DiagramsSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.compressDrawingData)
           .onChange(async (v) => {
             this.plugin.settings.compressDrawingData = v;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Board folder")
+      .setDesc(
+        "Folder where new board files (.omniboard.md) are created when you insert a board into a note. " +
+        "Leave empty to create them at the vault root."
+      )
+      .addText((t) =>
+        t
+          .setPlaceholder("Omniboards")
+          .setValue(this.plugin.settings.boardFolder)
+          .onChange(async (v) => {
+            this.plugin.settings.boardFolder = v.trim();
             await this.plugin.saveSettings();
           })
       );

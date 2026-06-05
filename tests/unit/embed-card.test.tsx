@@ -3,78 +3,91 @@ import { EmbedCard } from "../../src/ui/EmbedCard";
 import { asVNode, collectAll, findByTestId } from "./_helpers/vnode-inspect";
 
 /**
- * Story 7-11 / 7-13 — EmbedCard unit tests.
+ * EmbedCard unit tests.
  *
- * EmbedCard is intentionally synchronous + obsidian-free (the setIcon
- * callback is injected by the host) so it tests as a pure function
- * just like DiagramCard / PaletteSidebar / PropertiesSidebar.
+ * EmbedCard is intentionally synchronous + obsidian-free (setIcon and the
+ * Export / overflow menus are injected by the host) so it tests as a pure
+ * function just like DiagramCard.
  */
 
 describe("EmbedCard — basic structure", () => {
-  it("renders the filename in the title row", () => {
+  it("renders the title (file name) in the badge", () => {
     const root = asVNode(
       EmbedCard({
-        filename: "quy-trinh-onboarding",
+        title: "quy-trinh-onboarding",
         nodeCount: 5,
         edgeCount: 4,
         svg: "<svg/>",
-        onOpen: () => {},
+        onEdit: () => {},
       }),
     );
     const title = findByTestId(root, "diagrams-embed-title");
     expect(title?.props.children).toBe("quy-trinh-onboarding");
   });
 
-  it("renders default typeLabel 'Omniboard' when not provided", () => {
+  it("uses the title as the only badge label (no diagram-type label)", () => {
     const root = asVNode(
       EmbedCard({
-        filename: "x",
+        title: "Quy trình duyệt",
         nodeCount: 0,
         edgeCount: 0,
         svg: "",
-        onOpen: () => {},
+        onEdit: () => {},
       }),
     );
     const labels = collectAll(
       root,
       (v) => v.props.class === "diagrams-card-chip-label",
     );
-    expect(labels[0].props.children).toBe("Omniboard");
+    expect(labels.length).toBe(1);
+    expect(labels[0].props.children).toBe("Quy trình duyệt");
   });
 
-  it("respects custom typeLabel", () => {
+  it("includes a Sửa button with primary styling", () => {
     const root = asVNode(
       EmbedCard({
-        filename: "x",
-        typeLabel: "BPMN 2.0",
+        title: "x",
         nodeCount: 0,
         edgeCount: 0,
         svg: "",
-        onOpen: () => {},
+        onEdit: () => {},
       }),
     );
-    const labels = collectAll(
-      root,
-      (v) => v.props.class === "diagrams-card-chip-label",
-    );
-    expect(labels[0].props.children).toBe("BPMN 2.0");
-  });
-
-  it("includes an Open button with primary styling", () => {
-    const root = asVNode(
-      EmbedCard({
-        filename: "x",
-        nodeCount: 0,
-        edgeCount: 0,
-        svg: "",
-        onOpen: () => {},
-      }),
-    );
-    const openBtn = findByTestId(root, "diagrams-embed-open");
-    expect(openBtn).toBeDefined();
-    expect(String(openBtn?.props.class ?? "")).toContain(
+    const editBtn = findByTestId(root, "diagrams-embed-edit");
+    expect(editBtn).toBeDefined();
+    expect(String(editBtn?.props.class ?? "")).toContain(
       "diagrams-card-btn-primary",
     );
+  });
+
+  it("hides Export / overflow buttons when no handler is supplied", () => {
+    const root = asVNode(
+      EmbedCard({
+        title: "x",
+        nodeCount: 0,
+        edgeCount: 0,
+        svg: "",
+        onEdit: () => {},
+      }),
+    );
+    expect(findByTestId(root, "diagrams-embed-export")).toBeUndefined();
+    expect(findByTestId(root, "diagrams-embed-more")).toBeUndefined();
+  });
+
+  it("shows Export / overflow buttons when handlers are supplied", () => {
+    const root = asVNode(
+      EmbedCard({
+        title: "x",
+        nodeCount: 0,
+        edgeCount: 0,
+        svg: "",
+        onEdit: () => {},
+        onExportMenu: () => {},
+        onMoreMenu: () => {},
+      }),
+    );
+    expect(findByTestId(root, "diagrams-embed-export")).toBeDefined();
+    expect(findByTestId(root, "diagrams-embed-more")).toBeDefined();
   });
 });
 
@@ -82,11 +95,11 @@ describe("EmbedCard — states", () => {
   it("renders loading state when svg is undefined", () => {
     const root = asVNode(
       EmbedCard({
-        filename: "x",
+        title: "x",
         nodeCount: 0,
         edgeCount: 0,
         svg: undefined,
-        onOpen: () => {},
+        onEdit: () => {},
       }),
     );
     const loading = collectAll(
@@ -99,11 +112,11 @@ describe("EmbedCard — states", () => {
   it("renders empty state when svg is empty string AND no error", () => {
     const root = asVNode(
       EmbedCard({
-        filename: "x",
+        title: "x",
         nodeCount: 0,
         edgeCount: 0,
         svg: "",
-        onOpen: () => {},
+        onEdit: () => {},
       }),
     );
     const empty = collectAll(
@@ -116,12 +129,12 @@ describe("EmbedCard — states", () => {
   it("renders error message when errorMessage provided", () => {
     const root = asVNode(
       EmbedCard({
-        filename: "x",
+        title: "x",
         nodeCount: 0,
         edgeCount: 0,
         svg: "",
         errorMessage: "Không đọc được board.",
-        onOpen: () => {},
+        onEdit: () => {},
       }),
     );
     const empty = collectAll(
@@ -134,11 +147,11 @@ describe("EmbedCard — states", () => {
   it("renders SVG content when svg is a non-empty string", () => {
     const root = asVNode(
       EmbedCard({
-        filename: "x",
+        title: "x",
         nodeCount: 5,
         edgeCount: 4,
         svg: "<svg><rect/></svg>",
-        onOpen: () => {},
+        onEdit: () => {},
       }),
     );
     const svgWrap = collectAll(
@@ -146,7 +159,6 @@ describe("EmbedCard — states", () => {
       (v) => v.props.class === "diagrams-card-embed-svg",
     );
     expect(svgWrap.length).toBe(1);
-    // Plugin-generated SVG flows through dangerouslySetInnerHTML
     const inner = svgWrap[0].props.dangerouslySetInnerHTML as {
       __html: string;
     } | undefined;
@@ -158,11 +170,11 @@ describe("EmbedCard — meta line", () => {
   it("shows 'N phần tử · M nối' when no error", () => {
     const root = asVNode(
       EmbedCard({
-        filename: "x",
+        title: "x",
         nodeCount: 7,
         edgeCount: 5,
         svg: "<svg/>",
-        onOpen: () => {},
+        onEdit: () => {},
       }),
     );
     const meta = collectAll(
@@ -175,12 +187,12 @@ describe("EmbedCard — meta line", () => {
   it("overrides meta with errorMessage when set", () => {
     const root = asVNode(
       EmbedCard({
-        filename: "x",
+        title: "x",
         nodeCount: 0,
         edgeCount: 0,
         svg: "",
         errorMessage: "File hỏng",
-        onOpen: () => {},
+        onEdit: () => {},
       }),
     );
     const meta = collectAll(
@@ -192,37 +204,36 @@ describe("EmbedCard — meta line", () => {
 });
 
 describe("EmbedCard — interaction", () => {
-  it("calls onOpen when the Mở button is clicked", () => {
-    const onOpen = vi.fn();
+  it("calls onEdit when the Sửa button is clicked", () => {
+    const onEdit = vi.fn();
     const root = asVNode(
       EmbedCard({
-        filename: "x",
+        title: "x",
         nodeCount: 0,
         edgeCount: 0,
         svg: "",
-        onOpen,
+        onEdit,
       }),
     );
-    const btn = findByTestId(root, "diagrams-embed-open");
+    const btn = findByTestId(root, "diagrams-embed-edit");
     const stop = vi.fn();
     const evt = { stopPropagation: stop } as unknown as MouseEvent;
     (btn?.props.onClick as (e: MouseEvent) => void)(evt);
-    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledTimes(1);
     expect(stop).toHaveBeenCalledTimes(1);
   });
 
-  it("chip click does NOT call onOpen (stopPropagation)", () => {
-    const onOpen = vi.fn();
+  it("chip click does NOT call onEdit (stopPropagation)", () => {
+    const onEdit = vi.fn();
     const root = asVNode(
       EmbedCard({
-        filename: "x",
+        title: "x",
         nodeCount: 0,
         edgeCount: 0,
         svg: "",
-        onOpen,
+        onEdit,
       }),
     );
-    // The chip has its own onClick that stops propagation
     const chip = collectAll(
       root,
       (v) => v.props.class === "diagrams-card-chip",
@@ -231,25 +242,20 @@ describe("EmbedCard — interaction", () => {
     const evt = { stopPropagation: stop } as unknown as MouseEvent;
     (chip.props.onClick as (e: MouseEvent) => void)(evt);
     expect(stop).toHaveBeenCalledTimes(1);
-    expect(onOpen).not.toHaveBeenCalled();
+    expect(onEdit).not.toHaveBeenCalled();
   });
 
-  it("setIcon callback is invoked for chip and button icons", () => {
+  it("setIcon callback is wired without throwing", () => {
     const calls: Array<[unknown, string]> = [];
     EmbedCard({
-      filename: "x",
+      title: "x",
       nodeCount: 0,
       edgeCount: 0,
       svg: "",
-      onOpen: () => {},
+      onEdit: () => {},
       setIcon: (el, name) => calls.push([el, name]),
     });
-    // setIcon is called via callback refs which only fire when Preact
-    // actually mounts the element. Calling the component as a pure
-    // function returns the VNode tree without firing refs — that's
-    // why we don't assert calls.length here. The contract is verified
-    // by the `dataset.iconApplied` guard in EmbedCard ensuring the
-    // callback only fires ONCE per mount in a real render context.
+    // setIcon fires via callback refs only in a real render context.
     expect(calls).toBeInstanceOf(Array);
   });
 });

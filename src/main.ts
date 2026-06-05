@@ -1,27 +1,25 @@
-import { Plugin, MarkdownView, Editor, MarkdownPostProcessorContext, Menu, Notice, TFile, WorkspaceLeaf, normalizePath, setIcon } from "obsidian";
+import { Plugin, MarkdownView, Editor, Menu, Notice, TFile, WorkspaceLeaf, normalizePath, setIcon } from "obsidian";
 import { BoardView, BOARD_VIEW_TYPE } from "./view/BoardView";
 import { serializeBoard, deserializeBoard, OMNIBOARD_SUFFIX } from "./view/boardSerde";
 import { importBpmn } from "./io/bpmn/import";
 import { renderModelToSvg } from "./canvas/staticRender";
 import { render, h } from "preact";
 import { AdapterRegistry } from "./core/registry";
-import { EditModal } from "./core/modal";
-import { readObsidianTheme } from "./core/theme";
-import { DiagramCard } from "./ui/DiagramCard";
 import { EmbedCard } from "./ui/EmbedCard";
 import { OMNIBOARD_PROPERTIES_VIEW_TYPE, OmniboardPropertiesView } from "./ui/PropertiesPanel";
 import { BpmnIssuesView, OMNIBOARD_ISSUES_VIEW_TYPE } from "./ui/BpmnIssuesView";
 import type { DiagramAdapter } from "./core/adapter";
 import { DiagramsSettings, DEFAULT_SETTINGS, DiagramsSettingTab } from "./settings";
 import { BpmnNativeView, BPMN_NATIVE_VIEW_TYPE } from "./bpmn-native/BpmnNativeView";
-import { MINIMAL_BPMN_XML } from "./bpmn-native/BpmnNativeController";
 import { BpmnPropertiesView, BPMN_PROPERTIES_VIEW_TYPE } from "./bpmn-native/BpmnPropertiesView";
 import { registerBpmnIcons } from "./bpmn-native/bpmn-icons";
-import { omniboardEmbedEditorExtension } from "./embed/liveEmbedExtension";
-import { exportDiagramCard, copyCardAsImage } from "./io/cardExports";
-import { SourceEditorModal } from "./ui/SourceEditorModal";
+import { exportSvg, exportPng, exportPdf, saveToDisk } from "./io/cardExports";
+import { FileBoardModal } from "./view/FileBoardModal";
+import { BoardTypePicker, ExistingBoardPicker, type BoardTypeChoice } from "./ui/boardPickers";
+import type { CanvasModel } from "./canvas/types";
 
 import { bpmnAdapter } from "./adapters/bpmn";
+import { dbmlAdapter } from "./adapters/dbml";
 import { erdAdapter } from "./adapters/erd";
 import { flowchartAdapter } from "./adapters/flowchart";
 import { umlAdapter } from "./adapters/uml";
@@ -32,6 +30,7 @@ import { mermaidAdapter } from "./adapters/mermaid";
 
 const ALL_ADAPTERS: DiagramAdapter[] = [
   bpmnAdapter,
+  dbmlAdapter,
   erdAdapter,
   flowchartAdapter,
   umlAdapter,
@@ -44,6 +43,8 @@ const ALL_ADAPTERS: DiagramAdapter[] = [
 export default class DiagramsPlugin extends Plugin {
   registry = new AdapterRegistry();
   settings: DiagramsSettings = DEFAULT_SETTINGS;
+  private embedObserver: MutationObserver | null = null;
+  private embedScanQueued = false;
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -89,25 +90,35 @@ export default class DiagramsPlugin extends Plugin {
       })
     );
 
-    // Ribbon → create a new board file and open it immediately.
-    this.addRibbonIcon("shapes", "New board", () => this.createAndOpenBoard());
+    // ── The 3 quick board commands (Cmd+P). Both "create" commands open a
+    //    one-step type picker; the third embeds an already-existing board. ──
+
+    // Ribbon mirrors command 3 (new board, full canvas).
+    this.addRibbonIcon("shapes", "Tạo board mới (full canvas)", () =>
+      this.pickTypeThen((choice) => void this.createAndOpenBoard(choice)),
+    );
 
     this.addCommand({
-      id: "new-board",
-      name: "New board",
-      callback: () => this.createAndOpenBoard(),
+      id: "insert-new-board",
+      name: "Chèn board mới vào note",
+      editorCallback: (editor: Editor) =>
+        this.pickTypeThen((choice) => void this.insertNewBoard(editor, choice)),
     });
 
     this.addCommand({
-      id: "new-bpmn",
-      name: "New BPMN diagram",
-      callback: () => this.createAndOpenBpmn(),
+      id: "insert-existing-board",
+      name: "Chèn board có sẵn vào note",
+      editorCallback: (editor: Editor) =>
+        new ExistingBoardPicker(this.app, (file) => {
+          editor.replaceSelection(`![[${file.path}]]\n`);
+        }).open(),
     });
 
     this.addCommand({
-      id: "insert-board-embed",
-      name: "Insert new board (embed in note)",
-      editorCallback: (editor: Editor) => this.insertNewBoardEmbed(editor),
+      id: "new-board-canvas",
+      name: "Tạo board mới (full canvas)",
+      callback: () =>
+        this.pickTypeThen((choice) => void this.createAndOpenBoard(choice)),
     });
 
     this.addCommand({
@@ -247,40 +258,19 @@ export default class DiagramsPlugin extends Plugin {
     });
 
     // Render ![[x.omniboard]] / ![[x.omniboard.md]] embeds as a preview card.
-    // Two routes, mutually exclusive at runtime:
-    //   - Reading mode: post-processor scans `.internal-embed` wrappers in
-    //     the rendered HTML. Story 7-12 keeps this route — it works
-    //     reliably and covers the read-only viewing case.
-    //   - Live Preview: CodeMirror 6 editorExtension intercepts the
-    //     internal-embed widget BEFORE Obsidian renders the embedded file
-    //     content as raw markdown. See src/embed/liveEmbedExtension.ts.
-    const isOmniboardSrc = (src: string): boolean => {
-      const path = src.replace(/#.*$/, "");
-      return path.endsWith(OMNIBOARD_SUFFIX) || path.endsWith(".omniboard");
-    };
-    this.registerMarkdownPostProcessor((el, ctx) => {
-      el.querySelectorAll<HTMLElement>(".internal-embed").forEach((node) => {
-        const src = node.getAttribute("src") ?? "";
-        if (!isOmniboardSrc(src)) return;
-        void this.renderBoardEmbed(node, ctx.sourcePath);
-      });
-    });
+    //
+    // SINGLE route: a MutationObserver replaces any omniboard `.internal-embed`
+    // (the file has a `.md` extension, so Obsidian always renders it as a NATIVE
+    // markdown embed in BOTH reading mode and Live Preview). Using one route
+    // avoids the duplicate-card problem of running a CM6 editor extension AND a
+    // post-processor side by side, and works identically across modes.
+    this.installEmbedObserver();
 
-    // Story 7-12 — Live Preview embed rendering via CodeMirror 6.
-    // registerEditorExtension is auto-cleaned up on plugin unload (P1).
-    this.registerEditorExtension(omniboardEmbedEditorExtension(this));
-
-    // ── Inline code-block diagrams (spec model) — kept alongside the board ──
+    // Register adapters — used by the board type picker to seed a typed board.
+    // Inline ```code``` diagram blocks are intentionally NOT rendered: every
+    // diagram lives in a `.omniboard.md` file (single source of truth).
     for (const adapter of ALL_ADAPTERS) {
       this.registry.register(adapter);
-      this.registerCodeBlock(adapter);
-    }
-    for (const adapter of this.registry.all()) {
-      this.addCommand({
-        id: `insert-${adapter.id}`,
-        name: `Insert ${adapter.displayName} (in note)`,
-        editorCallback: (editor: Editor) => this.insertDiagram(editor, adapter),
-      });
     }
 
     this.addSettingTab(new DiagramsSettingTab(this.app, this));
@@ -289,6 +279,51 @@ export default class DiagramsPlugin extends Plugin {
   onunload(): void {
     const styles = document.getElementById("bpmn-native-styles");
     if (styles) styles.remove();
+    this.embedObserver?.disconnect();
+    this.embedObserver = null;
+  }
+
+  /** Is this embed `src` an omniboard board file? */
+  private isOmniboardEmbedSrc(src: string): boolean {
+    const path = src.replace(/#.*$/, "");
+    return path.endsWith(OMNIBOARD_SUFFIX) || path.endsWith(".omniboard");
+  }
+
+  /**
+   * Watch the workspace for `.internal-embed` elements pointing at an omniboard
+   * file and render our card into them. Scans are rAF-debounced and the
+   * `.omniboard-embed-processed` class keeps each embed processed at most once
+   * (renderBoardEmbed is itself idempotent), so this stays cheap even while
+   * typing.
+   */
+  private installEmbedObserver(): void {
+    const scan = (): void => {
+      this.embedScanQueued = false;
+      const sourcePath = this.app.workspace.getActiveFile()?.path ?? "";
+      // Scan ALL omniboard embeds (not just unprocessed ones): Obsidian may
+      // asynchronously re-fill an embed's children after we render the card,
+      // wiping our wrapper — renderBoardEmbed is idempotent (skips when its
+      // wrapper is still present) and re-renders when it was removed.
+      const nodes = this.app.workspace.containerEl.querySelectorAll<HTMLElement>(
+        ".internal-embed",
+      );
+      nodes.forEach((node) => {
+        const src = node.getAttribute("src") ?? "";
+        if (!this.isOmniboardEmbedSrc(src)) return;
+        void this.renderBoardEmbed(node, sourcePath);
+      });
+    };
+    const observer = new MutationObserver(() => {
+      if (this.embedScanQueued) return;
+      this.embedScanQueued = true;
+      window.requestAnimationFrame(scan);
+    });
+    observer.observe(this.app.workspace.containerEl, {
+      childList: true,
+      subtree: true,
+    });
+    this.embedObserver = observer;
+    scan(); // pick up embeds already in the DOM at load time
   }
 
   /** Create a fresh, empty .omniboard.md file and return it (or null on failure). */
@@ -342,12 +377,23 @@ export default class DiagramsPlugin extends Plugin {
     }
   }
 
-  private async createBoardFile(): Promise<TFile | null> {
+  /**
+   * Create a new `.omniboard.md` file in the configured board folder.
+   * `seedModel` pre-fills the canvas (used to create a typed board, e.g. a
+   * flowchart); omit for an empty board. `baseName` overrides the timestamp
+   * file name.
+   */
+  private async createBoardFile(
+    seedModel?: CanvasModel,
+    baseName?: string,
+  ): Promise<TFile | null> {
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
     const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-    const path = normalizePath(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
-    const content = serializeBoard({ nodes: [], edges: [] }, "", undefined, {
+    const name = (baseName?.trim() || `Omniboard ${stamp}`).replace(/[\\/:*?"<>|]/g, "-");
+    const dir = await this.ensureBoardFolder();
+    const path = normalizePath((dir ? dir + "/" : "") + `${name}${OMNIBOARD_SUFFIX}`);
+    const content = serializeBoard(seedModel ?? { nodes: [], edges: [] }, "", undefined, {
       compressDrawingData: this.settings.compressDrawingData,
     });
     try {
@@ -358,6 +404,75 @@ export default class DiagramsPlugin extends Plugin {
       new Notice("Không tạo được file omniboard.");
       return null;
     }
+  }
+
+  /** Ensure the configured board folder exists; returns its normalized path
+   *  (empty string when configured as vault root). */
+  private async ensureBoardFolder(): Promise<string> {
+    const folder = this.settings.boardFolder?.trim() ?? "";
+    if (!folder) return "";
+    const dir = normalizePath(folder);
+    if (!this.app.vault.getAbstractFileByPath(dir)) {
+      try {
+        await this.app.vault.createFolder(dir);
+      } catch {
+        // Folder may have been created concurrently — ignore and fall back to
+        // root if it still doesn't resolve.
+        if (!this.app.vault.getAbstractFileByPath(dir)) return "";
+      }
+    }
+    return dir;
+  }
+
+  /** Build the type-picker choices: a blank board + one per registered adapter. */
+  private boardTypeChoices(): BoardTypeChoice[] {
+    return [
+      { adapter: null, label: "Board trắng", icon: "square-dashed" },
+      ...this.registry.all().map((a) => ({
+        adapter: a,
+        label: a.displayName,
+        icon: a.icon,
+      })),
+    ];
+  }
+
+  /** Open the type picker, then run `cb` with the chosen type. */
+  private pickTypeThen(cb: (choice: BoardTypeChoice) => void): void {
+    new BoardTypePicker(this.app, this.boardTypeChoices(), cb).open();
+  }
+
+  /** Seed an empty CanvasModel for a picker choice (blank → empty board). */
+  private async seedModelForChoice(choice: BoardTypeChoice): Promise<CanvasModel> {
+    const adapter = choice.adapter;
+    if (adapter?.toEditor) {
+      try {
+        const session = await adapter.toEditor(adapter.emptyTemplate());
+        return session.model;
+      } catch (e) {
+        console.warn("[omniboard] seedModelForChoice toEditor failed", e);
+      }
+    }
+    return { nodes: [], edges: [] };
+  }
+
+  /** Create a board file for the chosen type and embed it at the cursor. */
+  private async insertNewBoard(editor: Editor, choice: BoardTypeChoice): Promise<void> {
+    const model = await this.seedModelForChoice(choice);
+    const file = await this.createBoardFile(model, choice.adapter?.displayName);
+    if (!file) return;
+    editor.replaceSelection(`![[${file.path}]]\n`);
+  }
+
+  /** Open `file` in the full-tab BoardView (single source of truth canvas). */
+  async openBoardFile(file: TFile): Promise<void> {
+    const leaf = this.findLeafForFile(file) ?? this.app.workspace.getLeaf("tab");
+    await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
+    this.app.workspace.revealLeaf(leaf);
+  }
+
+  /** Open the popup board editor for `file` (edits the file in place). */
+  openFileBoardEditor(file: TFile): void {
+    new FileBoardModal(this.app, this, file).open();
   }
 
   /**
@@ -411,54 +526,44 @@ export default class DiagramsPlugin extends Plugin {
     return found;
   }
 
-  /** Create a new .board file (Excalidraw-style) and open it in the board view. */
-  private async createAndOpenBoard(): Promise<void> {
-    const file = await this.createBoardFile();
+  /** Create a board file for the chosen type and open it in the full board view. */
+  private async createAndOpenBoard(choice: BoardTypeChoice): Promise<void> {
+    const model = await this.seedModelForChoice(choice);
+    const file = await this.createBoardFile(model, choice.adapter?.displayName);
     if (!file) return;
-    await this.app.workspace.getLeaf("tab").openFile(file);
+    await this.openBoardFile(file);
   }
 
-  /** Create a new .bpmn file with template XML and open it in BPMN Native view. */
-  private async createAndOpenBpmn(): Promise<void> {
-    const folder = this.app.fileManager.getNewFileParent("");
-    const ts = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 15);
-    const path = normalizePath(`${folder.path}/BPMN-${ts}.bpmn`);
-    try {
-      const file = await this.app.vault.create(path, MINIMAL_BPMN_XML);
-      await this.app.workspace.getLeaf("tab").openFile(file);
-    } catch {
-      new Notice("Không tạo được file BPMN.");
-    }
-  }
-
-  /** Create a board, embed it at the cursor (`![[...]]`), and open it. */
-  private async insertNewBoardEmbed(editor: Editor): Promise<void> {
-    const file = await this.createBoardFile();
-    if (!file) return;
-    editor.replaceSelection(`![[${file.path}]]\n`);
-    await this.app.workspace.getLeaf("tab").openFile(file);
-  }
-
-  /** Render an `![[x.board]]` internal embed as a preview card in read mode. */
+  /**
+   * Render an `![[x.omniboard.md]]` internal embed as a preview card.
+   *
+   * Idempotent: the card is rendered into a dedicated `.omniboard-embed-cardwrap`
+   * child. If that child is already present we skip — this lets the
+   * MutationObserver fallback call us repeatedly without churning the card, and
+   * survives Obsidian asynchronously re-filling the embed with the file's raw
+   * markdown (that native content is hidden by CSS; see styles.css).
+   */
   private async renderBoardEmbed(host: HTMLElement, sourcePath: string): Promise<void> {
-    if (host.dataset.daRendered === "1") return; // guard against re-processing
+    if (host.querySelector(":scope > .omniboard-embed-cardwrap")) return;
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
     if (!(file instanceof TFile)) return;
-    host.dataset.daRendered = "1";
-    host.empty();
+    host.addClass("omniboard-embed-processed");
+    // Mark the native chrome (title/link) as hidden but keep it in the DOM so
+    // Obsidian's embed bookkeeping stays intact. Our card goes in a fresh wrap.
+    const wrap = host.createDiv({ cls: "omniboard-embed-cardwrap" });
 
-    // Story 7-11 — render via shared <EmbedCard> so the inline code-block
-    // card (Story 7-7), Reading-mode embed (this path), and Live Preview
-    // embed (liveEmbedExtension.ts) all share the same visual layout.
+    // Render the <EmbedCard> into the wrapper (the MutationObserver drives this
+    // for both Reading mode and Live Preview).
     let nodeCount = 0;
     let edgeCount = 0;
     let svg: string | undefined = undefined;
     let errorMessage: string | undefined = undefined;
+    let model: CanvasModel | null = null;
     try {
       const raw = await this.app.vault.cachedRead(file);
-      const model = deserializeBoard(raw);
+      model = deserializeBoard(raw);
       if (!model) {
         errorMessage = "File không đúng định dạng Omniboard.";
       } else {
@@ -473,122 +578,129 @@ export default class DiagramsPlugin extends Plugin {
 
     render(
       h(EmbedCard, {
-        filename: file.basename,
+        title: file.basename,
         nodeCount,
         edgeCount,
         svg,
         errorMessage,
-        onOpen: () => void this.app.workspace.getLeaf("tab").openFile(file),
+        onEdit: () => this.openFileBoardEditor(file),
+        onExportMenu: model
+          ? (e) => this.buildBoardExportMenu(model!, file.basename).showAtMouseEvent(e)
+          : undefined,
+        onMoreMenu: (e) => this.buildBoardMoreMenu(file, model, sourcePath).showAtMouseEvent(e),
         setIcon: (el, name) => setIcon(el, name),
       }),
-      host,
+      wrap,
     );
   }
 
-  /** Insert from the ribbon menu — needs to find the active markdown editor itself. */
-  private insertDiagramIntoActiveEditor(adapter: DiagramAdapter): void {
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) {
-      new Notice("Mở một note (Editing mode) rồi chèn diagram.");
+  /** Export menu (SVG / PNG / PDF) for a board model — shared by embed cards.
+   *  Uses the standalone static renderer (self-contained SVG via collectPluginCss)
+   *  so it works without a live canvas. */
+  buildBoardExportMenu(model: CanvasModel, baseName: string): Menu {
+    const menu = new Menu();
+    const run = async (
+      fn: () => Promise<string | null>,
+    ): Promise<void> => {
+      try {
+        const saved = await fn();
+        if (saved) new Notice(`Đã export: ${saved}`);
+      } catch (err) {
+        console.warn("[omniboard] board export failed", err);
+        new Notice("Export thất bại — xem console.");
+      }
+    };
+    menu.addItem((i) =>
+      i.setTitle("SVG").setIcon("file-code").onClick(() =>
+        void run(() => saveToDisk(exportSvg(model), `${baseName}.svg`, "image/svg+xml")),
+      ),
+    );
+    menu.addItem((i) =>
+      i.setTitle("PNG").setIcon("image").onClick(() =>
+        void run(async () => saveToDisk(await exportPng(model, 2), `${baseName}.png`, "image/png")),
+      ),
+    );
+    menu.addItem((i) =>
+      i.setTitle("PDF").setIcon("file-text").onClick(() =>
+        void run(async () => saveToDisk(await exportPdf(model), `${baseName}.pdf`, "application/pdf")),
+      ),
+    );
+    return menu;
+  }
+
+  /** Overflow (⋯) menu for a board embed card. `hostPath` is the note the
+   *  embed lives in — used by "Xóa khỏi note" to remove the `![[...]]` line. */
+  buildBoardMoreMenu(file: TFile, model: CanvasModel | null, hostPath: string): Menu {
+    const menu = new Menu();
+    menu.addItem((i) =>
+      i.setTitle("Sửa toàn màn hình").setIcon("maximize-2").onClick(() => void this.openBoardFile(file)),
+    );
+    menu.addItem((i) =>
+      i.setTitle("Mở trong tab mới").setIcon("external-link").onClick(() =>
+        void this.app.workspace.getLeaf("tab").openFile(file),
+      ),
+    );
+    if (model) {
+      menu.addItem((i) =>
+        i.setTitle("Copy as image").setIcon("clipboard-copy").onClick(async () => {
+          try {
+            const png = await exportPng(model, 2);
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
+            new Notice("Đã copy vào clipboard");
+          } catch {
+            new Notice("Copy clipboard thất bại (browser có thể không hỗ trợ).");
+          }
+        }),
+      );
+    }
+    menu.addSeparator();
+    menu.addItem((i) =>
+      i
+        .setTitle("Xóa khỏi note")
+        .setIcon("trash-2")
+        .onClick(() => void this.removeEmbedFromNote(file, hostPath)),
+    );
+    return menu;
+  }
+
+  /**
+   * Remove the `![[boardFile]]` embed from the note at `hostPath` (the board
+   * file itself is kept — it's the single source of truth). Uses the metadata
+   * cache to locate the exact embed by resolved target, so only this board's
+   * embed is removed even when the note embeds several boards.
+   */
+  private async removeEmbedFromNote(boardFile: TFile, hostPath: string): Promise<void> {
+    const host = this.app.vault.getAbstractFileByPath(hostPath);
+    if (!(host instanceof TFile)) {
+      new Notice("Không tìm thấy note chứa board.");
       return;
     }
-    this.insertDiagram(view.editor, adapter);
-  }
-
-  private registerCodeBlock(adapter: DiagramAdapter): void {
-    this.registerMarkdownCodeBlockProcessor(
-      adapter.codeBlockLanguage,
-      (source: string, el: HTMLElement, ctx: MarkdownPostProcessorContext) => {
-        const theme = readObsidianTheme();
-        const mount = el.createDiv({ cls: "diagrams-card-mount" });
-
-        render(
-          h(DiagramCard, {
-            adapter,
-            source,
-            theme,
-            onEdit: () => this.openEditor(adapter, source, el, ctx),
-            // Story 7-20 — real export backends via cardExports helper.
-            onExport: async (format) => {
-              try {
-                const model = adapter.parse(source);
-                const baseName =
-                  this.app.workspace.getActiveFile()?.basename ??
-                  `diagram-${adapter.codeBlockLanguage}`;
-                const saved = await exportDiagramCard(
-                  adapter,
-                  model,
-                  format,
-                  baseName,
-                );
-                if (saved) new Notice(`Đã export: ${saved}`);
-              } catch (err) {
-                console.warn("[omniboard] card export failed", err);
-                new Notice(`Export ${format.toUpperCase()} thất bại — xem console.`);
-              }
-            },
-            onCopyImage: async () => {
-              const model = adapter.parse(source);
-              const ok = await copyCardAsImage(adapter, model);
-              new Notice(
-                ok
-                  ? "Đã copy vào clipboard"
-                  : "Copy clipboard thất bại (browser có thể không hỗ trợ image clipboard)",
-              );
-            },
-            // Story 7-21 — raw source editor via CodeMirror 6 modal.
-            onSourceEdit: () => {
-              new SourceEditorModal({
-                app: this.app,
-                initialText: source,
-                language: adapter.codeBlockLanguage,
-                onSave: (newText) =>
-                  this.replaceCodeBlock(el, ctx, adapter.codeBlockLanguage, newText),
-              }).open();
-            },
-          }),
-          mount
-        );
-      }
-    );
-  }
-
-  private openEditor(
-    adapter: DiagramAdapter,
-    source: string,
-    el: HTMLElement,
-    ctx: MarkdownPostProcessorContext
-  ): void {
-    new EditModal(this.app, adapter, source, (newText) => {
-      this.replaceCodeBlock(el, ctx, adapter.codeBlockLanguage, newText);
-    }).open();
-  }
-
-  /** Rewrite the fenced block that produced `el` with new content. */
-  private replaceCodeBlock(
-    el: HTMLElement,
-    ctx: MarkdownPostProcessorContext,
-    lang: string,
-    newText: string
-  ): void {
-    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
-    if (!view) return;
-    const info = ctx.getSectionInfo(el);
-    if (!info) return;
-
-    const editor = view.editor;
-    const fence = "```";
-    const block = `${fence}${lang}\n${newText}\n${fence}`;
-    editor.replaceRange(
-      block,
-      { line: info.lineStart, ch: 0 },
-      { line: info.lineEnd, ch: editor.getLine(info.lineEnd).length }
-    );
-  }
-
-  private insertDiagram(editor: Editor, adapter: DiagramAdapter): void {
-    const block = `\`\`\`${adapter.codeBlockLanguage}\n${adapter.emptyTemplate()}\n\`\`\`\n`;
-    editor.replaceSelection(block);
+    const embeds = this.app.metadataCache.getFileCache(host)?.embeds ?? [];
+    const target = embeds.find((e) => {
+      const dest = this.app.metadataCache.getFirstLinkpathDest(
+        e.link.replace(/#.*$/, ""),
+        hostPath,
+      );
+      return dest?.path === boardFile.path;
+    });
+    if (!target) {
+      new Notice("Không tìm thấy embed của board trong note này.");
+      return;
+    }
+    try {
+      const content = await this.app.vault.read(host);
+      const { start, end } = target.position;
+      // Drop the embed text; also swallow a trailing newline so the board's
+      // own line doesn't leave a blank gap behind.
+      let after = end.offset;
+      if (content[after] === "\n") after += 1;
+      const next = content.slice(0, start.offset) + content.slice(after);
+      await this.app.vault.modify(host, next);
+      new Notice("Đã gỡ board khỏi note.");
+    } catch (e) {
+      console.error("[omniboard] removeEmbedFromNote failed", e);
+      new Notice("Gỡ board khỏi note thất bại — xem console.");
+    }
   }
 
   async loadSettings(): Promise<void> {

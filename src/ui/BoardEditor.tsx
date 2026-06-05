@@ -8,6 +8,7 @@ import type { CanvasModel, ShapeCategory } from "../canvas/types";
 import { PaletteSidebar } from "./PaletteSidebar";
 import { PropertiesSidebar } from "./PropertiesSidebar";
 import { OmniboardCanvasMount } from "./OmniboardCanvasMount";
+import { Icon } from "./Icon";
 
 /**
  * Display mode for the unified diagram editor.
@@ -51,6 +52,37 @@ export interface BoardEditorProps<TModel> {
   title?: string;
   /** Optional title change callback — paired with `title` (Story 7-14). */
   onTitleChange?: (title: string) => void;
+  /**
+   * Story 7-5 — optional diagram-type chip label shown in the modal header
+   * (e.g. "BPMN 2.0"). Rendered only in `mode="modal"`.
+   */
+  chipLabel?: string;
+  /**
+   * Story 7-5 — optional body content. When provided, this VNode is rendered
+   * inside the body region instead of the palette/canvas/properties slot
+   * composition. Used by `EditModal` to host an adapter's own `<Editor>`
+   * inside the unified modal chrome without changing model ownership.
+   */
+  body?: VNode;
+  /**
+   * Story 7-5b — when true (canvas mode), the modal header renders unified
+   * "Đóng" + "Lưu & đóng" buttons. The host owns the model/save path; the
+   * Save button calls `onHeaderSave`. In body-slot mode this stays false so
+   * the inner adapter `<Editor>` keeps its own toolbar (no duplicate buttons).
+   */
+  showHeaderActions?: boolean;
+  /** Story 7-5b — header "Lưu & đóng" handler (paired with showHeaderActions). */
+  onHeaderSave?: () => void;
+
+  // ── Canvas-mode toolbar actions (rendered in the header when present) ──
+  /** Undo the last canvas edit. */
+  onUndo?: () => void;
+  /** Redo the last undone canvas edit. */
+  onRedo?: () => void;
+  /** Zoom-to-fit the canvas content. */
+  onFit?: () => void;
+  /** Auto-arrange the canvas (dagre LR). */
+  onAutoLayout?: () => void;
 
   // ── Story 7-3: body slot composition (all optional, additive) ──
 
@@ -148,7 +180,18 @@ export function BoardEditor<TModel>(
   const showCanvas =
     props.shapeCategories !== undefined && props.canvasModel !== undefined;
   const showProperties = props.propertyFields !== undefined;
-  const bodyHasContent = showPalette || showCanvas || showProperties;
+  const hasBodySlot = props.body !== undefined;
+  const bodyHasContent = hasBodySlot || showPalette || showCanvas || showProperties;
+
+  // Story 7-5 / 7-5b — modal header chrome (chip + title + optional actions).
+  // Tab mode keeps the header empty (BoardView owns the tab title).
+  const titleIsEditable = props.onTitleChange !== undefined;
+  const showModalHeader =
+    props.mode === "modal" &&
+    (props.chipLabel !== undefined ||
+      props.title !== undefined ||
+      titleIsEditable ||
+      props.showHeaderActions === true);
 
   return (
     <div
@@ -158,7 +201,83 @@ export function BoardEditor<TModel>(
       <header
         class="diagrams-board-editor-header"
         data-testid="diagrams-board-editor-header"
-      />
+      >
+        {showModalHeader && (
+          <div class="diagrams-board-editor-header-meta">
+            {props.chipLabel !== undefined && (
+              <span
+                class="diagrams-board-editor-chip"
+                data-testid="diagrams-board-editor-chip"
+              >
+                {props.chipLabel}
+              </span>
+            )}
+            {titleIsEditable ? (
+              <input
+                type="text"
+                class="diagrams-board-editor-title-input"
+                data-testid="diagrams-board-editor-title-input"
+                value={props.title ?? ""}
+                placeholder="Tên sơ đồ"
+                onInput={(e) =>
+                  props.onTitleChange!((e.target as HTMLInputElement).value)
+                }
+              />
+            ) : (
+              props.title !== undefined && (
+                <span
+                  class="diagrams-board-editor-title"
+                  data-testid="diagrams-board-editor-title"
+                >
+                  {props.title}
+                </span>
+              )
+            )}
+            {props.showHeaderActions === true && (
+              <span class="diagrams-board-editor-header-actions">
+                <span class="diagrams-board-editor-toolbar" data-testid="diagrams-board-editor-toolbar">
+                  {props.onUndo && (
+                    <button type="button" class="diagrams-btn diagrams-btn-icon" title="Hoàn tác" data-testid="diagrams-board-editor-undo" onClick={() => props.onUndo!()}>
+                      <Icon name="undo-2" />
+                    </button>
+                  )}
+                  {props.onRedo && (
+                    <button type="button" class="diagrams-btn diagrams-btn-icon" title="Làm lại" data-testid="diagrams-board-editor-redo" onClick={() => props.onRedo!()}>
+                      <Icon name="redo-2" />
+                    </button>
+                  )}
+                  {props.onAutoLayout && (
+                    <button type="button" class="diagrams-btn diagrams-btn-icon" title="Tự sắp xếp" data-testid="diagrams-board-editor-autolayout" onClick={() => props.onAutoLayout!()}>
+                      <Icon name="layout-dashboard" />
+                    </button>
+                  )}
+                  {props.onFit && (
+                    <button type="button" class="diagrams-btn diagrams-btn-icon" title="Vừa khung" data-testid="diagrams-board-editor-fit" onClick={() => props.onFit!()}>
+                      <Icon name="maximize" />
+                    </button>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  class="diagrams-btn"
+                  data-testid="diagrams-board-editor-close"
+                  onClick={() => props.onClose()}
+                >
+                  Đóng
+                </button>
+                <button
+                  type="button"
+                  class="diagrams-btn diagrams-btn-primary"
+                  data-testid="diagrams-board-editor-save"
+                  onClick={() => props.onHeaderSave?.()}
+                >
+                  Lưu &amp; đóng
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+      </header>
       <div
         class={
           bodyHasContent
@@ -167,14 +286,15 @@ export function BoardEditor<TModel>(
         }
         data-testid="diagrams-board-editor-body"
       >
-        {showPalette && (
+        {hasBodySlot && props.body}
+        {!hasBodySlot && showPalette && (
           <PaletteSidebar
             items={props.paletteItems!}
             selectedId={props.selectedPaletteId}
             onSelectItem={props.onSelectPaletteItem}
           />
         )}
-        {showCanvas && (
+        {!hasBodySlot && showCanvas && (
           <OmniboardCanvasMount
             categories={props.shapeCategories!}
             initialModel={props.canvasModel!}
@@ -182,7 +302,7 @@ export function BoardEditor<TModel>(
             onCanvasReady={props.onCanvasReady}
           />
         )}
-        {showProperties && (
+        {!hasBodySlot && showProperties && (
           <PropertiesSidebar
             sectionTitle={props.propertiesTitle}
             sectionSubtitle={props.propertiesSubtitle}

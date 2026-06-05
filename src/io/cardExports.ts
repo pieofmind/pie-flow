@@ -13,9 +13,8 @@
  * which path applies based on `isCanvasModel()`.
  */
 
-import { renderModelToSvg } from "../canvas/staticRender";
+import { renderModelToSvg, collectPluginCss } from "../canvas/staticRender";
 import type { CanvasModel } from "../canvas/types";
-import type { DiagramAdapter, ExportFormat } from "../core/adapter";
 
 /**
  * Duck-type a value as `CanvasModel`. Cheap structural check —
@@ -28,9 +27,11 @@ export function isCanvasModel(model: unknown): model is CanvasModel {
   return Array.isArray(m.nodes) && Array.isArray(m.edges);
 }
 
-/** Export a CanvasModel as a standalone SVG document. */
+/** Export a CanvasModel as a standalone, self-contained SVG document.
+ *  Embeds the plugin stylesheet so node shapes/colors/icons render outside
+ *  the app (without it the rasterized output shows only text + edges). */
 export function exportSvg(model: CanvasModel): string {
-  return renderModelToSvg(model, "", 24, "#ffffff");
+  return renderModelToSvg(model, collectPluginCss(), 24, "#ffffff");
 }
 
 /**
@@ -174,73 +175,4 @@ export async function saveToDisk(
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   return suggestedName;
-}
-
-/**
- * High-level dispatcher: given an adapter + parsed model + chosen
- * format, do the right thing. For CanvasModel-shaped models we
- * rasterize via the static path; for stub adapters we save the
- * serialized source with the adapter's code-block extension.
- *
- * Returns the saved filename on success, `null` if user cancelled.
- * Throws on actual export failure (caller surfaces a Notice).
- */
-export async function exportDiagramCard<TModel>(
-  adapter: DiagramAdapter<TModel>,
-  model: TModel,
-  format: ExportFormat,
-  baseName: string,
-): Promise<string | null> {
-  if (isCanvasModel(model)) {
-    switch (format) {
-      case "svg": {
-        const svg = exportSvg(model);
-        return saveToDisk(svg, `${baseName}.svg`, "image/svg+xml");
-      }
-      case "png": {
-        const png = await exportPng(model, 2);
-        return saveToDisk(png, `${baseName}.png`, "image/png");
-      }
-      case "pdf": {
-        const pdf = await exportPdf(model);
-        return saveToDisk(pdf, `${baseName}.pdf`, "application/pdf");
-      }
-    }
-  }
-
-  // Stub adapters: model is raw source. Save serialized source with
-  // the adapter's code-block language as the extension (.bpmn, .mmd,
-  // .erd, ...). For SVG / PNG / PDF formats this is a graceful
-  // degrade — without a canvas-shaped model we can't rasterize.
-  const text = adapter.serialize(model);
-  const ext = adapter.codeBlockLanguage || "txt";
-  return saveToDisk(text, `${baseName}.${ext}`, "text/plain");
-}
-
-/**
- * Copy a CanvasModel as PNG to the system clipboard.
- * For non-CanvasModel adapters, fall back to copying the serialized
- * source as plain text. Returns true on success.
- */
-export async function copyCardAsImage<TModel>(
-  adapter: DiagramAdapter<TModel>,
-  model: TModel,
-): Promise<boolean> {
-  if (isCanvasModel(model)) {
-    try {
-      const png = await exportPng(model, 2);
-      const item = new ClipboardItem({ "image/png": png });
-      await navigator.clipboard.write([item]);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  // Fall back to text copy for stub adapters.
-  try {
-    await navigator.clipboard.writeText(adapter.serialize(model));
-    return true;
-  } catch {
-    return false;
-  }
 }

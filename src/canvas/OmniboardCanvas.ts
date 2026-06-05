@@ -3015,7 +3015,7 @@ export class OmniboardCanvas {
       data: { kind, label, style: style ?? {}, ...ex, ...(source !== undefined ? { __source: source } : {}) },
       attrs: { content: { html: nodeHtml(kind, label, style, ex), class: "hn" } },
     });
-    if (kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf") {
+    if (this.autoGrowSelector(kind)) {
       this.scheduleMindmapAutoGrow(node);
     }
     // Container/frame shapes (fragments, sub-process, lanes, pool, annotation)
@@ -3026,7 +3026,10 @@ export class OmniboardCanvas {
 
   /** Defer autoGrow past X6's mount + fitWhenReady race so DOM is measurable. */
   private scheduleMindmapAutoGrow(node: Node): void {
-    setTimeout(() => this.autoGrowMindmapNode(node), 60);
+    setTimeout(() => {
+      const sel = this.autoGrowSelector(this.nodeKind(node));
+      if (sel) this.autoGrowNodeToContent(node, sel);
+    }, 60);
   }
   // Seed default rows for data-driven kinds; keep only defined incoming overrides.
   private seedExtra(kind: string): NodeExtra {
@@ -3453,12 +3456,29 @@ export class OmniboardCanvas {
 
   /** Re-measure rendered HTML and grow the node's height if the wrapped text overflows. */
   private autoGrowMindmapNode(node: Node): void {
+    this.autoGrowNodeToContent(node, ".mm");
+  }
+
+  /**
+   * Grow a content-driven HTML node (mindmap / uml / erd) so its box fits the
+   * rendered inner element — content was being clipped when the initial height
+   * (from a parser estimate) was too small. Only grows, never shrinks.
+   */
+  private autoGrowNodeToContent(node: Node, selector: string): void {
     const view = this.graph.findViewByCell(node) as unknown as { container?: HTMLElement } | null;
-    const mm = view?.container?.querySelector?.(".mm") as HTMLElement | null;
-    if (!mm) return;
-    const desired = mm.scrollHeight;
+    const inner = view?.container?.querySelector?.(selector) as HTMLElement | null;
+    if (!inner) return;
+    const desired = inner.scrollHeight;
     const cur = node.getSize().height;
     if (desired > cur + 1) node.resize(node.getSize().width, desired);
+  }
+
+  /** Selector of the measurable inner element for content-driven kinds. */
+  private autoGrowSelector(kind: string): string | null {
+    if (kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf") return ".mm";
+    if (kind === "uml-class" || kind === "uml-interface") return ".uml";
+    if (kind === "erd-entity") return ".erd-table";
+    return null;
   }
   private commitLabel() { if (this.labelInput) this.labelInput.blur(); }
 
@@ -4197,8 +4217,8 @@ export class OmniboardCanvas {
     // measurable — covers long labels saved with too-small initial height.
     setTimeout(() => {
       this.graph.getNodes().forEach((n) => {
-        const k = this.nodeKind(n);
-        if (k === "mm-root" || k === "mm-branch" || k === "mm-leaf") this.autoGrowMindmapNode(n);
+        const sel = this.autoGrowSelector(this.nodeKind(n));
+        if (sel) this.autoGrowNodeToContent(n, sel);
       });
       this.refreshMinimap();
       this.refreshBpmnEventLabels();
@@ -4613,7 +4633,10 @@ export class OmniboardCanvas {
     clone.classList.add("lk-root"); // so `.lk-root …` selectors + tokens apply
 
     const style = document.createElementNS(SVGNS, "style");
-    style.textContent = collectPluginCss();
+    // `overflow:visible` stops each node's <foreignObject> from shaving the
+    // edges off round events / drop-shadows when the SVG is rasterized
+    // (foreignObject clips to its node-sized bounds by default).
+    style.textContent = collectPluginCss() + "\nforeignObject{overflow:visible}";
     const bg = document.createElementNS(SVGNS, "rect");
     bg.setAttribute("x", String(x)); bg.setAttribute("y", String(y));
     bg.setAttribute("width", String(w)); bg.setAttribute("height", String(h));

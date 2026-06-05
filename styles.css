@@ -67,10 +67,52 @@
   height: 100%;
   padding: 0;
 }
+/* Story 7-5d — unified board surface inside the edit modal (topbar + canvas),
+ * identical layout to the full-tab BoardView. */
+.diagrams-board-surface {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+.diagrams-board-surface-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+/* Editable title field in the shared topbar (modal mode). */
+.da-tb-title-input {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--pg-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 3px 8px;
+  min-width: 160px;
+  max-width: 420px;
+}
+.da-tb-title-input:hover { border-color: var(--pg-border); }
+.da-tb-title-input:focus { outline: none; border-color: var(--pg-accent); background: var(--pg-surface); }
 .diagrams-editor-shell {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+/* When an adapter Editor is hosted in the BoardEditor body slot (Story 7-5),
+ * the composed body is a flex row — make the shell fill it. */
+.diagrams-board-editor-body-composed > .diagrams-editor-shell {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* BPMN editor's canvas region must be a sized flex container so the nested
+ * .diagrams-canvas-mount (flex:1) gets a real height — otherwise blank. */
+.bpmn-adapter-editor-canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  position: relative;
 }
 .diagrams-editor-toolbar {
   display: flex;
@@ -424,6 +466,29 @@
 .da-board-host { position: absolute; inset: 0; }
 .diagrams-canvas-host { flex: 1; position: relative; overflow: hidden; }
 .diagrams-render-host { overflow: hidden; }
+/* Inline card preview — a static SVG (renderModelToSvg) centred in a fixed
+ * 4:3 box. The SVG keeps its own aspect (viewBox preserveAspectRatio) and is
+ * scaled to fit inside the box. */
+.diagrams-adapter-preview {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.diagrams-adapter-preview svg {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  /* The SVG carries class="lk-root" whose default background is the warm
+   * cream canvas colour. In a card thumbnail that paints a cream box only
+   * over the diagram bbox (cream-in-white). Force transparent so the preview
+   * blends with the card background uniformly. */
+  background: transparent;
+}
 .diagrams-empty { color: var(--pg-text-soft, #999); font-size: 12px; padding: 20px; text-align: center; }
 
 /* Zoom control — bottom, right of the left tool dock (clears the 196px panel) */
@@ -733,8 +798,8 @@
 /* color, not opacity<1 (opacity makes the icon a WebKit compositing layer → 0,0 on iOS) */
 .lk-root .bp-task .ticon { position: absolute; top: 6px; left: 7px; color: var(--pg-text-soft); } .lk-root .bp-task .ticon svg { width: 14px; height: 14px; }
 .lk-root .bp-gw { width: 100%; height: 100%; display: grid; place-items: center; position: relative; }
-.lk-root .bp-gw .gwbox { width: 80%; height: 80%; transform: rotate(45deg); background: color-mix(in srgb, #E2B23A 22%, var(--pg-surface)); border: 1.8px solid #C99A2E; border-radius: 8px; display: grid; place-items: center; box-shadow: var(--sh-sm); }
-.lk-root .bp-gw .x { transform: rotate(-45deg); color: #B07F1E; font-weight: 800; font-size: 20px; line-height: 1; }
+.lk-root .bp-gw .gwbox { width: 72%; height: 72%; transform: rotate(45deg); background: color-mix(in srgb, #E2B23A 22%, var(--pg-surface)); border: 1.8px solid #C99A2E; border-radius: 8px; display: grid; place-items: center; box-shadow: var(--sh-sm); }
+.lk-root .bp-gw .x { transform: rotate(-45deg); color: #B07F1E; font-weight: 800; font-size: 15px; line-height: 1; }
 
 /* ERD */
 .lk-root .erd-table { width: 100%; height: 100%; background: var(--pg-surface); border: 1.5px solid var(--pg-border-strong); border-radius: 9px; box-shadow: var(--sh-sm); overflow: hidden; box-sizing: border-box; }
@@ -824,7 +889,7 @@
 /* BPMN — extended events / data / containers */
 .lk-root .bp-event.inter { border: 2px solid #C99A2E; box-shadow: inset 0 0 0 2.5px var(--pg-surface), inset 0 0 0 4.5px #C99A2E, var(--sh-sm); }
 .lk-root .bp-event.inter svg { color: #C99A2E; }
-.lk-root .bp-event.start svg, .lk-root .bp-event.end svg, .lk-root .bp-event.inter svg { width: 18px; height: 18px; }
+.lk-root .bp-event.start svg, .lk-root .bp-event.end svg, .lk-root .bp-event.inter svg { width: 14px; height: 14px; }
 .lk-root .bp-dataobj, .lk-root .bp-datastore { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--pg-text); box-sizing: border-box; }
 .lk-root .bp-dataobj .ic svg { width: 30px; height: 38px; color: var(--pg-text-muted); }
 .lk-root .bp-datastore .ic svg { width: 34px; height: 32px; color: var(--pg-text-muted); }
@@ -1006,6 +1071,78 @@
 }
 .diagrams-board-editor-header {
   flex: 0 0 auto;
+}
+/* Story 7-5 — modal header chrome: diagram-type chip + read-only title. */
+.diagrams-board-editor-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.diagrams-board-editor-chip {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  color: var(--text-on-accent, #fff);
+  background: var(--interactive-accent, #6965db);
+  white-space: nowrap;
+}
+.diagrams-board-editor-title {
+  flex: 1 1 auto;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-normal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Story 7-5b — editable title input + unified header actions (canvas mode). */
+.diagrams-board-editor-title-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-normal);
+  background: var(--background-modifier-form-field, var(--background-secondary));
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.diagrams-board-editor-title-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent, #6965db);
+}
+.diagrams-board-editor-header-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+/* Canvas toolbar (undo/redo/auto-layout/fit) inside the modal header. */
+.diagrams-board-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 6px;
+  padding-right: 8px;
+  border-right: 1px solid var(--background-modifier-border);
+}
+.diagrams-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  min-width: 0;
+}
+.diagrams-btn-icon .diagrams-icon,
+.diagrams-btn-icon svg {
+  width: 16px;
+  height: 16px;
 }
 .diagrams-board-editor-body {
   flex: 1 1 auto;
@@ -1259,6 +1396,9 @@ body.is-mobile .diagrams-properties-sidebar {
  * skeleton case (back-compat with Story 7-1's existing tests).
  * ────────────────────────────────────────────────────────────────────────── */
 .diagrams-board-editor-body-composed {
+  display: flex; /* Story 7-3 regression fix: row layout never took effect
+                    without display:flex → canvas-mount (flex:1) collapsed to
+                    0 height → blank canvas in both modal + tab. */
   flex-direction: row;
   overflow: hidden;
 }
@@ -1583,4 +1723,53 @@ body.is-mobile .diagrams-card-header {
 .omniboard-embed-host {
   display: block;
   margin: 8px 0;
+}
+
+/* ── Board type picker (Cmd+P "Chèn/Tạo board mới") ── */
+.omniboard-type-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.omniboard-type-suggestion-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+.omniboard-type-suggestion-icon .svg-icon {
+  width: 16px;
+  height: 16px;
+}
+.omniboard-type-suggestion-label {
+  font-weight: 500;
+}
+
+/* ── Omniboard embeds: suppress Obsidian's native markdown rendering ──
+   `.omniboard.md` has a `.md` extension, so Obsidian renders the file's raw
+   markdown (warning callout + "Text Elements" list) as a normal embed. We
+   replace it with <EmbedCard>; these rules guarantee the native content never
+   leaks, whether or not our JS has processed the element yet. */
+.internal-embed[src$=".omniboard.md"],
+.internal-embed[src$=".omniboard"] {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+.internal-embed[src$=".omniboard.md"] .markdown-embed-content,
+.internal-embed[src$=".omniboard.md"] .markdown-embed-title,
+.internal-embed[src$=".omniboard.md"] .embed-title,
+.internal-embed[src$=".omniboard.md"] .markdown-embed-link,
+.internal-embed[src$=".omniboard"] .markdown-embed-content,
+.internal-embed[src$=".omniboard"] .markdown-embed-title,
+.internal-embed[src$=".omniboard"] .embed-title,
+.internal-embed[src$=".omniboard"] .markdown-embed-link {
+  display: none !important;
+}
+/* Once processed, ONLY our card wrapper is visible inside the embed. */
+.omniboard-embed-processed > :not(.omniboard-embed-cardwrap) {
+  display: none !important;
+}
+.omniboard-embed-cardwrap {
+  display: block;
 }

@@ -115,7 +115,7 @@ function withStyle(html: string, sty: string): string {
   if (existing) return html.replace(existing[0], `${existing[1]} style="${existing[2]};${sty}"${existing[3]}`);
   return html.replace(/^(\s*<[a-z][\w-]*\b[^>]*?)(>)/i, `$1 style="${sty}"$2`);
 }
-const svg = (inner: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+const svg = (inner: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 
 const KEY = svg(`<circle cx="8" cy="15" r="4"/><path d="m10.5 12.5 7-7M16 5l3 3"/>`);
 const BP_ICON: Record<string, string> = {
@@ -126,7 +126,7 @@ const BP_ICON: Record<string, string> = {
   script: svg(`<path d="M7 3h8l3 3v15H7z"/><path d="M10 9h5M10 13h5M10 17h3"/>`),
   hand: svg(`<path d="M7 11V6.5a1.5 1.5 0 0 1 3 0V11M10 10.5V5.5a1.5 1.5 0 0 1 3 0V11M13 11V6.5a1.5 1.5 0 0 1 3 0V13a5 5 0 0 1-5 5h-1a4 4 0 0 1-3.5-2L7 13"/>`),
   rule: svg(`<rect x="4" y="5" width="16" height="14" rx="1"/><path d="M4 10h16M10 5v14"/>`),
-  send: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z"/><path d="m3 6 9 6 9-6" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
+  send: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z"/><path d="m3 6 9 6 9-6" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
   page: svg(`<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/>`),
   cyl: svg(`<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/>`),
 };
@@ -136,28 +136,28 @@ const ACTOR = svg(`<circle cx="12" cy="6" r="3"/><path d="M12 9v7M7 12h10M12 16l
 // Two variants per trigger: outline (catching/start) + filled (throwing/end).
 // `bpEvent` picks the variant from `throwing` + the event position.
 const TRIG_OUT: Record<string, string> = {
-  message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5"/></svg>`,
-  timer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><path d="M12 7v5l3 2"/><path d="M12 5v1M12 18v1M5 12h1M18 12h1" stroke-width="1.2"/></svg>`,
-  signal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 21 19H3Z"/></svg>`,
-  error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18 10 8l3 6 3-4 4 10"/></svg>`,
-  escalation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
-  compensation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
-  conditional: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14"/><path d="M7 9h10M7 12h10M7 15h6"/></svg>`,
-  link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h11l-3-3M15 12l-3 3"/></svg>`,
-  cancel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg>`,
-  terminate: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`,
-  multiple: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
-  "parallel-multiple": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>`,
+  message: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5"/></svg>`,
+  timer: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><path d="M12 7v5l3 2"/><path d="M12 5v1M12 18v1M5 12h1M18 12h1" stroke-width="1.2"/></svg>`,
+  signal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 21 19H3Z"/></svg>`,
+  error: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18 10 8l3 6 3-4 4 10"/></svg>`,
+  escalation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+  compensation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+  conditional: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14"/><path d="M7 9h10M7 12h10M7 15h6"/></svg>`,
+  link: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h11l-3-3M15 12l-3 3"/></svg>`,
+  cancel: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg>`,
+  terminate: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`,
+  multiple: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+  "parallel-multiple": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>`,
 };
 const TRIG_FILL: Record<string, string> = {
-  message: `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`,
-  signal: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 21 19H3Z"/></svg>`,
-  error: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 10 8l3 6 3-4 4 10Z"/></svg>`,
-  escalation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
-  compensation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
-  link: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h11l-3-3M15 12l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 10h11v4H4z"/></svg>`,
-  multiple: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
-  cancel: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 6 6 6-6 2 2-6 6 6 6-2 2-6-6-6 6-2-2 6-6-6-6Z"/></svg>`,
+  message: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`,
+  signal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 21 19H3Z"/></svg>`,
+  error: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 10 8l3 6 3-4 4 10Z"/></svg>`,
+  escalation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+  compensation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+  link: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h11l-3-3M15 12l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 10h11v4H4z"/></svg>`,
+  multiple: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+  cancel: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 6 6 6-6 2 2-6 6 6 6-2 2-6-6-6 6-2-2 6-6-6-6Z"/></svg>`,
 };
 function trigIcon(trigger: BpmnTrigger | undefined, filled: boolean): string {
   if (!trigger) return "";
@@ -170,12 +170,12 @@ function trigIcon(trigger: BpmnTrigger | undefined, filled: boolean): string {
 
 // ── Activity marker icons (rendered at the bottom of a task/sub-process) ──
 const MARKER_ICON: Record<BpmnMarker, string> = {
-  loop: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9a4 4 0 1 0 1-3M5 5V3M5 5H3"/></svg>`,
-  "mi-par": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="2.4" height="10"/><rect x="6.8" y="3" width="2.4" height="10"/><rect x="10.6" y="3" width="2.4" height="10"/></svg>`,
-  "mi-seq": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="2.4"/><rect x="3" y="6.8" width="10" height="2.4"/><rect x="3" y="10.6" width="10" height="2.4"/></svg>`,
-  adhoc: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10c2-4 4-4 6 0s4 4 6 0"/></svg>`,
-  compensation: `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M9 3 3 8l6 5ZM15 3 9 8l6 5Z"/></svg>`,
-  subprocess: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10"/><path d="M8 5.5v5M5.5 8h5"/></svg>`,
+  loop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9a4 4 0 1 0 1-3M5 5V3M5 5H3"/></svg>`,
+  "mi-par": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="2.4" height="10"/><rect x="6.8" y="3" width="2.4" height="10"/><rect x="10.6" y="3" width="2.4" height="10"/></svg>`,
+  "mi-seq": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="2.4"/><rect x="3" y="6.8" width="10" height="2.4"/><rect x="3" y="10.6" width="10" height="2.4"/></svg>`,
+  adhoc: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10c2-4 4-4 6 0s4 4 6 0"/></svg>`,
+  compensation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M9 3 3 8l6 5ZM15 3 9 8l6 5Z"/></svg>`,
+  subprocess: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10"/><path d="M8 5.5v5M5.5 8h5"/></svg>`,
 };
 function renderMarkers(markers?: BpmnMarker[]): string {
   if (!markers || markers.length === 0) return "";
@@ -314,9 +314,9 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
     case "bpmn-gateway-inclusive": return bpGateway("○", L, extra);
     // Pentagon + 6-spoke asterisk: drawn as SVG so macOS/iOS don't render them as emoji.
     case "bpmn-gateway-event":
-      return bpGateway(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4 20 10 17 19 7 19 4 10Z"/></svg>`, L, extra);
+      return bpGateway(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4 20 10 17 19 7 19 4 10Z"/></svg>`, L, extra);
     case "bpmn-gateway-complex":
-      return bpGateway(`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16M6 6l12 12M18 6 6 18"/></svg>`, L, extra);
+      return bpGateway(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16M6 6l12 12M18 6 6 18"/></svg>`, L, extra);
     // Tasks (extra.markers renders the marker row at the bottom)
     case "bpmn-task": return bpTask(L, undefined, extra);
     case "bpmn-task-user": return bpTask(L, "user", extra);

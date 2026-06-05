@@ -87,8 +87,10 @@ export function importDbml(raw: string): ImportResult {
   // Build model with placeholder positions, then dagre LR layout.
   const model: CanvasModel = { nodes: [], edges: [] };
   const TABLE_W = 220;
-  const ROW_H = 22;
-  const HEAD_H = 36;
+  // Generous so the static card preview isn't clipped; the live canvas also
+  // auto-grows erd-entity nodes to the real DOM height after load.
+  const ROW_H = 27;
+  const HEAD_H = 38;
 
   const idByTable = new Map<string, string>();
   for (const t of tables) {

@@ -1,58 +1,52 @@
 /**
- * Story 7-11 — unified embed preview card.
+ * Unified embed preview card for `![[file.omniboard.md]]` embeds.
  *
- * Renders the preview UI for `![[file.omniboard.md]]` embeds. Shared
- * by:
- * - The Reading mode post-processor in main.ts (`renderBoardEmbed`)
- * - The Live Preview CodeMirror 6 widget in
- *   `src/embed/liveEmbedExtension.ts`
+ * Rendered by `renderBoardEmbed` in main.ts, which a MutationObserver drives
+ * for every omniboard `.internal-embed` (both Reading mode and Live Preview).
  *
- * Visually consistent with the polished inline `<DiagramCard>` from
- * Story 7-7 — same chip pill, same button styling, same border /
- * shadow — so users see ONE card UI across all three rendering
- * surfaces (inline code block, embed Reading mode, embed Live
- * Preview).
+ * Visually identical to the inline `<DiagramCard>` (same chip pill, same
+ * quick-action buttons, same live preview body) so the user sees ONE card UI
+ * everywhere. The badge label shows the board's **title = file name** (the
+ * single source of truth lives in the `.omniboard.md` file, so the embed
+ * doesn't carry a separate diagram-type label).
  *
- * The component is **synchronous**: it receives the already-parsed
- * model and a "click Mở" callback. The async file-read happens at
- * the host call site (post-processor or CM6 widget) — both already
- * use `vault.cachedRead`. Keeps this component DOM-renderable in
- * isolation for tests + avoids importing obsidian here.
+ * The component is **synchronous** and obsidian-free: the async file read
+ * happens at the host call site, and Obsidian-specific actions (the
+ * `setIcon` painter, the Export / overflow menus) are injected as callbacks.
+ * Keeps it unit-testable as a plain function.
  */
 
 import { type VNode } from "preact";
 
 export interface EmbedCardProps {
-  /** Filename to display in the chip + as the card title. */
-  filename: string;
-  /** Diagram type label (e.g. "Omniboard"). Shown in the chip. */
-  typeLabel?: string;
+  /** Title shown in the badge + used as the card title (file name, no suffix). */
+  title: string;
   /** Node count for the meta line. */
   nodeCount: number;
   /** Edge count for the meta line. */
   edgeCount: number;
   /**
    * Inline SVG markup for the preview body. When undefined → render
-   * loading state. When empty string → render the empty/corrupt
-   * state.
+   * loading state. When empty string → render the empty/corrupt state.
    */
   svg?: string;
   /** Set when the card represents a state we couldn't render. */
   errorMessage?: string;
-  /** Click handler for the "Mở" action — typically opens BoardView. */
-  onOpen: () => void;
+  /** Open the popup board editor (the primary "Sửa" action + card click). */
+  onEdit: () => void;
+  /** Open the Export menu, anchored at the click. Omit to hide the button. */
+  onExportMenu?: (e: MouseEvent) => void;
+  /** Open the overflow (⋯) menu, anchored at the click. Omit to hide it. */
+  onMoreMenu?: (e: MouseEvent) => void;
   /**
-   * Optional callback for setIcon — passed the icon span so the host
-   * can call Obsidian's `setIcon()` after mount. Decoupled here so
-   * EmbedCard itself doesn't import obsidian (lets unit tests render
-   * it without mocking).
+   * Optional callback for setIcon — passed the icon span so the host can call
+   * Obsidian's `setIcon()` after mount. Decoupled so EmbedCard itself doesn't
+   * import obsidian (lets unit tests render it without mocking).
    */
   setIcon?: (el: HTMLSpanElement, name: string) => void;
 }
 
 export function EmbedCard(props: EmbedCardProps): VNode {
-  const typeLabel = props.typeLabel ?? "Omniboard";
-
   const setIconRef =
     (name: string) =>
     (el: HTMLSpanElement | null): void => {
@@ -66,40 +60,89 @@ export function EmbedCard(props: EmbedCardProps): VNode {
     : `${props.nodeCount} phần tử · ${props.edgeCount} nối`;
 
   return (
-    <div class="diagrams-card diagrams-card-embed" data-testid="diagrams-embed-card">
+    <div
+      class="diagrams-card diagrams-card-embed"
+      data-testid="diagrams-embed-card"
+      onClick={() => props.onEdit()}
+    >
       <div class="diagrams-card-header">
-        <div
-          class="diagrams-card-chip"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div class="diagrams-card-chip" onClick={(e) => e.stopPropagation()}>
           <span
             ref={setIconRef("shapes")}
             class="diagrams-card-chip-icon"
             aria-hidden="true"
           />
-          <span class="diagrams-card-chip-label">{typeLabel}</span>
+          <span
+            class="diagrams-card-chip-label"
+            data-testid="diagrams-embed-title"
+          >
+            {props.title}
+          </span>
         </div>
-        <div class="diagrams-card-embed-title" data-testid="diagrams-embed-title">
-          {props.filename}
-        </div>
+
         <div class="diagrams-card-spacer" />
+
+        {props.onExportMenu && (
+          <button
+            type="button"
+            class="diagrams-card-btn diagrams-card-btn-export"
+            aria-label="Export"
+            title="Export"
+            data-testid="diagrams-embed-export"
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onExportMenu!(e as unknown as MouseEvent);
+            }}
+          >
+            <span
+              ref={setIconRef("download")}
+              class="diagrams-card-btn-icon"
+              aria-hidden="true"
+            />
+            <span class="diagrams-card-btn-label">Export</span>
+          </button>
+        )}
+
         <button
           type="button"
-          class="diagrams-card-btn diagrams-card-btn-primary"
-          data-testid="diagrams-embed-open"
+          class="diagrams-card-btn diagrams-card-btn-edit diagrams-card-btn-primary"
+          aria-label="Sửa"
+          title="Sửa"
+          data-testid="diagrams-embed-edit"
           onClick={(e) => {
             e.stopPropagation();
-            props.onOpen();
+            props.onEdit();
           }}
         >
           <span
-            ref={setIconRef("external-link")}
+            ref={setIconRef("square-pen")}
             class="diagrams-card-btn-icon"
             aria-hidden="true"
           />
-          <span class="diagrams-card-btn-label">Mở</span>
+          <span class="diagrams-card-btn-label">Sửa</span>
         </button>
+
+        {props.onMoreMenu && (
+          <button
+            type="button"
+            class="diagrams-card-btn diagrams-card-btn-more"
+            aria-label="More actions"
+            title="More actions"
+            data-testid="diagrams-embed-more"
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onMoreMenu!(e as unknown as MouseEvent);
+            }}
+          >
+            <span
+              ref={setIconRef("more-horizontal")}
+              class="diagrams-card-btn-icon"
+              aria-hidden="true"
+            />
+          </button>
+        )}
       </div>
+
       <div
         class="diagrams-card-preview diagrams-card-embed-preview"
         data-testid="diagrams-embed-preview"
@@ -109,7 +152,7 @@ export function EmbedCard(props: EmbedCardProps): VNode {
           <div class="diagrams-card-embed-loading">Đang tải…</div>
         ) : props.svg === "" || props.errorMessage ? (
           <div class="diagrams-card-embed-empty">
-            {props.errorMessage ?? "Board trống — bấm Mở để vẽ."}
+            {props.errorMessage ?? "Board trống — bấm Sửa để vẽ."}
           </div>
         ) : (
           <div

@@ -1,5 +1,11 @@
 import { makeStubAdapter } from "../makeStubAdapter";
 import { MermaidRenderer } from "./MermaidRenderer";
+import { mermaidPaletteItems } from "./palette";
+import {
+  validateMermaidSource,
+  getMermaidTitle,
+  setMermaidTitle,
+} from "./sourceOps";
 
 /**
  * Mermaid (enhanced) — coexists with Obsidian's built-in `mermaid` block. This
@@ -19,4 +25,9 @@ export const mermaidAdapter = {
   C -->|Chưa| E[Lưu lead]`,
   }),
   Renderer: MermaidRenderer,
+  // Story 7-19
+  validateSource: validateMermaidSource,
+  getTitle: getMermaidTitle,
+  setTitle: setMermaidTitle,
+  paletteItems: mermaidPaletteItems,
 };

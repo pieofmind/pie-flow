@@ -9,8 +9,36 @@ function nodeColumns(attrs: Record<string, unknown> | undefined): SourceCol[] | 
 }
 
 function emitTable(name: string, cols: SourceCol[]): string {
-  const lines = cols.map((c) => `  ${c.name} ${c.type}${c.flags ? ` [${c.flags}]` : ""}`);
-  return `Table ${name} {\n${lines.join("\n")}\n}`;
+  const body = cols.length
+    ? cols.map((c) => `  ${c.name} ${c.type}${c.flags ? ` [${c.flags}]` : ""}`).join("\n")
+    : `  id integer [pk]`;
+  return `Table ${name} {\n${body}\n}`;
+}
+
+/** DBML table/column identifiers: [A-Za-z_][A-Za-z0-9_]*. Sanitize anything
+ *  else (UUID hyphens, spaces, leading digits) so dbdiagram.io parses cleanly. */
+function sanitizeIdent(raw: string, fallback: string): string {
+  const base = (raw || "").trim() || fallback;
+  let s = base.replace(/[^A-Za-z0-9_]/g, "_");
+  if (!s || /^[0-9]/.test(s)) s = "t_" + s;
+  return s;
+}
+
+/** Build node-id → unique DBML table name. Prefers node.label, falls back to
+ *  node.id; disambiguates collisions with a numeric suffix. */
+function buildNameMap(nodes: CanvasModel["nodes"]): Map<string, string> {
+  const out = new Map<string, string>();
+  const used = new Set<string>();
+  for (const n of nodes) {
+    const src = (n.attrs as { __source?: { sourceId?: string } } | undefined)?.__source?.sourceId;
+    const seed = src || n.label || n.id;
+    let name = sanitizeIdent(seed, n.id);
+    let i = 2;
+    while (used.has(name)) name = `${sanitizeIdent(seed, n.id)}_${i++}`;
+    used.add(name);
+    out.set(n.id, name);
+  }
+  return out;
 }
 
 /**
@@ -21,19 +49,14 @@ function emitTable(name: string, cols: SourceCol[]): string {
  */
 export function exportDbml(model: CanvasModel, meta?: SourceMeta | null): string {
   const tableNodes = model.nodes.filter((n) => n.shape === "erd-entity");
-  const knownIds = new Set<string>();
-  for (const n of tableNodes) {
-    const id = (n.attrs as { __source?: { sourceId?: string } } | undefined)?.__source?.sourceId;
-    if (id) knownIds.add(id);
-  }
+  const nameOf = buildNameMap(tableNodes);
 
   // New tables = canvas tables without a sourceId.
   const newTables = tableNodes
     .filter((n) => !((n.attrs as { __source?: { sourceId?: string } } | undefined)?.__source?.sourceId))
     .map((n) => {
       const cols = nodeColumns(n.attrs as Record<string, unknown>) ?? extractErdCols(n.attrs as Record<string, unknown>);
-      if (!cols.length) parseLabelCols(n.label);
-      return emitTable(n.id, cols);
+      return emitTable(nameOf.get(n.id) ?? sanitizeIdent(n.label, n.id), cols);
     });
 
   // New edges (refs) = edges whose endpoints both refer to tables not present
@@ -78,24 +101,13 @@ export function exportDbml(model: CanvasModel, meta?: SourceMeta | null): string
 
   // No source meta — emit fresh DBML.
   const fresh = tableNodes.map((n) => {
-    const cols = nodeColumns(n.attrs as Record<string, unknown>) ?? parseLabelCols(n.label);
-    return emitTable(n.id, cols);
+    const cols = nodeColumns(n.attrs as Record<string, unknown>) ?? extractErdCols(n.attrs as Record<string, unknown>);
+    return emitTable(nameOf.get(n.id) ?? sanitizeIdent(n.label, n.id), cols);
   });
   const refs = model.edges
-    .filter((e) => knownIdsContains(tableNodes, e.source) && knownIdsContains(tableNodes, e.target))
-    .map((e) => `Ref: ${e.source}.id > ${e.target}.id`);
+    .filter((e) => nameOf.has(e.source) && nameOf.has(e.target))
+    .map((e) => `Ref: ${nameOf.get(e.source)}.id > ${nameOf.get(e.target)}.id`);
   return [fresh.join("\n\n"), refs.join("\n")].filter(Boolean).join("\n\n") + "\n";
-}
-
-function knownIdsContains(nodes: CanvasModel["nodes"], id: string): boolean {
-  return nodes.some((n) => n.id === id);
-}
-
-function parseLabelCols(_label: string): SourceCol[] {
-  // No fallback column parsing — canvas-edited ERD nodes carry rows in
-  // `attrs.cols` (ErdCol[]). Caller already prefers __source.columns when
-  // available, then attrs.cols (mapped in extractErdCols below).
-  return [];
 }
 
 /** Promote canvas ErdCol[] (k/name/type) back to DBML SourceCol (name/type/flags). */

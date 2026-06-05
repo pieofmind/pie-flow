@@ -1,7 +1,51 @@
 import type { ComponentType } from "preact";
+import type { PaletteSidebarItem, PropertyFieldSchema } from "./sidebarSchema";
+import type { ShapeCategory, CanvasModel } from "../canvas/types";
+
+/**
+ * Story 7-5d — a live editing session on the unified canvas. `serialize`
+ * writes the (edited) model back to the adapter's source text; it may close
+ * over parse-time metadata (e.g. BPMN sourceMeta) and may be async.
+ */
+export interface CanvasEditSession {
+  model: CanvasModel;
+  /** Initial diagram title for the editable topbar field (optional). */
+  title?: string;
+  /**
+   * Write the edited model back to source text, applying `title` if given.
+   * The closure applies the title the right way per format (flowchart: model
+   * field; BPMN: process name; …) so the host stays format-agnostic. May be
+   * async.
+   */
+  serialize: (model: CanvasModel, title?: string) => string | Promise<string>;
+}
+
+export type { PaletteSidebarItem, PropertyFieldSchema } from "./sidebarSchema";
+
+/**
+ * Story 7-8b — context passed to `DiagramAdapter.getPropertyFields()`.
+ *
+ * Property fields are produced by a FUNCTION (not a static array) because each
+ * field's `onChange` must close over the CURRENT model to build the next one.
+ * The host supplies the live model + a dispatch; the adapter returns the field
+ * schema for the current selection.
+ */
+export interface PropertyFieldsContext<TModel> {
+  /** Current model — fields read their values from this. */
+  model: TModel;
+  /** Id of the currently selected canvas node, if any. */
+  selectedId?: string;
+  /**
+   * Dispatch an immutable model update. Field `onChange` handlers call this
+   * with a NEW model (e.g. `setModel(setTitle(model, next))`). The host
+   * re-renders the sidebar with the updated model.
+   */
+  setModel: (next: TModel) => void;
+}
 
 export type DiagramTypeId =
   | "bpmn"
+  | "dbml"
   | "erd"
   | "flowchart"
   | "uml"
@@ -127,4 +171,77 @@ export interface DiagramAdapter<TModel = any> {
    *   should treat it consistently with `getTitle` returning undefined.
    */
   setTitle?(model: TModel, title: string): TModel;
+
+  /**
+   * Story 7-8 — optional declarative palette schema. When provided, the
+   * `<BoardEditor>` left sidebar (`<PaletteSidebar>`) renders these items.
+   * Items are static per adapter — they don't depend on the current model.
+   * Selection dispatch happens at the sidebar level via `onSelectItem`
+   * (BoardEditor consumer wires concrete action). Adapters that have
+   * no concept of a palette omit the field; BoardEditor then hides the
+   * left sidebar.
+   */
+  paletteItems?: ReadonlyArray<PaletteSidebarItem>;
+
+  /**
+   * Story 7-8b — optional function-form property fields. Returns the schema
+   * for the properties sidebar given the current model + selection.
+   *
+   * Function form (not a static array like `paletteItems`) because each
+   * field's `value` is read from `ctx.model` and its `onChange` must dispatch
+   * a NEW model via `ctx.setModel` — both require the live model at call time.
+   *
+   * Contract:
+   * - MUST be pure with respect to `ctx.model` (read-only; never mutate it).
+   * - Field `onChange` handlers call `ctx.setModel(nextModel)` with an
+   *   immutably-updated model.
+   * - Return `[]` (or omit the method) when there is nothing to edit; the
+   *   host then collapses the properties sidebar.
+   * - **HOST OBLIGATION:** the host MUST re-invoke `getPropertyFields` with the
+   *   updated model after every `setModel` (do NOT cache the returned array
+   *   across model changes). Each field's `onChange` closes over the `ctx.model`
+   *   it was built with; reusing a stale array would lose updates on rapid
+   *   successive edits.
+   */
+  getPropertyFields?(
+    ctx: PropertyFieldsContext<TModel>,
+  ): ReadonlyArray<PropertyFieldSchema>;
+
+  /**
+   * Story 7-5b — opt-in flag marking this adapter as "canvas-native": its
+   * `TModel` IS a `CanvasModel` and it can be edited directly in the unified
+   * `<BoardEditor>` canvas slot (palette + X6 canvas), not just its own
+   * `<Editor>`. When present, hosts (EditModal via ModalEditorHost) mount the
+   * canvas slot using this shape catalog instead of the adapter's `<Editor>`.
+   *
+   * Adapters whose model is NOT a CanvasModel (raw-string adapters like BPMN,
+   * sequence, etc.) omit this — hosts fall back to `<Editor>` in the body slot.
+   */
+  canvasShapeCategories?: ReadonlyArray<ShapeCategory>;
+
+  /**
+   * Story 7-5d — open this source in the UNIFIED OmniboardCanvas editor
+   * (shared topbar + canvas, identical to BoardView). When present, the edit
+   * modal parses the source to a CanvasModel via `toEditor` and edits it on the
+   * real canvas, then writes it back with the returned `serialize` closure
+   * (which captures any parse-time metadata, e.g. BPMN sourceMeta, for a
+   * faithful round-trip).
+   *
+   * Adapters that cannot (yet) round-trip through a CanvasModel omit this and
+   * fall back to the raw-text editor.
+   */
+  toEditor?(source: string): CanvasEditSession | Promise<CanvasEditSession>;
+
+  /**
+   * Story 7-5c — opt-in: this adapter's `<Editor>` body does NOT surface the
+   * title (e.g. a visual/canvas editor where the title is metadata, not shown
+   * in the edit surface). When true AND `setTitle` exists, the modal header
+   * renders an editable title `<input>` that is the single authority — applied
+   * onto the model at save via `setTitle`.
+   *
+   * Leave unset for raw-source editors (the title lives in the visible source,
+   * so a header input would be a confusing second title editor). Those keep a
+   * read-only header title (Story 7-5).
+   */
+  titleEditableInHeader?: boolean;
 }

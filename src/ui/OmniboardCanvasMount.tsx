@@ -2,6 +2,13 @@ import { useEffect, useRef } from "preact/hooks";
 import { type VNode } from "preact";
 import { OmniboardCanvas } from "../canvas/OmniboardCanvas";
 import type { CanvasModel, ShapeCategory } from "../canvas/types";
+import { registerAllShapes } from "../canvas/shapes/index";
+
+// Register X6 custom shapes (fc-*, bpmn-*, etc.) exactly once at module load.
+// This is the canonical home: any host that mounts OmniboardCanvas via this
+// component (BoardView tab, EditModal canvas branch) gets shapes registered
+// regardless of adapter import order. registerAllShapes() is idempotent.
+registerAllShapes();
 
 /**
  * Props for `<OmniboardCanvasMount>`.

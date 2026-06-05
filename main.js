@@ -24458,7 +24458,7 @@ var require_make_built_in = __commonJS({
       return defineProperty4(function() {
       }, "length", { value: 8 }).length !== 8;
     });
-    var TEMPLATE = String(String).split("String");
+    var TEMPLATE3 = String(String).split("String");
     var makeBuiltIn = module2.exports = function(value, name2, options) {
       if (stringSlice($String(name2), 0, 7) === "Symbol(") {
         name2 = "[" + replace($String(name2), /^Symbol\(([^)]*)\).*$/, "$1") + "]";
@@ -24480,7 +24480,7 @@ var require_make_built_in = __commonJS({
       }
       var state = enforceInternalState(value);
       if (!hasOwn(state, "source")) {
-        state.source = join(TEMPLATE, typeof name2 == "string" ? name2 : "");
+        state.source = join(TEMPLATE3, typeof name2 == "string" ? name2 : "");
       }
       return value;
     };
@@ -25343,7 +25343,7 @@ var require_microtask = __commonJS({
     var IS_IOS_PEBBLE = require_environment_is_ios_pebble();
     var IS_WEBOS_WEBKIT = require_environment_is_webos_webkit();
     var IS_NODE = require_environment_is_node();
-    var MutationObserver = globalThis2.MutationObserver || globalThis2.WebKitMutationObserver;
+    var MutationObserver2 = globalThis2.MutationObserver || globalThis2.WebKitMutationObserver;
     var document2 = globalThis2.document;
     var process2 = globalThis2.process;
     var Promise3 = globalThis2.Promise;
@@ -25366,10 +25366,10 @@ var require_microtask = __commonJS({
         }
         if (parent) parent.enter();
       };
-      if (!IS_IOS && !IS_NODE && !IS_WEBOS_WEBKIT && MutationObserver && document2) {
+      if (!IS_IOS && !IS_NODE && !IS_WEBOS_WEBKIT && MutationObserver2 && document2) {
         toggle2 = true;
         node3 = document2.createTextNode("");
-        new MutationObserver(flush).observe(node3, { characterData: true });
+        new MutationObserver2(flush).observe(node3, { characterData: true });
         notify2 = function() {
           node3.data = toggle2 = !toggle2;
         };
@@ -34403,7 +34403,7 @@ function E2(e5) {
   y5.__private__.setPrecision = y5.setPrecision = function(t6) {
     "number" == typeof parseInt(t6, 10) && (r5 = parseInt(t6, 10));
   };
-  var W3, V4 = "00000000000000000000000000000000", G3 = y5.__private__.getFileId = function() {
+  var W4, V4 = "00000000000000000000000000000000", G3 = y5.__private__.getFileId = function() {
     return V4;
   }, Y3 = y5.__private__.setFileId = function(t6) {
     return V4 = void 0 !== t6 && /^[a-fA-F0-9]{32}$/.test(t6) ? t6.toUpperCase() : V4.split("").map(function() {
@@ -34428,10 +34428,10 @@ function E2(e5) {
       if (!/^D:(20[0-2][0-9]|203[0-7]|19[7-9][0-9])(0[0-9]|1[0-2])([0-2][0-9]|3[0-1])(0[0-9]|1[0-9]|2[0-3])(0[0-9]|[1-5][0-9])(0[0-9]|[1-5][0-9])(\+0[0-9]|\+1[0-4]|-0[0-9]|-1[0-1])'(0[0-9]|[1-5][0-9])'?$/.test(t6)) throw new Error("Invalid argument passed to jsPDF.setCreationDate");
       e6 = t6;
     }
-    return W3 = e6;
+    return W4 = e6;
   }, Z3 = y5.__private__.getCreationDate = function(t6) {
-    var e6 = W3;
-    return "jsDate" === t6 && (e6 = X3(W3)), e6;
+    var e6 = W4;
+    return "jsDate" === t6 && (e6 = X3(W4)), e6;
   };
   y5.setCreationDate = function(t6) {
     return K4(t6), this;
@@ -34806,7 +34806,7 @@ function E2(e5) {
       return t7;
     };
     for (var r6 in null !== m7 && (e6 = Oe2.encryptor(t6, 0)), lt3("<<"), lt3("/Producer (" + ge3(e6("jsPDF " + E2.version)) + ")"), xt3) xt3.hasOwnProperty(r6) && xt3[r6] && lt3("/" + r6.substr(0, 1).toUpperCase() + r6.substr(1) + " (" + ge3(e6(xt3[r6])) + ")");
-    lt3("/CreationDate (" + ge3(e6(W3)) + ")"), lt3(">>"), lt3("endobj");
+    lt3("/CreationDate (" + ge3(e6(W4)) + ")"), lt3(">>"), lt3("endobj");
   }, xe3 = y5.__private__.putCatalog = function(t6) {
     var e6 = (t6 = t6 || {}).rootDictionaryObjId || Qt3;
     switch (Xt3(), lt3("<<"), lt3("/Type /Catalog"), lt3("/Pages " + e6 + " 0 R"), gt3 || (gt3 = "fullwidth"), gt3) {
@@ -35111,7 +35111,7 @@ function E2(e5) {
     }
     var z6 = void 0 !== T7.usedRenderingMode ? T7.usedRenderingMode : -1;
     -1 !== E3 ? y6 += E3 + " Tr\n" : -1 !== z6 && (y6 += "0 Tr\n"), -1 !== E3 && (T7.usedRenderingMode = E3), c7 = i6.align || "left";
-    var H5, W4 = pt2 * w6, V5 = g5.internal.pageSize.getWidth(), G4 = Ft3[At3];
+    var H5, W5 = pt2 * w6, V5 = g5.internal.pageSize.getWidth(), G4 = Ft3[At3];
     l5 = i6.charSpace || hr, h5 = i6.maxWidth || 0, f7 = Object.assign({ autoencode: true, noBOM: true }, i6.flags);
     var Y4 = [], J5 = function(t6) {
       return g5.getStringUnitWidth(t6, { font: G4, charSpace: l5, fontSize: pt2, doKerning: false }) * pt2 / N6;
@@ -35122,16 +35122,16 @@ function E2(e5) {
       var K5, Z4 = 0;
       if ("right" === c7) {
         r6 -= H5[0], e6 = [], C5 = s6.length;
-        for (var $5 = 0; $5 < C5; $5++) 0 === $5 ? (K5 = nr2(r6), X4 = ir2(n5)) : (K5 = U3(Z4 - H5[$5]), X4 = -W4), e6.push([s6[$5], K5, X4]), Z4 = H5[$5];
+        for (var $5 = 0; $5 < C5; $5++) 0 === $5 ? (K5 = nr2(r6), X4 = ir2(n5)) : (K5 = U3(Z4 - H5[$5]), X4 = -W5), e6.push([s6[$5], K5, X4]), Z4 = H5[$5];
       } else if ("center" === c7) {
         r6 -= H5[0] / 2, e6 = [], C5 = s6.length;
-        for (var Q5 = 0; Q5 < C5; Q5++) 0 === Q5 ? (K5 = nr2(r6), X4 = ir2(n5)) : (K5 = U3((Z4 - H5[Q5]) / 2), X4 = -W4), e6.push([s6[Q5], K5, X4]), Z4 = H5[Q5];
+        for (var Q5 = 0; Q5 < C5; Q5++) 0 === Q5 ? (K5 = nr2(r6), X4 = ir2(n5)) : (K5 = U3((Z4 - H5[Q5]) / 2), X4 = -W5), e6.push([s6[Q5], K5, X4]), Z4 = H5[Q5];
       } else if ("left" === c7) {
         e6 = [], C5 = s6.length;
         for (var tt4 = 0; tt4 < C5; tt4++) e6.push(s6[tt4]);
       } else if ("justify" === c7 && "Identity-H" === G4.encoding) {
         e6 = [], C5 = s6.length, h5 = 0 !== h5 ? h5 : V5;
-        for (var et5 = 0, rt4 = 0; rt4 < C5; rt4++) if (X4 = 0 === rt4 ? ir2(n5) : -W4, K5 = 0 === rt4 ? nr2(r6) : et5, rt4 < C5 - 1) {
+        for (var et5 = 0, rt4 = 0; rt4 < C5; rt4++) if (X4 = 0 === rt4 ? ir2(n5) : -W5, K5 = 0 === rt4 ? nr2(r6) : et5, rt4 < C5 - 1) {
           var nt4 = U3((h5 - H5[rt4]) / (s6[rt4].split(" ").length - 1)), it4 = s6[rt4].split(" ");
           e6.push([it4[0] + " ", K5, X4]), et5 = 0;
           for (var at4 = 1; at4 < it4.length; at4++) {
@@ -35143,7 +35143,7 @@ function E2(e5) {
       } else {
         if ("justify" !== c7) throw new Error('Unrecognized alignment option, use "left", "center", "right" or "justify".');
         for (e6 = [], C5 = s6.length, h5 = 0 !== h5 ? h5 : V5, rt4 = 0; rt4 < C5; rt4++) {
-          X4 = 0 === rt4 ? ir2(n5) : -W4, K5 = 0 === rt4 ? nr2(r6) : 0;
+          X4 = 0 === rt4 ? ir2(n5) : -W5, K5 = 0 === rt4 ? nr2(r6) : 0;
           var st4 = s6[rt4].split(" ").length - 1, ut4 = st4 > 0 ? (h5 - H5[rt4]) / st4 : 0;
           rt4 < C5 - 1 ? Y4.push(B5(U3(ut4))) : Y4.push(0), e6.push([s6[rt4], K5, X4]);
         }
@@ -35827,11 +35827,11 @@ function oe2(t6) {
       }
       for (f7 = 0, l7 = 0; l7 < 8; ++l7) {
         r7 = t8[f7], n6 = t8[f7 + 8], i8 = t8[f7 + 16], a7 = t8[f7 + 24], o7 = t8[f7 + 32], s7 = t8[f7 + 40], u9 = t8[f7 + 48];
-        var O6 = r7 + (c8 = t8[f7 + 56]), B6 = r7 - c8, M4 = n6 + u9, q6 = n6 - u9, E4 = i8 + s7, R4 = i8 - s7, D5 = a7 + o7, T6 = a7 - o7, z5 = O6 + D5, U3 = O6 - D5, H4 = M4 + E4, W3 = M4 - E4;
+        var O6 = r7 + (c8 = t8[f7 + 56]), B6 = r7 - c8, M4 = n6 + u9, q6 = n6 - u9, E4 = i8 + s7, R4 = i8 - s7, D5 = a7 + o7, T6 = a7 - o7, z5 = O6 + D5, U3 = O6 - D5, H4 = M4 + E4, W4 = M4 - E4;
         t8[f7] = z5 + H4, t8[f7 + 32] = z5 - H4;
-        var V4 = 0.707106781 * (W3 + U3);
+        var V4 = 0.707106781 * (W4 + U3);
         t8[f7 + 16] = U3 + V4, t8[f7 + 48] = U3 - V4;
-        var G3 = 0.382683433 * ((z5 = T6 + R4) - (W3 = q6 + B6)), Y3 = 0.5411961 * z5 + G3, J4 = 1.306562965 * W3 + G3, X3 = 0.707106781 * (H4 = R4 + q6), K4 = B6 + X3, Z3 = B6 - X3;
+        var G3 = 0.382683433 * ((z5 = T6 + R4) - (W4 = q6 + B6)), Y3 = 0.5411961 * z5 + G3, J4 = 1.306562965 * W4 + G3, X3 = 0.707106781 * (H4 = R4 + q6), K4 = B6 + X3, Z3 = B6 - X3;
         t8[f7 + 40] = Z3 + Y3, t8[f7 + 24] = Z3 - Y3, t8[f7 + 8] = K4 + J4, t8[f7 + 56] = K4 - J4, f7++;
       }
       for (l7 = 0; l7 < 64; ++l7) h6 = t8[l7] * e7[l7], d4[l7] = h6 > 0 ? h6 + 0.5 | 0 : h6 - 0.5 | 0;
@@ -35890,9 +35890,9 @@ function oe2(t6) {
     }(), M3(65498), M3(12), B5(3), B5(1), B5(0), B5(2), B5(17), B5(3), B5(17), B5(0), B5(63), B5(0);
     var o6 = 0, h6 = 0, f7 = 0;
     m7 = 0, v6 = 7, this.encode.displayName = "_encode_";
-    for (var d5, p7, N6, x6, j6, R4, D5, T6, z5, U3 = t7.data, H4 = t7.width, W3 = t7.height, V4 = 4 * H4, G3 = 0; G3 < W3; ) {
+    for (var d5, p7, N6, x6, j6, R4, D5, T6, z5, U3 = t7.data, H4 = t7.width, W4 = t7.height, V4 = 4 * H4, G3 = 0; G3 < W4; ) {
       for (d5 = 0; d5 < V4; ) {
-        for (j6 = V4 * G3 + d5, D5 = -1, T6 = 0, z5 = 0; z5 < 64; z5++) R4 = j6 + (T6 = z5 >> 3) * V4 + (D5 = 4 * (7 & z5)), G3 + T6 >= W3 && (R4 -= V4 * (G3 + 1 + T6 - W3)), d5 + D5 >= V4 && (R4 -= d5 + D5 - V4 + 4), p7 = U3[R4++], N6 = U3[R4++], x6 = U3[R4++], b4[z5] = (L4[p7] + L4[N6 + 256 | 0] + L4[x6 + 512 | 0] >> 16) - 128, y5[z5] = (L4[p7 + 768 | 0] + L4[N6 + 1024 | 0] + L4[x6 + 1280 | 0] >> 16) - 128, w5[z5] = (L4[p7 + 1280 | 0] + L4[N6 + 1536 | 0] + L4[x6 + 1792 | 0] >> 16) - 128;
+        for (j6 = V4 * G3 + d5, D5 = -1, T6 = 0, z5 = 0; z5 < 64; z5++) R4 = j6 + (T6 = z5 >> 3) * V4 + (D5 = 4 * (7 & z5)), G3 + T6 >= W4 && (R4 -= V4 * (G3 + 1 + T6 - W4)), d5 + D5 >= V4 && (R4 -= d5 + D5 - V4 + 4), p7 = U3[R4++], N6 = U3[R4++], x6 = U3[R4++], b4[z5] = (L4[p7] + L4[N6 + 256 | 0] + L4[x6 + 512 | 0] >> 16) - 128, y5[z5] = (L4[p7 + 768 | 0] + L4[N6 + 1024 | 0] + L4[x6 + 1280 | 0] >> 16) - 128, w5[z5] = (L4[p7 + 1280 | 0] + L4[N6 + 1536 | 0] + L4[x6 + 1792 | 0] >> 16) - 128;
         o6 = q5(b4, c6, o6, e5, n4), h6 = q5(y5, l5, h6, r5, i6), f7 = q5(w5, l5, f7, r5, i6), d5 += 32;
       }
       G3 += 8;
@@ -36112,7 +36112,7 @@ function ue2(t6) {
     function H4(t8, e6) {
       return U3(t8 + (t8 - e6 + 0.5 >> 1));
     }
-    function W3(t8, e6, r6) {
+    function W4(t8, e6, r6) {
       return Math.abs(e6 - r6) - Math.abs(t8 - r6);
     }
     function V4(t8, e6, r6, n5, i7, a6, o6) {
@@ -36492,14 +36492,14 @@ function ue2(t6) {
         }
         var H5;
         if (H5 = c8) e: {
-          var W4, V5, G4, Y4 = s6, J5 = f8, X4 = p8, K5 = b6, Z4 = n5, $5 = Y4.m, Q5 = Y4.s, tt4 = [null], et5 = 1, rt4 = 0, nt4 = $n2[K5];
+          var W5, V5, G4, Y4 = s6, J5 = f8, X4 = p8, K5 = b6, Z4 = n5, $5 = Y4.m, Q5 = Y4.s, tt4 = [null], et5 = 1, rt4 = 0, nt4 = $n2[K5];
           r: for (; ; ) {
             if (Z4 && y6($5, 1)) {
               var it4 = y6($5, 3) + 2, at4 = E3(J5, it4), ot4 = E3(X4, it4), st4 = at4 * ot4;
               if (!Ft3(at4, ot4, 0, Y4, tt4)) break r;
-              for (tt4 = tt4[0], Q5.xc = it4, W4 = 0; W4 < st4; ++W4) {
-                var ut4 = tt4[W4] >> 8 & 65535;
-                tt4[W4] = ut4, ut4 >= et5 && (et5 = ut4 + 1);
+              for (tt4 = tt4[0], Q5.xc = it4, W5 = 0; W5 < st4; ++W5) {
+                var ut4 = tt4[W5] >> 8 & 65535;
+                tt4[W5] = ut4, ut4 >= et5 && (et5 = ut4 + 1);
               }
             }
             if ($5.h) break r;
@@ -36516,8 +36516,8 @@ function ue2(t6) {
               break r;
             }
             var gt4 = lt4;
-            for (W4 = G4 = 0; W4 < et5; ++W4) {
-              var mt4 = dt4[W4], vt4 = mt4.G, bt4 = mt4.H, wt4 = 0, Nt4 = 1, Lt4 = 0;
+            for (W5 = G4 = 0; W5 < et5; ++W5) {
+              var mt4 = dt4[W5], vt4 = mt4.G, bt4 = mt4.H, wt4 = 0, Nt4 = 1, Lt4 = 0;
               for (V5 = 0; 5 > V5; ++V5) {
                 ct4 = Jn2[V5], vt4[V5] = gt4, bt4[V5] = G4, !V5 && 0 < K5 && (ct4 += 1 << K5);
                 n: {
@@ -37455,7 +37455,7 @@ function ue2(t6) {
       return z5(z5(t8, e6[r6 - 1]), z5(e6[r6 + 0], e6[r6 + 1]));
     }, t7.Predictor11 = function(t8, e6, r6) {
       var n5 = e6[r6 + 0];
-      return 0 >= W3(n5 >> 24 & 255, t8 >> 24 & 255, (e6 = e6[r6 - 1]) >> 24 & 255) + W3(n5 >> 16 & 255, t8 >> 16 & 255, e6 >> 16 & 255) + W3(n5 >> 8 & 255, t8 >> 8 & 255, e6 >> 8 & 255) + W3(255 & n5, 255 & t8, 255 & e6) ? n5 : t8;
+      return 0 >= W4(n5 >> 24 & 255, t8 >> 24 & 255, (e6 = e6[r6 - 1]) >> 24 & 255) + W4(n5 >> 16 & 255, t8 >> 16 & 255, e6 >> 16 & 255) + W4(n5 >> 8 & 255, t8 >> 8 & 255, e6 >> 8 & 255) + W4(255 & n5, 255 & t8, 255 & e6) ? n5 : t8;
     }, t7.Predictor12 = function(t8, e6, r6) {
       var n5 = e6[r6 + 0];
       return (U3((t8 >> 24 & 255) + (n5 >> 24 & 255) - ((e6 = e6[r6 - 1]) >> 24 & 255)) << 24 | U3((t8 >> 16 & 255) + (n5 >> 16 & 255) - (e6 >> 16 & 255)) << 16 | U3((t8 >> 8 & 255) + (n5 >> 8 & 255) - (e6 >> 8 & 255)) << 8 | U3((255 & t8) + (255 & n5) - (255 & e6))) >>> 0;
@@ -41126,7 +41126,7 @@ var init_jspdf_es_min = __esm({
         t7.pos = l5;
       }
       return t6.encode = function(t7, e5) {
-        var r5, n4, i6, a5, o5, s5, u6, c6, l5, h5, f6, d4, p6, g4, m7, v6, b4, y5, w5, N5, L4, x5, A6, S4, _6, P5, k5, F4, I4, C5, j5, O5, B5, M3, q5, E3, R4, D5, T6, z5, U3, H4, W3, V4, G3, Y3;
+        var r5, n4, i6, a5, o5, s5, u6, c6, l5, h5, f6, d4, p6, g4, m7, v6, b4, y5, w5, N5, L4, x5, A6, S4, _6, P5, k5, F4, I4, C5, j5, O5, B5, M3, q5, E3, R4, D5, T6, z5, U3, H4, W4, V4, G3, Y3;
         switch (F4 = new fe2(), a5 = Object.keys(t7).sort(function(t8, e6) {
           return t8 - e6;
         }), e5) {
@@ -41135,7 +41135,7 @@ var init_jspdf_es_min = __esm({
               var t8 = [];
               for (d4 = 0; d4 < 256; ++d4) t8.push(0);
               return t8;
-            }(), v6 = { 0: 0 }, i6 = {}, I4 = 0, B5 = a5.length; I4 < B5; I4++) null == v6[W3 = t7[n4 = a5[I4]]] && (v6[W3] = ++p6), i6[n4] = { old: t7[n4], new: v6[t7[n4]] }, g4[n4] = v6[t7[n4]];
+            }(), v6 = { 0: 0 }, i6 = {}, I4 = 0, B5 = a5.length; I4 < B5; I4++) null == v6[W4 = t7[n4 = a5[I4]]] && (v6[W4] = ++p6), i6[n4] = { old: t7[n4], new: v6[t7[n4]] }, g4[n4] = v6[t7[n4]];
             return F4.writeUInt16(1), F4.writeUInt16(0), F4.writeUInt32(12), F4.writeUInt16(0), F4.writeUInt16(262), F4.writeUInt16(0), F4.write(g4), { charMap: i6, subtable: F4.data, maxGlyphID: p6 + 1 };
           case "unicode":
             for (P5 = [], l5 = [], b4 = 0, v6 = {}, r5 = {}, m7 = u6 = null, C5 = 0, M3 = a5.length; C5 < M3; C5++) null == v6[w5 = t7[n4 = a5[C5]]] && (v6[w5] = ++b4), r5[n4] = { old: w5, new: v6[w5] }, o5 = v6[w5] - n4, null != m7 && o5 === u6 || (m7 && l5.push(m7), P5.push(n4), u6 = o5), m7 = n4;
@@ -41402,7 +41402,7 @@ module.exports = __toCommonJS(main_exports18);
 var import_obsidian12 = require("obsidian");
 
 // src/view/BoardView.ts
-var import_obsidian3 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 
 // node_modules/preact/dist/preact.module.js
 var n;
@@ -73718,7 +73718,7 @@ function withStyle(html3, sty) {
   if (existing) return html3.replace(existing[0], `${existing[1]} style="${existing[2]};${sty}"${existing[3]}`);
   return html3.replace(/^(\s*<[a-z][\w-]*\b[^>]*?)(>)/i, `$1 style="${sty}"$2`);
 }
-var svg = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+var svg = (inner) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 var KEY = svg(`<circle cx="8" cy="15" r="4"/><path d="m10.5 12.5 7-7M16 5l3 3"/>`);
 var BP_ICON = {
   msg: svg(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>`),
@@ -73728,34 +73728,34 @@ var BP_ICON = {
   script: svg(`<path d="M7 3h8l3 3v15H7z"/><path d="M10 9h5M10 13h5M10 17h3"/>`),
   hand: svg(`<path d="M7 11V6.5a1.5 1.5 0 0 1 3 0V11M10 10.5V5.5a1.5 1.5 0 0 1 3 0V11M13 11V6.5a1.5 1.5 0 0 1 3 0V13a5 5 0 0 1-5 5h-1a4 4 0 0 1-3.5-2L7 13"/>`),
   rule: svg(`<rect x="4" y="5" width="16" height="14" rx="1"/><path d="M4 10h16M10 5v14"/>`),
-  send: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z"/><path d="m3 6 9 6 9-6" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
+  send: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z"/><path d="m3 6 9 6 9-6" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
   page: svg(`<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/>`),
   cyl: svg(`<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/>`)
 };
 var ACTOR = svg(`<circle cx="12" cy="6" r="3"/><path d="M12 9v7M7 12h10M12 16l-4 5M12 16l4 5"/>`);
 var TRIG_OUT = {
-  message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5"/></svg>`,
-  timer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><path d="M12 7v5l3 2"/><path d="M12 5v1M12 18v1M5 12h1M18 12h1" stroke-width="1.2"/></svg>`,
-  signal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 21 19H3Z"/></svg>`,
-  error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18 10 8l3 6 3-4 4 10"/></svg>`,
-  escalation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
-  compensation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
-  conditional: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14"/><path d="M7 9h10M7 12h10M7 15h6"/></svg>`,
-  link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h11l-3-3M15 12l-3 3"/></svg>`,
-  cancel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg>`,
-  terminate: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`,
-  multiple: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
-  "parallel-multiple": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>`
+  message: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5"/></svg>`,
+  timer: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><path d="M12 7v5l3 2"/><path d="M12 5v1M12 18v1M5 12h1M18 12h1" stroke-width="1.2"/></svg>`,
+  signal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 21 19H3Z"/></svg>`,
+  error: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18 10 8l3 6 3-4 4 10"/></svg>`,
+  escalation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+  compensation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+  conditional: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14"/><path d="M7 9h10M7 12h10M7 15h6"/></svg>`,
+  link: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h11l-3-3M15 12l-3 3"/></svg>`,
+  cancel: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg>`,
+  terminate: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`,
+  multiple: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+  "parallel-multiple": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>`
 };
 var TRIG_FILL = {
-  message: `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`,
-  signal: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 21 19H3Z"/></svg>`,
-  error: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 10 8l3 6 3-4 4 10Z"/></svg>`,
-  escalation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
-  compensation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
-  link: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h11l-3-3M15 12l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 10h11v4H4z"/></svg>`,
-  multiple: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
-  cancel: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 6 6 6-6 2 2-6 6 6 6-2 2-6-6-6 6-2-2 6-6-6-6Z"/></svg>`
+  message: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`,
+  signal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 21 19H3Z"/></svg>`,
+  error: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 10 8l3 6 3-4 4 10Z"/></svg>`,
+  escalation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+  compensation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+  link: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h11l-3-3M15 12l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 10h11v4H4z"/></svg>`,
+  multiple: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+  cancel: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 6 6 6-6 2 2-6 6 6 6-2 2-6-6-6 6-2-2 6-6-6-6Z"/></svg>`
 };
 function trigIcon(trigger, filled) {
   var _a3;
@@ -73766,12 +73766,12 @@ function trigIcon(trigger, filled) {
   return (_a3 = TRIG_OUT[t6]) != null ? _a3 : "";
 }
 var MARKER_ICON = {
-  loop: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9a4 4 0 1 0 1-3M5 5V3M5 5H3"/></svg>`,
-  "mi-par": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="2.4" height="10"/><rect x="6.8" y="3" width="2.4" height="10"/><rect x="10.6" y="3" width="2.4" height="10"/></svg>`,
-  "mi-seq": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="2.4"/><rect x="3" y="6.8" width="10" height="2.4"/><rect x="3" y="10.6" width="10" height="2.4"/></svg>`,
-  adhoc: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10c2-4 4-4 6 0s4 4 6 0"/></svg>`,
-  compensation: `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M9 3 3 8l6 5ZM15 3 9 8l6 5Z"/></svg>`,
-  subprocess: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10"/><path d="M8 5.5v5M5.5 8h5"/></svg>`
+  loop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9a4 4 0 1 0 1-3M5 5V3M5 5H3"/></svg>`,
+  "mi-par": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="2.4" height="10"/><rect x="6.8" y="3" width="2.4" height="10"/><rect x="10.6" y="3" width="2.4" height="10"/></svg>`,
+  "mi-seq": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="2.4"/><rect x="3" y="6.8" width="10" height="2.4"/><rect x="3" y="10.6" width="10" height="2.4"/></svg>`,
+  adhoc: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10c2-4 4-4 6 0s4 4 6 0"/></svg>`,
+  compensation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M9 3 3 8l6 5ZM15 3 9 8l6 5Z"/></svg>`,
+  subprocess: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10"/><path d="M8 5.5v5M5.5 8h5"/></svg>`
 };
 function renderMarkers(markers) {
   if (!markers || markers.length === 0) return "";
@@ -73938,9 +73938,9 @@ function nodeHtmlBase(kind, label, extra) {
     case "bpmn-gateway-inclusive":
       return bpGateway("\u25CB", L4, extra);
     case "bpmn-gateway-event":
-      return bpGateway(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4 20 10 17 19 7 19 4 10Z"/></svg>`, L4, extra);
+      return bpGateway(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4 20 10 17 19 7 19 4 10Z"/></svg>`, L4, extra);
     case "bpmn-gateway-complex":
-      return bpGateway(`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16M6 6l12 12M18 6 6 18"/></svg>`, L4, extra);
+      return bpGateway(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16M6 6l12 12M18 6 6 18"/></svg>`, L4, extra);
     case "bpmn-task":
       return bpTask(L4, void 0, extra);
     case "bpmn-task-user":
@@ -74192,7 +74192,7 @@ var SHAPE_CATEGORIES = [
     ]
   }
 ];
-var I2 = (inner) => `<svg viewBox="0 0 32 32" fill="none">${inner}</svg>`;
+var I2 = (inner) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">${inner}</svg>`;
 var ICONS = {
   "bs-rect": I2(`<rect x="5" y="9" width="22" height="14" fill="#fff" stroke="#1f2329" stroke-width="2"/>`),
   "bs-rounded": I2(`<rect x="5" y="9" width="22" height="14" rx="4" fill="#fff" stroke="#1f2329" stroke-width="2"/>`),
@@ -74332,7 +74332,7 @@ function shapeIcon(shape, seed) {
       terminate: `<circle cx="16" cy="16" r="5" fill="${c6}"/>`
     };
     const g4 = (_c = glyph[seed.trigger]) != null ? _c : "";
-    return `<svg viewBox="0 0 32 32" fill="none">${(_d = borderByPos[shape]) != null ? _d : ""}${g4}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">${(_d = borderByPos[shape]) != null ? _d : ""}${g4}</svg>`;
   }
   return (_e3 = ICONS[shape]) != null ? _e3 : I2(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
 }
@@ -77062,8 +77062,8 @@ function importDbml(raw2) {
   if (tables.length === 0) warnings.push("Kh\xF4ng t\xECm th\u1EA5y table n\xE0o trong DBML.");
   const model = { nodes: [], edges: [] };
   const TABLE_W = 220;
-  const ROW_H = 22;
-  const HEAD_H = 36;
+  const ROW_H2 = 27;
+  const HEAD_H = 38;
   const idByTable = /* @__PURE__ */ new Map();
   for (const t6 of tables) {
     const id = t6.name;
@@ -77074,7 +77074,7 @@ function importDbml(raw2) {
       const isFk = /\bref\s*:/.test(flags);
       return { k: isPk ? "PK" : isFk ? "FK" : "", name: c6.name, type: c6.type };
     });
-    const height2 = HEAD_H + Math.max(1, erdCols.length) * ROW_H + 12;
+    const height2 = HEAD_H + Math.max(1, erdCols.length) * ROW_H2 + 12;
     model.nodes.push({
       id,
       shape: "erd-entity",
@@ -77130,38 +77130,54 @@ function nodeColumns(attrs) {
   return Array.isArray(src == null ? void 0 : src.columns) ? src.columns : null;
 }
 function emitTable(name2, cols) {
-  const lines = cols.map((c6) => `  ${c6.name} ${c6.type}${c6.flags ? ` [${c6.flags}]` : ""}`);
+  const body = cols.length ? cols.map((c6) => `  ${c6.name} ${c6.type}${c6.flags ? ` [${c6.flags}]` : ""}`).join("\n") : `  id integer [pk]`;
   return `Table ${name2} {
-${lines.join("\n")}
+${body}
 }`;
 }
-function exportDbml(model, meta) {
-  var _a3, _b2, _c, _d, _e3, _f;
-  const tableNodes = model.nodes.filter((n4) => n4.shape === "erd-entity");
-  const knownIds = /* @__PURE__ */ new Set();
-  for (const n4 of tableNodes) {
-    const id = (_b2 = (_a3 = n4.attrs) == null ? void 0 : _a3.__source) == null ? void 0 : _b2.sourceId;
-    if (id) knownIds.add(id);
+function sanitizeIdent(raw2, fallback) {
+  const base = (raw2 || "").trim() || fallback;
+  let s5 = base.replace(/[^A-Za-z0-9_]/g, "_");
+  if (!s5 || /^[0-9]/.test(s5)) s5 = "t_" + s5;
+  return s5;
+}
+function buildNameMap(nodes) {
+  var _a3, _b2;
+  const out = /* @__PURE__ */ new Map();
+  const used = /* @__PURE__ */ new Set();
+  for (const n4 of nodes) {
+    const src = (_b2 = (_a3 = n4.attrs) == null ? void 0 : _a3.__source) == null ? void 0 : _b2.sourceId;
+    const seed = src || n4.label || n4.id;
+    let name2 = sanitizeIdent(seed, n4.id);
+    let i6 = 2;
+    while (used.has(name2)) name2 = `${sanitizeIdent(seed, n4.id)}_${i6++}`;
+    used.add(name2);
+    out.set(n4.id, name2);
   }
+  return out;
+}
+function exportDbml(model, meta) {
+  var _a3, _b2, _c, _d;
+  const tableNodes = model.nodes.filter((n4) => n4.shape === "erd-entity");
+  const nameOf = buildNameMap(tableNodes);
   const newTables = tableNodes.filter((n4) => {
     var _a4, _b3;
     return !((_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.sourceId);
   }).map((n4) => {
-    var _a4;
+    var _a4, _b3;
     const cols = (_a4 = nodeColumns(n4.attrs)) != null ? _a4 : extractErdCols(n4.attrs);
-    if (!cols.length) parseLabelCols(n4.label);
-    return emitTable(n4.id, cols);
+    return emitTable((_b3 = nameOf.get(n4.id)) != null ? _b3 : sanitizeIdent(n4.label, n4.id), cols);
   });
   const newRefs = [];
   if (meta && meta.format === "dbml") {
-    const raw2 = String((_d = (_c = meta.payload) == null ? void 0 : _c.raw) != null ? _d : "");
+    const raw2 = String((_b2 = (_a3 = meta.payload) == null ? void 0 : _a3.raw) != null ? _b2 : "");
     const head = raw2.endsWith("\n") ? raw2 : raw2 + "\n";
     const edited = [];
     for (const n4 of tableNodes) {
-      const src = (_e3 = n4.attrs) == null ? void 0 : _e3.__source;
+      const src = (_c = n4.attrs) == null ? void 0 : _c.__source;
       if (!(src == null ? void 0 : src.sourceId)) continue;
       const canvasCols = extractErdCols(n4.attrs);
-      const origCols = (_f = src.columns) != null ? _f : [];
+      const origCols = (_d = src.columns) != null ? _d : [];
       if (canvasCols.length !== origCols.length) {
         edited.push(src.sourceId);
         continue;
@@ -77182,18 +77198,12 @@ function exportDbml(model, meta) {
     return warningHeader + head + tail;
   }
   const fresh = tableNodes.map((n4) => {
-    var _a4;
-    const cols = (_a4 = nodeColumns(n4.attrs)) != null ? _a4 : parseLabelCols(n4.label);
-    return emitTable(n4.id, cols);
+    var _a4, _b3;
+    const cols = (_a4 = nodeColumns(n4.attrs)) != null ? _a4 : extractErdCols(n4.attrs);
+    return emitTable((_b3 = nameOf.get(n4.id)) != null ? _b3 : sanitizeIdent(n4.label, n4.id), cols);
   });
-  const refs = model.edges.filter((e5) => knownIdsContains(tableNodes, e5.source) && knownIdsContains(tableNodes, e5.target)).map((e5) => `Ref: ${e5.source}.id > ${e5.target}.id`);
+  const refs = model.edges.filter((e5) => nameOf.has(e5.source) && nameOf.has(e5.target)).map((e5) => `Ref: ${nameOf.get(e5.source)}.id > ${nameOf.get(e5.target)}.id`);
   return [fresh.join("\n\n"), refs.join("\n")].filter(Boolean).join("\n\n") + "\n";
-}
-function knownIdsContains(nodes, id) {
-  return nodes.some((n4) => n4.id === id);
-}
-function parseLabelCols(_label) {
-  return [];
 }
 function extractErdCols(attrs) {
   const cols = attrs == null ? void 0 : attrs.cols;
@@ -79787,90 +79797,90 @@ __decorate23([
 
 // node_modules/@antv/x6-plugin-history/es/api.js
 Graph.prototype.isHistoryEnabled = function() {
-  const history2 = this.getPlugin("history");
-  if (history2) {
-    return history2.isEnabled();
+  const history = this.getPlugin("history");
+  if (history) {
+    return history.isEnabled();
   }
   return false;
 };
 Graph.prototype.enableHistory = function() {
-  const history2 = this.getPlugin("history");
-  if (history2) {
-    history2.enable();
+  const history = this.getPlugin("history");
+  if (history) {
+    history.enable();
   }
   return this;
 };
 Graph.prototype.disableHistory = function() {
-  const history2 = this.getPlugin("history");
-  if (history2) {
-    history2.disable();
+  const history = this.getPlugin("history");
+  if (history) {
+    history.disable();
   }
   return this;
 };
 Graph.prototype.toggleHistory = function(enabled) {
-  const history2 = this.getPlugin("history");
-  if (history2) {
-    history2.toggleEnabled(enabled);
+  const history = this.getPlugin("history");
+  if (history) {
+    history.toggleEnabled(enabled);
   }
   return this;
 };
 Graph.prototype.undo = function(options) {
-  const history2 = this.getPlugin("history");
-  if (history2) {
-    history2.undo(options);
+  const history = this.getPlugin("history");
+  if (history) {
+    history.undo(options);
   }
   return this;
 };
 Graph.prototype.redo = function(options) {
-  const history2 = this.getPlugin("history");
-  if (history2) {
-    history2.redo(options);
+  const history = this.getPlugin("history");
+  if (history) {
+    history.redo(options);
   }
   return this;
 };
 Graph.prototype.undoAndCancel = function(options) {
-  const history2 = this.getPlugin("history");
-  if (history2) {
-    history2.cancel(options);
+  const history = this.getPlugin("history");
+  if (history) {
+    history.cancel(options);
   }
   return this;
 };
 Graph.prototype.canUndo = function() {
-  const history2 = this.getPlugin("history");
-  if (history2) {
-    return history2.canUndo();
+  const history = this.getPlugin("history");
+  if (history) {
+    return history.canUndo();
   }
   return false;
 };
 Graph.prototype.canRedo = function() {
-  const history2 = this.getPlugin("history");
-  if (history2) {
-    return history2.canRedo();
+  const history = this.getPlugin("history");
+  if (history) {
+    return history.canRedo();
   }
   return false;
 };
 Graph.prototype.cleanHistory = function(options) {
-  const history2 = this.getPlugin("history");
-  if (history2) {
-    history2.clean(options);
+  const history = this.getPlugin("history");
+  if (history) {
+    history.clean(options);
   }
   return this;
 };
 Graph.prototype.getHistoryStackSize = function() {
-  const history2 = this.getPlugin("history");
-  return history2.getSize();
+  const history = this.getPlugin("history");
+  return history.getSize();
 };
 Graph.prototype.getUndoStackSize = function() {
-  const history2 = this.getPlugin("history");
-  return history2.getUndoSize();
+  const history = this.getPlugin("history");
+  return history.getUndoSize();
 };
 Graph.prototype.getRedoStackSize = function() {
-  const history2 = this.getPlugin("history");
-  return history2.getRedoSize();
+  const history = this.getPlugin("history");
+  return history.getRedoSize();
 };
 Graph.prototype.getUndoRemainSize = function() {
-  const history2 = this.getPlugin("history");
-  return history2.getUndoRemainSize();
+  const history = this.getPlugin("history");
+  return history.getUndoRemainSize();
 };
 
 // node_modules/@antv/x6-plugin-history/es/index.js
@@ -82324,18 +82334,30 @@ function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
     return line2 + label;
   }).join("");
   const nodeSvg = nodes.map((n4) => {
-    var _a4, _b3, _c, _d, _e3;
-    const style2 = (_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.style) != null ? _b3 : {};
+    var _a4, _b3;
+    const a5 = (_a4 = n4.attrs) != null ? _a4 : {};
+    const style2 = (_b3 = a5.style) != null ? _b3 : {};
     const extra = {
-      cols: (_c = n4.attrs) == null ? void 0 : _c.cols,
-      fields: (_d = n4.attrs) == null ? void 0 : _d.fields,
-      methods: (_e3 = n4.attrs) == null ? void 0 : _e3.methods
+      cols: a5.cols,
+      fields: a5.fields,
+      methods: a5.methods,
+      who: a5.who,
+      labelOffset: a5.labelOffset,
+      lanes: a5.lanes,
+      poolHorizontal: a5.poolHorizontal,
+      blackBox: a5.blackBox,
+      trigger: a5.trigger,
+      throwing: a5.throwing,
+      interrupting: a5.interrupting,
+      attachedTo: a5.attachedTo,
+      markers: a5.markers,
+      collapsed: a5.collapsed
     };
     const inner = nodeHtml(n4.shape, n4.label, style2, extra);
     const num = (v6) => Number(v6) || 0;
     return `<foreignObject x="${num(n4.x)}" y="${num(n4.y)}" width="${num(n4.width)}" height="${num(n4.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
   }).join("");
-  return `<svg xmlns="${SVGNS}" class="lk-root" width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}"><defs><marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker></defs>` + (css2 ? `<style>${css2}</style>` : "") + (bg && bg !== "transparent" ? `<rect x="${x5}" y="${y5}" width="${w5}" height="${h5}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
+  return `<svg xmlns="${SVGNS}" class="lk-root" width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}"><defs><marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker></defs><style>foreignObject{overflow:visible}${css2}</style>` + (bg && bg !== "transparent" ? `<rect x="${x5}" y="${y5}" width="${w5}" height="${h5}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
 }
 
 // src/canvas/bulkAlign.ts
@@ -84585,13 +84607,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       return;
     }
     box.style.display = "block";
-    const W3 = 190, H4 = 128, PAD = 8, innerW = W3 - 2 * PAD, innerH = H4 - 2 * PAD;
+    const W4 = 190, H4 = 128, PAD = 8, innerW = W4 - 2 * PAD, innerH = H4 - 2 * PAD;
     const bb = this.graph.getContentBBox();
     const scale2 = Math.min(innerW / Math.max(bb.width, 1), innerH / Math.max(bb.height, 1));
     const ox = PAD + (innerW - bb.width * scale2) / 2;
     const oy = PAD + (innerH - bb.height * scale2) / 2;
     this.mm = { scale: scale2, ox, oy, bx: bb.x, by: bb.y };
-    svg3.setAttribute("viewBox", `0 0 ${W3} ${H4}`);
+    svg3.setAttribute("viewBox", `0 0 ${W4} ${H4}`);
     let html3 = "";
     for (const n4 of nodes) {
       const p6 = n4.getPosition();
@@ -85633,7 +85655,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       data: { kind, label, style: style2 != null ? style2 : {}, ...ex, ...source !== void 0 ? { __source: source } : {} },
       attrs: { content: { html: nodeHtml(kind, label, style2, ex), class: "hn" } }
     });
-    if (kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf") {
+    if (this.autoGrowSelector(kind)) {
       this.scheduleMindmapAutoGrow(node3);
     }
     if (FRAME_KINDS.has(kind)) node3.toBack();
@@ -85641,7 +85663,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   /** Defer autoGrow past X6's mount + fitWhenReady race so DOM is measurable. */
   scheduleMindmapAutoGrow(node3) {
-    setTimeout(() => this.autoGrowMindmapNode(node3), 60);
+    setTimeout(() => {
+      const sel = this.autoGrowSelector(this.nodeKind(node3));
+      if (sel) this.autoGrowNodeToContent(node3, sel);
+    }, 60);
   }
   // Seed default rows for data-driven kinds; keep only defined incoming overrides.
   seedExtra(kind) {
@@ -86126,13 +86151,28 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   /** Re-measure rendered HTML and grow the node's height if the wrapped text overflows. */
   autoGrowMindmapNode(node3) {
+    this.autoGrowNodeToContent(node3, ".mm");
+  }
+  /**
+   * Grow a content-driven HTML node (mindmap / uml / erd) so its box fits the
+   * rendered inner element — content was being clipped when the initial height
+   * (from a parser estimate) was too small. Only grows, never shrinks.
+   */
+  autoGrowNodeToContent(node3, selector) {
     var _a3, _b2;
     const view = this.graph.findViewByCell(node3);
-    const mm = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, ".mm");
-    if (!mm) return;
-    const desired = mm.scrollHeight;
+    const inner = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, selector);
+    if (!inner) return;
+    const desired = inner.scrollHeight;
     const cur = node3.getSize().height;
     if (desired > cur + 1) node3.resize(node3.getSize().width, desired);
+  }
+  /** Selector of the measurable inner element for content-driven kinds. */
+  autoGrowSelector(kind) {
+    if (kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf") return ".mm";
+    if (kind === "uml-class" || kind === "uml-interface") return ".uml";
+    if (kind === "erd-entity") return ".erd-table";
+    return null;
   }
   commitLabel() {
     if (this.labelInput) this.labelInput.blur();
@@ -86147,11 +86187,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const cx = (bbox2.x + bbox2.width / 2) * s5 + t6.tx;
     const cy = (bbox2.y + bbox2.height / 2) * s5 + t6.ty;
     const cur = (_d = (_c = (_b2 = (_a3 = edge.getLabels()) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.attrs) == null ? void 0 : _c.label) == null ? void 0 : _d.text;
-    const W3 = 220;
+    const W4 = 220;
     this.inlineEdit({
-      left: cx - W3 / 2,
+      left: cx - W4 / 2,
       top: cy - 18,
-      width: W3,
+      width: W4,
       height: 32,
       value: cur ? String(cur) : "",
       multiLine: true,
@@ -86855,8 +86895,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.resyncHtmlNodes();
     setTimeout(() => {
       this.graph.getNodes().forEach((n4) => {
-        const k5 = this.nodeKind(n4);
-        if (k5 === "mm-root" || k5 === "mm-branch" || k5 === "mm-leaf") this.autoGrowMindmapNode(n4);
+        const sel = this.autoGrowSelector(this.nodeKind(n4));
+        if (sel) this.autoGrowNodeToContent(n4, sel);
       });
       this.refreshMinimap();
       this.refreshBpmnEventLabels();
@@ -87258,7 +87298,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     clone4.setAttribute("xmlns", SVGNS2);
     clone4.classList.add("lk-root");
     const style2 = document.createElementNS(SVGNS2, "style");
-    style2.textContent = collectPluginCss();
+    style2.textContent = collectPluginCss() + "\nforeignObject{overflow:visible}";
     const bg = document.createElementNS(SVGNS2, "rect");
     bg.setAttribute("x", String(x5));
     bg.setAttribute("y", String(y5));
@@ -87375,6 +87415,7 @@ _OmniboardCanvas.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
 var OmniboardCanvas = _OmniboardCanvas;
 
 // src/ui/OmniboardCanvasMount.tsx
+registerAllShapes();
 function OmniboardCanvasMount(props) {
   const hostRef = A4(null);
   const canvasRef = A4(null);
@@ -87440,13 +87481,27 @@ function OmniboardCanvasMount(props) {
   );
 }
 
+// src/ui/Icon.tsx
+var import_obsidian3 = require("obsidian");
+function Icon({ name: name2, className: className3 }) {
+  const ref2 = A4(null);
+  y2(() => {
+    if (ref2.current) (0, import_obsidian3.setIcon)(ref2.current, name2);
+  }, [name2]);
+  return /* @__PURE__ */ u2("span", { ref: ref2, class: className3 != null ? className3 : "diagrams-icon", "aria-hidden": "true" });
+}
+
 // src/ui/BoardEditor.tsx
 function BoardEditor(props) {
+  var _a3;
   const modeClass = props.mode === "modal" ? "diagrams-board-editor-mode-modal" : "diagrams-board-editor-mode-tab";
   const showPalette = props.paletteItems !== void 0 && props.paletteItems.length > 0;
   const showCanvas = props.shapeCategories !== void 0 && props.canvasModel !== void 0;
   const showProperties = props.propertyFields !== void 0;
-  const bodyHasContent = showPalette || showCanvas || showProperties;
+  const hasBodySlot = props.body !== void 0;
+  const bodyHasContent = hasBodySlot || showPalette || showCanvas || showProperties;
+  const titleIsEditable = props.onTitleChange !== void 0;
+  const showModalHeader = props.mode === "modal" && (props.chipLabel !== void 0 || props.title !== void 0 || titleIsEditable || props.showHeaderActions === true);
   return /* @__PURE__ */ u2(
     "div",
     {
@@ -87457,7 +87512,66 @@ function BoardEditor(props) {
           "header",
           {
             class: "diagrams-board-editor-header",
-            "data-testid": "diagrams-board-editor-header"
+            "data-testid": "diagrams-board-editor-header",
+            children: showModalHeader && /* @__PURE__ */ u2("div", { class: "diagrams-board-editor-header-meta", children: [
+              props.chipLabel !== void 0 && /* @__PURE__ */ u2(
+                "span",
+                {
+                  class: "diagrams-board-editor-chip",
+                  "data-testid": "diagrams-board-editor-chip",
+                  children: props.chipLabel
+                }
+              ),
+              titleIsEditable ? /* @__PURE__ */ u2(
+                "input",
+                {
+                  type: "text",
+                  class: "diagrams-board-editor-title-input",
+                  "data-testid": "diagrams-board-editor-title-input",
+                  value: (_a3 = props.title) != null ? _a3 : "",
+                  placeholder: "T\xEAn s\u01A1 \u0111\u1ED3",
+                  onInput: (e5) => props.onTitleChange(e5.target.value)
+                }
+              ) : props.title !== void 0 && /* @__PURE__ */ u2(
+                "span",
+                {
+                  class: "diagrams-board-editor-title",
+                  "data-testid": "diagrams-board-editor-title",
+                  children: props.title
+                }
+              ),
+              props.showHeaderActions === true && /* @__PURE__ */ u2("span", { class: "diagrams-board-editor-header-actions", children: [
+                /* @__PURE__ */ u2("span", { class: "diagrams-board-editor-toolbar", "data-testid": "diagrams-board-editor-toolbar", children: [
+                  props.onUndo && /* @__PURE__ */ u2("button", { type: "button", class: "diagrams-btn diagrams-btn-icon", title: "Ho\xE0n t\xE1c", "data-testid": "diagrams-board-editor-undo", onClick: () => props.onUndo(), children: /* @__PURE__ */ u2(Icon, { name: "undo-2" }) }),
+                  props.onRedo && /* @__PURE__ */ u2("button", { type: "button", class: "diagrams-btn diagrams-btn-icon", title: "L\xE0m l\u1EA1i", "data-testid": "diagrams-board-editor-redo", onClick: () => props.onRedo(), children: /* @__PURE__ */ u2(Icon, { name: "redo-2" }) }),
+                  props.onAutoLayout && /* @__PURE__ */ u2("button", { type: "button", class: "diagrams-btn diagrams-btn-icon", title: "T\u1EF1 s\u1EAFp x\u1EBFp", "data-testid": "diagrams-board-editor-autolayout", onClick: () => props.onAutoLayout(), children: /* @__PURE__ */ u2(Icon, { name: "layout-dashboard" }) }),
+                  props.onFit && /* @__PURE__ */ u2("button", { type: "button", class: "diagrams-btn diagrams-btn-icon", title: "V\u1EEBa khung", "data-testid": "diagrams-board-editor-fit", onClick: () => props.onFit(), children: /* @__PURE__ */ u2(Icon, { name: "maximize" }) })
+                ] }),
+                /* @__PURE__ */ u2(
+                  "button",
+                  {
+                    type: "button",
+                    class: "diagrams-btn",
+                    "data-testid": "diagrams-board-editor-close",
+                    onClick: () => props.onClose(),
+                    children: "\u0110\xF3ng"
+                  }
+                ),
+                /* @__PURE__ */ u2(
+                  "button",
+                  {
+                    type: "button",
+                    class: "diagrams-btn diagrams-btn-primary",
+                    "data-testid": "diagrams-board-editor-save",
+                    onClick: () => {
+                      var _a4;
+                      return (_a4 = props.onHeaderSave) == null ? void 0 : _a4.call(props);
+                    },
+                    children: "L\u01B0u & \u0111\xF3ng"
+                  }
+                )
+              ] })
+            ] })
           }
         ),
         /* @__PURE__ */ u2(
@@ -87466,7 +87580,8 @@ function BoardEditor(props) {
             class: bodyHasContent ? "diagrams-board-editor-body diagrams-board-editor-body-composed" : "diagrams-board-editor-body",
             "data-testid": "diagrams-board-editor-body",
             children: [
-              showPalette && /* @__PURE__ */ u2(
+              hasBodySlot && props.body,
+              !hasBodySlot && showPalette && /* @__PURE__ */ u2(
                 PaletteSidebar,
                 {
                   items: props.paletteItems,
@@ -87474,7 +87589,7 @@ function BoardEditor(props) {
                   onSelectItem: props.onSelectPaletteItem
                 }
               ),
-              showCanvas && /* @__PURE__ */ u2(
+              !hasBodySlot && showCanvas && /* @__PURE__ */ u2(
                 OmniboardCanvasMount,
                 {
                   categories: props.shapeCategories,
@@ -87483,7 +87598,7 @@ function BoardEditor(props) {
                   onCanvasReady: props.onCanvasReady
                 }
               ),
-              showProperties && /* @__PURE__ */ u2(
+              !hasBodySlot && showProperties && /* @__PURE__ */ u2(
                 PropertiesSidebar,
                 {
                   sectionTitle: props.propertiesTitle,
@@ -87528,6 +87643,85 @@ function readObsidianTheme() {
   };
 }
 
+// src/ui/boardTopbar.ts
+var import_obsidian4 = require("obsidian");
+function buildBoardTopbar(bar, opts) {
+  var _a3, _b2;
+  bar.empty();
+  const close = bar.createEl("button", { cls: "da-tb-close" });
+  (0, import_obsidian4.setIcon)(close, "x");
+  close.createSpan({ text: "\u0110\xF3ng" });
+  close.onclick = () => opts.onClose();
+  const badge = bar.createDiv({ cls: "da-tb-badge" });
+  (0, import_obsidian4.setIcon)(badge, (_a3 = opts.badgeIcon) != null ? _a3 : "shapes");
+  badge.createSpan({ text: opts.badgeLabel });
+  let titleEl;
+  if (opts.onTitleChange) {
+    const input = bar.createEl("input", { cls: "da-tb-title da-tb-title-input" });
+    input.type = "text";
+    input.value = opts.title;
+    input.placeholder = "T\xEAn s\u01A1 \u0111\u1ED3";
+    input.oninput = () => opts.onTitleChange(input.value);
+    titleEl = input;
+  } else {
+    titleEl = bar.createDiv({ cls: "da-tb-title", text: opts.title });
+  }
+  bar.createDiv({ cls: "da-tb-grow" });
+  const iconBtn = (icon, tip, fn2) => {
+    const b4 = bar.createEl("button", { cls: "da-tb-ic" });
+    (0, import_obsidian4.setIcon)(b4, icon);
+    b4.setAttribute("aria-label", tip);
+    b4.title = tip;
+    b4.onclick = fn2;
+  };
+  iconBtn("undo-2", "Ho\xE0n t\xE1c", () => {
+    var _a4;
+    return (_a4 = opts.getCanvas()) == null ? void 0 : _a4.undo();
+  });
+  iconBtn("redo-2", "L\xE0m l\u1EA1i", () => {
+    var _a4;
+    return (_a4 = opts.getCanvas()) == null ? void 0 : _a4.redo();
+  });
+  iconBtn("copy", "Nh\xE2n b\u1EA3n", () => {
+    var _a4;
+    return (_a4 = opts.getCanvas()) == null ? void 0 : _a4.duplicate();
+  });
+  iconBtn("trash-2", "X\xF3a", () => {
+    var _a4;
+    return (_a4 = opts.getCanvas()) == null ? void 0 : _a4.deleteSelection();
+  });
+  iconBtn("layout-dashboard", "T\u1EF1 s\u1EAFp x\u1EBFp", () => {
+    var _a4;
+    return (_a4 = opts.getCanvas()) == null ? void 0 : _a4.autoLayout("LR");
+  });
+  iconBtn("maximize", "V\u1EEBa khung", () => {
+    var _a4;
+    return (_a4 = opts.getCanvas()) == null ? void 0 : _a4.fit();
+  });
+  if ((_b2 = opts.extraButtons) == null ? void 0 : _b2.length) {
+    bar.createDiv({ cls: "da-tb-divider" });
+    for (const eb of opts.extraButtons) iconBtn(eb.icon, eb.tip, eb.onClick);
+  }
+  if (opts.onExport) {
+    bar.createDiv({ cls: "da-tb-divider" });
+    const exp = bar.createEl("button", { cls: "da-tb-ic" });
+    (0, import_obsidian4.setIcon)(exp, "download");
+    exp.setAttribute("aria-label", "Export");
+    exp.title = "Export (SVG / PNG / PDF)";
+    exp.onclick = (e5) => opts.onExport(e5);
+  }
+  const save = bar.createEl("button", { cls: "da-tb-save" });
+  (0, import_obsidian4.setIcon)(save, "check");
+  save.createSpan({ text: "L\u01B0u & \u0111\xF3ng" });
+  save.onclick = () => opts.onSave();
+  return {
+    setTitle: (t6) => {
+      if (opts.onTitleChange && titleEl instanceof HTMLInputElement) titleEl.value = t6;
+      else titleEl.setText(t6);
+    }
+  };
+}
+
 // src/view/BoardView.ts
 registerAllShapes();
 function noticeFrag(kind, text4) {
@@ -87537,15 +87731,15 @@ function noticeFrag(kind, text4) {
   wrap.addClass(`da-notice-${kind}`);
   const iconEl = wrap.createSpan({ cls: "da-notice-icon" });
   const icon = kind === "success" ? "check-circle-2" : kind === "warn" ? "alert-triangle" : kind === "error" ? "x-circle" : "info";
-  (0, import_obsidian3.setIcon)(iconEl, icon);
+  (0, import_obsidian5.setIcon)(iconEl, icon);
   wrap.createSpan({ cls: "da-notice-text", text: text4 });
   frag.appendChild(wrap);
   return frag;
 }
 function notify(kind, text4, timeout) {
-  return new import_obsidian3.Notice(noticeFrag(kind, text4), timeout);
+  return new import_obsidian5.Notice(noticeFrag(kind, text4), timeout);
 }
-var DiagramPickerModal = class extends import_obsidian3.Modal {
+var DiagramPickerModal = class extends import_obsidian5.Modal {
   constructor(view, diagrams, onPick, onCancel) {
     super(view.app);
     this.diagrams = diagrams;
@@ -87654,7 +87848,7 @@ var BOARD_TAB_STUB_ADAPTER = {
   exportFormats: ["svg", "png", "pdf"],
   validate: () => ({ ok: true, errors: [] })
 };
-var BoardView = class extends import_obsidian3.TextFileView {
+var BoardView = class extends import_obsidian5.TextFileView {
   constructor(leaf, plugin) {
     super(leaf);
     this.canvas = null;
@@ -87723,65 +87917,26 @@ var BoardView = class extends import_obsidian3.TextFileView {
   buildTopBar() {
     var _a3, _b2;
     const bar = this.contentEl.createDiv({ cls: "da-topbar" });
-    const close = bar.createEl("button", { cls: "da-tb-close" });
-    (0, import_obsidian3.setIcon)(close, "x");
-    close.createSpan({ text: "\u0110\xF3ng" });
-    close.onclick = () => this.leaf.detach();
-    const badge = bar.createDiv({ cls: "da-tb-badge" });
-    (0, import_obsidian3.setIcon)(badge, "shapes");
-    badge.createSpan({ text: "BOARD" });
-    this.boardTitleEl = bar.createDiv({ cls: "da-tb-title", text: (_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Board" });
-    bar.createDiv({ cls: "da-tb-grow" });
-    const iconBtn = (icon, tip, fn2) => {
-      const b4 = bar.createEl("button", { cls: "da-tb-ic" });
-      (0, import_obsidian3.setIcon)(b4, icon);
-      b4.setAttribute("aria-label", tip);
-      b4.title = tip;
-      b4.onclick = fn2;
-      return b4;
-    };
-    iconBtn("undo-2", "Undo", () => {
-      var _a4;
-      return (_a4 = this.canvas) == null ? void 0 : _a4.undo();
+    const { setTitle } = buildBoardTopbar(bar, {
+      getCanvas: () => this.canvas,
+      badgeLabel: "BOARD",
+      badgeIcon: "shapes",
+      title: (_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Board",
+      onClose: () => this.leaf.detach(),
+      onSave: () => void (async () => {
+        await this.save();
+        this.leaf.detach();
+      })(),
+      onExport: (e5) => this.showExportMenu(e5),
+      extraButtons: [
+        { icon: "sliders-horizontal", tip: "BPMN properties", onClick: () => void this.openPropertiesLeaf() },
+        { icon: "alert-triangle", tip: "BPMN issues", onClick: () => void this.openIssuesLeaf() },
+        { icon: "workflow", tip: "Chuy\u1EC3n sang BPMN Native", onClick: () => void this.switchToBpmnNativeView() },
+        { icon: "file-text", tip: "M\u1EDF d\u01B0\u1EDBi d\u1EA1ng Markdown", onClick: () => void this.openAsMarkdown() },
+        { icon: "upload", tip: "Import (BPMN / DBML)", onClick: () => this.openImportPicker() }
+      ]
     });
-    iconBtn("redo-2", "Redo", () => {
-      var _a4;
-      return (_a4 = this.canvas) == null ? void 0 : _a4.redo();
-    });
-    iconBtn("copy", "Nh\xE2n b\u1EA3n (\u2318D)", () => {
-      var _a4;
-      return (_a4 = this.canvas) == null ? void 0 : _a4.duplicate();
-    });
-    iconBtn("trash-2", "X\xF3a", () => {
-      var _a4;
-      return (_a4 = this.canvas) == null ? void 0 : _a4.deleteSelection();
-    });
-    iconBtn("sliders-horizontal", "BPMN properties", () => this.openPropertiesLeaf());
-    iconBtn("alert-triangle", "BPMN issues", () => this.openIssuesLeaf());
-    bar.createDiv({ cls: "da-tb-divider" });
-    iconBtn(
-      "workflow",
-      "Switch to BPMN Native view",
-      () => void this.switchToBpmnNativeView()
-    );
-    iconBtn("file-text", "M\u1EDF d\u01B0\u1EDBi d\u1EA1ng Markdown", () => this.openAsMarkdown());
-    const imp = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian3.setIcon)(imp, "upload");
-    imp.setAttribute("aria-label", "Import");
-    imp.title = "Import (BPMN / DBML)";
-    imp.onclick = () => this.openImportPicker();
-    const exp = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian3.setIcon)(exp, "download");
-    exp.setAttribute("aria-label", "Export");
-    exp.title = "Export (SVG / PNG / BPMN / DBML)";
-    exp.onclick = (e5) => this.showExportMenu(e5);
-    const save = bar.createEl("button", { cls: "da-tb-save" });
-    (0, import_obsidian3.setIcon)(save, "check");
-    save.createSpan({ text: "L\u01B0u & \u0111\xF3ng" });
-    save.onclick = async () => {
-      await this.save();
-      this.leaf.detach();
-    };
+    this.boardTitleEl = { setText: (t6) => setTitle(t6) };
   }
   getCanvas() {
     return this.canvas;
@@ -87817,7 +87972,7 @@ var BoardView = class extends import_obsidian3.TextFileView {
     emitBpmnIssuesRefresh();
   }
   showExportMenu(e5) {
-    const menu = new import_obsidian3.Menu();
+    const menu = new import_obsidian5.Menu();
     menu.addItem((i6) => i6.setTitle("SVG").setIcon("file-code").onClick(() => this.handleExportSvg()));
     menu.addSeparator();
     [1, 2, 4].forEach(
@@ -88080,224 +88235,9 @@ var AdapterRegistry = class {
   }
 };
 
-// src/core/modal.ts
-var import_obsidian4 = require("obsidian");
-var EditModal = class extends import_obsidian4.Modal {
-  constructor(app, adapter, source, onCommit) {
-    super(app);
-    this.adapter = adapter;
-    this.model = adapter.parse(source);
-    this.onCommit = onCommit;
-  }
-  onOpen() {
-    const { contentEl, modalEl } = this;
-    modalEl.addClass("diagrams-edit-modal");
-    contentEl.empty();
-    const theme = readObsidianTheme();
-    const Editor2 = this.adapter.Editor;
-    R(
-      k(Editor2, {
-        initialModel: this.model,
-        theme,
-        onSave: (model) => {
-          this.onCommit(this.adapter.serialize(model));
-        },
-        onClose: () => this.close()
-      }),
-      contentEl
-    );
-  }
-  onClose() {
-    R(null, this.contentEl);
-    this.contentEl.empty();
-  }
-};
-
-// src/ui/DiagramCard.tsx
-var import_obsidian5 = require("obsidian");
-var EXPORT_FORMATS = [
-  { id: "svg", label: "SVG", icon: "file-code" },
-  { id: "png", label: "PNG", icon: "image" },
-  { id: "pdf", label: "PDF", icon: "file-text" }
-];
-function buildExportMenu(adapter, onExport) {
-  const menu = new import_obsidian5.Menu();
-  for (const fmt of EXPORT_FORMATS) {
-    if (!adapter.exportFormats.includes(fmt.id)) continue;
-    menu.addItem(
-      (i6) => i6.setTitle(fmt.label).setIcon(fmt.icon).onClick(() => {
-        if (onExport) {
-          onExport(fmt.id);
-        } else {
-          new import_obsidian5.Notice(
-            `Export ${fmt.label} \u2014 s\u1EBD c\xF3 trong Story 7-20 (export backends)`
-          );
-        }
-      })
-    );
-  }
-  return menu;
-}
-function buildMoreMenu(adapter, props, exportTriggerEvent) {
-  const menu = new import_obsidian5.Menu();
-  menu.addItem(
-    (i6) => i6.setTitle("M\u1EDF tr\xECnh ch\u1EC9nh s\u1EEDa").setIcon("square-pen").onClick(() => props.onEdit())
-  );
-  menu.addItem(
-    (i6) => i6.setTitle("Export\u2026").setIcon("download").onClick(() => {
-      buildExportMenu(adapter, props.onExport).showAtMouseEvent(
-        exportTriggerEvent
-      );
-    })
-  );
-  menu.addItem(
-    (i6) => i6.setTitle("Copy as image").setIcon("clipboard-copy").onClick(() => {
-      if (props.onCopyImage) {
-        props.onCopyImage();
-      } else {
-        new import_obsidian5.Notice("Copy as image \u2014 s\u1EBD c\xF3 trong Story 7-20");
-      }
-    })
-  );
-  menu.addSeparator();
-  menu.addItem(
-    (i6) => i6.setTitle("S\u1EEDa d\u1EA1ng m\xE3 ngu\u1ED3n").setIcon("code").onClick(() => {
-      var _a3;
-      return ((_a3 = props.onSourceEdit) != null ? _a3 : props.onEdit)();
-    })
-  );
-  return menu;
-}
-function DiagramCard(props) {
-  var _a3, _b2;
-  const { adapter, source, theme, onEdit } = props;
-  const model = adapter.parse(source);
-  const Renderer2 = adapter.Renderer;
-  const issues = (_b2 = (_a3 = adapter.validateSource) == null ? void 0 : _a3.call(adapter, source)) != null ? _b2 : [];
-  const errorIssue = issues.find((i6) => i6.severity === "error");
-  const setIconRef = (name2) => (el4) => {
-    if (el4 && !el4.dataset.iconApplied) {
-      (0, import_obsidian5.setIcon)(el4, name2);
-      el4.dataset.iconApplied = "1";
-    }
-  };
-  return /* @__PURE__ */ u2("div", { class: "diagrams-card", onClick: onEdit, "data-testid": "diagrams-card", children: [
-    /* @__PURE__ */ u2("div", { class: "diagrams-card-header", children: [
-      /* @__PURE__ */ u2(
-        "div",
-        {
-          class: "diagrams-card-chip",
-          onClick: (e5) => e5.stopPropagation(),
-          "data-testid": "diagrams-card-chip",
-          children: [
-            /* @__PURE__ */ u2("span", { ref: setIconRef(adapter.icon), class: "diagrams-card-chip-icon", "aria-hidden": "true" }),
-            /* @__PURE__ */ u2("span", { class: "diagrams-card-chip-label", children: adapter.displayName })
-          ]
-        }
-      ),
-      /* @__PURE__ */ u2("div", { class: "diagrams-card-spacer" }),
-      /* @__PURE__ */ u2(
-        "button",
-        {
-          type: "button",
-          class: "diagrams-card-btn diagrams-card-btn-export",
-          "aria-label": "Export",
-          title: "Export",
-          "data-testid": "diagrams-card-export",
-          onClick: (e5) => {
-            e5.stopPropagation();
-            buildExportMenu(adapter, props.onExport).showAtMouseEvent(e5);
-          },
-          children: [
-            /* @__PURE__ */ u2("span", { ref: setIconRef("download"), class: "diagrams-card-btn-icon", "aria-hidden": "true" }),
-            /* @__PURE__ */ u2("span", { class: "diagrams-card-btn-label", children: "Export" })
-          ]
-        }
-      ),
-      /* @__PURE__ */ u2(
-        "button",
-        {
-          type: "button",
-          class: "diagrams-card-btn diagrams-card-btn-edit diagrams-card-btn-primary",
-          "aria-label": "S\u1EEDa",
-          title: "S\u1EEDa",
-          "data-testid": "diagrams-card-edit",
-          onClick: (e5) => {
-            e5.stopPropagation();
-            onEdit();
-          },
-          children: [
-            /* @__PURE__ */ u2("span", { ref: setIconRef("square-pen"), class: "diagrams-card-btn-icon", "aria-hidden": "true" }),
-            /* @__PURE__ */ u2("span", { class: "diagrams-card-btn-label", children: "S\u1EEDa" })
-          ]
-        }
-      ),
-      /* @__PURE__ */ u2(
-        "button",
-        {
-          type: "button",
-          class: "diagrams-card-btn diagrams-card-btn-more",
-          "aria-label": "More actions",
-          title: "More actions",
-          "data-testid": "diagrams-card-more",
-          onClick: (e5) => {
-            e5.stopPropagation();
-            buildMoreMenu(adapter, props, e5).showAtMouseEvent(e5);
-          },
-          children: /* @__PURE__ */ u2("span", { ref: setIconRef("more-horizontal"), class: "diagrams-card-btn-icon", "aria-hidden": "true" })
-        }
-      )
-    ] }),
-    /* @__PURE__ */ u2("div", { class: "diagrams-card-preview", "data-testid": "diagrams-card-preview", children: errorIssue ? /* @__PURE__ */ u2(
-      "div",
-      {
-        class: "diagrams-card-warning",
-        "data-testid": "diagrams-card-warning",
-        role: "alert",
-        children: [
-          /* @__PURE__ */ u2(
-            "span",
-            {
-              ref: setIconRef("alert-triangle"),
-              class: "diagrams-card-warning-icon",
-              "aria-hidden": "true"
-            }
-          ),
-          /* @__PURE__ */ u2("div", { class: "diagrams-card-warning-body", children: [
-            /* @__PURE__ */ u2("div", { class: "diagrams-card-warning-title", children: [
-              errorIssue.message,
-              errorIssue.line !== void 0 && /* @__PURE__ */ u2("span", { class: "diagrams-card-warning-loc", children: [
-                " \xB7 ",
-                adapter.codeBlockLanguage,
-                " \xB7 d\xF2ng ",
-                errorIssue.line
-              ] })
-            ] }),
-            /* @__PURE__ */ u2(
-              "button",
-              {
-                type: "button",
-                class: "diagrams-card-warning-btn",
-                "data-testid": "diagrams-card-warning-edit",
-                onClick: (e5) => {
-                  var _a4;
-                  e5.stopPropagation();
-                  ((_a4 = props.onSourceEdit) != null ? _a4 : onEdit)();
-                },
-                children: "M\u1EDF editor \u0111\u1EC3 s\u1EEDa"
-              }
-            )
-          ] })
-        ]
-      }
-    ) : /* @__PURE__ */ u2(Renderer2, { model, theme }) })
-  ] });
-}
-
 // src/ui/EmbedCard.tsx
 function EmbedCard(props) {
-  var _a3, _b2;
-  const typeLabel = (_a3 = props.typeLabel) != null ? _a3 : "Omniboard";
+  var _a3;
   const setIconRef = (name2) => (el4) => {
     var _a4;
     if (!el4 || el4.dataset.iconApplied) return;
@@ -88305,14 +88245,15 @@ function EmbedCard(props) {
     (_a4 = props.setIcon) == null ? void 0 : _a4.call(props, el4, name2);
   };
   const meta = props.errorMessage ? props.errorMessage : `${props.nodeCount} ph\u1EA7n t\u1EED \xB7 ${props.edgeCount} n\u1ED1i`;
-  return /* @__PURE__ */ u2("div", { class: "diagrams-card diagrams-card-embed", "data-testid": "diagrams-embed-card", children: [
-    /* @__PURE__ */ u2("div", { class: "diagrams-card-header", children: [
-      /* @__PURE__ */ u2(
-        "div",
-        {
-          class: "diagrams-card-chip",
-          onClick: (e5) => e5.stopPropagation(),
-          children: [
+  return /* @__PURE__ */ u2(
+    "div",
+    {
+      class: "diagrams-card diagrams-card-embed",
+      "data-testid": "diagrams-embed-card",
+      onClick: () => props.onEdit(),
+      children: [
+        /* @__PURE__ */ u2("div", { class: "diagrams-card-header", children: [
+          /* @__PURE__ */ u2("div", { class: "diagrams-card-chip", onClick: (e5) => e5.stopPropagation(), children: [
             /* @__PURE__ */ u2(
               "span",
               {
@@ -88321,54 +88262,109 @@ function EmbedCard(props) {
                 "aria-hidden": "true"
               }
             ),
-            /* @__PURE__ */ u2("span", { class: "diagrams-card-chip-label", children: typeLabel })
-          ]
-        }
-      ),
-      /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-title", "data-testid": "diagrams-embed-title", children: props.filename }),
-      /* @__PURE__ */ u2("div", { class: "diagrams-card-spacer" }),
-      /* @__PURE__ */ u2(
-        "button",
-        {
-          type: "button",
-          class: "diagrams-card-btn diagrams-card-btn-primary",
-          "data-testid": "diagrams-embed-open",
-          onClick: (e5) => {
-            e5.stopPropagation();
-            props.onOpen();
-          },
-          children: [
             /* @__PURE__ */ u2(
               "span",
               {
-                ref: setIconRef("external-link"),
-                class: "diagrams-card-btn-icon",
-                "aria-hidden": "true"
+                class: "diagrams-card-chip-label",
+                "data-testid": "diagrams-embed-title",
+                children: props.title
               }
-            ),
-            /* @__PURE__ */ u2("span", { class: "diagrams-card-btn-label", children: "M\u1EDF" })
-          ]
-        }
-      )
-    ] }),
-    /* @__PURE__ */ u2(
-      "div",
-      {
-        class: "diagrams-card-preview diagrams-card-embed-preview",
-        "data-testid": "diagrams-embed-preview",
-        children: [
-          /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-meta", children: meta }),
-          props.svg === void 0 ? /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-loading", children: "\u0110ang t\u1EA3i\u2026" }) : props.svg === "" || props.errorMessage ? /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-empty", children: (_b2 = props.errorMessage) != null ? _b2 : "Board tr\u1ED1ng \u2014 b\u1EA5m M\u1EDF \u0111\u1EC3 v\u1EBD." }) : /* @__PURE__ */ u2(
-            "div",
+            )
+          ] }),
+          /* @__PURE__ */ u2("div", { class: "diagrams-card-spacer" }),
+          props.onExportMenu && /* @__PURE__ */ u2(
+            "button",
             {
-              class: "diagrams-card-embed-svg",
-              dangerouslySetInnerHTML: { __html: props.svg }
+              type: "button",
+              class: "diagrams-card-btn diagrams-card-btn-export",
+              "aria-label": "Export",
+              title: "Export",
+              "data-testid": "diagrams-embed-export",
+              onClick: (e5) => {
+                e5.stopPropagation();
+                props.onExportMenu(e5);
+              },
+              children: [
+                /* @__PURE__ */ u2(
+                  "span",
+                  {
+                    ref: setIconRef("download"),
+                    class: "diagrams-card-btn-icon",
+                    "aria-hidden": "true"
+                  }
+                ),
+                /* @__PURE__ */ u2("span", { class: "diagrams-card-btn-label", children: "Export" })
+              ]
+            }
+          ),
+          /* @__PURE__ */ u2(
+            "button",
+            {
+              type: "button",
+              class: "diagrams-card-btn diagrams-card-btn-edit diagrams-card-btn-primary",
+              "aria-label": "S\u1EEDa",
+              title: "S\u1EEDa",
+              "data-testid": "diagrams-embed-edit",
+              onClick: (e5) => {
+                e5.stopPropagation();
+                props.onEdit();
+              },
+              children: [
+                /* @__PURE__ */ u2(
+                  "span",
+                  {
+                    ref: setIconRef("square-pen"),
+                    class: "diagrams-card-btn-icon",
+                    "aria-hidden": "true"
+                  }
+                ),
+                /* @__PURE__ */ u2("span", { class: "diagrams-card-btn-label", children: "S\u1EEDa" })
+              ]
+            }
+          ),
+          props.onMoreMenu && /* @__PURE__ */ u2(
+            "button",
+            {
+              type: "button",
+              class: "diagrams-card-btn diagrams-card-btn-more",
+              "aria-label": "More actions",
+              title: "More actions",
+              "data-testid": "diagrams-embed-more",
+              onClick: (e5) => {
+                e5.stopPropagation();
+                props.onMoreMenu(e5);
+              },
+              children: /* @__PURE__ */ u2(
+                "span",
+                {
+                  ref: setIconRef("more-horizontal"),
+                  class: "diagrams-card-btn-icon",
+                  "aria-hidden": "true"
+                }
+              )
             }
           )
-        ]
-      }
-    )
-  ] });
+        ] }),
+        /* @__PURE__ */ u2(
+          "div",
+          {
+            class: "diagrams-card-preview diagrams-card-embed-preview",
+            "data-testid": "diagrams-embed-preview",
+            children: [
+              /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-meta", children: meta }),
+              props.svg === void 0 ? /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-loading", children: "\u0110ang t\u1EA3i\u2026" }) : props.svg === "" || props.errorMessage ? /* @__PURE__ */ u2("div", { class: "diagrams-card-embed-empty", children: (_a3 = props.errorMessage) != null ? _a3 : "Board tr\u1ED1ng \u2014 b\u1EA5m S\u1EEDa \u0111\u1EC3 v\u1EBD." }) : /* @__PURE__ */ u2(
+                "div",
+                {
+                  class: "diagrams-card-embed-svg",
+                  dangerouslySetInnerHTML: { __html: props.svg }
+                }
+              )
+            ]
+          }
+        )
+      ]
+    }
+  );
 }
 
 // src/settings.ts
@@ -88376,7 +88372,8 @@ var import_obsidian6 = require("obsidian");
 var DEFAULT_SETTINGS = {
   defaultLayout: "LR",
   validateBpmnBeforeExport: true,
-  compressDrawingData: false
+  compressDrawingData: false,
+  boardFolder: "Omniboards"
 };
 var DiagramsSettingTab = class extends import_obsidian6.PluginSettingTab {
   constructor(app, plugin) {
@@ -88404,6 +88401,14 @@ var DiagramsSettingTab = class extends import_obsidian6.PluginSettingTab {
     ).addToggle(
       (t6) => t6.setValue(this.plugin.settings.compressDrawingData).onChange(async (v6) => {
         this.plugin.settings.compressDrawingData = v6;
+        await this.plugin.saveSettings();
+      })
+    );
+    new import_obsidian6.Setting(containerEl).setName("Board folder").setDesc(
+      "Folder where new board files (.omniboard.md) are created when you insert a board into a note. Leave empty to create them at the vault root."
+    ).addText(
+      (t6) => t6.setPlaceholder("Omniboards").setValue(this.plugin.settings.boardFolder).onChange(async (v6) => {
+        this.plugin.settings.boardFolder = v6.trim();
         await this.plugin.saveSettings();
       })
     );
@@ -122473,148 +122478,9 @@ function registerBpmnIcons() {
   }
 }
 
-// src/embed/liveEmbedExtension.ts
-var import_state = require("@codemirror/state");
-var import_view12 = require("@codemirror/view");
-var import_language = require("@codemirror/language");
-var import_obsidian10 = require("obsidian");
-init_boardSerde();
-
-// src/embed/linkUtils.ts
-init_boardSerde();
-function isOmniboardLink(linkText) {
-  const path2 = linkText.replace(/#.*$/, "");
-  return path2.endsWith(OMNIBOARD_SUFFIX) || path2.endsWith(".omniboard");
-}
-
-// src/embed/liveEmbedExtension.ts
-var OmniboardEmbedWidget = class _OmniboardEmbedWidget extends import_view12.WidgetType {
-  constructor(file, plugin) {
-    super();
-    this.file = file;
-    this.plugin = plugin;
-    /** Tracks attached DOM so we can abort an in-flight cachedRead. */
-    this.mounted = null;
-  }
-  eq(other) {
-    return other instanceof _OmniboardEmbedWidget && other.file.path === this.file.path;
-  }
-  toDOM(_view) {
-    const host = document.createElement("div");
-    host.addClass("omniboard-embed-host");
-    this.mounted = host;
-    const mount = (svg3, nodes, edges, error4) => {
-      if (this.mounted !== host || !host.isConnected) return;
-      R(
-        k(EmbedCard, {
-          filename: this.file.basename,
-          nodeCount: nodes,
-          edgeCount: edges,
-          svg: svg3,
-          errorMessage: error4,
-          onOpen: () => {
-            void this.plugin.app.workspace.getLeaf("tab").openFile(this.file);
-          },
-          setIcon: (el4, name2) => (0, import_obsidian10.setIcon)(el4, name2)
-        }),
-        host
-      );
-    };
-    mount(void 0, 0, 0);
-    void (async () => {
-      var _a3, _b2, _c, _d;
-      try {
-        const raw2 = await this.plugin.app.vault.cachedRead(this.file);
-        if (this.mounted !== host || !host.isConnected) return;
-        const model = deserializeBoard(raw2);
-        if (!model) {
-          mount("", 0, 0, "File kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng Omniboard.");
-          return;
-        }
-        const nodes = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
-        const edges = (_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0;
-        const svg3 = nodes > 0 ? renderModelToSvg(model, "", 16, "transparent") : "";
-        mount(svg3, nodes, edges);
-      } catch (e5) {
-        if (this.mounted !== host) return;
-        mount("", 0, 0, "Kh\xF4ng \u0111\u1ECDc \u0111\u01B0\u1EE3c board.");
-      }
-    })();
-    return host;
-  }
-  destroy(dom) {
-    R(null, dom);
-    this.mounted = null;
-  }
-  // The widget is purely decorative — events on it shouldn't end up in
-  // the editor's text manipulation pipeline (selection, drag, etc.).
-  ignoreEvent(_event) {
-    return true;
-  }
-};
-function buildDecorations(view, plugin) {
-  var _a3, _b2;
-  const builder = new import_state.RangeSetBuilder();
-  const doc = view.state.doc;
-  const sourcePath = (_b2 = (_a3 = plugin.app.workspace.getActiveFile()) == null ? void 0 : _a3.path) != null ? _b2 : "";
-  for (const { from, to } of view.visibleRanges) {
-    (0, import_language.syntaxTree)(view.state).iterate({
-      from,
-      to,
-      enter(node3) {
-        const typeName = node3.type.name;
-        if (!typeName.includes("hmd-internal-link")) return;
-        const startOfLink = node3.from - 3;
-        if (startOfLink < 0) return;
-        if (doc.sliceString(startOfLink, node3.from) !== "![[") return;
-        const linkText = doc.sliceString(node3.from, node3.to).trim();
-        if (!isOmniboardLink(linkText)) return;
-        const file = plugin.app.metadataCache.getFirstLinkpathDest(
-          linkText.replace(/#.*$/, ""),
-          sourcePath
-        );
-        if (!(file instanceof import_obsidian10.TFile)) return;
-        const fullStart = startOfLink;
-        const fullEnd = node3.to + 2;
-        builder.add(
-          fullStart,
-          fullEnd,
-          import_view12.Decoration.replace({
-            widget: new OmniboardEmbedWidget(file, plugin),
-            block: true,
-            inclusive: false
-          })
-        );
-      }
-    });
-  }
-  return builder.finish();
-}
-function omniboardEmbedEditorExtension(plugin) {
-  const pluginExt = import_view12.ViewPlugin.fromClass(
-    class {
-      constructor(view) {
-        this.decorations = buildDecorations(view, plugin);
-      }
-      update(u6) {
-        if (u6.docChanged || u6.viewportChanged || u6.geometryChanged) {
-          this.decorations = buildDecorations(u6.view, plugin);
-        }
-      }
-    },
-    { decorations: (v6) => v6.decorations }
-  );
-  return [pluginExt];
-}
-
 // src/io/cardExports.ts
-function isCanvasModel(model) {
-  if (typeof model !== "object" || model === null) return false;
-  const m7 = model;
-  return Array.isArray(m7.nodes) && Array.isArray(m7.edges);
-}
 function exportSvg(model) {
-  return renderModelToSvg(model, "", 24, "#ffffff");
+  return renderModelToSvg(model, collectPluginCss(), 24, "#ffffff");
 }
 async function exportPng(model, scale2 = 2) {
   const svg3 = exportSvg(model);
@@ -122711,126 +122577,469 @@ async function saveToDisk(data2, suggestedName, mimeType) {
   setTimeout(() => URL.revokeObjectURL(url), 1e3);
   return suggestedName;
 }
-async function exportDiagramCard(adapter, model, format2, baseName) {
-  if (isCanvasModel(model)) {
-    switch (format2) {
-      case "svg": {
-        const svg3 = exportSvg(model);
-        return saveToDisk(svg3, `${baseName}.svg`, "image/svg+xml");
-      }
-      case "png": {
-        const png = await exportPng(model, 2);
-        return saveToDisk(png, `${baseName}.png`, "image/png");
-      }
-      case "pdf": {
-        const pdf = await exportPdf(model);
-        return saveToDisk(pdf, `${baseName}.pdf`, "application/pdf");
-      }
-    }
-  }
-  const text4 = adapter.serialize(model);
-  const ext = adapter.codeBlockLanguage || "txt";
-  return saveToDisk(text4, `${baseName}.${ext}`, "text/plain");
-}
-async function copyCardAsImage(adapter, model) {
-  if (isCanvasModel(model)) {
+
+// src/view/FileBoardModal.ts
+var import_obsidian10 = require("obsidian");
+
+// src/ui/boardSurface.ts
+function mountBoardSurface(container, opts) {
+  var _a3;
+  container.empty();
+  container.addClass("diagrams-board-surface");
+  const bar = container.createDiv({ cls: "da-topbar" });
+  const host = container.createDiv({ cls: "diagrams-board-surface-canvas" });
+  const canvas = new OmniboardCanvas(host, [...SHAPE_CATEGORIES], () => {
+  });
+  canvas.loadModel(opts.initialModel);
+  buildBoardTopbar(bar, {
+    getCanvas: () => canvas,
+    badgeLabel: opts.badgeLabel,
+    badgeIcon: opts.badgeIcon,
+    title: opts.title,
+    onTitleChange: opts.onTitleChange,
+    onClose: opts.onClose,
+    onSave: () => opts.onSave(canvas.getModel()),
+    onExport: opts.onExport ? (e5) => opts.onExport(canvas.getModel(), e5) : void 0,
+    extraButtons: (_a3 = opts.extraButtons) == null ? void 0 : _a3.map((eb) => ({
+      icon: eb.icon,
+      tip: eb.tip,
+      onClick: () => eb.onClick(canvas.getModel())
+    }))
+  });
+  return () => {
     try {
-      const png = await exportPng(model, 2);
-      const item = new ClipboardItem({ "image/png": png });
-      await navigator.clipboard.write([item]);
-      return true;
-    } catch (e5) {
-      return false;
+      canvas.destroy();
+    } finally {
+      container.empty();
+      container.removeClass("diagrams-board-surface");
     }
-  }
-  try {
-    await navigator.clipboard.writeText(adapter.serialize(model));
-    return true;
-  } catch (e5) {
-    return false;
-  }
+  };
 }
 
-// src/ui/SourceEditorModal.ts
-var import_obsidian11 = require("obsidian");
-var import_view13 = require("@codemirror/view");
-var import_state2 = require("@codemirror/state");
-var import_commands = require("@codemirror/commands");
-var SourceEditorModal = class extends import_obsidian11.Modal {
-  constructor(opts) {
-    super(opts.app);
-    this.view = null;
-    this.opts = opts;
+// src/view/FileBoardModal.ts
+init_boardSerde();
+var FileBoardModal = class extends import_obsidian10.Modal {
+  constructor(app, plugin, file) {
+    super(app);
+    this.plugin = plugin;
+    this.file = file;
+    this.teardown = null;
+    /** Raw file content at open time — preserved so frontmatter / source-meta /
+     *  derived BPMN blocks survive a save. */
+    this.previousRaw = "";
   }
   onOpen() {
     const { contentEl, modalEl } = this;
-    modalEl.addClass("diagrams-source-editor-modal");
+    modalEl.addClass("diagrams-edit-modal");
     contentEl.empty();
-    const header = contentEl.createDiv({ cls: "diagrams-source-editor-header" });
-    const chip = header.createDiv({ cls: "diagrams-source-editor-chip" });
-    const chipIcon = chip.createSpan({ cls: "diagrams-source-editor-chip-icon" });
-    (0, import_obsidian11.setIcon)(chipIcon, "code");
-    chip.createSpan({
-      cls: "diagrams-source-editor-chip-label",
-      text: `S\u1EEDa m\xE3 ngu\u1ED3n \xB7 ${this.opts.language}`
+    void this.openSurface();
+  }
+  async openSurface() {
+    const { contentEl } = this;
+    const hint = contentEl.createDiv({
+      cls: "diagrams-placeholder-render",
+      text: "\u0110ang m\u1EDF board\u2026"
     });
-    header.createDiv({ cls: "diagrams-source-editor-spacer" });
-    const cancel = header.createEl("button", {
-      cls: "diagrams-source-editor-btn"
-    });
-    const cancelIcon = cancel.createSpan({ cls: "diagrams-source-editor-btn-icon" });
-    (0, import_obsidian11.setIcon)(cancelIcon, "x");
-    cancel.createSpan({ text: "H\u1EE7y" });
-    cancel.onclick = () => this.close();
-    const save = header.createEl("button", {
-      cls: "diagrams-source-editor-btn diagrams-source-editor-btn-primary"
-    });
-    const saveIcon = save.createSpan({ cls: "diagrams-source-editor-btn-icon" });
-    (0, import_obsidian11.setIcon)(saveIcon, "check");
-    save.createSpan({ text: "L\u01B0u" });
-    save.onclick = () => void this.commit();
-    const editorHost = contentEl.createDiv({
-      cls: "diagrams-source-editor-body"
-    });
-    const state = import_state2.EditorState.create({
-      doc: this.opts.initialText,
-      extensions: [
-        (0, import_view13.lineNumbers)(),
-        (0, import_view13.highlightActiveLine)(),
-        (0, import_commands.history)(),
-        import_view13.keymap.of([...import_commands.defaultKeymap, ...import_commands.historyKeymap]),
-        import_view13.EditorView.theme(
-          {
-            "&": { height: "100%", fontSize: "13px" },
-            ".cm-scroller": { fontFamily: "var(--font-monospace)" }
-          },
-          { dark: document.body.classList.contains("theme-dark") }
-        )
+    let model;
+    try {
+      this.previousRaw = await this.app.vault.read(this.file);
+      model = deserializeBoard(this.previousRaw);
+    } catch (e5) {
+      hint.setText(
+        "Kh\xF4ng \u0111\u1ECDc \u0111\u01B0\u1EE3c board: " + (e5 instanceof Error ? e5.message : String(e5))
+      );
+      return;
+    }
+    if (!model) {
+      hint.setText("File kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng Omniboard.");
+      return;
+    }
+    if (!contentEl.isConnected) return;
+    contentEl.empty();
+    let title2 = this.file.basename;
+    this.teardown = mountBoardSurface(contentEl, {
+      initialModel: model,
+      badgeLabel: title2,
+      badgeIcon: "shapes",
+      title: title2,
+      onTitleChange: (t6) => {
+        title2 = t6;
+      },
+      onClose: () => this.close(),
+      onSave: (m7) => {
+        void this.persist(m7);
+        this.close();
+      },
+      extraButtons: [
+        {
+          icon: "maximize-2",
+          tip: "S\u1EEDa to\xE0n m\xE0n h\xECnh",
+          onClick: (m7) => {
+            void (async () => {
+              await this.persist(m7);
+              this.close();
+              await this.plugin.openBoardFile(this.file);
+            })();
+          }
+        }
       ]
     });
-    this.view = new import_view13.EditorView({ state, parent: editorHost });
-    setTimeout(() => {
-      var _a3;
-      return (_a3 = this.view) == null ? void 0 : _a3.focus();
-    }, 0);
   }
-  async commit() {
-    if (!this.view) return;
-    const newText = this.view.state.doc.toString();
+  /** Serialize + write the model back to the file, preserving prior blocks. */
+  async persist(model) {
+    var _a3;
     try {
-      await this.opts.onSave(newText);
-      new import_obsidian11.Notice("\u0110\xE3 l\u01B0u m\xE3 ngu\u1ED3n");
-      this.close();
-    } catch (err2) {
-      console.warn("[omniboard] source-edit save failed", err2);
-      new import_obsidian11.Notice("L\u01B0u m\xE3 ngu\u1ED3n th\u1EA5t b\u1EA1i \u2014 xem console.");
+      const content5 = serializeBoard(
+        model,
+        this.previousRaw,
+        (_a3 = deserializeSourceMeta(this.previousRaw)) != null ? _a3 : void 0,
+        { compressDrawingData: this.plugin.settings.compressDrawingData }
+      );
+      await this.app.vault.modify(this.file, content5);
+    } catch (e5) {
+      console.error("[omniboard] FileBoardModal save failed", e5);
+      new import_obsidian10.Notice("L\u01B0u board th\u1EA5t b\u1EA1i \u2014 xem console.");
     }
   }
   onClose() {
-    var _a3;
-    (_a3 = this.view) == null ? void 0 : _a3.destroy();
-    this.view = null;
+    if (this.teardown) {
+      this.teardown();
+      this.teardown = null;
+    }
     this.contentEl.empty();
+  }
+};
+
+// src/ui/boardPickers.ts
+var import_obsidian11 = require("obsidian");
+init_boardSerde();
+var BoardTypePicker = class extends import_obsidian11.SuggestModal {
+  constructor(app, choices, onChoose) {
+    super(app);
+    this.choices = choices;
+    this.onChoose = onChoose;
+    this.setPlaceholder("Ch\u1ECDn lo\u1EA1i board\u2026");
+  }
+  getSuggestions(query2) {
+    const q5 = query2.trim().toLowerCase();
+    if (!q5) return this.choices;
+    return this.choices.filter((c6) => c6.label.toLowerCase().includes(q5));
+  }
+  renderSuggestion(choice, el4) {
+    el4.addClass("omniboard-type-suggestion");
+    const icon = el4.createSpan({ cls: "omniboard-type-suggestion-icon" });
+    (0, import_obsidian11.setIcon)(icon, choice.icon);
+    el4.createSpan({ cls: "omniboard-type-suggestion-label", text: choice.label });
+  }
+  onChooseSuggestion(choice) {
+    this.onChoose(choice);
+  }
+};
+var ExistingBoardPicker = class extends import_obsidian11.FuzzySuggestModal {
+  constructor(app, onChoose) {
+    super(app);
+    this.onChoose = onChoose;
+    this.setPlaceholder("T\xECm board \u0111\xE3 c\xF3\u2026");
+  }
+  getItems() {
+    return this.app.vault.getFiles().filter((f6) => f6.path.endsWith(OMNIBOARD_SUFFIX)).sort((a5, b4) => b4.stat.mtime - a5.stat.mtime);
+  }
+  getItemText(file) {
+    return file.path;
+  }
+  onChooseItem(file) {
+    this.onChoose(file);
+  }
+};
+
+// src/adapters/_shared/CanvasPreview.tsx
+function CanvasPreview({ model }) {
+  const svg3 = T3(() => {
+    if (!model.nodes.length) return "";
+    try {
+      return renderModelToSvg(model, "", 16, "transparent");
+    } catch (e5) {
+      return "";
+    }
+  }, [model]);
+  if (!svg3) {
+    return /* @__PURE__ */ u2("div", { class: "diagrams-empty", children: "(s\u01A1 \u0111\u1ED3 tr\u1ED1ng)" });
+  }
+  return /* @__PURE__ */ u2(
+    "div",
+    {
+      class: "diagrams-adapter-preview",
+      "data-testid": "canvas-preview",
+      dangerouslySetInnerHTML: { __html: svg3 }
+    }
+  );
+}
+
+// src/adapters/bpmn/Renderer.tsx
+init_import();
+
+// src/adapters/_shared/layout.ts
+function hasDegenerateLayout(model) {
+  if (model.nodes.length < 2) return false;
+  const seen = /* @__PURE__ */ new Set();
+  for (const n4 of model.nodes) {
+    const key = `${Math.round(n4.x)},${Math.round(n4.y)}`;
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+  return false;
+}
+function layoutWithDagre(model, dir = "TB") {
+  if (!model.nodes.length) return;
+  const g4 = new To.graphlib.Graph();
+  g4.setGraph({ rankdir: dir, nodesep: 48, ranksep: 72, marginx: 16, marginy: 16 });
+  g4.setDefaultEdgeLabel(() => ({}));
+  for (const n4 of model.nodes) g4.setNode(n4.id, { width: n4.width, height: n4.height });
+  for (const e5 of model.edges) {
+    if (g4.hasNode(e5.source) && g4.hasNode(e5.target)) g4.setEdge(e5.source, e5.target);
+  }
+  To.layout(g4);
+  for (const n4 of model.nodes) {
+    const p6 = g4.node(n4.id);
+    if (p6) {
+      n4.x = Math.round(p6.x - n4.width / 2);
+      n4.y = Math.round(p6.y - n4.height / 2);
+    }
+  }
+}
+
+// src/adapters/bpmn/Renderer.tsx
+function BpmnRenderer2({ model }) {
+  const [state, setState] = d2({ status: "loading" });
+  y2(() => {
+    let cancelled = false;
+    setState((prev) => prev.model ? prev : { status: "loading" });
+    importBpmn(model).then((result) => {
+      if (cancelled) return;
+      if (hasDegenerateLayout(result.model)) layoutWithDagre(result.model, "LR");
+      setState({ status: "ready", model: result.model });
+    }).catch((err2) => {
+      if (cancelled) return;
+      const message = err2 instanceof Error ? err2.message : String(err2);
+      setState({ status: "error", error: message });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [model]);
+  if (state.status === "loading") {
+    return /* @__PURE__ */ u2("div", { class: "diagrams-placeholder-render", "data-testid": "bpmn-renderer-loading", children: "\u0110ang ph\xE2n t\xEDch BPMN\u2026" });
+  }
+  if (state.status === "error") {
+    return /* @__PURE__ */ u2("div", { class: "diagrams-placeholder-render diagrams-error", "data-testid": "bpmn-renderer-error", children: [
+      "L\u1ED7i khi \u0111\u1ECDc BPMN: ",
+      state.error
+    ] });
+  }
+  return /* @__PURE__ */ u2(CanvasPreview, { model: state.model });
+}
+
+// src/adapters/bpmn/Editor.tsx
+init_import();
+function BpmnEditor({ initialModel, onSave, onClose }) {
+  const [state, setState] = d2({ status: "loading" });
+  const [saving, setSaving] = d2(false);
+  const currentModelRef = A4(null);
+  y2(() => {
+    let cancelled = false;
+    setState({ status: "loading" });
+    importBpmn(initialModel).then((result) => {
+      if (cancelled) return;
+      currentModelRef.current = result.model;
+      setState({ status: "ready", initial: result.model, meta: result.sourceMeta });
+    }).catch((err2) => {
+      if (cancelled) return;
+      const message = err2 instanceof Error ? err2.message : String(err2);
+      setState({ status: "error", error: message });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialModel]);
+  const onCanvasChange = (m7) => {
+    currentModelRef.current = m7;
+  };
+  const handleSave = async () => {
+    var _a3;
+    if (saving) return;
+    const m7 = currentModelRef.current;
+    if (!m7) return;
+    setSaving(true);
+    try {
+      const xml3 = await exportBpmn(m7, (_a3 = state.meta) != null ? _a3 : null);
+      onSave(xml3);
+      onClose();
+    } catch (err2) {
+      const message = err2 instanceof Error ? err2.message : String(err2);
+      setState({ status: "error", error: `L\u1ED7i khi xu\u1EA5t BPMN: ${message}` });
+    } finally {
+      setSaving(false);
+    }
+  };
+  return /* @__PURE__ */ u2("div", { class: "diagrams-editor-shell bpmn-adapter-editor", children: [
+    /* @__PURE__ */ u2("div", { class: "diagrams-editor-toolbar", children: [
+      /* @__PURE__ */ u2("button", { class: "diagrams-btn", onClick: onClose, children: "\u2190 \u0110\xF3ng" }),
+      /* @__PURE__ */ u2("span", { class: "diagrams-editor-title", children: "BPMN 2.0 \u2014 ch\u1EC9nh s\u1EEDa" }),
+      /* @__PURE__ */ u2(
+        "button",
+        {
+          class: "diagrams-btn diagrams-btn-primary",
+          disabled: state.status !== "ready" || saving,
+          onClick: () => {
+            void handleSave();
+          },
+          children: saving ? "\u0110ang l\u01B0u\u2026" : "L\u01B0u & \u0111\xF3ng"
+        }
+      )
+    ] }),
+    state.status === "loading" && /* @__PURE__ */ u2("div", { class: "diagrams-placeholder-render", "data-testid": "bpmn-editor-loading", children: "\u0110ang ph\xE2n t\xEDch BPMN\u2026" }),
+    state.status === "error" && /* @__PURE__ */ u2("div", { class: "diagrams-placeholder-render diagrams-error", "data-testid": "bpmn-editor-error", children: state.error }),
+    state.status === "ready" && /* @__PURE__ */ u2("div", { class: "bpmn-adapter-editor-canvas", "data-testid": "bpmn-editor-ready", children: /* @__PURE__ */ u2(
+      OmniboardCanvasMount,
+      {
+        categories: [],
+        initialModel: state.initial,
+        onChange: onCanvasChange
+      }
+    ) })
+  ] });
+}
+
+// src/adapters/bpmn/palette.ts
+var bpmnPaletteItems = [
+  // PHẦN TỬ
+  { id: "start-event", label: "Start", icon: "circle-dot", shortcut: "S", group: "PH\u1EA6N T\u1EEC" },
+  { id: "end-event", label: "End", icon: "circle-x", shortcut: "E", group: "PH\u1EA6N T\u1EEC" },
+  { id: "task", label: "Task", icon: "rectangle-horizontal", shortcut: "T", group: "PH\u1EA6N T\u1EEC" },
+  { id: "user-task", label: "User Task", icon: "user", group: "PH\u1EA6N T\u1EEC" },
+  { id: "service-task", label: "Service Task", icon: "cog", group: "PH\u1EA6N T\u1EEC" },
+  { id: "gateway", label: "Gateway", icon: "diamond", shortcut: "G", group: "PH\u1EA6N T\u1EEC" },
+  // SUBPROCESS
+  { id: "subprocess", label: "Subprocess", icon: "frame", group: "SUBPROCESS" },
+  { id: "event-subprocess", label: "Event Sub", icon: "square-dashed", group: "SUBPROCESS" },
+  { id: "call-activity", label: "Call Activity", icon: "external-link", group: "SUBPROCESS" },
+  // FLOW
+  { id: "sequence-flow", label: "Sequence", icon: "arrow-right", group: "FLOW" },
+  // DATA
+  { id: "data-object", label: "Data Object", icon: "file-text", group: "DATA" },
+  { id: "data-store", label: "Data Store", icon: "database", group: "DATA" }
+];
+
+// src/adapters/bpmn/index.ts
+init_import();
+
+// src/adapters/bpmn/sourceOps.ts
+var PROCESS_TAG_RE = /<bpmn:process\b(?:[^>"']|"[^"]*"|'[^']*')*>/;
+var NAME_ATTR_RE = /(?<![:\w])name="([^"]*)"/;
+var DEFINITIONS_RE = /<bpmn:definitions\b/;
+var MAX_VALIDATE_SOURCE_LENGTH = 4 * 1024 * 1024;
+function validateBpmnSource(source) {
+  var _a3;
+  if (!source || !source.trim()) {
+    return [{ severity: "error", message: "Source r\u1ED7ng" }];
+  }
+  if (source.length > MAX_VALIDATE_SOURCE_LENGTH) {
+    return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
+  }
+  const issues = [];
+  if (typeof DOMParser !== "undefined") {
+    try {
+      const doc = new DOMParser().parseFromString(source, "application/xml");
+      const errEl = doc.getElementsByTagName("parsererror")[0];
+      if (errEl) {
+        const msg = ((_a3 = errEl.textContent) == null ? void 0 : _a3.trim()) || "XML kh\xF4ng h\u1EE3p l\u1EC7";
+        issues.push({ severity: "error", message: `XML l\u1ED7i: ${msg.slice(0, 200)}` });
+      }
+    } catch (e5) {
+    }
+  }
+  if (!DEFINITIONS_RE.test(source)) {
+    issues.push({
+      severity: "error",
+      message: "Thi\u1EBFu <bpmn:definitions> root element"
+    });
+  }
+  return issues;
+}
+function getBpmnTitle(source) {
+  const m7 = source.match(PROCESS_TAG_RE);
+  if (!m7) return void 0;
+  const tag = m7[0];
+  const nameMatch = tag.match(NAME_ATTR_RE);
+  if (!nameMatch) return void 0;
+  return decodeXmlEntities(nameMatch[1]);
+}
+function setBpmnTitle(source, title2) {
+  var _a3;
+  const m7 = source.match(PROCESS_TAG_RE);
+  if (!m7) return source;
+  const tag = m7[0];
+  const tagStart = (_a3 = m7.index) != null ? _a3 : 0;
+  const tagEnd = tagStart + tag.length;
+  const escaped = encodeXmlAttr(title2);
+  const hasName = NAME_ATTR_RE.test(tag);
+  let newTag;
+  if (title2 === "") {
+    newTag = hasName ? tag.replace(NAME_ATTR_RE, "").replace(/\s+>/, ">").replace(/\s+\/>/, "/>") : tag;
+  } else if (hasName) {
+    newTag = tag.replace(NAME_ATTR_RE, `name="${escaped}"`);
+  } else {
+    newTag = tag.replace(/^<bpmn:process\b/, `<bpmn:process name="${escaped}"`);
+  }
+  return source.slice(0, tagStart) + newTag + source.slice(tagEnd);
+}
+function encodeXmlAttr(value) {
+  return value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function decodeXmlEntities(value) {
+  return value.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+}
+
+// src/adapters/bpmn/index.ts
+var TEMPLATE = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_1" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_1" name="Start"/>
+  </bpmn:process>
+</bpmn:definitions>`;
+var bpmnAdapter = {
+  id: "bpmn",
+  displayName: "BPMN 2.0",
+  codeBlockLanguage: "bpmn",
+  icon: "git-fork",
+  exportFormats: ["svg", "png", "pdf"],
+  parse: (source) => source,
+  serialize: (model) => model,
+  emptyTemplate: () => TEMPLATE,
+  Renderer: BpmnRenderer2,
+  Editor: BpmnEditor,
+  validate: (_model) => ({ ok: true, errors: [] }),
+  validateSource: (source) => validateBpmnSource(source),
+  getTitle: (model) => getBpmnTitle(model),
+  setTitle: (model, title2) => setBpmnTitle(model, title2),
+  paletteItems: bpmnPaletteItems,
+  // Story 7-5c — BpmnEditor is a visual/canvas editor; the process name is not
+  // shown in the edit surface, so a header title input is the single authority.
+  titleEditableInHeader: true,
+  // Story 7-5d — unified canvas editor. importBpmn is async; the serialize
+  // closure captures sourceMeta for a faithful XML round-trip + applies the
+  // edited process name (title).
+  toEditor: async (source) => {
+    const result = await importBpmn(source);
+    if (hasDegenerateLayout(result.model)) layoutWithDagre(result.model, "LR");
+    return {
+      model: result.model,
+      title: getBpmnTitle(source),
+      serialize: async (m7, title2) => {
+        const xml3 = await exportBpmn(m7, result.sourceMeta);
+        return title2 !== void 0 ? setBpmnTitle(xml3, title2) : xml3;
+      }
+    };
   }
 };
 
@@ -122868,6 +123077,123 @@ function PlaceholderEditor({ initialModel, onSave, onClose }) {
   ] });
 }
 
+// src/adapters/dbml/Renderer.tsx
+function DbmlRenderer({ model }) {
+  const canvasModel = T3(() => {
+    try {
+      return importDbml(model).model;
+    } catch (e5) {
+      return { nodes: [], edges: [] };
+    }
+  }, [model]);
+  return /* @__PURE__ */ u2(CanvasPreview, { model: canvasModel });
+}
+
+// src/adapters/dbml/palette.ts
+var dbmlPaletteItems = [
+  // BẢNG
+  { id: "table", label: "Table", icon: "table", shortcut: "T", group: "B\u1EA2NG" },
+  // QUAN HỆ
+  { id: "ref-one-to-one", label: "Ref 1\u21941", icon: "arrow-left-right", group: "QUAN H\u1EC6" },
+  { id: "ref-one-to-many", label: "Ref 1\u2194n", icon: "git-fork", group: "QUAN H\u1EC6" },
+  { id: "ref-many-to-many", label: "Ref n\u2194n", icon: "network", group: "QUAN H\u1EC6" },
+  // KHÁC
+  { id: "enum", label: "Enum", icon: "list", group: "KH\xC1C" },
+  { id: "table-group", label: "Table Group", icon: "layers", group: "KH\xC1C" }
+];
+
+// src/adapters/dbml/sourceOps.ts
+var MAX_VALIDATE_SOURCE_LENGTH2 = 4 * 1024 * 1024;
+var TABLE_RE2 = /^Table\s+\S+/m;
+var PROJECT_TAG_RE = /^Project\s+("[^"]*"|\S+)\s*\{[^}]*\}/m;
+function validateDbmlSource(source) {
+  if (!source || !source.trim()) {
+    return [{ severity: "error", message: "Source r\u1ED7ng" }];
+  }
+  if (source.length > MAX_VALIDATE_SOURCE_LENGTH2) {
+    return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
+  }
+  if (!TABLE_RE2.test(source)) {
+    return [{ severity: "error", message: "Thi\u1EBFu khai b\xE1o Table" }];
+  }
+  return [];
+}
+function getDbmlTitle(source) {
+  const m7 = source.match(PROJECT_TAG_RE);
+  if (!m7) return void 0;
+  let name2 = m7[1].trim();
+  if (name2.startsWith('"') && name2.endsWith('"') && name2.length >= 2) {
+    name2 = name2.slice(1, -1);
+  }
+  return name2 === "" ? void 0 : name2;
+}
+function setDbmlTitle(source, title2) {
+  if (title2 === "") return source;
+  const safeTitle = title2.replace(/"/g, "");
+  const escaped = needsQuoting(safeTitle) ? `"${safeTitle}"` : safeTitle;
+  const hasProject = PROJECT_TAG_RE.test(source);
+  if (hasProject) {
+    return source.replace(
+      PROJECT_TAG_RE,
+      (full) => full.replace(/^Project\s+("[^"]*"|\S+)/, () => `Project ${escaped}`)
+    );
+  }
+  return `Project ${escaped} {
+  database_type: 'omniboard'
+}
+
+${source}`;
+}
+function needsQuoting(s5) {
+  return /[\s'{}()\[\]]/.test(s5);
+}
+
+// src/adapters/dbml/index.ts
+var TEMPLATE2 = `Project example {
+  database_type: 'omniboard'
+}
+
+Table users {
+  id int [pk]
+  email varchar
+  created_at timestamp
+}
+
+Table orders {
+  id int [pk]
+  user_id int [ref: > users.id]
+  total decimal
+}`;
+var dbmlAdapter = {
+  id: "dbml",
+  displayName: "DBML",
+  codeBlockLanguage: "dbml",
+  icon: "database",
+  exportFormats: ["svg", "png"],
+  parse: (source) => source,
+  serialize: (model) => model,
+  emptyTemplate: () => TEMPLATE2,
+  Renderer: DbmlRenderer,
+  Editor: PlaceholderEditor,
+  validate: () => ({ ok: true, errors: [] }),
+  validateSource: validateDbmlSource,
+  getTitle: getDbmlTitle,
+  setTitle: setDbmlTitle,
+  paletteItems: dbmlPaletteItems,
+  // Story 7-5d — unified canvas editor (importDbml/exportDbml are sync).
+  toEditor: (source) => {
+    const r5 = importDbml(source);
+    return {
+      model: r5.model,
+      title: getDbmlTitle(source),
+      serialize: (m7, title2) => {
+        const s5 = exportDbml(m7, r5.sourceMeta);
+        return title2 !== void 0 ? setDbmlTitle(s5, title2) : s5;
+      }
+    };
+  }
+};
+
 // src/adapters/makeStubAdapter.ts
 function makeStubAdapter(spec) {
   var _a3;
@@ -122886,23 +123212,67 @@ function makeStubAdapter(spec) {
   };
 }
 
-// src/adapters/bpmn/index.ts
-var bpmnAdapter = makeStubAdapter({
-  id: "bpmn",
-  displayName: "BPMN 2.0",
-  codeBlockLanguage: "bpmn",
-  icon: "git-fork",
-  exportFormats: ["svg", "png", "pdf"],
-  template: `<?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn">
-  <bpmn:process id="Process_1" isExecutable="false">
-    <bpmn:startEvent id="StartEvent_1" name="Start"/>
-  </bpmn:process>
-</bpmn:definitions>`
-});
+// src/adapters/erd/palette.ts
+var erdPaletteItems = [
+  // BẢNG
+  { id: "table", label: "Table", icon: "table", shortcut: "T", group: "B\u1EA2NG" },
+  // CỘT
+  { id: "pk-col", label: "PK Column", icon: "key", group: "C\u1ED8T" },
+  { id: "fk-col", label: "FK Column", icon: "link", group: "C\u1ED8T" },
+  { id: "col", label: "C\u1ED9t", icon: "columns", group: "C\u1ED8T" },
+  // QUAN HỆ
+  { id: "ref", label: "Ref", icon: "arrow-right", group: "QUAN H\u1EC6" }
+];
+
+// src/adapters/erd/Renderer.tsx
+function ErdRenderer({ model }) {
+  const canvasModel = T3(() => {
+    try {
+      return importDbml(model).model;
+    } catch (e5) {
+      return { nodes: [], edges: [] };
+    }
+  }, [model]);
+  return /* @__PURE__ */ u2(CanvasPreview, { model: canvasModel });
+}
+
+// src/adapters/erd/sourceOps.ts
+var MAX_VALIDATE_SOURCE_LENGTH3 = 4 * 1024 * 1024;
+var TABLE_RE3 = /^Table\s+\S+/m;
+var TITLE_COMMENT_RE = /^\/\/\s*@diagram-title:\s*(.+)$/m;
+function validateErdSource(source) {
+  if (!source || !source.trim()) {
+    return [{ severity: "error", message: "Source r\u1ED7ng" }];
+  }
+  if (source.length > MAX_VALIDATE_SOURCE_LENGTH3) {
+    return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
+  }
+  if (!TABLE_RE3.test(source)) {
+    return [{ severity: "error", message: "Thi\u1EBFu khai b\xE1o Table" }];
+  }
+  return [];
+}
+function getErdTitle(source) {
+  const m7 = source.match(TITLE_COMMENT_RE);
+  if (!m7) return void 0;
+  const t6 = m7[1].trim();
+  return t6 === "" ? void 0 : t6;
+}
+function setErdTitle(source, title2) {
+  const hasTitle = TITLE_COMMENT_RE.test(source);
+  if (title2 === "") {
+    if (!hasTitle) return source;
+    return source.replace(/^\/\/\s*@diagram-title:\s*.+\n?/m, "");
+  }
+  if (hasTitle) {
+    return source.replace(TITLE_COMMENT_RE, () => `// @diagram-title: ${title2}`);
+  }
+  return `// @diagram-title: ${title2}
+${source}`;
+}
 
 // src/adapters/erd/index.ts
-var erdAdapter = makeStubAdapter({
+var stub = makeStubAdapter({
   id: "erd",
   displayName: "ER Diagram",
   codeBlockLanguage: "erd",
@@ -122914,6 +123284,27 @@ Table customers {
   // @pos: 120,80
 }`
 });
+var erdAdapter = {
+  ...stub,
+  Renderer: ErdRenderer,
+  // Story 7-18
+  validateSource: validateErdSource,
+  getTitle: getErdTitle,
+  setTitle: setErdTitle,
+  paletteItems: erdPaletteItems,
+  // Story 7-5d — unified canvas editor (ERD is DBML-lite → reuse DBML io).
+  toEditor: (source) => {
+    const r5 = importDbml(source);
+    return {
+      model: r5.model,
+      title: getErdTitle(source),
+      serialize: (m7, title2) => {
+        const s5 = exportDbml(m7, r5.sourceMeta);
+        return title2 !== void 0 ? setErdTitle(s5, title2) : s5;
+      }
+    };
+  }
+};
 
 // src/adapters/flowchart/model.ts
 function parseFlowchart(source) {
@@ -122937,71 +123328,85 @@ function emptyFlowchart() {
   return JSON.stringify(model, null, 2);
 }
 
-// src/adapters/flowchart/Editor.tsx
-registerAllShapes();
-function FlowchartEditor({ initialModel, onSave, onClose }) {
-  const hostRef = A4(null);
-  const canvasRef = A4(null);
-  const dirtyRef = A4(false);
-  y2(() => {
-    if (!hostRef.current) return;
-    const canvas = new OmniboardCanvas(hostRef.current, SHAPE_CATEGORIES, () => {
-      dirtyRef.current = true;
-    });
-    canvasRef.current = canvas;
-    canvas.loadModel(initialModel);
-    return () => {
-      canvas.destroy();
-      canvasRef.current = null;
-    };
-  }, []);
-  const save = (close) => {
-    if (canvasRef.current) onSave(canvasRef.current.getModel());
-    if (close) onClose();
-  };
-  return /* @__PURE__ */ u2("div", { class: "diagrams-editor-shell", children: [
-    /* @__PURE__ */ u2("div", { class: "diagrams-editor-toolbar", children: [
-      /* @__PURE__ */ u2("button", { class: "diagrams-btn", onClick: () => {
-        save(false);
-        onClose();
-      }, children: "\u2190 Close" }),
-      /* @__PURE__ */ u2("span", { class: "diagrams-editor-title", children: "Flowchart" }),
-      /* @__PURE__ */ u2("button", { class: "diagrams-btn diagrams-btn-primary", onClick: () => save(true), children: "Save" })
-    ] }),
-    /* @__PURE__ */ u2("div", { ref: hostRef, class: "diagrams-canvas-host" })
-  ] });
+// src/adapters/flowchart/Renderer.tsx
+function FlowchartRenderer({ model }) {
+  return /* @__PURE__ */ u2(CanvasPreview, { model });
 }
 
-// src/adapters/flowchart/Renderer.tsx
-registerAllShapes();
-var SMART_ROUTER2 = { name: "manhattan", args: { padding: 16 } };
-var CONNECTOR2 = { name: "rounded", args: { radius: 10 } };
-var EDGE_ATTRS2 = { line: { stroke: "#8a8f99", strokeWidth: 2, targetMarker: { name: "block", width: 11, height: 8 } } };
-function FlowchartRenderer({ model }) {
-  const ref2 = A4(null);
-  y2(() => {
-    if (!ref2.current) return;
-    if (!model.nodes.length) {
-      ref2.current.innerHTML = `<div class="diagrams-empty">(empty flowchart)</div>`;
-      return;
+// src/adapters/flowchart/palette.ts
+var flowchartPaletteItems = [
+  // PHẦN TỬ
+  { id: "start", label: "B\u1EAFt \u0111\u1EA7u", icon: "circle-dot", shortcut: "S", group: "PH\u1EA6N T\u1EEC" },
+  { id: "end", label: "K\u1EBFt th\xFAc", icon: "circle-x", shortcut: "E", group: "PH\u1EA6N T\u1EEC" },
+  { id: "process", label: "Ti\u1EBFn tr\xECnh", icon: "rectangle-horizontal", shortcut: "P", group: "PH\u1EA6N T\u1EEC" },
+  { id: "decision", label: "Quy\u1EBFt \u0111\u1ECBnh", icon: "diamond", shortcut: "D", group: "PH\u1EA6N T\u1EEC" },
+  // LIÊN KẾT
+  { id: "connector", label: "M\u0169i t\xEAn", icon: "arrow-right", group: "LI\xCAN K\u1EBET" },
+  // DỮ LIỆU
+  { id: "data", label: "D\u1EEF li\u1EC7u", icon: "file-text", group: "D\u1EEE LI\u1EC6U" }
+];
+
+// src/adapters/flowchart/sourceOps.ts
+var MAX_VALIDATE_SOURCE_LENGTH4 = 4 * 1024 * 1024;
+function validateFlowchartSource(source) {
+  if (!source || !source.trim()) {
+    return [{ severity: "error", message: "Source r\u1ED7ng" }];
+  }
+  if (source.length > MAX_VALIDATE_SOURCE_LENGTH4) {
+    return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(source);
+  } catch (err2) {
+    const msg = err2 instanceof Error ? err2.message : String(err2);
+    return [{ severity: "error", message: `JSON kh\xF4ng h\u1EE3p l\u1EC7: ${msg.slice(0, 200)}` }];
+  }
+  if (!parsed || typeof parsed !== "object") {
+    return [{ severity: "error", message: "C\u1EA5u tr\xFAc JSON kh\xF4ng ph\u1EA3i object" }];
+  }
+  const data2 = parsed;
+  if (!Array.isArray(data2.nodes) || !Array.isArray(data2.edges)) {
+    return [{ severity: "error", message: "Thi\u1EBFu tr\u01B0\u1EDDng nodes ho\u1EB7c edges (ph\u1EA3i l\xE0 array)" }];
+  }
+  return [];
+}
+function getFlowchartTitle(model) {
+  const m7 = model;
+  const t6 = m7.title;
+  if (typeof t6 !== "string" || t6 === "") return void 0;
+  return t6;
+}
+function setFlowchartTitle(model, title2) {
+  const src = model;
+  const next = {
+    ...src,
+    nodes: [...src.nodes],
+    edges: [...src.edges]
+  };
+  if (title2 === "") {
+    delete next.title;
+  } else {
+    next.title = title2;
+  }
+  return next;
+}
+
+// src/adapters/flowchart/propertyFields.ts
+function getFlowchartPropertyFields(ctx) {
+  var _a3;
+  return [
+    {
+      kind: "text",
+      key: "title",
+      label: "Ti\xEAu \u0111\u1EC1",
+      value: (_a3 = getFlowchartTitle(ctx.model)) != null ? _a3 : "",
+      placeholder: "T\xEAn s\u01A1 \u0111\u1ED3",
+      onChange: (next) => {
+        ctx.setModel(setFlowchartTitle(ctx.model, next));
+      }
     }
-    const graph = new Graph({
-      container: ref2.current,
-      width: ref2.current.clientWidth || 600,
-      height: 300,
-      interacting: false,
-      background: { color: "transparent" }
-    });
-    for (const n4 of model.nodes) {
-      graph.addNode({ id: n4.id, shape: n4.shape, x: n4.x, y: n4.y, width: n4.width, height: n4.height, label: n4.label, attrs: n4.attrs });
-    }
-    for (const e5 of model.edges) {
-      graph.addEdge({ source: { cell: e5.source, port: e5.sourcePort }, target: { cell: e5.target, port: e5.targetPort }, router: SMART_ROUTER2, connector: CONNECTOR2, attrs: EDGE_ATTRS2, labels: e5.label ? [{ attrs: { label: { text: e5.label } } }] : [] });
-    }
-    graph.zoomToFit({ padding: 20, maxScale: 1 });
-    return () => graph.dispose();
-  }, []);
-  return /* @__PURE__ */ u2("div", { ref: ref2, class: "diagrams-render-host", style: "width:100%;height:300px;" });
+  ];
 }
 
 // src/adapters/flowchart/index.ts
@@ -123014,13 +123419,199 @@ var flowchartAdapter = {
   serialize: serializeFlowchart,
   emptyTemplate: emptyFlowchart,
   Renderer: FlowchartRenderer,
-  Editor: FlowchartEditor,
+  // Flowchart is canvas-native (see canvasShapeCategories) — the modal always
+  // takes the BoardEditor canvas branch, so `Editor` is never reached. A
+  // placeholder satisfies the required contract field without dead canvas code.
+  Editor: PlaceholderEditor,
   exportFormats: ["svg", "png"],
-  validate: () => ({ ok: true, errors: [] })
+  validate: () => ({ ok: true, errors: [] }),
+  // Story 7-15
+  validateSource: validateFlowchartSource,
+  getTitle: getFlowchartTitle,
+  setTitle: setFlowchartTitle,
+  paletteItems: flowchartPaletteItems,
+  // Story 7-8b — function-form property fields proof
+  getPropertyFields: getFlowchartPropertyFields,
+  // Story 7-5b — canvas-native: editable directly in BoardEditor's canvas slot
+  canvasShapeCategories: SHAPE_CATEGORIES,
+  // Story 7-5d — unified canvas editor (model is already a CanvasModel).
+  toEditor: (source) => {
+    const model = parseFlowchart(source);
+    return {
+      model,
+      title: getFlowchartTitle(model),
+      serialize: (m7, title2) => serializeFlowchart(title2 !== void 0 ? setFlowchartTitle(m7, title2) : m7)
+    };
+  }
 };
 
+// src/adapters/uml/palette.ts
+var umlPaletteItems = [
+  // PHẦN TỬ
+  { id: "class", label: "Class", icon: "box", shortcut: "C", group: "PH\u1EA6N T\u1EEC" },
+  { id: "interface", label: "Interface", icon: "circle-dashed", shortcut: "I", group: "PH\u1EA6N T\u1EEC" },
+  { id: "enum", label: "Enum", icon: "list", group: "PH\u1EA6N T\u1EEC" },
+  // QUAN HỆ
+  { id: "inheritance", label: "Inheritance", icon: "arrow-up", group: "QUAN H\u1EC6" },
+  { id: "association", label: "Association", icon: "arrow-right", group: "QUAN H\u1EC6" }
+];
+
+// src/adapters/uml/parse.ts
+var CLASS_OPEN_RE = /^(class|interface)\s+(\w+)\s*\{?\s*$/;
+var POS_RE = /^'\s*@pos\s+(\w+)\s*:\s*(-?\d+)\s*,\s*(-?\d+)/;
+var REL_RE = /^(\w+)\s*(<\|--|--\|>|\.\.>|<\.\.|o--|\*--|-->|<--|--|\.\.)\s*(\w+)\s*(?::\s*(.+))?$/;
+var W3 = 200;
+var HEAD2 = 40;
+var BLOCK_PAD = 16;
+var LINE = 22;
+function parseUmlToCanvas(source) {
+  const positions = {};
+  const classes3 = /* @__PURE__ */ new Map();
+  const rels = [];
+  const lines = source.split(/\r?\n/);
+  let current = null;
+  for (let raw2 of lines) {
+    const line2 = raw2.trim();
+    if (!line2) continue;
+    if (/^@startuml/.test(line2) || /^@enduml/.test(line2) || /^title\b/.test(line2)) continue;
+    const pos = line2.match(POS_RE);
+    if (pos) {
+      positions[pos[1]] = [Number(pos[2]), Number(pos[3])];
+      continue;
+    }
+    if (line2.startsWith("'")) continue;
+    if (current) {
+      if (line2 === "}") {
+        current = null;
+        continue;
+      }
+      const cls = classes3.get(current);
+      if (line2.includes("(")) cls.methods.push(line2);
+      else cls.fields.push(line2);
+      continue;
+    }
+    const open4 = line2.match(CLASS_OPEN_RE);
+    if (open4) {
+      const [, kw, name2] = open4;
+      if (!classes3.has(name2)) classes3.set(name2, { kind: kw === "interface" ? "uml-interface" : "uml-class", fields: [], methods: [] });
+      if (line2.endsWith("{")) current = name2;
+      continue;
+    }
+    const rel = line2.match(REL_RE);
+    if (rel) {
+      const [, from, op, to, label] = rel;
+      if (!classes3.has(from)) classes3.set(from, { kind: "uml-class", fields: [], methods: [] });
+      if (!classes3.has(to)) classes3.set(to, { kind: "uml-class", fields: [], methods: [] });
+      rels.push({ from, to, op, label });
+    }
+  }
+  const model = { nodes: [], edges: [] };
+  for (const [name2, c6] of classes3) {
+    const h5 = HEAD2 + (c6.fields.length ? BLOCK_PAD + c6.fields.length * LINE : 0) + (c6.methods.length ? BLOCK_PAD + c6.methods.length * LINE : 0) + 8;
+    const p6 = positions[name2];
+    model.nodes.push({
+      id: name2,
+      shape: c6.kind,
+      x: p6 ? p6[0] : 0,
+      y: p6 ? p6[1] : 0,
+      width: W3,
+      height: h5,
+      label: name2,
+      attrs: { fields: c6.fields, methods: c6.methods }
+    });
+  }
+  rels.forEach((r5, i6) => {
+    model.edges.push({
+      id: `r${i6}`,
+      source: r5.from,
+      target: r5.to,
+      ...r5.label ? { label: r5.label } : {},
+      attrs: { umlRel: r5.op }
+    });
+  });
+  const allPositioned = model.nodes.length > 0 && model.nodes.every((n4) => positions[n4.id]);
+  if (!allPositioned) layoutWithDagre(model, "TB");
+  return model;
+}
+function serializeUmlFromCanvas(model) {
+  var _a3, _b2, _c, _d, _e3, _f;
+  const lines = ["@startuml"];
+  const classNodes = model.nodes.filter(
+    (n4) => n4.shape === "uml-class" || n4.shape === "uml-interface"
+  );
+  for (const n4 of classNodes) {
+    lines.push(`' @pos ${n4.label}: ${Math.round(n4.x)},${Math.round(n4.y)}`);
+  }
+  for (const n4 of classNodes) {
+    const kw = n4.shape === "uml-interface" ? "interface" : "class";
+    const fields = (_b2 = (_a3 = n4.attrs) == null ? void 0 : _a3.fields) != null ? _b2 : [];
+    const methods = (_d = (_c = n4.attrs) == null ? void 0 : _c.methods) != null ? _d : [];
+    if (!fields.length && !methods.length) {
+      lines.push(`${kw} ${n4.label}`);
+    } else {
+      lines.push(`${kw} ${n4.label} {`);
+      for (const f6 of fields) lines.push(`  ${f6}`);
+      for (const m7 of methods) lines.push(`  ${m7}`);
+      lines.push(`}`);
+    }
+  }
+  const byId = new Set(model.nodes.map((n4) => n4.id));
+  for (const e5 of model.edges) {
+    if (!byId.has(e5.source) || !byId.has(e5.target)) continue;
+    const op = (_f = (_e3 = e5.attrs) == null ? void 0 : _e3.umlRel) != null ? _f : "-->";
+    lines.push(`${e5.source} ${op} ${e5.target}${e5.label ? ` : ${e5.label}` : ""}`);
+  }
+  lines.push("@enduml");
+  return lines.join("\n");
+}
+
+// src/adapters/uml/Renderer.tsx
+function UmlRenderer({ model }) {
+  const canvasModel = T3(() => {
+    try {
+      return parseUmlToCanvas(model);
+    } catch (e5) {
+      return { nodes: [], edges: [] };
+    }
+  }, [model]);
+  return /* @__PURE__ */ u2(CanvasPreview, { model: canvasModel });
+}
+
+// src/adapters/uml/sourceOps.ts
+var MAX = 4 * 1024 * 1024;
+var START_RE = /^@startuml\b/m;
+var END_RE = /^@enduml\b/m;
+var TITLE_RE = /^title\s+(.+)$/m;
+function validateUmlSource(source) {
+  if (!source || !source.trim()) return [{ severity: "error", message: "Source r\u1ED7ng" }];
+  if (source.length > MAX) return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
+  if (!START_RE.test(source) || !END_RE.test(source)) {
+    return [{ severity: "error", message: "Thi\u1EBFu c\u1EB7p @startuml/@enduml" }];
+  }
+  return [];
+}
+function getUmlTitle(source) {
+  const m7 = source.match(TITLE_RE);
+  if (!m7) return void 0;
+  const t6 = m7[1].trim();
+  return t6 === "" ? void 0 : t6;
+}
+function setUmlTitle(source, title2) {
+  if (!START_RE.test(source)) return source;
+  const hasTitle = TITLE_RE.test(source);
+  if (title2 === "") {
+    if (!hasTitle) return source;
+    return source.replace(/^title\s+.+\n?/m, "");
+  }
+  if (hasTitle) {
+    return source.replace(TITLE_RE, () => `title ${title2}`);
+  }
+  return source.replace(/^(@startuml\b[^\n]*\n?)/m, (_m, head) => `${head}title ${title2}
+`);
+}
+
 // src/adapters/uml/index.ts
-var umlAdapter = makeStubAdapter({
+var stub2 = makeStubAdapter({
   id: "uml",
   displayName: "UML Class",
   codeBlockLanguage: "uml",
@@ -123034,9 +123625,185 @@ class Customer {
 }
 @enduml`
 });
+var umlAdapter = {
+  ...stub2,
+  Renderer: UmlRenderer,
+  // Story 7-19
+  validateSource: validateUmlSource,
+  getTitle: getUmlTitle,
+  setTitle: setUmlTitle,
+  paletteItems: umlPaletteItems,
+  // Story 7-5d — unified canvas editor (PlantUML class ⇄ uml-* nodes).
+  toEditor: (source) => {
+    const model = parseUmlToCanvas(source);
+    return {
+      model,
+      title: getUmlTitle(source),
+      serialize: (m7, title2) => {
+        const text4 = serializeUmlFromCanvas(m7);
+        return title2 !== void 0 ? setUmlTitle(text4, title2) : text4;
+      }
+    };
+  }
+};
+
+// src/adapters/sequence/palette.ts
+var sequencePaletteItems = [
+  // PHẦN TỬ
+  { id: "participant", label: "Participant", icon: "rectangle-horizontal", shortcut: "P", group: "PH\u1EA6N T\u1EEC" },
+  { id: "actor", label: "Actor", icon: "user", shortcut: "A", group: "PH\u1EA6N T\u1EEC" },
+  // THÔNG ĐIỆP
+  { id: "msg-sync", label: "Sync msg", icon: "arrow-right", group: "TH\xD4NG \u0110I\u1EC6P" },
+  { id: "msg-async", label: "Async msg", icon: "arrow-up-right", group: "TH\xD4NG \u0110I\u1EC6P" },
+  { id: "self-loop", label: "Self-loop", icon: "rotate-cw", group: "TH\xD4NG \u0110I\u1EC6P" },
+  // KHỐI
+  { id: "note", label: "Note", icon: "sticky-note", group: "KH\u1ED0I" },
+  { id: "alt-block", label: "Alt block", icon: "split", group: "KH\u1ED0I" },
+  { id: "loop-block", label: "Loop block", icon: "repeat", group: "KH\u1ED0I" }
+];
+
+// src/adapters/sequence/parse.ts
+var PARTICIPANT_RE = /^(participant|actor)\s+(\S+?)(?:\s+as\s+(.+))?$/;
+var MESSAGE_RE = /^(\S+?)\s*(-{1,2}>>?|-{1,2}x)\s*(\S+?)\s*:\s*(.+)$/;
+var LIFELINE_H_BASE = 120;
+var MSG_STEP = 48;
+var MSG_TOP = 88;
+var COL_W = 130;
+var COL_GAP = 70;
+function parseSequenceToCanvas(source) {
+  const lifelines = [];
+  const order = /* @__PURE__ */ new Map();
+  const messages2 = [];
+  const ensure3 = (seqId) => {
+    if (order.has(seqId)) return;
+    order.set(seqId, lifelines.length);
+    lifelines.push({ seqId, label: seqId, kind: "sq-participant" });
+  };
+  for (const raw2 of source.split(/\r?\n/)) {
+    const line2 = raw2.trim();
+    if (!line2 || line2.startsWith("%%") || /^sequenceDiagram\b/.test(line2) || /^title\b/.test(line2) || line2 === "---") continue;
+    const pm = line2.match(PARTICIPANT_RE);
+    if (pm) {
+      const [, kw, id, label] = pm;
+      ensure3(id);
+      const ll = lifelines[order.get(id)];
+      ll.label = (label != null ? label : id).trim();
+      ll.kind = kw === "actor" ? "sq-actor" : "sq-participant";
+      continue;
+    }
+    const mm = line2.match(MESSAGE_RE);
+    if (mm) {
+      const [, from, arrow, to, label] = mm;
+      ensure3(from);
+      ensure3(to);
+      messages2.push({ from, to, arrow, label: label.trim() });
+    }
+  }
+  const lifelineH = LIFELINE_H_BASE + messages2.length * MSG_STEP;
+  const model = { nodes: [], edges: [] };
+  lifelines.forEach((ll, i6) => {
+    model.nodes.push({
+      id: ll.seqId,
+      shape: ll.kind,
+      x: i6 * (COL_W + COL_GAP) + 20,
+      y: 0,
+      width: COL_W,
+      height: lifelineH,
+      label: ll.label,
+      attrs: { seqId: ll.seqId }
+    });
+  });
+  messages2.forEach((m7, i6) => {
+    const ret = m7.arrow.startsWith("--");
+    model.edges.push({
+      id: `m${i6}`,
+      source: m7.from,
+      target: m7.to,
+      label: m7.label,
+      y: MSG_TOP + i6 * MSG_STEP,
+      ret
+    });
+  });
+  return model;
+}
+function serializeSequenceFromCanvas(model) {
+  var _a3, _b2, _c;
+  const byId = new Map(model.nodes.map((n4) => [n4.id, n4]));
+  const lifelines = model.nodes.filter((n4) => n4.shape === "sq-participant" || n4.shape === "sq-actor").sort((a5, b4) => a5.x - b4.x);
+  const lines = ["sequenceDiagram"];
+  for (const ll of lifelines) {
+    const kw = ll.shape === "sq-actor" ? "actor" : "participant";
+    const seqId = (_b2 = (_a3 = ll.attrs) == null ? void 0 : _a3.seqId) != null ? _b2 : ll.id;
+    lines.push(`  ${kw} ${seqId} as ${ll.label}`);
+  }
+  const seqIdOf = (id) => {
+    var _a4, _b3, _c2;
+    return (_c2 = (_b3 = (_a4 = byId.get(id)) == null ? void 0 : _a4.attrs) == null ? void 0 : _b3.seqId) != null ? _c2 : id;
+  };
+  const msgs = model.edges.filter((e5) => byId.has(e5.source) && byId.has(e5.target)).sort((a5, b4) => {
+    var _a4, _b3;
+    return ((_a4 = a5.y) != null ? _a4 : 0) - ((_b3 = b4.y) != null ? _b3 : 0);
+  });
+  for (const e5 of msgs) {
+    const arrow = e5.ret ? "-->>" : "->>";
+    lines.push(`  ${seqIdOf(e5.source)}${arrow}${seqIdOf(e5.target)}: ${(_c = e5.label) != null ? _c : ""}`);
+  }
+  return lines.join("\n");
+}
+
+// src/adapters/sequence/Renderer.tsx
+function SequenceRenderer({ model }) {
+  const canvasModel = T3(() => {
+    try {
+      return parseSequenceToCanvas(model);
+    } catch (e5) {
+      return { nodes: [], edges: [] };
+    }
+  }, [model]);
+  return /* @__PURE__ */ u2(CanvasPreview, { model: canvasModel });
+}
+
+// src/adapters/sequence/sourceOps.ts
+var MAX_VALIDATE_SOURCE_LENGTH5 = 4 * 1024 * 1024;
+var HEADER_RE = /^\s*sequenceDiagram\b/m;
+var TITLE_LINE_RE = /^title\s+(.+)$/m;
+function validateSequenceSource(source) {
+  if (!source || !source.trim()) {
+    return [{ severity: "error", message: "Source r\u1ED7ng" }];
+  }
+  if (source.length > MAX_VALIDATE_SOURCE_LENGTH5) {
+    return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
+  }
+  if (!HEADER_RE.test(source)) {
+    return [{ severity: "error", message: "Thi\u1EBFu `sequenceDiagram` header" }];
+  }
+  return [];
+}
+function getSequenceTitle(source) {
+  const m7 = source.match(TITLE_LINE_RE);
+  if (!m7) return void 0;
+  const t6 = m7[1].trim();
+  return t6 === "" ? void 0 : t6;
+}
+function setSequenceTitle(source, title2) {
+  if (!HEADER_RE.test(source)) return source;
+  const hasTitle = TITLE_LINE_RE.test(source);
+  if (title2 === "") {
+    if (!hasTitle) return source;
+    return source.replace(/^title\s+.+\n?/m, "");
+  }
+  if (hasTitle) {
+    return source.replace(TITLE_LINE_RE, () => `title ${title2}`);
+  }
+  return source.replace(
+    /^(\s*sequenceDiagram\b[^\n]*\n?)/m,
+    (_m, head) => `${head}title ${title2}
+`
+  );
+}
 
 // src/adapters/sequence/index.ts
-var sequenceAdapter = makeStubAdapter({
+var stub3 = makeStubAdapter({
   id: "sequence",
   displayName: "Sequence",
   codeBlockLanguage: "sequence",
@@ -123047,9 +123814,213 @@ var sequenceAdapter = makeStubAdapter({
   A->>B: Request
   B-->>A: Response`
 });
+var sequenceAdapter = {
+  ...stub3,
+  Renderer: SequenceRenderer,
+  // Story 7-16 — additive contract fields
+  validateSource: validateSequenceSource,
+  getTitle: getSequenceTitle,
+  setTitle: setSequenceTitle,
+  paletteItems: sequencePaletteItems,
+  // Story 7-5d — unified canvas editor (Mermaid sequenceDiagram ⇄ sq-* lifelines).
+  toEditor: (source) => {
+    const model = parseSequenceToCanvas(source);
+    return {
+      model,
+      title: getSequenceTitle(source),
+      serialize: (m7, title2) => {
+        const text4 = serializeSequenceFromCanvas(m7);
+        return title2 !== void 0 ? setSequenceTitle(text4, title2) : text4;
+      }
+    };
+  }
+};
+
+// src/adapters/state/palette.ts
+var statePaletteItems = [
+  // TRẠNG THÁI
+  { id: "state", label: "State", icon: "rectangle-horizontal", shortcut: "S", group: "TR\u1EA0NG TH\xC1I" },
+  { id: "initial", label: "Initial", icon: "circle-dot", group: "TR\u1EA0NG TH\xC1I" },
+  { id: "final", label: "Final", icon: "circle-x", group: "TR\u1EA0NG TH\xC1I" },
+  // CHUYỂN
+  { id: "transition", label: "Transition", icon: "arrow-right", group: "CHUY\u1EC2N" }
+];
+
+// src/adapters/state/parse.ts
+var TRANSITION_RE = /^\s*([A-Za-z0-9_\[\]*]+)\s*-->\s*([A-Za-z0-9_\[\]*]+)\s*(?::\s*(.+))?$/;
+function parsePositions(source) {
+  const fm = source.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (!fm) return {};
+  const block2 = fm[1];
+  const m7 = block2.match(/positions:\s*\n([\s\S]*?)(?=\n\S|$)/);
+  if (!m7) return {};
+  const pos = {};
+  for (const line2 of m7[1].split(/\r?\n/)) {
+    const pm = line2.match(/^\s+([^:]+):\s*\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]/);
+    if (pm) pos[pm[1].trim()] = [Number(pm[2]), Number(pm[3])];
+  }
+  return pos;
+}
+var SIZE = { w: 132, h: 52 };
+function parseStateToCanvas(source) {
+  const positions = parsePositions(source);
+  const model = { nodes: [], edges: [] };
+  const idOf = /* @__PURE__ */ new Map();
+  let initialId = null;
+  let finalCounter = 0;
+  const ensureState = (name2) => {
+    if (name2 === "[*]") return "";
+    if (idOf.has(name2)) return idOf.get(name2);
+    const id = `st_${idOf.size}`;
+    idOf.set(name2, id);
+    const p6 = positions[name2];
+    model.nodes.push({
+      id,
+      shape: "st-state",
+      x: p6 ? p6[0] : 0,
+      y: p6 ? p6[1] : 0,
+      width: SIZE.w,
+      height: SIZE.h,
+      label: name2
+    });
+    return id;
+  };
+  const ensureInitial = () => {
+    if (initialId) return initialId;
+    initialId = "st_initial";
+    const p6 = positions["[*]"];
+    model.nodes.push({
+      id: initialId,
+      shape: "st-initial",
+      x: p6 ? p6[0] : 0,
+      y: p6 ? p6[1] : 0,
+      width: 28,
+      height: 28,
+      label: ""
+    });
+    return initialId;
+  };
+  const newFinal = () => {
+    const id = `st_final_${finalCounter++}`;
+    model.nodes.push({ id, shape: "st-final", x: 0, y: 0, width: 28, height: 28, label: "" });
+    return id;
+  };
+  for (const raw2 of source.split(/\r?\n/)) {
+    const line2 = raw2.trim();
+    if (!line2 || line2.startsWith("%%") || /^stateDiagram/.test(line2) || line2 === "---") continue;
+    const m7 = line2.match(TRANSITION_RE);
+    if (!m7) continue;
+    const [, from, to, label] = m7;
+    const src = from === "[*]" ? ensureInitial() : ensureState(from);
+    const tgt = to === "[*]" ? newFinal() : ensureState(to);
+    model.edges.push({
+      id: `e${model.edges.length}`,
+      source: src,
+      target: tgt,
+      ...label ? { label: label.trim() } : {}
+    });
+  }
+  const named = model.nodes.filter((n4) => n4.shape === "st-state");
+  const allPositioned = named.length > 0 && named.every((n4) => positions[n4.label]);
+  if (!allPositioned) layoutWithDagre(model, "TB");
+  return model;
+}
+function serializeStateFromCanvas(model) {
+  const labelOf = new Map(model.nodes.map((n4) => [n4.id, n4]));
+  const nameFor = (id) => {
+    const n4 = labelOf.get(id);
+    if (!n4) return "[*]";
+    if (n4.shape === "st-initial" || n4.shape === "st-final") return "[*]";
+    return n4.label || "Unnamed";
+  };
+  const lines = [];
+  for (const e5 of model.edges) {
+    const from = nameFor(e5.source);
+    const to = nameFor(e5.target);
+    lines.push(`  ${from} --> ${to}${e5.label ? `: ${e5.label}` : ""}`);
+  }
+  const posLines = [];
+  for (const n4 of model.nodes) {
+    if (n4.shape === "st-state") posLines.push(`  ${n4.label}: [${Math.round(n4.x)}, ${Math.round(n4.y)}]`);
+  }
+  const fm = posLines.length ? `---
+positions:
+${posLines.join("\n")}
+---
+` : "";
+  return `${fm}stateDiagram-v2
+${lines.join("\n")}`;
+}
+
+// src/adapters/state/Renderer.tsx
+function StateRenderer({ model }) {
+  const canvasModel = T3(() => {
+    try {
+      return parseStateToCanvas(model);
+    } catch (e5) {
+      return { nodes: [], edges: [] };
+    }
+  }, [model]);
+  return /* @__PURE__ */ u2(CanvasPreview, { model: canvasModel });
+}
+
+// src/adapters/state/sourceOps.ts
+var MAX2 = 4 * 1024 * 1024;
+var HEADER_RE2 = /^\s*stateDiagram(?:-v[12])?\b/m;
+var TITLE_LINE_RE2 = /^title\s+(.+)$/m;
+var FRONTMATTER_TITLE_RE = /^---\s*\n([\s\S]*?\btitle:\s*(.+)[\s\S]*?)\n---/m;
+function validateStateSource(source) {
+  if (!source || !source.trim()) return [{ severity: "error", message: "Source r\u1ED7ng" }];
+  if (source.length > MAX2) return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
+  if (!HEADER_RE2.test(source)) return [{ severity: "error", message: "Thi\u1EBFu `stateDiagram` header" }];
+  return [];
+}
+function getStateTitle(source) {
+  const inline = source.match(TITLE_LINE_RE2);
+  if (inline) {
+    const t6 = inline[1].trim();
+    if (t6 !== "") return t6;
+  }
+  const fm = source.match(FRONTMATTER_TITLE_RE);
+  if (fm) {
+    const t6 = fm[2].trim().replace(/^["'](.*)["']$/, "$1");
+    if (t6 !== "") return t6;
+  }
+  return void 0;
+}
+function setStateTitle(source, title2) {
+  if (!HEADER_RE2.test(source)) return source;
+  const cleaned = stripFrontmatterTitle(source);
+  const hasTitle = TITLE_LINE_RE2.test(cleaned);
+  if (title2 === "") {
+    if (!hasTitle) return cleaned;
+    return cleaned.replace(/^title\s+.+\n?/m, "");
+  }
+  if (hasTitle) {
+    return cleaned.replace(TITLE_LINE_RE2, () => `title ${title2}`);
+  }
+  return cleaned.replace(
+    /^(\s*stateDiagram(?:-v[12])?\b[^\n]*\n?)/m,
+    (_m, head) => `${head}title ${title2}
+`
+  );
+}
+function stripFrontmatterTitle(source) {
+  const fm = source.match(/^---\s*\n([\s\S]*?)\n---/);
+  if (!fm) return source;
+  const body = fm[1];
+  if (!/(^|\n)title:\s*.+/.test(body)) return source;
+  const newBody = body.replace(/(^|\n)title:\s*.+(?=\n|$)/, "").replace(/^\n/, "");
+  if (newBody.trim() === "") {
+    return source.replace(/^---\s*\n[\s\S]*?\n---\n?/, "");
+  }
+  return source.replace(/^---\s*\n[\s\S]*?\n---/, () => `---
+${newBody}
+---`);
+}
 
 // src/adapters/state/index.ts
-var stateAdapter = makeStubAdapter({
+var stub4 = makeStubAdapter({
   id: "state",
   displayName: "State Machine",
   codeBlockLanguage: "state",
@@ -123064,9 +124035,173 @@ stateDiagram-v2
   Draft --> Submitted: submit
   Submitted --> Draft: reject`
 });
+var stateAdapter = {
+  ...stub4,
+  Renderer: StateRenderer,
+  // Story 7-19
+  validateSource: validateStateSource,
+  getTitle: getStateTitle,
+  setTitle: setStateTitle,
+  paletteItems: statePaletteItems,
+  // Story 7-5d — unified canvas editor (Mermaid stateDiagram ⇄ st-* nodes).
+  toEditor: (source) => {
+    const model = parseStateToCanvas(source);
+    return {
+      model,
+      title: getStateTitle(source),
+      serialize: (m7, title2) => {
+        const text4 = serializeStateFromCanvas(m7);
+        return title2 !== void 0 ? setStateTitle(text4, title2) : text4;
+      }
+    };
+  }
+};
+
+// src/adapters/mindmap/palette.ts
+var mindmapPaletteItems = [
+  // CẤU TRÚC
+  { id: "central", label: "Ch\u1EE7 \u0111\u1EC1 ch\xEDnh", icon: "circle-dot", shortcut: "C", group: "C\u1EA4U TR\xDAC" },
+  { id: "branch", label: "Nh\xE1nh", icon: "git-branch", shortcut: "B", group: "C\u1EA4U TR\xDAC" },
+  { id: "leaf", label: "L\xE1", icon: "leaf", shortcut: "L", group: "C\u1EA4U TR\xDAC" }
+];
+
+// src/adapters/mindmap/parse.ts
+var HEADING_RE = /^(#{1,6})\s+(.+?)\s*$/;
+var COL_W2 = 240;
+var ROW_H = 64;
+function parseMindmapToCanvas(source) {
+  const lines = source.split(/\r?\n/);
+  const nodes = [];
+  const lastAtLevel = [];
+  let counter = 0;
+  for (const line2 of lines) {
+    const m7 = line2.match(HEADING_RE);
+    if (!m7) continue;
+    const level = m7[1].length;
+    const label = m7[2];
+    const id = `mm${counter++}`;
+    let parent = null;
+    for (let l5 = level - 1; l5 >= 1; l5--) {
+      if (lastAtLevel[l5]) {
+        parent = lastAtLevel[l5];
+        break;
+      }
+    }
+    nodes.push({ id, level, label, parent, children: [], y: 0 });
+    lastAtLevel[level] = id;
+    for (let l5 = level + 1; l5 < lastAtLevel.length; l5++) lastAtLevel[l5] = null;
+  }
+  if (!nodes.length) return { nodes: [], edges: [] };
+  const byId = new Map(nodes.map((n4) => [n4.id, n4]));
+  for (const n4 of nodes) {
+    if (n4.parent && byId.has(n4.parent)) byId.get(n4.parent).children.push(n4.id);
+  }
+  let slot = 0;
+  const assignY = (id) => {
+    const n4 = byId.get(id);
+    if (n4.children.length === 0) {
+      n4.y = slot++ * ROW_H;
+      return n4.y;
+    }
+    const ys = n4.children.map(assignY);
+    n4.y = (ys[0] + ys[ys.length - 1]) / 2;
+    return n4.y;
+  };
+  const roots = nodes.filter((n4) => !n4.parent || !byId.has(n4.parent));
+  for (const r5 of roots) assignY(r5.id);
+  const kindFor = (level) => level <= 1 ? "mm-root" : level === 2 ? "mm-branch" : "mm-leaf";
+  const sizeFor = (level) => level <= 1 ? { w: 170, h: 48 } : level === 2 ? { w: 150, h: 42 } : { w: 130, h: 38 };
+  const model = { nodes: [], edges: [] };
+  for (const n4 of nodes) {
+    const { w: w5, h: h5 } = sizeFor(n4.level);
+    model.nodes.push({
+      id: n4.id,
+      shape: kindFor(n4.level),
+      x: (n4.level - 1) * COL_W2,
+      y: Math.round(n4.y),
+      width: w5,
+      height: h5,
+      label: n4.label
+    });
+    if (n4.parent && byId.has(n4.parent)) {
+      model.edges.push({ id: `${n4.parent}->${n4.id}`, source: n4.parent, target: n4.id });
+    }
+  }
+  return model;
+}
+function serializeMindmapFromCanvas(model) {
+  if (!model.nodes.length) return "";
+  const byId = new Map(model.nodes.map((n4) => [n4.id, n4]));
+  const children2 = /* @__PURE__ */ new Map();
+  const hasParent = /* @__PURE__ */ new Set();
+  for (const e5 of model.edges) {
+    if (!byId.has(e5.source) || !byId.has(e5.target)) continue;
+    if (!children2.has(e5.source)) children2.set(e5.source, []);
+    children2.get(e5.source).push(e5.target);
+    hasParent.add(e5.target);
+  }
+  const sortByY = (ids3) => [...ids3].sort((a5, b4) => {
+    var _a3, _b2;
+    return ((_a3 = byId.get(a5).y) != null ? _a3 : 0) - ((_b2 = byId.get(b4).y) != null ? _b2 : 0);
+  });
+  const lines = [];
+  const visited = /* @__PURE__ */ new Set();
+  const emit = (id, depth) => {
+    var _a3, _b2;
+    if (visited.has(id)) return;
+    visited.add(id);
+    const n4 = byId.get(id);
+    lines.push(`${"#".repeat(Math.min(depth, 6))} ${(_a3 = n4.label) != null ? _a3 : ""}`.trimEnd());
+    for (const c6 of sortByY((_b2 = children2.get(id)) != null ? _b2 : [])) emit(c6, depth + 1);
+  };
+  const roots = sortByY(model.nodes.filter((n4) => !hasParent.has(n4.id)).map((n4) => n4.id));
+  for (const r5 of roots) emit(r5, 1);
+  for (const n4 of model.nodes) if (!visited.has(n4.id)) emit(n4.id, 1);
+  return lines.join("\n");
+}
+
+// src/adapters/mindmap/Renderer.tsx
+function MindmapRenderer({ model }) {
+  const canvasModel = T3(() => {
+    try {
+      return parseMindmapToCanvas(model);
+    } catch (e5) {
+      return { nodes: [], edges: [] };
+    }
+  }, [model]);
+  return /* @__PURE__ */ u2(CanvasPreview, { model: canvasModel });
+}
+
+// src/adapters/mindmap/sourceOps.ts
+var MAX3 = 4 * 1024 * 1024;
+var H1_RE = /^#[^\S\n]+(.+)$/m;
+function validateMindmapSource(source) {
+  if (!source || !source.trim()) return [{ severity: "error", message: "Source r\u1ED7ng" }];
+  if (source.length > MAX3) return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
+  if (!H1_RE.test(source)) return [{ severity: "error", message: "Thi\u1EBFu ch\u1EE7 \u0111\u1EC1 trung t\xE2m (`# ...`)" }];
+  return [];
+}
+function getMindmapTitle(source) {
+  const m7 = source.match(H1_RE);
+  if (!m7) return void 0;
+  const t6 = m7[1].trim();
+  return t6 === "" ? void 0 : t6;
+}
+function setMindmapTitle(source, title2) {
+  const hasH1 = H1_RE.test(source);
+  if (title2 === "") {
+    if (!hasH1) return source;
+    return source.replace(/^#[^\S\n]+.+\n?/m, "");
+  }
+  if (hasH1) {
+    return source.replace(H1_RE, () => `# ${title2}`);
+  }
+  return `# ${title2}
+${source}`;
+}
 
 // src/adapters/mindmap/index.ts
-var mindmapAdapter = makeStubAdapter({
+var stub5 = makeStubAdapter({
   id: "mindmap",
   displayName: "Mindmap",
   codeBlockLanguage: "mindmap",
@@ -123078,6 +124213,27 @@ var mindmapAdapter = makeStubAdapter({
 ## Branch B
 ### Leaf 3`
 });
+var mindmapAdapter = {
+  ...stub5,
+  Renderer: MindmapRenderer,
+  // Story 7-19
+  validateSource: validateMindmapSource,
+  getTitle: getMindmapTitle,
+  setTitle: setMindmapTitle,
+  paletteItems: mindmapPaletteItems,
+  // Story 7-5d — unified canvas editor (heading tree ⇄ mm-* nodes).
+  toEditor: (source) => {
+    const model = parseMindmapToCanvas(source);
+    return {
+      model,
+      title: getMindmapTitle(source),
+      serialize: (m7, title2) => {
+        const text4 = serializeMindmapFromCanvas(m7);
+        return title2 !== void 0 ? setMindmapTitle(text4, title2) : text4;
+      }
+    };
+  }
+};
 
 // src/adapters/mermaid/MermaidRenderer.tsx
 var loadPromise = null;
@@ -123165,6 +124321,74 @@ function MermaidRenderer({ model, theme }) {
   return /* @__PURE__ */ u2("div", { ref: hostRef, class: "diagrams-mermaid-host" });
 }
 
+// src/adapters/mermaid/palette.ts
+var mermaidPaletteItems = [
+  // PHẦN TỬ FLOWCHART
+  { id: "process", label: "Process", icon: "rectangle-horizontal", shortcut: "P", group: "PH\u1EA6N T\u1EEC" },
+  { id: "decision", label: "Decision", icon: "diamond", shortcut: "D", group: "PH\u1EA6N T\u1EEC" },
+  { id: "subgraph", label: "Subgraph", icon: "frame", group: "PH\u1EA6N T\u1EEC" },
+  // LIÊN KẾT
+  { id: "arrow", label: "Arrow", icon: "arrow-right", group: "LI\xCAN K\u1EBET" },
+  { id: "dotted", label: "Dotted", icon: "dot", group: "LI\xCAN K\u1EBET" }
+];
+
+// src/adapters/mermaid/sourceOps.ts
+var MAX4 = 4 * 1024 * 1024;
+var HEADER_RE3 = /^(?:flowchart|graph|sequenceDiagram|classDiagram|stateDiagram(?:-v[12])?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|requirementDiagram|sankey-beta|c4Context|c4Container|c4Component|c4Deployment|xychart-beta|block-beta|quadrantChart)\b/m;
+var FRONTMATTER_RE2 = /^---\s*\n([\s\S]*?)\n---/;
+var FRONTMATTER_TITLE_RE2 = /(^|\n)title:\s*(.+?)(?=\n|$)/;
+function validateMermaidSource(source) {
+  if (!source || !source.trim()) return [{ severity: "error", message: "Source r\u1ED7ng" }];
+  if (source.length > MAX4) return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
+  if (!HEADER_RE3.test(source)) return [{ severity: "error", message: "Thi\u1EBFu header Mermaid (flowchart/graph/sequenceDiagram/...)" }];
+  return [];
+}
+function getMermaidTitle(source) {
+  const fm = source.match(FRONTMATTER_RE2);
+  if (!fm) return void 0;
+  const inside2 = fm[1];
+  const t6 = inside2.match(FRONTMATTER_TITLE_RE2);
+  if (!t6) return void 0;
+  let v6 = t6[2].trim();
+  v6 = v6.replace(/^["'](.*)["']$/, "$1");
+  return v6 === "" ? void 0 : v6;
+}
+function setMermaidTitle(source, title2) {
+  const fmMatch = source.match(FRONTMATTER_RE2);
+  if (!fmMatch) {
+    if (title2 === "") return source;
+    const quoted = needsQuoting2(title2) ? `'${title2.replace(/'/g, "''")}'` : title2;
+    return `---
+title: ${quoted}
+---
+${source}`;
+  }
+  const fmBody = fmMatch[1];
+  const hasTitle = FRONTMATTER_TITLE_RE2.test(fmBody);
+  let newBody;
+  if (title2 === "") {
+    if (!hasTitle) return source;
+    newBody = fmBody.replace(/(^|\n)title:\s*.+(?=\n|$)/, "").replace(/^\n/, "");
+  } else {
+    const quoted = needsQuoting2(title2) ? `'${title2.replace(/'/g, "''")}'` : title2;
+    if (hasTitle) {
+      newBody = fmBody.replace(FRONTMATTER_TITLE_RE2, (_m, lead) => `${lead}title: ${quoted}`);
+    } else {
+      newBody = fmBody.trim() === "" ? `title: ${quoted}` : `${fmBody}
+title: ${quoted}`;
+    }
+  }
+  if (newBody.trim() === "") {
+    return source.replace(FRONTMATTER_RE2, "").replace(/^\n/, "");
+  }
+  return source.replace(FRONTMATTER_RE2, () => `---
+${newBody}
+---`);
+}
+function needsQuoting2(s5) {
+  return /[:#&*!|>'"%@`{}\[\]]|^\s|\s$/.test(s5);
+}
+
 // src/adapters/mermaid/index.ts
 var mermaidAdapter = {
   ...makeStubAdapter({
@@ -123178,12 +124402,18 @@ var mermaidAdapter = {
   C -->|C\xF3| D[T\u1EA1o \u0111\u01A1n Odoo]
   C -->|Ch\u01B0a| E[L\u01B0u lead]`
   }),
-  Renderer: MermaidRenderer
+  Renderer: MermaidRenderer,
+  // Story 7-19
+  validateSource: validateMermaidSource,
+  getTitle: getMermaidTitle,
+  setTitle: setMermaidTitle,
+  paletteItems: mermaidPaletteItems
 };
 
 // src/main.ts
 var ALL_ADAPTERS = [
   bpmnAdapter,
+  dbmlAdapter,
   erdAdapter,
   flowchartAdapter,
   umlAdapter,
@@ -123197,6 +124427,8 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     super(...arguments);
     this.registry = new AdapterRegistry();
     this.settings = DEFAULT_SETTINGS;
+    this.embedObserver = null;
+    this.embedScanQueued = false;
   }
   async onload() {
     await this.loadSettings();
@@ -123232,21 +124464,28 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
         });
       })
     );
-    this.addRibbonIcon("shapes", "New board", () => this.createAndOpenBoard());
+    this.addRibbonIcon(
+      "shapes",
+      "T\u1EA1o board m\u1EDBi (full canvas)",
+      () => this.pickTypeThen((choice) => void this.createAndOpenBoard(choice))
+    );
     this.addCommand({
-      id: "new-board",
-      name: "New board",
-      callback: () => this.createAndOpenBoard()
+      id: "insert-new-board",
+      name: "Ch\xE8n board m\u1EDBi v\xE0o note",
+      editorCallback: (editor) => this.pickTypeThen((choice) => void this.insertNewBoard(editor, choice))
     });
     this.addCommand({
-      id: "new-bpmn",
-      name: "New BPMN diagram",
-      callback: () => this.createAndOpenBpmn()
+      id: "insert-existing-board",
+      name: "Ch\xE8n board c\xF3 s\u1EB5n v\xE0o note",
+      editorCallback: (editor) => new ExistingBoardPicker(this.app, (file) => {
+        editor.replaceSelection(`![[${file.path}]]
+`);
+      }).open()
     });
     this.addCommand({
-      id: "insert-board-embed",
-      name: "Insert new board (embed in note)",
-      editorCallback: (editor) => this.insertNewBoardEmbed(editor)
+      id: "new-board-canvas",
+      name: "T\u1EA1o board m\u1EDBi (full canvas)",
+      callback: () => this.pickTypeThen((choice) => void this.createAndOpenBoard(choice))
     });
     this.addCommand({
       id: "open-as-markdown",
@@ -123377,35 +124616,57 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
         return true;
       }
     });
-    const isOmniboardSrc = (src) => {
-      const path2 = src.replace(/#.*$/, "");
-      return path2.endsWith(OMNIBOARD_SUFFIX) || path2.endsWith(".omniboard");
-    };
-    this.registerMarkdownPostProcessor((el4, ctx) => {
-      el4.querySelectorAll(".internal-embed").forEach((node3) => {
-        var _a3;
-        const src = (_a3 = node3.getAttribute("src")) != null ? _a3 : "";
-        if (!isOmniboardSrc(src)) return;
-        void this.renderBoardEmbed(node3, ctx.sourcePath);
-      });
-    });
-    this.registerEditorExtension(omniboardEmbedEditorExtension(this));
+    this.installEmbedObserver();
     for (const adapter of ALL_ADAPTERS) {
       this.registry.register(adapter);
-      this.registerCodeBlock(adapter);
-    }
-    for (const adapter of this.registry.all()) {
-      this.addCommand({
-        id: `insert-${adapter.id}`,
-        name: `Insert ${adapter.displayName} (in note)`,
-        editorCallback: (editor) => this.insertDiagram(editor, adapter)
-      });
     }
     this.addSettingTab(new DiagramsSettingTab(this.app, this));
   }
   onunload() {
+    var _a3;
     const styles = document.getElementById("bpmn-native-styles");
     if (styles) styles.remove();
+    (_a3 = this.embedObserver) == null ? void 0 : _a3.disconnect();
+    this.embedObserver = null;
+  }
+  /** Is this embed `src` an omniboard board file? */
+  isOmniboardEmbedSrc(src) {
+    const path2 = src.replace(/#.*$/, "");
+    return path2.endsWith(OMNIBOARD_SUFFIX) || path2.endsWith(".omniboard");
+  }
+  /**
+   * Watch the workspace for `.internal-embed` elements pointing at an omniboard
+   * file and render our card into them. Scans are rAF-debounced and the
+   * `.omniboard-embed-processed` class keeps each embed processed at most once
+   * (renderBoardEmbed is itself idempotent), so this stays cheap even while
+   * typing.
+   */
+  installEmbedObserver() {
+    const scan = () => {
+      var _a3, _b2;
+      this.embedScanQueued = false;
+      const sourcePath = (_b2 = (_a3 = this.app.workspace.getActiveFile()) == null ? void 0 : _a3.path) != null ? _b2 : "";
+      const nodes = this.app.workspace.containerEl.querySelectorAll(
+        ".internal-embed"
+      );
+      nodes.forEach((node3) => {
+        var _a4;
+        const src = (_a4 = node3.getAttribute("src")) != null ? _a4 : "";
+        if (!this.isOmniboardEmbedSrc(src)) return;
+        void this.renderBoardEmbed(node3, sourcePath);
+      });
+    };
+    const observer = new MutationObserver(() => {
+      if (this.embedScanQueued) return;
+      this.embedScanQueued = true;
+      window.requestAnimationFrame(scan);
+    });
+    observer.observe(this.app.workspace.containerEl, {
+      childList: true,
+      subtree: true
+    });
+    this.embedObserver = observer;
+    scan();
   }
   /** Create a fresh, empty .omniboard.md file and return it (or null on failure). */
   /**
@@ -123455,12 +124716,20 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       new import_obsidian12.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
-  async createBoardFile() {
+  /**
+   * Create a new `.omniboard.md` file in the configured board folder.
+   * `seedModel` pre-fills the canvas (used to create a typed board, e.g. a
+   * flowchart); omit for an empty board. `baseName` overrides the timestamp
+   * file name.
+   */
+  async createBoardFile(seedModel, baseName) {
     const d4 = /* @__PURE__ */ new Date();
     const pad = (n4) => String(n4).padStart(2, "0");
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
-    const path2 = (0, import_obsidian12.normalizePath)(`Omniboard ${stamp}${OMNIBOARD_SUFFIX}`);
-    const content5 = serializeBoard({ nodes: [], edges: [] }, "", void 0, {
+    const name2 = ((baseName == null ? void 0 : baseName.trim()) || `Omniboard ${stamp}`).replace(/[\\/:*?"<>|]/g, "-");
+    const dir = await this.ensureBoardFolder();
+    const path2 = (0, import_obsidian12.normalizePath)((dir ? dir + "/" : "") + `${name2}${OMNIBOARD_SUFFIX}`);
+    const content5 = serializeBoard(seedModel != null ? seedModel : { nodes: [], edges: [] }, "", void 0, {
       compressDrawingData: this.settings.compressDrawingData
     });
     try {
@@ -123471,6 +124740,70 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
       return null;
     }
+  }
+  /** Ensure the configured board folder exists; returns its normalized path
+   *  (empty string when configured as vault root). */
+  async ensureBoardFolder() {
+    var _a3, _b2;
+    const folder = (_b2 = (_a3 = this.settings.boardFolder) == null ? void 0 : _a3.trim()) != null ? _b2 : "";
+    if (!folder) return "";
+    const dir = (0, import_obsidian12.normalizePath)(folder);
+    if (!this.app.vault.getAbstractFileByPath(dir)) {
+      try {
+        await this.app.vault.createFolder(dir);
+      } catch (e5) {
+        if (!this.app.vault.getAbstractFileByPath(dir)) return "";
+      }
+    }
+    return dir;
+  }
+  /** Build the type-picker choices: a blank board + one per registered adapter. */
+  boardTypeChoices() {
+    return [
+      { adapter: null, label: "Board tr\u1EAFng", icon: "square-dashed" },
+      ...this.registry.all().map((a5) => ({
+        adapter: a5,
+        label: a5.displayName,
+        icon: a5.icon
+      }))
+    ];
+  }
+  /** Open the type picker, then run `cb` with the chosen type. */
+  pickTypeThen(cb) {
+    new BoardTypePicker(this.app, this.boardTypeChoices(), cb).open();
+  }
+  /** Seed an empty CanvasModel for a picker choice (blank → empty board). */
+  async seedModelForChoice(choice) {
+    const adapter = choice.adapter;
+    if (adapter == null ? void 0 : adapter.toEditor) {
+      try {
+        const session = await adapter.toEditor(adapter.emptyTemplate());
+        return session.model;
+      } catch (e5) {
+        console.warn("[omniboard] seedModelForChoice toEditor failed", e5);
+      }
+    }
+    return { nodes: [], edges: [] };
+  }
+  /** Create a board file for the chosen type and embed it at the cursor. */
+  async insertNewBoard(editor, choice) {
+    var _a3;
+    const model = await this.seedModelForChoice(choice);
+    const file = await this.createBoardFile(model, (_a3 = choice.adapter) == null ? void 0 : _a3.displayName);
+    if (!file) return;
+    editor.replaceSelection(`![[${file.path}]]
+`);
+  }
+  /** Open `file` in the full-tab BoardView (single source of truth canvas). */
+  async openBoardFile(file) {
+    var _a3;
+    const leaf = (_a3 = this.findLeafForFile(file)) != null ? _a3 : this.app.workspace.getLeaf("tab");
+    await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: file.path } });
+    this.app.workspace.revealLeaf(leaf);
+  }
+  /** Open the popup board editor for `file` (edits the file in place). */
+  openFileBoardEditor(file) {
+    new FileBoardModal(this.app, this, file).open();
   }
   /**
    * When Obsidian opens a `.omniboard.md` file in the default markdown view,
@@ -123520,49 +124853,40 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     });
     return found;
   }
-  /** Create a new .board file (Excalidraw-style) and open it in the board view. */
-  async createAndOpenBoard() {
-    const file = await this.createBoardFile();
+  /** Create a board file for the chosen type and open it in the full board view. */
+  async createAndOpenBoard(choice) {
+    var _a3;
+    const model = await this.seedModelForChoice(choice);
+    const file = await this.createBoardFile(model, (_a3 = choice.adapter) == null ? void 0 : _a3.displayName);
     if (!file) return;
-    await this.app.workspace.getLeaf("tab").openFile(file);
+    await this.openBoardFile(file);
   }
-  /** Create a new .bpmn file with template XML and open it in BPMN Native view. */
-  async createAndOpenBpmn() {
-    const folder = this.app.fileManager.getNewFileParent("");
-    const ts = (/* @__PURE__ */ new Date()).toISOString().replace(/[-:T]/g, "").slice(0, 15);
-    const path2 = (0, import_obsidian12.normalizePath)(`${folder.path}/BPMN-${ts}.bpmn`);
-    try {
-      const file = await this.app.vault.create(path2, MINIMAL_BPMN_XML);
-      await this.app.workspace.getLeaf("tab").openFile(file);
-    } catch (e5) {
-      new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file BPMN.");
-    }
-  }
-  /** Create a board, embed it at the cursor (`![[...]]`), and open it. */
-  async insertNewBoardEmbed(editor) {
-    const file = await this.createBoardFile();
-    if (!file) return;
-    editor.replaceSelection(`![[${file.path}]]
-`);
-    await this.app.workspace.getLeaf("tab").openFile(file);
-  }
-  /** Render an `![[x.board]]` internal embed as a preview card in read mode. */
+  /**
+   * Render an `![[x.omniboard.md]]` internal embed as a preview card.
+   *
+   * Idempotent: the card is rendered into a dedicated `.omniboard-embed-cardwrap`
+   * child. If that child is already present we skip — this lets the
+   * MutationObserver fallback call us repeatedly without churning the card, and
+   * survives Obsidian asynchronously re-filling the embed with the file's raw
+   * markdown (that native content is hidden by CSS; see styles.css).
+   */
   async renderBoardEmbed(host, sourcePath) {
     var _a3, _b2, _c, _d;
-    if (host.dataset.daRendered === "1") return;
+    if (host.querySelector(":scope > .omniboard-embed-cardwrap")) return;
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
     if (!(file instanceof import_obsidian12.TFile)) return;
-    host.dataset.daRendered = "1";
-    host.empty();
+    host.addClass("omniboard-embed-processed");
+    const wrap = host.createDiv({ cls: "omniboard-embed-cardwrap" });
     let nodeCount = 0;
     let edgeCount = 0;
     let svg3 = void 0;
     let errorMessage = void 0;
+    let model = null;
     try {
       const raw2 = await this.app.vault.cachedRead(file);
-      const model = deserializeBoard(raw2);
+      model = deserializeBoard(raw2);
       if (!model) {
         errorMessage = "File kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng Omniboard.";
       } else {
@@ -123575,106 +124899,118 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     }
     R(
       k(EmbedCard, {
-        filename: file.basename,
+        title: file.basename,
         nodeCount,
         edgeCount,
         svg: svg3,
         errorMessage,
-        onOpen: () => void this.app.workspace.getLeaf("tab").openFile(file),
+        onEdit: () => this.openFileBoardEditor(file),
+        onExportMenu: model ? (e5) => this.buildBoardExportMenu(model, file.basename).showAtMouseEvent(e5) : void 0,
+        onMoreMenu: (e5) => this.buildBoardMoreMenu(file, model, sourcePath).showAtMouseEvent(e5),
         setIcon: (el4, name2) => (0, import_obsidian12.setIcon)(el4, name2)
       }),
-      host
+      wrap
     );
   }
-  /** Insert from the ribbon menu — needs to find the active markdown editor itself. */
-  insertDiagramIntoActiveEditor(adapter) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian12.MarkdownView);
-    if (!view) {
-      new import_obsidian12.Notice("M\u1EDF m\u1ED9t note (Editing mode) r\u1ED3i ch\xE8n diagram.");
+  /** Export menu (SVG / PNG / PDF) for a board model — shared by embed cards.
+   *  Uses the standalone static renderer (self-contained SVG via collectPluginCss)
+   *  so it works without a live canvas. */
+  buildBoardExportMenu(model, baseName) {
+    const menu = new import_obsidian12.Menu();
+    const run = async (fn2) => {
+      try {
+        const saved = await fn2();
+        if (saved) new import_obsidian12.Notice(`\u0110\xE3 export: ${saved}`);
+      } catch (err2) {
+        console.warn("[omniboard] board export failed", err2);
+        new import_obsidian12.Notice("Export th\u1EA5t b\u1EA1i \u2014 xem console.");
+      }
+    };
+    menu.addItem(
+      (i6) => i6.setTitle("SVG").setIcon("file-code").onClick(
+        () => void run(() => saveToDisk(exportSvg(model), `${baseName}.svg`, "image/svg+xml"))
+      )
+    );
+    menu.addItem(
+      (i6) => i6.setTitle("PNG").setIcon("image").onClick(
+        () => void run(async () => saveToDisk(await exportPng(model, 2), `${baseName}.png`, "image/png"))
+      )
+    );
+    menu.addItem(
+      (i6) => i6.setTitle("PDF").setIcon("file-text").onClick(
+        () => void run(async () => saveToDisk(await exportPdf(model), `${baseName}.pdf`, "application/pdf"))
+      )
+    );
+    return menu;
+  }
+  /** Overflow (⋯) menu for a board embed card. `hostPath` is the note the
+   *  embed lives in — used by "Xóa khỏi note" to remove the `![[...]]` line. */
+  buildBoardMoreMenu(file, model, hostPath) {
+    const menu = new import_obsidian12.Menu();
+    menu.addItem(
+      (i6) => i6.setTitle("S\u1EEDa to\xE0n m\xE0n h\xECnh").setIcon("maximize-2").onClick(() => void this.openBoardFile(file))
+    );
+    menu.addItem(
+      (i6) => i6.setTitle("M\u1EDF trong tab m\u1EDBi").setIcon("external-link").onClick(
+        () => void this.app.workspace.getLeaf("tab").openFile(file)
+      )
+    );
+    if (model) {
+      menu.addItem(
+        (i6) => i6.setTitle("Copy as image").setIcon("clipboard-copy").onClick(async () => {
+          try {
+            const png = await exportPng(model, 2);
+            await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
+            new import_obsidian12.Notice("\u0110\xE3 copy v\xE0o clipboard");
+          } catch (e5) {
+            new import_obsidian12.Notice("Copy clipboard th\u1EA5t b\u1EA1i (browser c\xF3 th\u1EC3 kh\xF4ng h\u1ED7 tr\u1EE3).");
+          }
+        })
+      );
+    }
+    menu.addSeparator();
+    menu.addItem(
+      (i6) => i6.setTitle("X\xF3a kh\u1ECFi note").setIcon("trash-2").onClick(() => void this.removeEmbedFromNote(file, hostPath))
+    );
+    return menu;
+  }
+  /**
+   * Remove the `![[boardFile]]` embed from the note at `hostPath` (the board
+   * file itself is kept — it's the single source of truth). Uses the metadata
+   * cache to locate the exact embed by resolved target, so only this board's
+   * embed is removed even when the note embeds several boards.
+   */
+  async removeEmbedFromNote(boardFile, hostPath) {
+    var _a3, _b2;
+    const host = this.app.vault.getAbstractFileByPath(hostPath);
+    if (!(host instanceof import_obsidian12.TFile)) {
+      new import_obsidian12.Notice("Kh\xF4ng t\xECm th\u1EA5y note ch\u1EE9a board.");
       return;
     }
-    this.insertDiagram(view.editor, adapter);
-  }
-  registerCodeBlock(adapter) {
-    this.registerMarkdownCodeBlockProcessor(
-      adapter.codeBlockLanguage,
-      (source, el4, ctx) => {
-        const theme = readObsidianTheme();
-        const mount = el4.createDiv({ cls: "diagrams-card-mount" });
-        R(
-          k(DiagramCard, {
-            adapter,
-            source,
-            theme,
-            onEdit: () => this.openEditor(adapter, source, el4, ctx),
-            // Story 7-20 — real export backends via cardExports helper.
-            onExport: async (format2) => {
-              var _a3, _b2;
-              try {
-                const model = adapter.parse(source);
-                const baseName = (_b2 = (_a3 = this.app.workspace.getActiveFile()) == null ? void 0 : _a3.basename) != null ? _b2 : `diagram-${adapter.codeBlockLanguage}`;
-                const saved = await exportDiagramCard(
-                  adapter,
-                  model,
-                  format2,
-                  baseName
-                );
-                if (saved) new import_obsidian12.Notice(`\u0110\xE3 export: ${saved}`);
-              } catch (err2) {
-                console.warn("[omniboard] card export failed", err2);
-                new import_obsidian12.Notice(`Export ${format2.toUpperCase()} th\u1EA5t b\u1EA1i \u2014 xem console.`);
-              }
-            },
-            onCopyImage: async () => {
-              const model = adapter.parse(source);
-              const ok = await copyCardAsImage(adapter, model);
-              new import_obsidian12.Notice(
-                ok ? "\u0110\xE3 copy v\xE0o clipboard" : "Copy clipboard th\u1EA5t b\u1EA1i (browser c\xF3 th\u1EC3 kh\xF4ng h\u1ED7 tr\u1EE3 image clipboard)"
-              );
-            },
-            // Story 7-21 — raw source editor via CodeMirror 6 modal.
-            onSourceEdit: () => {
-              new SourceEditorModal({
-                app: this.app,
-                initialText: source,
-                language: adapter.codeBlockLanguage,
-                onSave: (newText) => this.replaceCodeBlock(el4, ctx, adapter.codeBlockLanguage, newText)
-              }).open();
-            }
-          }),
-          mount
-        );
-      }
-    );
-  }
-  openEditor(adapter, source, el4, ctx) {
-    new EditModal(this.app, adapter, source, (newText) => {
-      this.replaceCodeBlock(el4, ctx, adapter.codeBlockLanguage, newText);
-    }).open();
-  }
-  /** Rewrite the fenced block that produced `el` with new content. */
-  replaceCodeBlock(el4, ctx, lang, newText) {
-    const view = this.app.workspace.getActiveViewOfType(import_obsidian12.MarkdownView);
-    if (!view) return;
-    const info = ctx.getSectionInfo(el4);
-    if (!info) return;
-    const editor = view.editor;
-    const fence = "```";
-    const block2 = `${fence}${lang}
-${newText}
-${fence}`;
-    editor.replaceRange(
-      block2,
-      { line: info.lineStart, ch: 0 },
-      { line: info.lineEnd, ch: editor.getLine(info.lineEnd).length }
-    );
-  }
-  insertDiagram(editor, adapter) {
-    const block2 = `\`\`\`${adapter.codeBlockLanguage}
-${adapter.emptyTemplate()}
-\`\`\`
-`;
-    editor.replaceSelection(block2);
+    const embeds = (_b2 = (_a3 = this.app.metadataCache.getFileCache(host)) == null ? void 0 : _a3.embeds) != null ? _b2 : [];
+    const target = embeds.find((e5) => {
+      const dest = this.app.metadataCache.getFirstLinkpathDest(
+        e5.link.replace(/#.*$/, ""),
+        hostPath
+      );
+      return (dest == null ? void 0 : dest.path) === boardFile.path;
+    });
+    if (!target) {
+      new import_obsidian12.Notice("Kh\xF4ng t\xECm th\u1EA5y embed c\u1EE7a board trong note n\xE0y.");
+      return;
+    }
+    try {
+      const content5 = await this.app.vault.read(host);
+      const { start, end } = target.position;
+      let after2 = end.offset;
+      if (content5[after2] === "\n") after2 += 1;
+      const next = content5.slice(0, start.offset) + content5.slice(after2);
+      await this.app.vault.modify(host, next);
+      new import_obsidian12.Notice("\u0110\xE3 g\u1EE1 board kh\u1ECFi note.");
+    } catch (e5) {
+      console.error("[omniboard] removeEmbedFromNote failed", e5);
+      new import_obsidian12.Notice("G\u1EE1 board kh\u1ECFi note th\u1EA5t b\u1EA1i \u2014 xem console.");
+    }
   }
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());

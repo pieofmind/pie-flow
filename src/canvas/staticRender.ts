@@ -101,11 +101,27 @@ export function renderModelToSvg(model: CanvasModel, css: string, pad = 24, bg =
   }).join("");
 
   const nodeSvg = nodes.map((n) => {
-    const style = (n.attrs?.style as NodeStyle) ?? {};
+    const a = (n.attrs ?? {}) as Record<string, unknown>;
+    const style = (a.style as NodeStyle) ?? {};
+    // Mirror OmniboardCanvas.nodeExtra() so the static render emits the SAME
+    // BPMN event trigger glyphs / activity markers / lanes as the live canvas
+    // (otherwise events render as empty rings — losing the timer/message/etc.
+    // icon — and pools lose their lane bands).
     const extra: NodeExtra = {
-      cols: n.attrs?.cols as ErdCol[] | undefined,
-      fields: n.attrs?.fields as string[] | undefined,
-      methods: n.attrs?.methods as string[] | undefined,
+      cols: a.cols as ErdCol[] | undefined,
+      fields: a.fields as string[] | undefined,
+      methods: a.methods as string[] | undefined,
+      who: a.who as NodeExtra["who"],
+      labelOffset: a.labelOffset as NodeExtra["labelOffset"],
+      lanes: a.lanes as NodeExtra["lanes"],
+      poolHorizontal: a.poolHorizontal as NodeExtra["poolHorizontal"],
+      blackBox: a.blackBox as NodeExtra["blackBox"],
+      trigger: a.trigger as NodeExtra["trigger"],
+      throwing: a.throwing as NodeExtra["throwing"],
+      interrupting: a.interrupting as NodeExtra["interrupting"],
+      attachedTo: a.attachedTo as NodeExtra["attachedTo"],
+      markers: a.markers as NodeExtra["markers"],
+      collapsed: a.collapsed as NodeExtra["collapsed"],
     };
     const inner = nodeHtml(n.shape, n.label, style, extra);
     const num = (v: unknown) => Number(v) || 0;
@@ -115,7 +131,9 @@ export function renderModelToSvg(model: CanvasModel, css: string, pad = 24, bg =
   return `<svg xmlns="${SVGNS}" class="lk-root" width="${w}" height="${h}" viewBox="${x} ${y} ${w} ${h}">`
     + `<defs><marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse">`
     + `<path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker></defs>`
-    + (css ? `<style>${css}</style>` : "")
+    // `overflow:visible` keeps each node's foreignObject from clipping round
+    // event borders / drop-shadows / external event labels when rasterized.
+    + `<style>foreignObject{overflow:visible}${css}</style>`
     + (bg && bg !== "transparent" ? `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${bg}"/>` : "")
     + edgeSvg + nodeSvg
     + `</svg>`;

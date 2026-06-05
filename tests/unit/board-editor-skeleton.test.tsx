@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { VNode } from "preact";
+import { h, type VNode } from "preact";
 import {
   BoardEditor,
   type BoardEditorMode,
@@ -171,5 +171,138 @@ describe("BoardEditor skeleton — AC4 no side effects in skeleton", () => {
     const a = BoardEditor(buildProps("modal"));
     const b = BoardEditor(buildProps("modal"));
     expect(a).not.toBe(b);
+  });
+});
+
+describe("BoardEditor — Story 7-5 body slot + modal header chrome", () => {
+  it("renders the provided body VNode inside the body region", () => {
+    const marker = h("span", { "data-testid": "my-body-marker" }, "BODY");
+    const root = asVNode(
+      BoardEditor(buildProps("modal", { body: marker as unknown as VNode })),
+    );
+    expect(findByTestId(root, "my-body-marker")).toBeDefined();
+  });
+
+  it("body slot suppresses the palette/canvas/properties composition", () => {
+    const marker = h("span", { "data-testid": "my-body-marker" });
+    const root = asVNode(
+      BoardEditor(
+        buildProps("modal", {
+          body: marker as unknown as VNode,
+          // These would normally render slots — must be suppressed by body.
+          paletteItems: [{ id: "x", label: "X", icon: "square" }],
+          propertyFields: [],
+          // Canvas slot would render if shapeCategories + canvasModel given;
+          // body must suppress it (no OmniboardCanvasMount constructed).
+          shapeCategories: [{ title: "G", items: [] }],
+          canvasModel: { nodes: [], edges: [] },
+        }),
+      ),
+    );
+    expect(findByTestId(root, "my-body-marker")).toBeDefined();
+    expect(findByTestId(root, "diagrams-palette-sidebar")).toBeUndefined();
+    // Canvas mount must NOT appear in the tree when body is provided.
+    expect(findByTestId(root, "diagrams-canvas-mount")).toBeUndefined();
+  });
+
+  it("renders chip + title in the header when mode='modal'", () => {
+    const root = asVNode(
+      BoardEditor(
+        buildProps("modal", { chipLabel: "BPMN 2.0", title: "Quy trình bán hàng" }),
+      ),
+    );
+    const chip = findByTestId(root, "diagrams-board-editor-chip");
+    const title = findByTestId(root, "diagrams-board-editor-title");
+    expect(chip).toBeDefined();
+    expect(title).toBeDefined();
+  });
+
+  it("does NOT render the modal header chip in tab mode", () => {
+    const root = asVNode(
+      BoardEditor(buildProps("tab", { chipLabel: "BPMN 2.0", title: "X" })),
+    );
+    expect(findByTestId(root, "diagrams-board-editor-chip")).toBeUndefined();
+  });
+
+  it("omits chip/title when neither provided (modal mode)", () => {
+    const root = asVNode(BoardEditor(buildProps("modal")));
+    expect(findByTestId(root, "diagrams-board-editor-chip")).toBeUndefined();
+    expect(findByTestId(root, "diagrams-board-editor-title")).toBeUndefined();
+  });
+});
+
+describe("BoardEditor — Story 7-5b editable title + header actions", () => {
+  it("renders an editable <input> when onTitleChange is provided", () => {
+    const root = asVNode(
+      BoardEditor(
+        buildProps("modal", { title: "My Flow", onTitleChange: () => {} }),
+      ),
+    );
+    const input = findByTestId(root, "diagrams-board-editor-title-input");
+    expect(input).toBeDefined();
+    expect(input?.type).toBe("input");
+    expect(input?.props.value).toBe("My Flow");
+    // The read-only span must NOT also render.
+    expect(findByTestId(root, "diagrams-board-editor-title")).toBeUndefined();
+  });
+
+  it("title input dispatches onTitleChange with the new value", () => {
+    let changed: string | undefined;
+    const root = asVNode(
+      BoardEditor(
+        buildProps("modal", {
+          title: "",
+          onTitleChange: (v) => {
+            changed = v;
+          },
+        }),
+      ),
+    );
+    const input = findByTestId(root, "diagrams-board-editor-title-input");
+    (input!.props.onInput as (e: unknown) => void)({
+      target: { value: "Tên mới" },
+    });
+    expect(changed).toBe("Tên mới");
+  });
+
+  it("renders read-only span (not input) when onTitleChange absent", () => {
+    const root = asVNode(BoardEditor(buildProps("modal", { title: "Fixed" })));
+    expect(findByTestId(root, "diagrams-board-editor-title")).toBeDefined();
+    expect(findByTestId(root, "diagrams-board-editor-title-input")).toBeUndefined();
+  });
+
+  it("renders header Save/Close buttons when showHeaderActions=true", () => {
+    let saved = false;
+    let closed = false;
+    const root = asVNode(
+      BoardEditor(
+        buildProps("modal", {
+          chipLabel: "Flowchart",
+          showHeaderActions: true,
+          onHeaderSave: () => {
+            saved = true;
+          },
+          onClose: () => {
+            closed = true;
+          },
+        }),
+      ),
+    );
+    const saveBtn = findByTestId(root, "diagrams-board-editor-save");
+    const closeBtn = findByTestId(root, "diagrams-board-editor-close");
+    expect(saveBtn).toBeDefined();
+    expect(closeBtn).toBeDefined();
+    (saveBtn!.props.onClick as () => void)();
+    (closeBtn!.props.onClick as () => void)();
+    expect(saved).toBe(true);
+    expect(closed).toBe(true);
+  });
+
+  it("does NOT render header actions by default (body-slot / 7-5 mode)", () => {
+    const root = asVNode(
+      BoardEditor(buildProps("modal", { chipLabel: "BPMN 2.0", title: "X" })),
+    );
+    expect(findByTestId(root, "diagrams-board-editor-save")).toBeUndefined();
+    expect(findByTestId(root, "diagrams-board-editor-close")).toBeUndefined();
   });
 });

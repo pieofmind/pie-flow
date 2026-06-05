@@ -15,6 +15,7 @@ import type DiagramsPlugin from "../main";
 import { BoardEditor, type BoardEditorProps } from "../ui/BoardEditor";
 import { readObsidianTheme } from "../core/theme";
 import type { DiagramAdapter } from "../core/adapter";
+import { buildBoardTopbar } from "../ui/boardTopbar";
 
 registerAllShapes();
 
@@ -191,7 +192,7 @@ const BOARD_TAB_STUB_ADAPTER: DiagramAdapter<CanvasModel> = {
 export class BoardView extends TextFileView {
   private canvas: OmniboardCanvas | null = null;
   private host: HTMLElement | null = null;
-  private boardTitleEl: HTMLElement | null = null;
+  private boardTitleEl: { setText: (t: string) => void } | null = null;
   private model: CanvasModel = EMPTY_MODEL;
   private rawData = "";
   private invalidFormat = false;
@@ -273,50 +274,27 @@ export class BoardView extends TextFileView {
 
   private buildTopBar(): void {
     const bar = this.contentEl.createDiv({ cls: "da-topbar" });
-
-    const close = bar.createEl("button", { cls: "da-tb-close" });
-    setIcon(close, "x");
-    close.createSpan({ text: "Đóng" });
-    close.onclick = () => this.leaf.detach();
-
-    const badge = bar.createDiv({ cls: "da-tb-badge" });
-    setIcon(badge, "shapes");
-    badge.createSpan({ text: "BOARD" });
-
-    this.boardTitleEl = bar.createDiv({ cls: "da-tb-title", text: this.file?.basename ?? "Board" });
-
-    bar.createDiv({ cls: "da-tb-grow" });
-
-    const iconBtn = (icon: string, tip: string, fn: () => void) => {
-      const b = bar.createEl("button", { cls: "da-tb-ic" });
-      setIcon(b, icon); b.setAttribute("aria-label", tip); b.title = tip; b.onclick = fn;
-      return b;
-    };
-    iconBtn("undo-2", "Undo", () => this.canvas?.undo());
-    iconBtn("redo-2", "Redo", () => this.canvas?.redo());
-    iconBtn("copy", "Nhân bản (⌘D)", () => this.canvas?.duplicate());
-    iconBtn("trash-2", "Xóa", () => this.canvas?.deleteSelection());
-    iconBtn("sliders-horizontal", "BPMN properties", () => this.openPropertiesLeaf());
-    iconBtn("alert-triangle", "BPMN issues", () => this.openIssuesLeaf());
-    bar.createDiv({ cls: "da-tb-divider" });
-    iconBtn(
-      "workflow",
-      "Switch to BPMN Native view",
-      () => void this.switchToBpmnNativeView(),
-    );
-    iconBtn("file-text", "Mở dưới dạng Markdown", () => this.openAsMarkdown());
-    const imp = bar.createEl("button", { cls: "da-tb-ic" });
-    setIcon(imp, "upload"); imp.setAttribute("aria-label", "Import");
-    imp.title = "Import (BPMN / DBML)";
-    imp.onclick = () => this.openImportPicker();
-    const exp = bar.createEl("button", { cls: "da-tb-ic" });
-    setIcon(exp, "download"); exp.setAttribute("aria-label", "Export"); exp.title = "Export (SVG / PNG / BPMN / DBML)";
-    exp.onclick = (e) => this.showExportMenu(e);
-
-    const save = bar.createEl("button", { cls: "da-tb-save" });
-    setIcon(save, "check");
-    save.createSpan({ text: "Lưu & đóng" });
-    save.onclick = async () => { await this.save(); this.leaf.detach(); };
+    // Story 7-5d — the topbar is built by the SHARED `buildBoardTopbar`, the
+    // single source of truth used by both this tab view and the inline-card
+    // edit modal. Changing a common button here updates both surfaces.
+    const { setTitle } = buildBoardTopbar(bar, {
+      getCanvas: () => this.canvas,
+      badgeLabel: "BOARD",
+      badgeIcon: "shapes",
+      title: this.file?.basename ?? "Board",
+      onClose: () => this.leaf.detach(),
+      onSave: () => void (async () => { await this.save(); this.leaf.detach(); })(),
+      onExport: (e) => this.showExportMenu(e),
+      extraButtons: [
+        { icon: "sliders-horizontal", tip: "BPMN properties", onClick: () => void this.openPropertiesLeaf() },
+        { icon: "alert-triangle", tip: "BPMN issues", onClick: () => void this.openIssuesLeaf() },
+        { icon: "workflow", tip: "Chuyển sang BPMN Native", onClick: () => void this.switchToBpmnNativeView() },
+        { icon: "file-text", tip: "Mở dưới dạng Markdown", onClick: () => void this.openAsMarkdown() },
+        { icon: "upload", tip: "Import (BPMN / DBML)", onClick: () => this.openImportPicker() },
+      ],
+    });
+    // Rename handler (onLoadFile) updates the title via this thin adapter.
+    this.boardTitleEl = { setText: (t: string) => setTitle(t) };
   }
 
   getCanvas(): OmniboardCanvas | null {

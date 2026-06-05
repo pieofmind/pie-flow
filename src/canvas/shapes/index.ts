@@ -163,7 +163,7 @@ export const SHAPE_CATEGORIES: ShapeCategory[] = [
   },
 ];
 
-const I = (inner: string) => `<svg viewBox="0 0 32 32" fill="none">${inner}</svg>`;
+const I = (inner: string) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">${inner}</svg>`;
 const ICONS: Record<string, string> = {
   "bs-rect": I(`<rect x="5" y="9" width="22" height="14" fill="#fff" stroke="#1f2329" stroke-width="2"/>`),
   "bs-rounded": I(`<rect x="5" y="9" width="22" height="14" rx="4" fill="#fff" stroke="#1f2329" stroke-width="2"/>`),
@@ -302,7 +302,7 @@ export function shapeIcon(shape: string, seed?: { trigger?: string }): string {
       terminate: `<circle cx="16" cy="16" r="5" fill="${c}"/>`,
     };
     const g = glyph[seed.trigger] ?? "";
-    return `<svg viewBox="0 0 32 32" fill="none">${borderByPos[shape] ?? ""}${g}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">${borderByPos[shape] ?? ""}${g}</svg>`;
   }
   return ICONS[shape] ?? I(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
 }

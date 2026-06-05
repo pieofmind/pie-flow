@@ -77197,6 +77197,23 @@ function importDbml(raw2) {
 }
 
 // src/io/dbml/export.ts
+function markersToKind(start, end) {
+  const norm = (m7) => {
+    if (m7 === "crow" || m7 === "crow-circle") return "crow";
+    return "bar";
+  };
+  const s5 = norm(start);
+  const e5 = norm(end);
+  if (s5 === "crow" && e5 === "bar") return ">";
+  if (s5 === "bar" && e5 === "crow") return "<";
+  if (s5 === "crow" && e5 === "crow") return "<>";
+  return "-";
+}
+function portToCol(port2) {
+  if (!port2 || !port2.startsWith("col:")) return "id";
+  const stripped = port2.slice("col:".length);
+  return stripped.replace(/-(left|right)$/, "") || "id";
+}
 function nodeColumns(attrs) {
   const src = attrs == null ? void 0 : attrs.__source;
   return Array.isArray(src == null ? void 0 : src.columns) ? src.columns : null;
@@ -77229,7 +77246,7 @@ function buildNameMap(nodes) {
   return out;
 }
 function exportDbml(model, meta) {
-  var _a3, _b2, _c, _d;
+  var _a3, _b2, _c, _d, _e3, _f;
   const tableNodes = model.nodes.filter((n4) => n4.shape === "erd-entity");
   const nameOf = buildNameMap(tableNodes);
   const newTables = tableNodes.filter((n4) => {
@@ -77242,14 +77259,26 @@ function exportDbml(model, meta) {
   });
   const newRefs = [];
   if (meta && meta.format === "dbml") {
-    const raw2 = String((_b2 = (_a3 = meta.payload) == null ? void 0 : _a3.raw) != null ? _b2 : "");
+    for (const e5 of model.edges) {
+      if (typeof e5.id === "string" && e5.id.startsWith("__ref_")) continue;
+      const sName = nameOf.get(e5.source);
+      const tName = nameOf.get(e5.target);
+      if (!sName || !tName) continue;
+      const sCol = portToCol(e5.sourcePort);
+      const tCol = portToCol(e5.targetPort);
+      const kind = markersToKind((_a3 = e5.style) == null ? void 0 : _a3.start, (_b2 = e5.style) == null ? void 0 : _b2.end);
+      newRefs.push(`Ref: ${sName}.${sCol} ${kind} ${tName}.${tCol}`);
+    }
+  }
+  if (meta && meta.format === "dbml") {
+    const raw2 = String((_d = (_c = meta.payload) == null ? void 0 : _c.raw) != null ? _d : "");
     const head = raw2.endsWith("\n") ? raw2 : raw2 + "\n";
     const edited = [];
     for (const n4 of tableNodes) {
-      const src = (_c = n4.attrs) == null ? void 0 : _c.__source;
+      const src = (_e3 = n4.attrs) == null ? void 0 : _e3.__source;
       if (!(src == null ? void 0 : src.sourceId)) continue;
       const canvasCols = extractErdCols(n4.attrs);
-      const origCols = (_d = src.columns) != null ? _d : [];
+      const origCols = (_f = src.columns) != null ? _f : [];
       if (canvasCols.length !== origCols.length) {
         edited.push(src.sourceId);
         continue;
@@ -77274,7 +77303,13 @@ function exportDbml(model, meta) {
     const cols = (_a4 = nodeColumns(n4.attrs)) != null ? _a4 : extractErdCols(n4.attrs);
     return emitTable((_b3 = nameOf.get(n4.id)) != null ? _b3 : sanitizeIdent(n4.label, n4.id), cols);
   });
-  const refs = model.edges.filter((e5) => nameOf.has(e5.source) && nameOf.has(e5.target)).map((e5) => `Ref: ${nameOf.get(e5.source)}.id > ${nameOf.get(e5.target)}.id`);
+  const refs = model.edges.filter((e5) => nameOf.has(e5.source) && nameOf.has(e5.target)).map((e5) => {
+    var _a4, _b3;
+    const sCol = portToCol(e5.sourcePort);
+    const tCol = portToCol(e5.targetPort);
+    const kind = markersToKind((_a4 = e5.style) == null ? void 0 : _a4.start, (_b3 = e5.style) == null ? void 0 : _b3.end);
+    return `Ref: ${nameOf.get(e5.source)}.${sCol} ${kind} ${nameOf.get(e5.target)}.${tCol}`;
+  });
   return [fresh.join("\n\n"), refs.join("\n")].filter(Boolean).join("\n\n") + "\n";
 }
 function extractErdCols(attrs) {

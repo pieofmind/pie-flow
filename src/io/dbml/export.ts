@@ -3,6 +3,33 @@ import type { SourceMeta } from "../types";
 
 interface SourceCol { name: string; type: string; flags: string; }
 
+type DbmlKind = ">" | "<" | "<>" | "-";
+
+/** Reverse of import.ts `cardinalityMarkers`. Maps the edge's start/end markers
+ *  back to the DBML cardinality operator. Treats "circle-bar" as "bar" and
+ *  "crow-circle" as "crow" — the nullable flag lives on the FK column, not in
+ *  the ref operator. */
+function markersToKind(start: string | undefined, end: string | undefined): DbmlKind {
+  const norm = (m: string | undefined): "crow" | "bar" => {
+    if (m === "crow" || m === "crow-circle") return "crow";
+    return "bar";
+  };
+  const s = norm(start);
+  const e = norm(end);
+  if (s === "crow" && e === "bar") return ">";
+  if (s === "bar" && e === "crow") return "<";
+  if (s === "crow" && e === "crow") return "<>";
+  return "-";
+}
+
+/** Extract the column name from an X6 port id like "col:user_id-right".
+ *  Returns "id" as fallback for cardinal ports or missing port. */
+function portToCol(port: string | undefined): string {
+  if (!port || !port.startsWith("col:")) return "id";
+  const stripped = port.slice("col:".length);
+  return stripped.replace(/-(left|right)$/, "") || "id";
+}
+
 function nodeColumns(attrs: Record<string, unknown> | undefined): SourceCol[] | null {
   const src = attrs?.__source as { columns?: SourceCol[] } | undefined;
   return Array.isArray(src?.columns) ? src!.columns! : null;
@@ -59,10 +86,23 @@ export function exportDbml(model: CanvasModel, meta?: SourceMeta | null): string
       return emitTable(nameOf.get(n.id) ?? sanitizeIdent(n.label, n.id), cols);
     });
 
-  // New edges (refs) = edges whose endpoints both refer to tables not present
-  // as a `Ref:` in the source. We emit them as new top-level Ref lines using
-  // the first column of each endpoint as a fallback target.
+  // New edges (refs) = edges added on the canvas whose ref isn't already in the
+  // source DBML. We emit them as top-level `Ref:` lines preserving cardinality
+  // (from edge markers) and FK column (from sourcePort/targetPort).
   const newRefs: string[] = [];
+  if (meta && meta.format === "dbml") {
+    for (const e of model.edges) {
+      // Imported refs use id "__ref_*" — skip; they're already in source raw.
+      if (typeof e.id === "string" && e.id.startsWith("__ref_")) continue;
+      const sName = nameOf.get(e.source);
+      const tName = nameOf.get(e.target);
+      if (!sName || !tName) continue;
+      const sCol = portToCol(e.sourcePort);
+      const tCol = portToCol(e.targetPort);
+      const kind = markersToKind(e.style?.start, e.style?.end);
+      newRefs.push(`Ref: ${sName}.${sCol} ${kind} ${tName}.${tCol}`);
+    }
+  }
   if (meta && meta.format === "dbml") {
     const raw = String((meta.payload as { raw?: string })?.raw ?? "");
     const head = raw.endsWith("\n") ? raw : raw + "\n";
@@ -106,7 +146,12 @@ export function exportDbml(model: CanvasModel, meta?: SourceMeta | null): string
   });
   const refs = model.edges
     .filter((e) => nameOf.has(e.source) && nameOf.has(e.target))
-    .map((e) => `Ref: ${nameOf.get(e.source)}.id > ${nameOf.get(e.target)}.id`);
+    .map((e) => {
+      const sCol = portToCol(e.sourcePort);
+      const tCol = portToCol(e.targetPort);
+      const kind = markersToKind(e.style?.start, e.style?.end);
+      return `Ref: ${nameOf.get(e.source)}.${sCol} ${kind} ${nameOf.get(e.target)}.${tCol}`;
+    });
   return [fresh.join("\n\n"), refs.join("\n")].filter(Boolean).join("\n\n") + "\n";
 }
 

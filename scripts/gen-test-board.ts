@@ -124,10 +124,7 @@ warnings.forEach((w) => console.log("  ⚠", w));
 
 const out = serializeBoard(model, "", sourceMeta);
 
-const TARGETS = [
-  "/Users/linhji/dev/obsidian-omniboard-bmad/obsidian-vault-test/Omniboards/erd-test-all-scenarios.omniboard.md",
-  "/Users/linhji/obsidian-vault/erd-test-all-scenarios.omniboard.md",
-];
+const TARGETS = (process.env.OMNIBOARD_BOARD_OUT ?? "erd-test-all-scenarios.omniboard.md").split(",");
 for (const t of TARGETS) {
   writeFileSync(t, out);
   console.log(`✅ Wrote ${t} (${out.length} bytes)`);

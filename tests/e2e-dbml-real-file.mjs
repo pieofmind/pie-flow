@@ -4,7 +4,8 @@ import { readFileSync } from "node:fs";
 import { exportDbml } from "../src/io/dbml/export.ts";
 import { importDbml } from "../src/io/dbml/import.ts";
 
-const FILE = "/Users/linhji/dev/odoo-live/specs/dpt_kalix_product/features/product-prop-pricing-diy-20260425/erd-d1.dbml";
+const FILE = process.env.OMNIBOARD_DBML_FILE;
+if (!FILE) { console.error("Set OMNIBOARD_DBML_FILE to a .dbml file path"); process.exit(1); }
 const raw = readFileSync(FILE, "utf8");
 
 console.log(`Source file: ${raw.length} bytes`);

@@ -76,7 +76,7 @@ TableGroup g6 {\n  t15\n  t16\n}
     // Use the file at project root if available; otherwise skip soft.
     let raw: string | null = null;
     try {
-      raw = readFileSync("/Users/linhji/Downloads/erd-d1.dbml", "utf8");
+      raw = readFileSync(process.env.OMNIBOARD_DBML_IN ?? "", "utf8");
     } catch {
       return; // skip if fixture not present locally
     }

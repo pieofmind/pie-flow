@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { gunzipSync } from "node:fs";
 import * as zlib from "node:zlib";
 import { exportBpmn } from "../../src/io/bpmn/export";
@@ -21,7 +21,10 @@ import { BpmnModdle } from "bpmn-moddle";
 import { deserializeBoard } from "../../src/view/boardSerde";
 import type { CanvasModel } from "../../src/canvas/types";
 
-const FILE = "/Users/linhji/dev/obsidian-omniboard-bmad/obsidian-vault-test/Omniboard 20260602-143606.omniboard.md";
+// Local-only fixture (a real multi-pool board). Set OMNIBOARD_BPMN_FIXTURE to a
+// `.omniboard.md` path to exercise this smoke test; skipped when absent.
+const FILE = process.env.OMNIBOARD_BPMN_FIXTURE ?? "";
+const HAS_FIXTURE = FILE !== "" && existsSync(FILE);
 
 function loadCanvas(): CanvasModel {
   const md = readFileSync(FILE, "utf8");
@@ -50,7 +53,7 @@ function walkIds(node: unknown, seen: Map<string, string>, path = "root"): void 
 }
 
 describe("multi-pool export → re-parse: no duplicate IDs (user file 143606)", () => {
-  it("loads, exports, and parses with no duplicate elements", async () => {
+  it.skipIf(!HAS_FIXTURE)("loads, exports, and parses with no duplicate elements", async () => {
     const canvas = loadCanvas();
     const pools = canvas.nodes.filter((n) => n.shape === "bpmn-pool");
     expect(pools.length, "fixture file must have ≥2 pools to exercise the bug").toBeGreaterThanOrEqual(2);

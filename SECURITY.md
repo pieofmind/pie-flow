@@ -40,4 +40,4 @@ strings (icons, fixed UI labels) — never with model/user data.
 ## Reporting
 
 Found something? Open an issue at
-<https://github.com/nguyenkalix84/obsidian-omniboard/issues>.
+<https://github.com/pieofmind/obsidian-omniboard/issues>.

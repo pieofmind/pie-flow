@@ -5,7 +5,7 @@ import { copyFile, mkdir, access } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
 
-const banner = `/* obsidian-diagrams — bundled by esbuild. Source: github.com/nguyenkalix84 */`;
+const banner = `/* obsidian-diagrams — bundled by esbuild. Source: github.com/pieofmind/obsidian-omniboard */`;
 
 const prod = process.argv[2] === "production";
 

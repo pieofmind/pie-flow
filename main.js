@@ -1,4 +1,4 @@
-/* obsidian-diagrams — bundled by esbuild. Source: github.com/nguyenkalix84 */
+/* obsidian-diagrams — bundled by esbuild. Source: github.com/pieofmind/obsidian-omniboard */
 "use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;

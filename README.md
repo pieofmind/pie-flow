@@ -59,7 +59,7 @@ Double-click to edit, **Enter** to commit, **Shift+Enter** for a new line, **Esc
 2. Copy them into `<your-vault>/.obsidian/plugins/omniboard/`.
 3. Reload Obsidian → **Settings → Community plugins** → enable **OmniBoard**.
 
-**BRAT (beta):** add `nguyenkalix84/obsidian-omniboard` in the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
+**BRAT (beta):** add `pieofmind/obsidian-omniboard` in the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
 
 ---
 

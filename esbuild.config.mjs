@@ -21,7 +21,7 @@ const DEFAULT_DEPLOY_TARGETS = [
 const DEPLOY_TARGETS = process.env.OMNIBOARD_DEPLOY_VAULTS
   ? process.env.OMNIBOARD_DEPLOY_VAULTS.split(":").filter(Boolean)
   : DEFAULT_DEPLOY_TARGETS;
-const DEPLOY_FILES = ["main.js", "manifest.json", "styles.css", "bpmn-native.css", "mermaid.min.js"];
+const DEPLOY_FILES = ["main.js", "manifest.json", "styles.css", "bpmn-native.css"];
 
 async function deployToVaults() {
   for (const dest of DEPLOY_TARGETS) {

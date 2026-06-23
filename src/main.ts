@@ -25,7 +25,6 @@ import { umlAdapter } from "./adapters/uml";
 import { sequenceAdapter } from "./adapters/sequence";
 import { stateAdapter } from "./adapters/state";
 import { mindmapAdapter } from "./adapters/mindmap";
-import { mermaidAdapter } from "./adapters/mermaid";
 
 /** Mobile detection — mirror the OmniboardCanvas / BpmnNativeView pattern.
  *  `Platform.isMobile` is unreliable on some iPhone builds; the `is-mobile` body
@@ -41,7 +40,6 @@ const ALL_ADAPTERS: DiagramAdapter[] = [
   sequenceAdapter,
   stateAdapter,
   mindmapAdapter,
-  mermaidAdapter,
 ];
 
 export default class DiagramsPlugin extends Plugin {

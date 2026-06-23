@@ -1,8 +1,7 @@
 # Security notes
 
 This document explains how OmniBoard handles untrusted input. It is meant for
-reviewers and for anyone opening a `.board` file (or a `mermaid-dx` block) that
-was shared by someone else.
+reviewers and for anyone opening a `.board` file that was shared by someone else.
 
 ## Threat model
 
@@ -25,7 +24,6 @@ file cannot inject active content (e.g. an `<img onerror=…>`).
 | Node style (`fill`, `stroke`, `color`) | inline `style=""` | `cssSafe()` strips `" ' < > \` (quotes can't break out; `rgb()/hsl()` still work) |
 | Font size, border width, label offset, node geometry | inline `style` / SVG attrs | coerced with `Number(v) || 0` |
 | Edge label (read-mode embed) | SVG `<text>` | `esc()` (quote-aware) |
-| Mermaid (`mermaid-dx`) | `mermaid.render()` | `securityLevel: "strict"` — raw HTML labels & click handlers disabled |
 
 All HTML strings are built by the plugin; user data is only ever inserted
 through `esc()`, `cssSafe()`, a numeric coercion, or an explicit whitelist.
@@ -35,8 +33,7 @@ strings (icons, fixed UI labels) — never with model/user data.
 
 ## Network & data
 
-- No network requests are made to third parties. `mermaid.min.js` is loaded
-  from the plugin's own folder inside the vault (lazy, on first use).
+- No network requests are made to third parties.
 - No telemetry, analytics, or remote logging.
 - No `eval`, no remote code loading.
 

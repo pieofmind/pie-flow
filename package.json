@@ -1,7 +1,7 @@
 {
   "name": "omniboard",
   "version": "0.1.0",
-  "description": "OmniBoard — All-in-one diagram board (Flowchart, BPMN, ERD, UML, Sequence, State, Mindmap, Mermaid).",
+  "description": "OmniBoard — All-in-one diagram board (Flowchart, BPMN, ERD, UML, Sequence, State, Mindmap).",
   "main": "main.js",
   "license": "MIT",
   "scripts": {

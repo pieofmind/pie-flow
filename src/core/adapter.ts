@@ -51,8 +51,7 @@ export type DiagramTypeId =
   | "uml"
   | "sequence"
   | "state"
-  | "mindmap"
-  | "mermaid";
+  | "mindmap";
 
 export type ExportFormat = "svg" | "png" | "pdf";
 

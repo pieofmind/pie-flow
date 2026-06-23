@@ -89692,12 +89692,12 @@ function Injector(modules, _parent) {
   }
   function bootstrap2(moduleDefinitions) {
     const initializers = moduleDefinitions.reduce(resolveDependencies, []).map(loadModule);
-    let initialized2 = false;
+    let initialized = false;
     return function() {
-      if (initialized2) {
+      if (initialized) {
         return;
       }
-      initialized2 = true;
+      initialized = true;
       initializers.forEach((initializer) => initializer());
     };
   }
@@ -107863,11 +107863,11 @@ function SpaceTool(canvas, dragging, eventBus, modeling, rules, toolManager, mou
     });
   });
   eventBus.on("spaceTool.move", HIGH_PRIORITY13, function(event2) {
-    var context = event2.context, initialized2 = context.initialized;
-    if (!initialized2) {
-      initialized2 = context.initialized = self2.init(event2, context);
+    var context = event2.context, initialized = context.initialized;
+    if (!initialized) {
+      initialized = context.initialized = self2.init(event2, context);
     }
-    if (initialized2) {
+    if (initialized) {
       ensureConstraints3(event2);
     }
   });
@@ -122562,13 +122562,13 @@ var BpmnPropertiesView = class extends import_obsidian8.ItemView {
       general,
       "ID",
       textInput(bo.id, "ID", (val) => {
-        const nextId2 = val.trim();
-        if (!nextId2 || nextId2 === bo.id) return;
-        if (!BPMN_ID_RE.test(nextId2)) {
+        const nextId = val.trim();
+        if (!nextId || nextId === bo.id) return;
+        if (!BPMN_ID_RE.test(nextId)) {
           return;
         }
-        if (!controller.hasElementId(nextId2, element)) {
-          controller.updateProperties(element, { id: nextId2 });
+        if (!controller.hasElementId(nextId, element)) {
+          controller.updateProperties(element, { id: nextId });
         }
       })
     );
@@ -124430,181 +124430,6 @@ var mindmapAdapter = {
   }
 };
 
-// src/adapters/mermaid/MermaidRenderer.tsx
-var loadPromise = null;
-var nextId = 0;
-var initialized = false;
-function loadMermaidScript() {
-  if (loadPromise) return loadPromise;
-  loadPromise = new Promise((resolve3, reject) => {
-    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
-    if (window.mermaid) {
-      resolve3();
-      return;
-    }
-    const script = document.createElement("script");
-    const pluginDir = (_f = (_e3 = (_d = (_c = (_b2 = (_a3 = window.app) == null ? void 0 : _a3.plugins) == null ? void 0 : _b2.getPlugin) == null ? void 0 : _c.call(_b2, "omniboard")) == null ? void 0 : _d.manifest) == null ? void 0 : _e3.dir) != null ? _f : ".obsidian/plugins/omniboard";
-    const basePath = (_i = (_h = (_g = window.app) == null ? void 0 : _g.vault) == null ? void 0 : _h.adapter) == null ? void 0 : _i.basePath;
-    script.src = basePath ? `file://${basePath}/${pluginDir}/mermaid.min.js` : `${pluginDir}/mermaid.min.js`;
-    script.onload = () => resolve3();
-    script.onerror = () => reject(new Error("mermaid.min.js \uB85C\uB4DC \uC2E4\uD328 \u2014 plugin \uD3F4\uB354\uC5D0 mermaid.min.js\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4"));
-    document.head.appendChild(script);
-  });
-  return loadPromise;
-}
-function initMermaid(isDark) {
-  var _a3, _b2;
-  if (initialized) return;
-  initialized = true;
-  (_b2 = (_a3 = window.mermaid) == null ? void 0 : _a3.initialize) == null ? void 0 : _b2.call(_a3, {
-    startOnLoad: false,
-    // "strict" disables raw HTML in labels and click handlers — prevents XSS
-    // from a shared note's mermaid-dx block (matches Obsidian's built-in).
-    securityLevel: "strict",
-    theme: isDark ? "dark" : "default",
-    themeVariables: {
-      fontFamily: '"Be Vietnam Pro", system-ui, sans-serif',
-      primaryColor: "#eaf1ff",
-      primaryTextColor: "#3B1F1A",
-      primaryBorderColor: "#5E8FB9",
-      lineColor: "#9c8b7e",
-      background: "transparent"
-    }
-  });
-}
-function MermaidRenderer({ model, theme }) {
-  const hostRef = A4(null);
-  const [error4, setError] = d2(null);
-  const [loading, setLoading] = d2(true);
-  y2(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    (async () => {
-      var _a3;
-      try {
-        await loadMermaidScript();
-        if (cancelled) return;
-        initMermaid((_a3 = theme.isDark) != null ? _a3 : false);
-        const id = `mermaid-dx-${++nextId}`;
-        const src = model.trim() || "graph LR\n  A --> B";
-        const { svg: svg3 } = await window.mermaid.render(id, src);
-        if (cancelled || !hostRef.current) return;
-        hostRef.current.innerHTML = svg3;
-        setLoading(false);
-      } catch (e5) {
-        if (cancelled) return;
-        setError(e5 instanceof Error ? e5.message : String(e5));
-        setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [model, theme.isDark]);
-  if (loading && !error4) {
-    return /* @__PURE__ */ u2("div", { class: "diagrams-mermaid-loading", children: "\u0110ang t\u1EA3i Mermaid\u2026" });
-  }
-  if (error4) {
-    return /* @__PURE__ */ u2("pre", { class: "diagrams-mermaid-error", children: [
-      "\u26A0\uFE0F ",
-      error4,
-      "\n\n",
-      model
-    ] });
-  }
-  return /* @__PURE__ */ u2("div", { ref: hostRef, class: "diagrams-mermaid-host" });
-}
-
-// src/adapters/mermaid/palette.ts
-var mermaidPaletteItems = [
-  // PHẦN TỬ FLOWCHART
-  { id: "process", label: "Process", icon: "rectangle-horizontal", shortcut: "P", group: "PH\u1EA6N T\u1EEC" },
-  { id: "decision", label: "Decision", icon: "diamond", shortcut: "D", group: "PH\u1EA6N T\u1EEC" },
-  { id: "subgraph", label: "Subgraph", icon: "frame", group: "PH\u1EA6N T\u1EEC" },
-  // LIÊN KẾT
-  { id: "arrow", label: "Arrow", icon: "arrow-right", group: "LI\xCAN K\u1EBET" },
-  { id: "dotted", label: "Dotted", icon: "dot", group: "LI\xCAN K\u1EBET" }
-];
-
-// src/adapters/mermaid/sourceOps.ts
-var MAX4 = 4 * 1024 * 1024;
-var HEADER_RE3 = /^(?:flowchart|graph|sequenceDiagram|classDiagram|stateDiagram(?:-v[12])?|erDiagram|journey|gantt|pie|gitGraph|mindmap|timeline|requirementDiagram|sankey-beta|c4Context|c4Container|c4Component|c4Deployment|xychart-beta|block-beta|quadrantChart)\b/m;
-var FRONTMATTER_RE2 = /^---\s*\n([\s\S]*?)\n---/;
-var FRONTMATTER_TITLE_RE2 = /(^|\n)title:\s*(.+?)(?=\n|$)/;
-function validateMermaidSource(source) {
-  if (!source || !source.trim()) return [{ severity: "error", message: "Source r\u1ED7ng" }];
-  if (source.length > MAX4) return [{ severity: "error", message: "File qu\xE1 l\u1EDBn \u0111\u1EC3 ki\u1EC3m tra nhanh (>4 MB)" }];
-  if (!HEADER_RE3.test(source)) return [{ severity: "error", message: "Thi\u1EBFu header Mermaid (flowchart/graph/sequenceDiagram/...)" }];
-  return [];
-}
-function getMermaidTitle(source) {
-  const fm = source.match(FRONTMATTER_RE2);
-  if (!fm) return void 0;
-  const inside2 = fm[1];
-  const t6 = inside2.match(FRONTMATTER_TITLE_RE2);
-  if (!t6) return void 0;
-  let v6 = t6[2].trim();
-  v6 = v6.replace(/^["'](.*)["']$/, "$1");
-  return v6 === "" ? void 0 : v6;
-}
-function setMermaidTitle(source, title2) {
-  const fmMatch = source.match(FRONTMATTER_RE2);
-  if (!fmMatch) {
-    if (title2 === "") return source;
-    const quoted = needsQuoting(title2) ? `'${title2.replace(/'/g, "''")}'` : title2;
-    return `---
-title: ${quoted}
----
-${source}`;
-  }
-  const fmBody = fmMatch[1];
-  const hasTitle = FRONTMATTER_TITLE_RE2.test(fmBody);
-  let newBody;
-  if (title2 === "") {
-    if (!hasTitle) return source;
-    newBody = fmBody.replace(/(^|\n)title:\s*.+(?=\n|$)/, "").replace(/^\n/, "");
-  } else {
-    const quoted = needsQuoting(title2) ? `'${title2.replace(/'/g, "''")}'` : title2;
-    if (hasTitle) {
-      newBody = fmBody.replace(FRONTMATTER_TITLE_RE2, (_m, lead) => `${lead}title: ${quoted}`);
-    } else {
-      newBody = fmBody.trim() === "" ? `title: ${quoted}` : `${fmBody}
-title: ${quoted}`;
-    }
-  }
-  if (newBody.trim() === "") {
-    return source.replace(FRONTMATTER_RE2, "").replace(/^\n/, "");
-  }
-  return source.replace(FRONTMATTER_RE2, () => `---
-${newBody}
----`);
-}
-function needsQuoting(s5) {
-  return /[:#&*!|>'"%@`{}\[\]]|^\s|\s$/.test(s5);
-}
-
-// src/adapters/mermaid/index.ts
-var mermaidAdapter = {
-  ...makeStubAdapter({
-    id: "mermaid",
-    displayName: "Mermaid (enhanced)",
-    codeBlockLanguage: "mermaid-dx",
-    icon: "git-branch",
-    template: `flowchart LR
-  A[Kh\xE1ch inbox] --> B[T\u01B0 v\u1EA5n]
-  B --> C{Ch\u1ED1t \u0111\u01A1n?}
-  C -->|C\xF3| D[T\u1EA1o \u0111\u01A1n Odoo]
-  C -->|Ch\u01B0a| E[L\u01B0u lead]`
-  }),
-  Renderer: MermaidRenderer,
-  // Story 7-19
-  validateSource: validateMermaidSource,
-  getTitle: getMermaidTitle,
-  setTitle: setMermaidTitle,
-  paletteItems: mermaidPaletteItems
-};
-
 // src/main.ts
 var isObsidianMobile = () => {
   var _a3;
@@ -124617,8 +124442,7 @@ var ALL_ADAPTERS = [
   umlAdapter,
   sequenceAdapter,
   stateAdapter,
-  mindmapAdapter,
-  mermaidAdapter
+  mindmapAdapter
 ];
 var DiagramsPlugin = class extends import_obsidian12.Plugin {
   constructor() {

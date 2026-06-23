@@ -1,6 +1,6 @@
 # OmniBoard
 
-> All-in-one diagram board for Obsidian — **Flowchart, BPMN, ERD, UML, Sequence, State, Mindmap and Mermaid** in one board file.
+> All-in-one diagram board for Obsidian — **Flowchart, BPMN, ERD, UML, Sequence, State and Mindmap** in one board file.
 
 OmniBoard turns Obsidian into a WYSIWYG diagram editor. Click the ribbon, get a full-screen canvas (Excalidraw-style), drag shapes, connect them with smart routed arrows, and edit text inline — all saved to a plain-JSON `.board` file that stays git-friendly and searchable.
 
@@ -10,7 +10,7 @@ OmniBoard turns Obsidian into a WYSIWYG diagram editor. Click the ribbon, get a 
 
 ## ✨ Highlights
 
-- **8 diagram families in one board** — mix Flowchart, BPMN, ERD, UML, State, Sequence, Mindmap and Mermaid on the same canvas.
+- **7 diagram families in one board** — mix Flowchart, BPMN, ERD, UML, State, Sequence and Mindmap on the same canvas.
 - **Drag-and-drop canvas** built on [AntV X6](https://x6.antv.antgroup.com/) — smart manhattan connectors, port hover, alignment guides, multi-select, pan/zoom (trackpad-friendly).
 - **Inline editing everywhere** — double-click to edit table titles, columns, class names, fields/methods, pool/lane labels, edge labels. No modal, no sidebar required.
 - **bpmn.io-quality BPMN** — events / gateways / tasks / pools with lanes, drawn in HTML/CSS (no heavy bpmn-js dependency).
@@ -35,7 +35,7 @@ OmniBoard turns Obsidian into a WYSIWYG diagram editor. Click the ribbon, get a 
 |---|---|
 | ![Mindmap](assets/mindmap.png) | ![ERD key picker](assets/feature-keypicker.png) |
 
-Plus **Sequence** (actor / participant / activation / fragments) and **State Machine** (initial / state / choice / final), and enhanced **Mermaid** (`mermaid-dx` code blocks, coexisting with Obsidian's built-in renderer).
+Plus **Sequence** (actor / participant / activation / fragments) and **State Machine** (initial / state / choice / final).
 
 ---
 
@@ -55,13 +55,11 @@ Double-click to edit, **Enter** to commit, **Shift+Enter** for a new line, **Esc
 
 **Manual:**
 
-1. Download `main.js`, `manifest.json`, `styles.css` and `mermaid.min.js` from a release (or build them — see below).
+1. Download `main.js`, `manifest.json` and `styles.css` from a release (or build them — see below).
 2. Copy them into `<your-vault>/.obsidian/plugins/omniboard/`.
 3. Reload Obsidian → **Settings → Community plugins** → enable **OmniBoard**.
 
 **BRAT (beta):** add `nguyenkalix84/obsidian-omniboard` in the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
-
-> `mermaid.min.js` is lazy-loaded on first use of a `mermaid-dx` block.
 
 ---
 
@@ -143,4 +141,4 @@ One X6 `html-node` renders every shape via a `foreignObject` + `nodeHtml(kind, l
 
 MIT © [Pie Of Mind](https://github.com/nguyenkalix84)
 
-Built with [AntV X6](https://github.com/antvis/X6), [Mermaid](https://github.com/mermaid-js/mermaid), [dagre](https://github.com/dagrejs/dagre) and [jsPDF](https://github.com/parallax/jsPDF).
+Built with [AntV X6](https://github.com/antvis/X6), [dagre](https://github.com/dagrejs/dagre) and [jsPDF](https://github.com/parallax/jsPDF).

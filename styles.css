@@ -37,17 +37,6 @@
   max-height: 260px;
   overflow: auto;
 }
-/* Mermaid enhanced renderer */
-.diagrams-mermaid-host { width: 100%; overflow: auto; }
-.diagrams-mermaid-host svg { max-width: 100%; height: auto; }
-.diagrams-mermaid-error {
-  margin: 0; padding: 10px; font-size: 11px; line-height: 1.5;
-  color: #c0392b; background: #fdf0ee; border-radius: 6px;
-  white-space: pre-wrap; font-family: var(--font-monospace);
-}
-.diagrams-mermaid-loading {
-  padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px;
-}
 .diagrams-placeholder-render {
   margin: 0;
   font-size: 12px;

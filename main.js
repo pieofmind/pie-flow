@@ -11752,7 +11752,7 @@ async function importBpmn(raw2, options) {
       y: y5,
       width: width2,
       height: height2,
-      label: ((_u = fn2.name) != null ? _u : "").replace(/&#10;/g, "\n"),
+      label: ((_u = fn2.$type === "bpmn:TextAnnotation" ? fn2.text : fn2.name) != null ? _u : "").replace(/&#10;/g, "\n"),
       ...flowNodeParentId.get(id) ? { parentId: flowNodeParentId.get(id) } : {},
       ...flowNodeLaneId.get(id) ? { laneId: flowNodeLaneId.get(id) } : {},
       attrs: {
@@ -11788,7 +11788,8 @@ async function importBpmn(raw2, options) {
     const targetId = (_d2 = fe3.targetRef) == null ? void 0 : _d2.id;
     if (!id || !sourceId || !targetId) return null;
     const di = diEdges.get(id);
-    const wps = (_e4 = di == null ? void 0 : di.waypoint) != null ? _e4 : [];
+    const rawWps = (_e4 = di == null ? void 0 : di.waypoint) != null ? _e4 : [];
+    const wps = rawWps.filter((p6, i6) => i6 === 0 || Math.hypot(p6.x - rawWps[i6 - 1].x, p6.y - rawWps[i6 - 1].y) > 0.5);
     const vertices = wps.length > 2 ? wps.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y })) : void 0;
     const srcBox = nodeBox2.get(sourceId);
     const tgtBox = nodeBox2.get(targetId);
@@ -73659,6 +73660,7 @@ function makePorts(stroke3 = "#5E8FB9") {
 // src/canvas/htmlNode.ts
 var XHTML = "http://www.w3.org/1999/xhtml";
 var registered = false;
+var BPMN_DEFAULT_FONT_SIZE = 9;
 function registerHtmlNode() {
   if (registered) return;
   registered = true;
@@ -74607,7 +74609,7 @@ async function exportBpmn(model, meta) {
   return emitMinimal(normalizedModel, m7);
 }
 async function patchExisting(raw2, model, m7, diagramIndex = 0) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I;
   const { rootElement: defs } = await m7.fromXML(raw2, "bpmn:Definitions");
   const definitions = defs;
   const diShape = /* @__PURE__ */ new Map();
@@ -74696,28 +74698,31 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
         delete shapeAttrs["color:border-color"];
       }
     } else {
-      const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), { id: n4.id, name: (_o = n4.label) != null ? _o : "" });
-      applyBpmnExtras(m7, fe3, n4.shape, (_p = n4.attrs) != null ? _p : {});
-      ((_q = targetContainer.flowElements) != null ? _q : targetContainer.flowElements = []).push(fe3);
+      const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), n4.shape === "bpmn-annotation" ? { id: n4.id, text: (_o = n4.label) != null ? _o : "" } : n4.shape === "bpmn-group" ? { id: n4.id } : { id: n4.id, name: (_p = n4.label) != null ? _p : "" });
+      applyBpmnExtras(m7, fe3, n4.shape, (_q = n4.attrs) != null ? _q : {});
+      ((_r = targetContainer.flowElements) != null ? _r : targetContainer.flowElements = []).push(fe3);
       flowById.set(n4.id, fe3);
       containerOf.set(n4.id, targetContainer);
       di = m7.create("bpmndi:BPMNShape", {
         bpmnElement: fe3,
         bounds: m7.create("dc:Bounds", { x: n4.x, y: n4.y, width: n4.width, height: n4.height })
       });
-      ((_r = mainPlane.planeElement) != null ? _r : mainPlane.planeElement = []).push(di);
+      ((_s = mainPlane.planeElement) != null ? _s : mainPlane.planeElement = []).push(di);
       diShape.set(n4.id, di);
     }
     const existing = flowById.get(n4.id);
     const curContainer = containerOf.get(n4.id);
     if (existing && curContainer && curContainer !== targetContainer) {
-      curContainer.flowElements = ((_s = curContainer.flowElements) != null ? _s : []).filter((fe3) => fe3.id !== n4.id);
-      ((_t3 = targetContainer.flowElements) != null ? _t3 : targetContainer.flowElements = []).push(existing);
+      curContainer.flowElements = ((_t3 = curContainer.flowElements) != null ? _t3 : []).filter((fe3) => fe3.id !== n4.id);
+      ((_u = targetContainer.flowElements) != null ? _u : targetContainer.flowElements = []).push(existing);
       containerOf.set(n4.id, targetContainer);
     }
     if (existing) {
-      if (typeof n4.label === "string") existing.name = n4.label;
-      applyBpmnExtras(m7, existing, n4.shape, (_u = n4.attrs) != null ? _u : {});
+      if (typeof n4.label === "string") {
+        if (n4.shape === "bpmn-annotation") existing.text = n4.label;
+        else if (n4.shape !== "bpmn-group") existing.name = n4.label;
+      }
+      applyBpmnExtras(m7, existing, n4.shape, (_v = n4.attrs) != null ? _v : {});
     }
   }
   const refIdOf = (r5) => typeof r5 === "string" ? r5 : r5 == null ? void 0 : r5.id;
@@ -74729,14 +74734,14 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
     if (src) referenced.add(src);
     if (tgt) referenced.add(tgt);
   };
-  for (const fe3 of (_v = process2.flowElements) != null ? _v : []) {
+  for (const fe3 of (_w = process2.flowElements) != null ? _w : []) {
     if (fe3.$type === "bpmn:SequenceFlow") collectRefs(fe3);
   }
-  for (const ar of (_w = process2.artifacts) != null ? _w : []) {
+  for (const ar of (_x = process2.artifacts) != null ? _x : []) {
     if (ar.$type === "bpmn:Association") collectRefs(ar);
   }
   if (collaboration) {
-    for (const mf of (_x = collaboration.messageFlows) != null ? _x : []) collectRefs(mf);
+    for (const mf of (_y = collaboration.messageFlows) != null ? _y : []) collectRefs(mf);
   }
   const filterFlowElements = (parent) => {
     var _a4;
@@ -74754,7 +74759,7 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
     const byLaneId = /* @__PURE__ */ new Map();
     for (const n4 of model.nodes) {
       if (!n4.laneId) continue;
-      const arr = (_y = byLaneId.get(n4.laneId)) != null ? _y : [];
+      const arr = (_z = byLaneId.get(n4.laneId)) != null ? _z : [];
       arr.push(n4.id);
       byLaneId.set(n4.laneId, arr);
     }
@@ -74774,7 +74779,7 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
         ln3.flowNodeRef = ids3.map((id) => flowById.get(id)).filter((fe3) => !!fe3);
       }
     };
-    for (const ls of (_z = process2.laneSets) != null ? _z : []) walkLanesForRewrite(ls.lanes);
+    for (const ls of (_A = process2.laneSets) != null ? _A : []) walkLanesForRewrite(ls.lanes);
   }
   if (process2.artifacts) {
     process2.artifacts = process2.artifacts.filter((ar) => {
@@ -74786,7 +74791,7 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
     collaboration.messageFlows = collaboration.messageFlows.filter((mf) => modelMessageEdgeIds.has(mf.id));
   }
   const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
-  mainPlane.planeElement = ((_A = mainPlane.planeElement) != null ? _A : []).filter((pe3) => {
+  mainPlane.planeElement = ((_B = mainPlane.planeElement) != null ? _B : []).filter((pe3) => {
     var _a4;
     const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
     if (!refId) return true;
@@ -74812,24 +74817,25 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
       if (!sourceFe || !targetFe) continue;
       sf = m7.create(bpmnTypeForEdgeKind(kind), {
         id: e5.id,
-        name: (_B = e5.label) != null ? _B : "",
+        // bpmn:Association is an artifact with no `name` in the BPMN schema.
+        ...kind === "association" ? {} : { name: (_C = e5.label) != null ? _C : "" },
         sourceRef: sourceFe,
         targetRef: targetFe
       });
       if (kind === "message") {
         if (!collaboration) {
           sf.$type = "bpmn:SequenceFlow";
-          ((_C = process2.flowElements) != null ? _C : process2.flowElements = []).push(sf);
+          ((_D = process2.flowElements) != null ? _D : process2.flowElements = []).push(sf);
         } else {
-          ((_D = collaboration.messageFlows) != null ? _D : collaboration.messageFlows = []).push(sf);
+          ((_E = collaboration.messageFlows) != null ? _E : collaboration.messageFlows = []).push(sf);
         }
       } else if (kind === "association") {
-        ((_E = process2.artifacts) != null ? _E : process2.artifacts = []).push(sf);
+        ((_F = process2.artifacts) != null ? _F : process2.artifacts = []).push(sf);
       } else {
-        ((_F = process2.flowElements) != null ? _F : process2.flowElements = []).push(sf);
+        ((_G = process2.flowElements) != null ? _G : process2.flowElements = []).push(sf);
       }
       flowById.set(e5.id, sf);
-    } else if (typeof e5.label === "string") {
+    } else if (typeof e5.label === "string" && kind !== "association") {
       sf.name = e5.label;
     }
     applyEdgeExtras(m7, sf, kind, e5.attrs);
@@ -74844,7 +74850,7 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
         waypoint: wps,
         ...lb ? { label: m7.create("bpmndi:BPMNLabel", { bounds: lb }) } : {}
       });
-      ((_G = mainPlane.planeElement) != null ? _G : mainPlane.planeElement = []).push(de3);
+      ((_H = mainPlane.planeElement) != null ? _H : mainPlane.planeElement = []).push(de3);
       diEdge.set(e5.id, de3);
     }
   }
@@ -74853,7 +74859,7 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
     if (fe3 && fe3.default) delete fe3.default;
   }
   for (const e5 of validModelEdges) {
-    if (!((_H = e5.attrs) == null ? void 0 : _H.isDefault)) continue;
+    if (!((_I = e5.attrs) == null ? void 0 : _I.isDefault)) continue;
     if (edgeKindOf(e5) !== "sequence") continue;
     const srcFe = flowById.get(e5.source);
     const edgeFe = flowById.get(e5.id);
@@ -74863,7 +74869,7 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
   return patchCamundaXml(xml3, model);
 }
 function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7, processByPoolId) {
-  var _a3, _b2, _c, _d, _e3, _f, _g;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
   const pools = model.nodes.filter(
     (n4) => {
       var _a4, _b3;
@@ -74897,17 +74903,45 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
     }
   );
   if (!flow.length) return;
-  const minX = Math.min(...flow.map((n4) => n4.x));
-  const minY = Math.min(...flow.map((n4) => n4.y));
-  const maxX = Math.max(...flow.map((n4) => n4.x + n4.width));
-  const maxY = Math.max(...flow.map((n4) => n4.y + n4.height));
-  const poolX = minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN;
-  const poolY = minY - POOL_MARGIN;
-  const poolW = maxX - minX + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2;
-  const poolH = maxY - minY + POOL_MARGIN * 2;
+  const laneOwner = /* @__PURE__ */ new Map();
+  for (const pool of pools) {
+    for (const ln3 of (_b2 = (_a3 = pool.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : []) laneOwner.set(ln3.id, pool.id);
+  }
+  const ownerOf = (n4) => {
+    if (n4.parentId && pools.some((p6) => p6.id === n4.parentId)) return n4.parentId;
+    if (n4.laneId && laneOwner.has(n4.laneId)) return laneOwner.get(n4.laneId);
+    const cx = n4.x + n4.width / 2, cy = n4.y + n4.height / 2;
+    const hit = pools.find((p6) => cx >= p6.x && cx <= p6.x + p6.width && cy >= p6.y && cy <= p6.y + p6.height);
+    return hit == null ? void 0 : hit.id;
+  };
+  const membersOf = (poolId) => pools.length <= 1 ? flow : flow.filter((n4) => ownerOf(n4) === poolId);
+  const bboxOf = (pool) => {
+    const members = membersOf(pool.id);
+    if (!members.length) {
+      return { poolX: pool.x, poolY: pool.y, poolW: pool.width, poolH: pool.height };
+    }
+    const minX = Math.min(...members.map((n4) => n4.x));
+    const minY = Math.min(...members.map((n4) => n4.y));
+    const maxX = Math.max(...members.map((n4) => n4.x + n4.width));
+    const maxY = Math.max(...members.map((n4) => n4.y + n4.height));
+    return {
+      poolX: minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN,
+      poolY: minY - POOL_MARGIN,
+      poolW: maxX - minX + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2,
+      poolH: maxY - minY + POOL_MARGIN * 2
+    };
+  };
+  const boxes = new Map(pools.map((p6) => [p6.id, bboxOf(p6)]));
+  const sharedX = Math.min(...[...boxes.values()].map((b4) => b4.poolX));
+  const sharedRight = Math.max(...[...boxes.values()].map((b4) => b4.poolX + b4.poolW));
   for (const pool of pools) {
     const prefix2 = [];
     const poolProcess = processForPool(pool.id);
+    const box = boxes.get(pool.id);
+    const poolX = pools.length > 1 ? sharedX : box.poolX;
+    const poolW = pools.length > 1 ? sharedRight - sharedX : box.poolW;
+    const poolY = box.poolY;
+    const poolH = box.poolH;
     let pdi = diShape.get(pool.id);
     if (pdi == null ? void 0 : pdi.bounds) {
       pdi.bounds.x = poolX;
@@ -74919,22 +74953,22 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
       if (!part) {
         part = m7.create("bpmn:Participant", {
           id: pool.id,
-          name: (_a3 = pool.label) != null ? _a3 : "Pool",
+          name: (_c = pool.label) != null ? _c : "Pool",
           // Each participant references its OWN process when multi-pool.
           processRef: poolProcess
         });
-        ((_c = (_b2 = ensureCollaboration()).participants) != null ? _c : _b2.participants = []).push(part);
+        ((_e3 = (_d = ensureCollaboration()).participants) != null ? _e3 : _d.participants = []).push(part);
       }
       pdi = m7.create("bpmndi:BPMNShape", {
         bpmnElement: part,
         bounds: m7.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
       });
-      const isHorizontal5 = ((_d = pool.attrs) == null ? void 0 : _d.poolHorizontal) !== false;
+      const isHorizontal5 = ((_f = pool.attrs) == null ? void 0 : _f.poolHorizontal) !== false;
       pdi.isHorizontal = isHorizontal5;
       diShape.set(pool.id, pdi);
       prefix2.push(pdi);
     }
-    const lanes = (_f = (_e3 = pool.attrs) == null ? void 0 : _e3.lanes) != null ? _f : [];
+    const lanes = (_h = (_g = pool.attrs) == null ? void 0 : _g.lanes) != null ? _h : [];
     const laneX = poolX + POOL_HEADER;
     const laneW = poolW - POOL_HEADER;
     if (lanes.length) {
@@ -74966,7 +75000,7 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
         }
       });
     }
-    if (prefix2.length) ((_g = mainPlane.planeElement) != null ? _g : mainPlane.planeElement = []).unshift(...prefix2);
+    if (prefix2.length) ((_i = mainPlane.planeElement) != null ? _i : mainPlane.planeElement = []).unshift(...prefix2);
   }
 }
 function laneBands(lanes, process2, model, poolY, poolH) {
@@ -75069,7 +75103,8 @@ function buildWaypoints(e5, src, tgt, m7) {
     const mid4 = (_c = e5.vertices) != null ? _c : [];
     waypoints = [start, ...mid4, end];
   }
-  return waypoints.map((w5) => point(w5.x, w5.y));
+  const clean2 = waypoints.filter((w5, i6) => i6 === 0 || Math.hypot(w5.x - waypoints[i6 - 1].x, w5.y - waypoints[i6 - 1].y) > 0.5);
+  return clean2.map((w5) => point(w5.x, w5.y));
 }
 function pointAtDistance(wps, distance2) {
   if (!wps.length) return { x: 0, y: 0 };
@@ -75129,7 +75164,7 @@ function nodeLabelBoundsFromModel(m7, node3) {
   return m7.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
 }
 async function emitMinimal(model, m7) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B;
   const defs = m7.create("bpmn:Definitions", {
     id: "Definitions_Export",
     targetNamespace: "http://omniboard.local/bpmn"
@@ -75229,22 +75264,22 @@ async function emitMinimal(model, m7) {
   for (const n4 of model.nodes) {
     const srcKind = (_i = (_h = n4.attrs) == null ? void 0 : _h.__source) == null ? void 0 : _i.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
-    const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), { id: n4.id, name: (_j = n4.label) != null ? _j : "" });
-    applyBpmnExtras(m7, fe3, n4.shape, (_k = n4.attrs) != null ? _k : {});
+    const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), n4.shape === "bpmn-annotation" ? { id: n4.id, text: (_j = n4.label) != null ? _j : "" } : n4.shape === "bpmn-group" ? { id: n4.id } : { id: n4.id, name: (_k = n4.label) != null ? _k : "" });
+    applyBpmnExtras(m7, fe3, n4.shape, (_l = n4.attrs) != null ? _l : {});
     feById.set(n4.id, fe3);
   }
   for (const n4 of model.nodes) {
-    const srcKind = (_m = (_l = n4.attrs) == null ? void 0 : _l.__source) == null ? void 0 : _m.kind;
+    const srcKind = (_n2 = (_m = n4.attrs) == null ? void 0 : _m.__source) == null ? void 0 : _n2.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const fe3 = feById.get(n4.id);
     const parent = n4.parentId ? feById.get(n4.parentId) : void 0;
     const container = parent != null ? parent : findOwningProcess(n4);
-    ((_n2 = container.flowElements) != null ? _n2 : container.flowElements = []).push(fe3);
+    ((_o = container.flowElements) != null ? _o : container.flowElements = []).push(fe3);
   }
   const allProcesses = multiPool ? [...processByPoolId.values()] : [process2];
   for (const proc of allProcesses) {
-    for (const ls of (_o = proc.laneSets) != null ? _o : []) {
-      for (const ln3 of (_p = ls.lanes) != null ? _p : []) {
+    for (const ls of (_p = proc.laneSets) != null ? _p : []) {
+      for (const ln3 of (_q = ls.lanes) != null ? _q : []) {
         const refs = [];
         for (const n4 of model.nodes) {
           if (n4.laneId !== ln3.id) continue;
@@ -75258,7 +75293,7 @@ async function emitMinimal(model, m7) {
   const sfById = /* @__PURE__ */ new Map();
   const nodeIdSet = new Set(model.nodes.map((n4) => n4.id));
   const validEdges = model.edges.filter((e5) => nodeIdSet.has(e5.source) && nodeIdSet.has(e5.target));
-  const collaborationRoot = (_r = ((_q = defs.rootElements) != null ? _q : []).find((r5) => r5.$type === "bpmn:Collaboration")) != null ? _r : null;
+  const collaborationRoot = (_s = ((_r = defs.rootElements) != null ? _r : []).find((r5) => r5.$type === "bpmn:Collaboration")) != null ? _s : null;
   const nodeById2 = new Map(model.nodes.map((n4) => [n4.id, n4]));
   for (const e5 of validEdges) {
     const kind = edgeKindOf(e5);
@@ -75274,7 +75309,8 @@ async function emitMinimal(model, m7) {
     }
     const sf = m7.create(typeStr, {
       id: e5.id,
-      name: (_s = e5.label) != null ? _s : "",
+      // bpmn:Association is an artifact with no `name` in the BPMN schema.
+      ...kind === "association" ? {} : { name: (_t3 = e5.label) != null ? _t3 : "" },
       sourceRef: feById.get(e5.source),
       targetRef: feById.get(e5.target)
     });
@@ -75282,18 +75318,18 @@ async function emitMinimal(model, m7) {
     const extrasKind = typeStr === "bpmn:MessageFlow" ? "sequence" : kind === "message" && !collaborationRoot ? "sequence" : kind;
     applyEdgeExtras(m7, sf, extrasKind, e5.attrs);
     if (typeStr === "bpmn:MessageFlow" && collaborationRoot) {
-      ((_t3 = collaborationRoot.messageFlows) != null ? _t3 : collaborationRoot.messageFlows = []).push(sf);
+      ((_u = collaborationRoot.messageFlows) != null ? _u : collaborationRoot.messageFlows = []).push(sf);
     } else if (kind === "association") {
-      ((_u = srcProc.artifacts) != null ? _u : srcProc.artifacts = []).push(sf);
+      ((_v = srcProc.artifacts) != null ? _v : srcProc.artifacts = []).push(sf);
     } else if (kind === "message" && collaborationRoot) {
-      ((_v = collaborationRoot.messageFlows) != null ? _v : collaborationRoot.messageFlows = []).push(sf);
+      ((_w = collaborationRoot.messageFlows) != null ? _w : collaborationRoot.messageFlows = []).push(sf);
     } else {
-      ((_w = srcProc.flowElements) != null ? _w : srcProc.flowElements = []).push(sf);
+      ((_x = srcProc.flowElements) != null ? _x : srcProc.flowElements = []).push(sf);
     }
     sfById.set(e5.id, sf);
   }
   for (const e5 of validEdges) {
-    if (!((_x = e5.attrs) == null ? void 0 : _x.isDefault)) continue;
+    if (!((_y = e5.attrs) == null ? void 0 : _y.isDefault)) continue;
     if (edgeKindOf(e5) !== "sequence") continue;
     const srcFe = feById.get(e5.source);
     const edgeFe = sfById.get(e5.id);
@@ -75306,7 +75342,7 @@ async function emitMinimal(model, m7) {
   });
   const diShape = /* @__PURE__ */ new Map();
   for (const n4 of model.nodes) {
-    const srcKind = (_z = (_y = n4.attrs) == null ? void 0 : _y.__source) == null ? void 0 : _z.kind;
+    const srcKind = (_A = (_z = n4.attrs) == null ? void 0 : _z.__source) == null ? void 0 : _A.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const nLabel = nodeLabelBoundsFromModel(m7, n4);
     const di = m7.create("bpmndi:BPMNShape", {
@@ -75334,7 +75370,7 @@ async function emitMinimal(model, m7) {
   }
   emitPoolLaneShapes(model, defs, process2, plane, diShape, m7, multiPool ? processByPoolId : void 0);
   const dia = m7.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-  ((_A = defs.diagrams) != null ? _A : defs.diagrams = []).push(dia);
+  ((_B = defs.diagrams) != null ? _B : defs.diagrams = []).push(dia);
   const { xml: xml3 } = await m7.toXML(defs, { format: true });
   return patchCamundaXml(xml3, model);
 }
@@ -77385,7 +77421,7 @@ var OmniboardPropertiesView = class extends import_obsidian.ItemView {
     return OMNIBOARD_PROPERTIES_VIEW_TYPE;
   }
   getDisplayText() {
-    return "Omniboard Properties";
+    return "Pie Flow Properties";
   }
   getIcon() {
     return "sliders-horizontal";
@@ -77411,7 +77447,7 @@ var OmniboardPropertiesView = class extends import_obsidian.ItemView {
     if (!canvas) {
       this.contentEl.createDiv({
         cls: "obp-empty",
-        text: "Ch\u1ECDn m\u1ED9t node tr\xEAn Omniboard \u0111\u1EC3 ch\u1EC9nh BPMN metadata, m\xE0u DI v\xE0 Camunda extensions."
+        text: "Ch\u1ECDn m\u1ED9t node tr\xEAn Pie Flow \u0111\u1EC3 ch\u1EC9nh BPMN metadata, m\xE0u DI v\xE0 Camunda extensions."
       });
       return;
     }
@@ -77424,7 +77460,7 @@ var OmniboardPropertiesView = class extends import_obsidian.ItemView {
     if (!snap2) {
       this.contentEl.createDiv({
         cls: "obp-empty",
-        text: "Ch\u1ECDn m\u1ED9t node tr\xEAn Omniboard \u0111\u1EC3 ch\u1EC9nh BPMN metadata, m\xE0u DI v\xE0 Camunda extensions."
+        text: "Ch\u1ECDn m\u1ED9t node tr\xEAn Pie Flow \u0111\u1EC3 ch\u1EC9nh BPMN metadata, m\xE0u DI v\xE0 Camunda extensions."
       });
       return;
     }
@@ -77826,7 +77862,7 @@ var BpmnIssuesView = class extends import_obsidian2.ItemView {
     const board = this.boardView();
     const canvas = (_b2 = (_a3 = board == null ? void 0 : board.getCanvas) == null ? void 0 : _a3.call(board)) != null ? _b2 : null;
     if (!canvas) {
-      this.contentEl.createDiv({ cls: "obp-empty", text: "M\u1EDF m\u1ED9t Omniboard BPMN \u0111\u1EC3 xem semantic issues." });
+      this.contentEl.createDiv({ cls: "obp-empty", text: "M\u1EDF m\u1ED9t board Pie Flow BPMN \u0111\u1EC3 xem semantic issues." });
       return;
     }
     const model = canvas.getModel();
@@ -82753,6 +82789,10 @@ var HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 var ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 var EDGE_ATTRS = { line: { stroke: EDGE_STROKE2, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
 var EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" };
+function defaultFontSizeFor(node3) {
+  var _a3;
+  return String((_a3 = node3.shape) != null ? _a3 : "").startsWith("bpmn-") ? BPMN_DEFAULT_FONT_SIZE : 13;
+}
 var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle", textWrap: { width: 150, breakWord: true, ellipsis: false } };
 var FLOW_TYPE_PRESETS = {
   sequence: { dash: "solid", start: "none", end: "arrow" },
@@ -85059,9 +85099,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     fontIn.min = "6";
     fontIn.max = "96";
     fontIn.step = "1";
-    fontIn.value = String(st3.fontSize || 13);
+    fontIn.value = String(st3.fontSize || defaultFontSizeFor(node3));
     const applyFont = () => {
-      const v6 = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || 13));
+      const v6 = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || defaultFontSizeFor(node3)));
       fontIn.value = String(v6);
       this.setStyle(node3, { fontSize: v6 });
     };
@@ -85743,10 +85783,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     szIn.min = "6";
     szIn.max = "96";
     szIn.step = "1";
-    szIn.value = String((_a3 = st3.fontSize) != null ? _a3 : 13);
+    szIn.value = String((_a3 = st3.fontSize) != null ? _a3 : defaultFontSizeFor(node3));
     const inc = el2("div", "lk-line-cell lk-fs-btn", "+");
     const apply4 = (v6) => {
-      const clamped = Math.max(6, Math.min(96, Math.round(v6) || 13));
+      const clamped = Math.max(6, Math.min(96, Math.round(v6) || defaultFontSizeFor(node3)));
       szIn.value = String(clamped);
       this.setStyle(node3, { fontSize: clamped });
       this.refreshContextBar();
@@ -88681,6 +88721,58 @@ function EmbedCard(props) {
 
 // src/settings.ts
 var import_obsidian6 = require("obsidian");
+
+// src/pom-header.ts
+var POM_LOGO = "data:image/png;base64,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";
+var POM_ICONS = {
+  cap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9l10-5 10 5-10 5-10-5z"/><path d="M6 11.5v4.5c0 1.5 3 3 6 3s6-1.5 6-3v-4.5"/><path d="M22 9v6"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15.3 15.3 0 0 1 0 18M12 3a15.3 15.3 0 0 0 0 18"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="3.5"/><path d="M10.3 9.1v5.8l5.2-2.9z" fill="currentColor" stroke="none"/></svg>',
+  music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l9-2v13"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="15.5" cy="16" r="2.5"/></svg>'
+};
+var POM_CHANNELS = [
+  { label: "C\u1ED9ng \u0111\u1ED3ng Skool", url: "https://www.skool.com/avanix-ai-1973/classroom", icon: "cap" },
+  { label: "Website", url: "https://pieofmind.work/", icon: "globe" },
+  { label: "YouTube", url: "https://www.youtube.com/@pieofmind08", icon: "play" },
+  { label: "TikTok", url: "https://www.tiktok.com/@pieofmind", icon: "music" }
+];
+var POM_HEADER_CSS = `
+.pom-settings-header { display:flex; align-items:center; gap:14px; padding:2px 0 4px; }
+.pom-settings-avatar { width:52px; height:52px; border-radius:50%; overflow:hidden; flex:0 0 auto; box-shadow:0 0 0 2px #2F6DB0; }
+.pom-settings-avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+.pom-settings-info { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.pom-settings-title { font-size:1.15em; font-weight:700; color:var(--text-normal); }
+.pom-settings-desc { font-size:.85em; color:var(--text-muted); line-height:1.4; }
+.pom-settings-links { display:flex; flex-wrap:wrap; gap:8px; padding-bottom:18px; margin:14px 0 6px; border-bottom:1px solid var(--background-modifier-border); }
+.pom-settings-link { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; background:var(--background-secondary); color:var(--text-normal); font-size:.82em; font-weight:600; border:1px solid var(--background-modifier-border); cursor:pointer; transition:background .12s,border-color .12s; }
+.pom-settings-link:hover { background:var(--background-modifier-hover); border-color:var(--background-modifier-border-hover); }
+.pom-settings-link svg { width:14px; height:14px; flex:0 0 auto; }
+`;
+function injectPomHeaderCss() {
+  const id = "pom-settings-header-css";
+  if (document.getElementById(id)) return;
+  const style2 = document.createElement("style");
+  style2.id = id;
+  style2.textContent = POM_HEADER_CSS;
+  document.head.appendChild(style2);
+}
+function renderPomHeader(containerEl, name2, tagline) {
+  injectPomHeaderCss();
+  const header = containerEl.createDiv({ cls: "pom-settings-header" });
+  header.createDiv({ cls: "pom-settings-avatar" }).insertAdjacentHTML("afterbegin", `<img src="${POM_LOGO}" alt="${name2}" />`);
+  const info = header.createDiv({ cls: "pom-settings-info" });
+  info.createDiv({ cls: "pom-settings-title", text: name2 });
+  info.createDiv({ cls: "pom-settings-desc", text: tagline });
+  const links = containerEl.createDiv({ cls: "pom-settings-links" });
+  POM_CHANNELS.forEach((c6) => {
+    const btn = links.createEl("button", { cls: "pom-settings-link" });
+    btn.insertAdjacentHTML("afterbegin", POM_ICONS[c6.icon]);
+    btn.createSpan({ text: c6.label });
+    btn.addEventListener("click", () => window.open(c6.url, "_blank"));
+  });
+}
+
+// src/settings.ts
 var DEFAULT_SETTINGS = {
   defaultLayout: "LR",
   validateBpmnBeforeExport: true,
@@ -88695,7 +88787,7 @@ var DiagramsSettingTab = class extends import_obsidian6.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Diagrams" });
+    renderPomHeader(containerEl, "Pie Flow", "V\u1EBD s\u01A1 \u0111\u1ED3 BPMN & board tr\u1EF1c quan ngay trong vault Obsidian");
     new import_obsidian6.Setting(containerEl).setName("Default flow layout").setDesc("Direction used when auto-laying out new flow-style diagrams.").addDropdown(
       (d4) => d4.addOption("LR", "Left \u2192 Right").addOption("TB", "Top \u2192 Bottom").setValue(this.plugin.settings.defaultLayout).onChange(async (v6) => {
         this.plugin.settings.defaultLayout = v6;

@@ -771,7 +771,7 @@
   top: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  font-size: 11px;
+  font-size: 9px;
   color: var(--pg-text-muted);
   font-weight: 600;
   white-space: pre-wrap;
@@ -787,7 +787,7 @@
 .lk-root .bp-elabel.is-dragging { color: var(--pg-accent); }
 .lk-root .bp-gw .bp-elabel { top: calc(100% + 2px); }
 .lk-root .bp-gw.label-top .bp-elabel { top: auto; bottom: calc(100% + 2px); }
-.lk-root .bp-task { width: 100%; height: 100%; border-radius: 9px; background: var(--pg-surface); border: 1.6px solid var(--pg-border-strong); box-shadow: var(--sh-sm); display: grid; place-items: center; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--pg-text); padding: 8px 10px; line-height: 1.3; position: relative; box-sizing: border-box; }
+.lk-root .bp-task { width: 100%; height: 100%; border-radius: 9px; background: var(--pg-surface); border: 1.6px solid var(--pg-border-strong); box-shadow: var(--sh-sm); display: grid; place-items: center; text-align: center; font-size: 9px; font-weight: 600; color: var(--pg-text); padding: 8px 10px; line-height: 1.3; position: relative; box-sizing: border-box; }
 /* color, not opacity<1 (opacity makes the icon a WebKit compositing layer → 0,0 on iOS) */
 .lk-root .bp-task .ticon { position: absolute; top: 6px; left: 7px; color: var(--pg-text-soft); } .lk-root .bp-task .ticon svg { width: 14px; height: 14px; }
 .lk-root .bp-gw { width: 100%; height: 100%; display: grid; place-items: center; position: relative; }
@@ -886,8 +886,8 @@
 .lk-root .bp-dataobj, .lk-root .bp-datastore { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--pg-text); box-sizing: border-box; }
 .lk-root .bp-dataobj .ic svg { width: 30px; height: 38px; color: var(--pg-text-muted); }
 .lk-root .bp-datastore .ic svg { width: 34px; height: 32px; color: var(--pg-text-muted); }
-.lk-root .bp-dataobj .lbl, .lk-root .bp-datastore .lbl { font-size: 11px; font-weight: 600; text-align: center; line-height: 1.2; }
-.lk-root .bp-anno { width: 100%; height: 100%; box-sizing: border-box; border-left: 2px solid var(--pg-border-strong); padding: 6px 9px; font-size: 12px; color: var(--pg-text); display: grid; align-items: center; }
+.lk-root .bp-dataobj .lbl, .lk-root .bp-datastore .lbl { font-size: 9px; font-weight: 600; text-align: center; line-height: 1.2; }
+.lk-root .bp-anno { width: 100%; height: 100%; box-sizing: border-box; border-left: 2px solid var(--pg-border-strong); padding: 6px 9px; font-size: 9px; color: var(--pg-text); display: grid; align-items: center; }
 .lk-root .bp-frame.bp-sub { position: relative; width: 100%; height: 100%; box-sizing: border-box; border: 1.6px solid var(--pg-border-strong); border-radius: 9px; background: color-mix(in srgb, var(--pg-accent) 4%, var(--pg-surface)); box-shadow: var(--sh-sm); }
 .lk-root .bp-frame-lbl { position: absolute; top: 8px; left: 0; right: 0; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--pg-text); }
 .lk-root .bp-plus { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 15px; height: 15px; border: 1.4px solid var(--pg-text-muted); border-radius: 2px; display: grid; place-items: center; font-size: 12px; line-height: 1; color: var(--pg-text-muted); }

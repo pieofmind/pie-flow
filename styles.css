@@ -216,6 +216,13 @@
   display: block !important;
   visibility: visible !important;
 }
+/* Drop-target ring while dragging an arrow: only the node under the cursor
+   (added/removed by the mouseover handler in OmniboardCanvas). The transparent
+   SVG hit rect is the first child of .x6-node, so paint the ring on it. */
+.lk-root.lk-dragging-edge .x6-node.lk-drop-target > rect:first-child {
+  stroke: var(--pg-accent); stroke-width: 2px; fill: var(--pg-accent-soft);
+  rx: 6px; ry: 6px;
+}
 .lk-root .x6-widget-selection-box {
   border: 1.5px solid var(--pg-accent) !important; border-radius: 6px;
   box-shadow: 0 0 0 3px var(--pg-accent-soft); background: transparent !important;

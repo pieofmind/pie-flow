@@ -7,7 +7,7 @@ import { Snapline } from "@antv/x6-plugin-snapline";
 import { Transform } from "@antv/x6-plugin-transform";
 import type { PaletteItem, ShapeCategory, CanvasModel } from "./types";
 import { shapeIcon } from "./shapes/index";
-import { FIXED_PORT_IDS, type FixedPortId } from "./shapes/ports";
+import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type FixedPortId } from "./shapes/ports";
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
@@ -250,11 +250,6 @@ function portBand(port?: string): "" | "-1" | "-2" {
   return "";
 }
 
-function fixedPort(side: PortSide, along: number): FixedPortId {
-  const band = along < 0.375 ? "-1" : along > 0.625 ? "-2" : "";
-  return `${side}${band}` as FixedPortId;
-}
-
 function oppositePort(port?: string): FixedPortId | undefined {
   const side = portSide(port);
   if (!side) return undefined;
@@ -271,15 +266,7 @@ function collapsePortToSideCenter(port?: string | null): FixedPortId | undefined
 }
 
 function nearestFixedPort(node: Node, pt: { x: number; y: number }): FixedPortId {
-  const b = node.getBBox();
-  const dx = Math.max(0, Math.min(b.width, pt.x - b.x));
-  const dy = Math.max(0, Math.min(b.height, pt.y - b.y));
-  const dLeft = dx, dRight = b.width - dx, dTop = dy, dBottom = b.height - dy;
-  const m = Math.min(dLeft, dRight, dTop, dBottom);
-  if (m === dTop) return fixedPort("top", b.width > 0 ? dx / b.width : 0.5);
-  if (m === dBottom) return fixedPort("bottom", b.width > 0 ? dx / b.width : 0.5);
-  if (m === dLeft) return fixedPort("left", b.height > 0 ? dy / b.height : 0.5);
-  return fixedPort("right", b.height > 0 ? dy / b.height : 0.5);
+  return nearestFixedPortInBox(node.getBBox(), pt);
 }
 
 function portEndpoint(cell: string, port: string) {
@@ -474,9 +461,11 @@ export class OmniboardCanvas {
       grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
-        // Tight 8px snap radius for port circle highlighting, while intelligent
-        // center-alignment at drop time handles straight-line snapping beautifully.
-        snap: { radius: 8 },
+        // 20px snap radius: the port circles are r=2.75 and hidden until hover,
+        // so a tighter radius made them nearly impossible to hit. Dropping on
+        // the node BODY also connects (handleDragToBlank → nearest fixed port),
+        // and the hovered node is ringed via .lk-drop-target for feedback.
+        snap: { radius: 20 },
         allowBlank: true,             // drop on empty canvas → "pick shape" picker
         allowLoop: false,             // no self-loops
         allowNode: false,             // endpoints must resolve to one of the 12 ports
@@ -836,16 +825,10 @@ export class OmniboardCanvas {
       if (pt.x < b.x || pt.x > b.x + b.width || pt.y < b.y || pt.y > b.y + b.height) continue;
       candidates.push(n as Node);
     }
-    if (candidates.length) {
-      // When multiple nodes overlap (e.g. task inside pool/lane), prefer the
-      // smallest bbox so regular flow nodes win over big containers.
-      const best = candidates.reduce((pick, cur) => {
-        const pb = pick.getBBox();
-        const cb = cur.getBBox();
-        const pArea = pb.width * pb.height;
-        const cArea = cb.width * cb.height;
-        return cArea < pArea ? cur : pick;
-      });
+    // When multiple nodes overlap (e.g. task inside pool/lane), prefer the
+    // smallest bbox so regular flow nodes win over big containers.
+    const best = pickDropTarget(candidates.map((n) => ({ n, bbox: n.getBBox() })), pt)?.n;
+    if (best) {
       edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt)) as never);
       return "connected";
     }
@@ -1216,6 +1199,25 @@ export class OmniboardCanvas {
     };
     this.graphMount.addEventListener("mousedown", onDomDown, true);
     this.graphMount.addEventListener("touchstart", onDomDown, true);
+    // Drop-target feedback (bpmn.io convention): while an arrow is being
+    // dragged, ring ONLY the node under the cursor if it is a valid target.
+    // Done at the DOM level (mouseover on the node's SVG hit rect) so it works
+    // regardless of which X6 events fire mid-drag; magnet highlights stay off.
+    const clearDropTarget = () => {
+      this.graphMount.querySelectorAll(".lk-drop-target").forEach((el) => el.classList.remove("lk-drop-target"));
+    };
+    this.graphMount.addEventListener("mouseover", (e: Event) => {
+      if (!this.root.classList.contains("lk-dragging-edge")) return;
+      const t = e.target as Element | null;
+      const g = t && typeof t.closest === "function" ? t.closest<Element>(".x6-node") : null;
+      const id = g?.getAttribute("data-cell-id") ?? undefined;
+      const dangling = this.graph.getEdges().find((ed) => !ed.getSourceCellId() !== !ed.getTargetCellId());
+      const otherEnd = dangling?.getSourceCellId() ?? dangling?.getTargetCellId() ?? undefined;
+      const ok = !!id && id !== otherEnd && !this.isPortDisabledNode(id) && !!this.graph.getCellById(id)?.isNode?.();
+      if (g?.classList.contains("lk-drop-target") && ok) return;
+      clearDropTarget();
+      if (ok) g!.classList.add("lk-drop-target");
+    }, true);
     // Register a document-scoped capture listener AND record it so destroy()
     // can remove it — otherwise every board re-open leaks another listener that
     // keeps firing (and references a disposed graph), compounding into jank.
@@ -1223,6 +1225,7 @@ export class OmniboardCanvas {
 
     const clearDrag = () => {
       this.root.classList.remove("lk-dragging-edge");
+      clearDropTarget();
       let changedAny = false;
       this.graph.getEdges().forEach((edge) => {
         const e = edge as any;

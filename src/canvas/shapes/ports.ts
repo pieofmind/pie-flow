@@ -53,3 +53,39 @@ export const LABEL_BELOW = {
   textAnchor: "middle", textVerticalAnchor: "top",
   fill: "#1f2329", fontSize: 12,
 };
+
+// ── Drop-anywhere connect geometry (pure; shared by canvas + tests) ──────────
+export type PortSide = "top" | "right" | "bottom" | "left";
+export interface Box { x: number; y: number; width: number; height: number; }
+export interface Pt { x: number; y: number; }
+
+/** Fixed port id on `side`, band chosen by 0..1 position along that side. */
+export function fixedPort(side: PortSide, along: number): FixedPortId {
+  const band = along < 0.375 ? "-1" : along > 0.625 ? "-2" : "";
+  return `${side}${band}` as FixedPortId;
+}
+
+/** Nearest of the 12 fixed ports to `pt` (clamped into the box). Ties resolve
+ *  top → bottom → left → right so results are deterministic. */
+export function nearestFixedPortInBox(b: Box, pt: Pt): FixedPortId {
+  const dx = Math.max(0, Math.min(b.width, pt.x - b.x));
+  const dy = Math.max(0, Math.min(b.height, pt.y - b.y));
+  const dLeft = dx, dRight = b.width - dx, dTop = dy, dBottom = b.height - dy;
+  const m = Math.min(dLeft, dRight, dTop, dBottom);
+  if (m === dTop) return fixedPort("top", b.width > 0 ? dx / b.width : 0.5);
+  if (m === dBottom) return fixedPort("bottom", b.width > 0 ? dx / b.width : 0.5);
+  if (m === dLeft) return fixedPort("left", b.height > 0 ? dy / b.height : 0.5);
+  return fixedPort("right", b.height > 0 ? dy / b.height : 0.5);
+}
+
+/** Among items whose bbox contains `pt`, the SMALLEST bbox — so a task inside
+ *  a pool/lane wins over the container. Undefined when nothing contains it. */
+export function pickDropTarget<T extends { bbox: Box }>(items: readonly T[], pt: Pt): T | undefined {
+  let best: T | undefined;
+  for (const it of items) {
+    const b = it.bbox;
+    if (pt.x < b.x || pt.x > b.x + b.width || pt.y < b.y || pt.y > b.y + b.height) continue;
+    if (!best || b.width * b.height < best.bbox.width * best.bbox.height) best = it;
+  }
+  return best;
+}

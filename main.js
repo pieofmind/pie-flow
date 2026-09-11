@@ -73656,6 +73656,29 @@ function makePorts(stroke3 = "#5E8FB9") {
     ]
   };
 }
+function fixedPort(side, along) {
+  const band = along < 0.375 ? "-1" : along > 0.625 ? "-2" : "";
+  return `${side}${band}`;
+}
+function nearestFixedPortInBox(b4, pt2) {
+  const dx = Math.max(0, Math.min(b4.width, pt2.x - b4.x));
+  const dy = Math.max(0, Math.min(b4.height, pt2.y - b4.y));
+  const dLeft = dx, dRight = b4.width - dx, dTop = dy, dBottom = b4.height - dy;
+  const m7 = Math.min(dLeft, dRight, dTop, dBottom);
+  if (m7 === dTop) return fixedPort("top", b4.width > 0 ? dx / b4.width : 0.5);
+  if (m7 === dBottom) return fixedPort("bottom", b4.width > 0 ? dx / b4.width : 0.5);
+  if (m7 === dLeft) return fixedPort("left", b4.height > 0 ? dy / b4.height : 0.5);
+  return fixedPort("right", b4.height > 0 ? dy / b4.height : 0.5);
+}
+function pickDropTarget(items, pt2) {
+  let best;
+  for (const it3 of items) {
+    const b4 = it3.bbox;
+    if (pt2.x < b4.x || pt2.x > b4.x + b4.width || pt2.y < b4.y || pt2.y > b4.y + b4.height) continue;
+    if (!best || b4.width * b4.height < best.bbox.width * best.bbox.height) best = it3;
+  }
+  return best;
+}
 
 // src/canvas/htmlNode.ts
 var XHTML = "http://www.w3.org/1999/xhtml";
@@ -82923,10 +82946,6 @@ function portBand(port2) {
   if (port2 == null ? void 0 : port2.endsWith("-2")) return "-2";
   return "";
 }
-function fixedPort(side, along) {
-  const band = along < 0.375 ? "-1" : along > 0.625 ? "-2" : "";
-  return `${side}${band}`;
-}
 function oppositePort(port2) {
   const side = portSide(port2);
   if (!side) return void 0;
@@ -82940,15 +82959,7 @@ function collapsePortToSideCenter(port2) {
   return side ? centerPortForSide(side) : void 0;
 }
 function nearestFixedPort(node3, pt2) {
-  const b4 = node3.getBBox();
-  const dx = Math.max(0, Math.min(b4.width, pt2.x - b4.x));
-  const dy = Math.max(0, Math.min(b4.height, pt2.y - b4.y));
-  const dLeft = dx, dRight = b4.width - dx, dTop = dy, dBottom = b4.height - dy;
-  const m7 = Math.min(dLeft, dRight, dTop, dBottom);
-  if (m7 === dTop) return fixedPort("top", b4.width > 0 ? dx / b4.width : 0.5);
-  if (m7 === dBottom) return fixedPort("bottom", b4.width > 0 ? dx / b4.width : 0.5);
-  if (m7 === dLeft) return fixedPort("left", b4.height > 0 ? dy / b4.height : 0.5);
-  return fixedPort("right", b4.height > 0 ? dy / b4.height : 0.5);
+  return nearestFixedPortInBox(node3.getBBox(), pt2);
 }
 function portEndpoint(cell, port2) {
   return { cell, port: port2, connectionPoint: PORT_CONNECTION_POINT };
@@ -83245,9 +83256,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
-        // Tight 8px snap radius for port circle highlighting, while intelligent
-        // center-alignment at drop time handles straight-line snapping beautifully.
-        snap: { radius: 8 },
+        // 20px snap radius: the port circles are r=2.75 and hidden until hover,
+        // so a tighter radius made them nearly impossible to hit. Dropping on
+        // the node BODY also connects (handleDragToBlank → nearest fixed port),
+        // and the hovered node is ringed via .lk-drop-target for feedback.
+        snap: { radius: 20 },
         allowBlank: true,
         // drop on empty canvas → "pick shape" picker
         allowLoop: false,
@@ -83603,7 +83616,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
   handleDragToBlank(edge) {
-    var _a3;
+    var _a3, _b2;
     const srcId = edge.getSourceCellId();
     const src = srcId ? this.graph.getCellById(srcId) : null;
     if (!src || !src.isNode()) {
@@ -83624,14 +83637,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (pt2.x < b4.x || pt2.x > b4.x + b4.width || pt2.y < b4.y || pt2.y > b4.y + b4.height) continue;
       candidates.push(n4);
     }
-    if (candidates.length) {
-      const best = candidates.reduce((pick3, cur) => {
-        const pb = pick3.getBBox();
-        const cb = cur.getBBox();
-        const pArea = pb.width * pb.height;
-        const cArea = cb.width * cb.height;
-        return cArea < pArea ? cur : pick3;
-      });
+    const best = (_b2 = pickDropTarget(candidates.map((n4) => ({ n: n4, bbox: n4.getBBox() })), pt2)) == null ? void 0 : _b2.n;
+    if (best) {
       edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt2)));
       return "connected";
     }
@@ -83639,7 +83646,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const wrap = el2("div", "lk-shape-popup");
     wrap.appendChild(el2("div", "lk-flyout-title", "Ch\xE8n h\xECnh"));
     wrap.appendChild(this.buildShapeGrid((item) => {
-      var _a4, _b2;
+      var _a4, _b3;
       this.pendingDrop = null;
       const sb = src.getBBox();
       let nx = pt2.x - item.w / 2;
@@ -83652,7 +83659,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const created = this.addHtmlNode(item.shape, nx, ny, item.w, item.h, "", void 0, void 0, item.seed);
       const sb2 = src.getBBox();
       const hint = (_a4 = oppositePort(srcPort)) != null ? _a4 : nearestFixedPort(created, { x: sb2.x + sb2.width / 2, y: sb2.y + sb2.height / 2 });
-      const targetPort = this.isBpmnEventNode(created.id) ? (_b2 = collapsePortToSideCenter(hint)) != null ? _b2 : hint : hint;
+      const targetPort = this.isBpmnEventNode(created.id) ? (_b3 = collapsePortToSideCenter(hint)) != null ? _b3 : hint : hint;
       edge.setTarget(portEndpoint(created.id, targetPort));
       edge.setData({ ...edge.getData() });
       this.normalizeRegularEdgeEndpoints(edge, {
@@ -84058,12 +84065,29 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     };
     this.graphMount.addEventListener("mousedown", onDomDown, true);
     this.graphMount.addEventListener("touchstart", onDomDown, true);
+    const clearDropTarget = () => {
+      this.graphMount.querySelectorAll(".lk-drop-target").forEach((el4) => el4.classList.remove("lk-drop-target"));
+    };
+    this.graphMount.addEventListener("mouseover", (e5) => {
+      var _a3, _b2, _c, _d, _e3;
+      if (!this.root.classList.contains("lk-dragging-edge")) return;
+      const t6 = e5.target;
+      const g4 = t6 && typeof t6.closest === "function" ? t6.closest(".x6-node") : null;
+      const id = (_a3 = g4 == null ? void 0 : g4.getAttribute("data-cell-id")) != null ? _a3 : void 0;
+      const dangling = this.graph.getEdges().find((ed) => !ed.getSourceCellId() !== !ed.getTargetCellId());
+      const otherEnd = (_c = (_b2 = dangling == null ? void 0 : dangling.getSourceCellId()) != null ? _b2 : dangling == null ? void 0 : dangling.getTargetCellId()) != null ? _c : void 0;
+      const ok = !!id && id !== otherEnd && !this.isPortDisabledNode(id) && !!((_e3 = (_d = this.graph.getCellById(id)) == null ? void 0 : _d.isNode) == null ? void 0 : _e3.call(_d));
+      if ((g4 == null ? void 0 : g4.classList.contains("lk-drop-target")) && ok) return;
+      clearDropTarget();
+      if (ok) g4.classList.add("lk-drop-target");
+    }, true);
     const addDoc = (type, fn2) => {
       document.addEventListener(type, fn2, true);
       this.docListeners.push({ type, fn: fn2 });
     };
     const clearDrag = () => {
       this.root.classList.remove("lk-dragging-edge");
+      clearDropTarget();
       let changedAny = false;
       this.graph.getEdges().forEach((edge) => {
         const e5 = edge;

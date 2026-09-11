@@ -165,15 +165,10 @@
 .lk-root {
   position: relative; width: 100%; height: 100%; overflow: hidden;
   background: var(--pg-canvas); color: var(--pg-text); font-family: var(--font-body);
-}
-.theme-dark .da-board-view, .theme-dark .lk-root {
-  --pg-bg: #2A1813; --pg-surface: #3B1F1A; --pg-surface-2: #34201B; --pg-canvas: #2F1B16;
-  --pg-grid: rgba(255,244,222,0.06);
-  --pg-text: #FFF4DE; --pg-text-muted: rgba(255,244,222,0.62); --pg-text-soft: rgba(255,244,222,0.40);
-  --pg-border: rgba(255,244,222,0.13); --pg-border-strong: rgba(255,244,222,0.22); --pg-hover: rgba(255,244,222,0.07);
-  --sh-sm: 0 1px 2px rgba(0,0,0,.2), 0 2px 6px rgba(0,0,0,.18);
-  --sh-md: 0 4px 10px rgba(0,0,0,.28), 0 10px 24px rgba(0,0,0,.28);
-  --sh-lg: 0 12px 28px rgba(0,0,0,.4), 0 28px 64px rgba(0,0,0,.45);
+  /* "Paper" board: the diagram surface stays light in every Obsidian theme
+     (bpmn.io / draw.io convention — a diagram is a document). Chrome around it
+     (.da-board-view topbar) still follows .theme-dark. */
+  color-scheme: light;
 }
 
 /* touch-action:none → the canvas owns all touch gestures so a horizontal swipe
@@ -183,7 +178,6 @@
 .lk-graph-mount { position: absolute; inset: 0; touch-action: none; }
 .lk-root .x6-graph { background: transparent !important; }
 .lk-root .x6-node { filter: drop-shadow(0 1px 2px rgba(59,31,26,.10)) drop-shadow(0 2px 6px rgba(59,31,26,.06)); }
-.theme-dark .lk-root .x6-node { filter: drop-shadow(0 1px 3px rgba(0,0,0,.4)); }
 
 /* ── Mobile HTML overlay ──────────────────────────────────────────
    WebKit/iOS mis-positions <foreignObject> HTML (position:absolute, clip-path,
@@ -654,22 +648,19 @@
 
 /* ── Board view top bar (design m-top) ── */
 .da-board-view {
+  /* Chrome (topbar etc.) is RELATIVE to the active Obsidian theme: surfaces,
+     text and borders come from Obsidian's own vars, so light/dark/custom
+     themes all match. Brand accent stays. The board surface (.lk-root) sets
+     its own paper tokens and is unaffected. */
   --pg-accent: #5E8FB9; --pg-accent-ink: #fff; --pg-accent-soft: rgba(94,143,185,0.16);
-  --pg-bg: #FFF4DE; --pg-surface: #FFFFFF; --pg-canvas: #FFFCF5;
-  --pg-text: #3B1F1A; --pg-text-muted: rgba(59,31,26,0.66); --pg-text-soft: rgba(59,31,26,0.42);
-  --pg-border: rgba(59,31,26,0.12); --pg-border-strong: rgba(59,31,26,0.20); --pg-hover: rgba(59,31,26,0.05);
-  --sh-sm: 0 1px 2px rgba(59,31,26,.06), 0 2px 6px rgba(59,31,26,.05);
-  --sh-md: 0 4px 10px rgba(59,31,26,.08), 0 10px 24px rgba(59,31,26,.08);
+  --pg-bg: var(--background-secondary); --pg-surface: var(--background-primary); --pg-canvas: var(--background-primary);
+  --pg-text: var(--text-normal); --pg-text-muted: var(--text-muted); --pg-text-soft: var(--text-faint);
+  --pg-border: var(--background-modifier-border); --pg-border-strong: var(--background-modifier-border-hover); --pg-hover: var(--background-modifier-hover);
+  --sh-sm: 0 1px 2px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.06);
+  --sh-md: 0 4px 10px rgba(0,0,0,.10), 0 10px 24px rgba(0,0,0,.10);
   --font-body: "Be Vietnam Pro", var(--font-interface, system-ui), sans-serif;
   --font-heading: "Montserrat", var(--font-body);
   background: var(--pg-bg);
-}
-.theme-dark .da-board-view {
-  --pg-bg: #2A1813; --pg-surface: #3B1F1A; --pg-canvas: #2F1B16;
-  --pg-text: #FFF4DE; --pg-text-muted: rgba(255,244,222,0.62); --pg-text-soft: rgba(255,244,222,0.40);
-  --pg-border: rgba(255,244,222,0.13); --pg-border-strong: rgba(255,244,222,0.22); --pg-hover: rgba(255,244,222,0.07);
-  --sh-sm: 0 1px 2px rgba(0,0,0,.2), 0 2px 6px rgba(0,0,0,.18);
-  --sh-md: 0 4px 10px rgba(0,0,0,.28), 0 10px 24px rgba(0,0,0,.28);
 }
 .da-topbar {
   display: flex; align-items: center; gap: 12px; flex: none;
@@ -1407,7 +1398,9 @@ body.is-mobile .diagrams-properties-sidebar {
   min-width: 0;
   min-height: 0;
   position: relative;
-  background: var(--background-primary);
+  /* Paper board: prefer the canvas token (cream) when mounted inside .lk-root;
+     fall back to the app background for shells without it. */
+  background: var(--pg-canvas, var(--background-primary));
 }
 
 /* Mobile (Obsidian iOS / Android): switch the body row to a column so each

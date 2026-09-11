@@ -121833,7 +121833,6 @@ var bpmn_native_default = `/* node_modules/bpmn-js/dist/assets/diagram-js.css */
 }
 .bpmn-native-error { padding: 2em; color: var(--text-error, #d22); font-family: var(--font-monospace, monospace); white-space: pre-wrap; }
 .bpmn-native-error pre { background: var(--background-secondary, #f5f5f5); padding: 1em; border-radius: 4px; overflow: auto; max-height: 300px; font-size: 0.85em; }
-.theme-dark .bpmn-native-root .djs-container { background: var(--background-primary) !important; }
 .theme-dark .bpmn-native-root .djs-palette { background: var(--background-secondary); border-color: var(--background-modifier-border); }
 .theme-dark .bpmn-native-root .djs-palette .entry:hover, .theme-dark .bpmn-native-root .djs-context-pad .entry:hover { background: var(--background-modifier-hover); }
 .bpmn-native-root .bpmn-nav-widget { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 6px; background: var(--background-secondary, #fff); border: 1px solid var(--background-modifier-border, #ddd); border-radius: 6px; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.15); z-index: 10; }

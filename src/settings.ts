@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import type DiagramsPlugin from "./main";
+import { renderPomHeader } from "./pom-header";
 
 export interface DiagramsSettings {
   defaultLayout: "LR" | "TB";
@@ -30,7 +31,7 @@ export class DiagramsSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Diagrams" });
+    renderPomHeader(containerEl, "Pie Flow", "Vẽ sơ đồ BPMN & board trực quan ngay trong vault Obsidian");
 
     new Setting(containerEl)
       .setName("Default flow layout")

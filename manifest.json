@@ -1,6 +1,6 @@
 {
-  "id": "omniboard",
-  "name": "OmniBoard",
+  "id": "pie-flow",
+  "name": "Pie Flow",
   "version": "0.1.0",
   "minAppVersion": "1.6.0",
   "description": "All-in-one diagram board — Flowchart, BPMN, ERD, UML, Sequence, State and Mindmap in one board file.",

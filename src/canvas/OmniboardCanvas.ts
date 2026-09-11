@@ -8,7 +8,7 @@ import { Transform } from "@antv/x6-plugin-transform";
 import type { PaletteItem, ShapeCategory, CanvasModel } from "./types";
 import { shapeIcon } from "./shapes/index";
 import { FIXED_PORT_IDS, type FixedPortId } from "./shapes/ports";
-import { nodeHtml, defaultErdCols, defaultUml, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
+import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
 import {
@@ -145,6 +145,11 @@ const EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", re
 // automatically. We also apply a positive absolute `textWrap.width` of 150px
 // (matching bpmn.io) so that long single lines auto-wrap dynamically without
 // needing a reference bounding box (which would render "-" on edge labels).
+/** Effective default label size when a node has no explicit fontSize style. */
+function defaultFontSizeFor(node: Node): number {
+  return String(node.shape ?? "").startsWith("bpmn-") ? BPMN_DEFAULT_FONT_SIZE : 13;
+}
+
 const EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle", textWrap: { width: 150, breakWord: true, ellipsis: false } } as const;
 
 // ── Edge styling (relationship types) ──
@@ -2375,9 +2380,9 @@ export class OmniboardCanvas {
     field(s2, "Màu viền", swatchRow("stroke"));
     const fontIn = el("input", "lk-pinput") as HTMLInputElement;
     fontIn.type = "number"; fontIn.min = "6"; fontIn.max = "96"; fontIn.step = "1";
-    fontIn.value = String(st.fontSize || 13);
+    fontIn.value = String(st.fontSize || defaultFontSizeFor(node));
     const applyFont = () => {
-      const v = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || 13));
+      const v = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || defaultFontSizeFor(node)));
       fontIn.value = String(v);
       this.setStyle(node, { fontSize: v });
     };
@@ -2914,10 +2919,10 @@ export class OmniboardCanvas {
     const dec = el("div", "lk-line-cell lk-fs-btn", "−");
     const szIn = el("input", "lk-fs-input") as HTMLInputElement;
     szIn.type = "number"; szIn.min = "6"; szIn.max = "96"; szIn.step = "1";
-    szIn.value = String(st.fontSize ?? 13);
+    szIn.value = String(st.fontSize ?? defaultFontSizeFor(node));
     const inc = el("div", "lk-line-cell lk-fs-btn", "+");
     const apply = (v: number) => {
-      const clamped = Math.max(6, Math.min(96, Math.round(v) || 13));
+      const clamped = Math.max(6, Math.min(96, Math.round(v) || defaultFontSizeFor(node)));
       szIn.value = String(clamped);
       this.setStyle(node, { fontSize: clamped });
       this.refreshContextBar();

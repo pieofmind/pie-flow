@@ -5,6 +5,9 @@ const XHTML = "http://www.w3.org/1999/xhtml";
 
 let registered = false;
 /** One generic X6 node whose body is an HTML foreignObject (design DOM + CSS). */
+/** Default label size for BPMN html nodes (task/event/gateway/annotation/data) — keep in sync with styles.css .bp-* rules. */
+export const BPMN_DEFAULT_FONT_SIZE = 9;
+
 export function registerHtmlNode(): void {
   if (registered) return;
   registered = true;

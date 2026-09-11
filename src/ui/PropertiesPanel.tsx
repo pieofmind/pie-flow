@@ -38,7 +38,7 @@ export class OmniboardPropertiesView extends ItemView {
   }
 
   getViewType(): string { return OMNIBOARD_PROPERTIES_VIEW_TYPE; }
-  getDisplayText(): string { return "Omniboard Properties"; }
+  getDisplayText(): string { return "Pie Flow Properties"; }
   getIcon(): string { return "sliders-horizontal"; }
 
   async onOpen(): Promise<void> {
@@ -64,7 +64,7 @@ export class OmniboardPropertiesView extends ItemView {
     if (!canvas) {
       this.contentEl.createDiv({
         cls: "obp-empty",
-        text: "Chọn một node trên Omniboard để chỉnh BPMN metadata, màu DI và Camunda extensions.",
+        text: "Chọn một node trên Pie Flow để chỉnh BPMN metadata, màu DI và Camunda extensions.",
       });
       return;
     }
@@ -76,7 +76,7 @@ export class OmniboardPropertiesView extends ItemView {
     if (!snap) {
       this.contentEl.createDiv({
         cls: "obp-empty",
-        text: "Chọn một node trên Omniboard để chỉnh BPMN metadata, màu DI và Camunda extensions.",
+        text: "Chọn một node trên Pie Flow để chỉnh BPMN metadata, màu DI và Camunda extensions.",
       });
       return;
     }

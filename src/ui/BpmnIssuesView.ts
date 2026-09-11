@@ -42,7 +42,7 @@ export class BpmnIssuesView extends ItemView {
     const board = this.boardView();
     const canvas = board?.getCanvas?.() ?? null;
     if (!canvas) {
-      this.contentEl.createDiv({ cls: "obp-empty", text: "Mở một Omniboard BPMN để xem semantic issues." });
+      this.contentEl.createDiv({ cls: "obp-empty", text: "Mở một board Pie Flow BPMN để xem semantic issues." });
       return;
     }
     const model = canvas.getModel();

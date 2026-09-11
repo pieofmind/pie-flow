@@ -15,8 +15,8 @@ const prod = process.argv[2] === "production";
  * different machine, set OMNIBOARD_DEPLOY_VAULTS as ":"-separated paths.
  */
 const DEFAULT_DEPLOY_TARGETS = [
-  join(homedir(), "obsidian-vault/.obsidian/plugins/obsidian-omniboard"),
-  join(homedir(), "dev/obsidian-omniboard-bmad/obsidian-vault-test/.obsidian/plugins/omniboard"),
+  join(homedir(), "obsidian-vault/.obsidian/plugins/pie-flow"),
+  join(homedir(), "obsidian-dev/pie-flow/obsidian-vault-test/.obsidian/plugins/pie-flow"),
 ];
 const DEPLOY_TARGETS = process.env.OMNIBOARD_DEPLOY_VAULTS
   ? process.env.OMNIBOARD_DEPLOY_VAULTS.split(":").filter(Boolean)

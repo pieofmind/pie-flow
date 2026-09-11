@@ -33,6 +33,12 @@ describe("paper board theme", () => {
     expect(block).toMatch(/--pg-text:\s*var\(--text-normal\)/);
     expect(block).toMatch(/--pg-border:\s*var\(--background-modifier-border\)/);
   });
+  it("bpmn-native.css paints .bpmn-native-root as paper, not the app background", () => {
+    const block = /\n\.bpmn-native-root\s*\{[^}]*\}/.exec(native)?.[0] ?? "";
+    expect(block).not.toMatch(/background:\s*var\(--background-primary/);
+    expect(block).toMatch(/background:\s*#FFFCF5/i);
+    expect(block).toMatch(/color-scheme:\s*light/);
+  });
   it("bpmn-native.css does not repaint the diagram container dark", () => {
     expect(native).not.toMatch(/\.theme-dark\s+\.bpmn-native-root\s+\.djs-container\b/);
   });

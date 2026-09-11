@@ -121809,7 +121809,9 @@ var bpmn_native_default = `/* node_modules/bpmn-js/dist/assets/diagram-js.css */
    element (M6) and the iOS WebView's 100% chain can collapse to 0 when
    the leaf parent has implicit height. Flex:1 from inline style + this
    width:100% gives the correct sizing in the column flex container. */
-.bpmn-native-root { width: 100%; position: relative; overflow: hidden; background: var(--background-primary, #fff); touch-action: none; }
+/* Paper surface: the diagram stays light in every Obsidian theme, matching the
+   X6 board's --pg-canvas (#FFFCF5). Chrome (.da-topbar) follows the theme. */
+.bpmn-native-root { width: 100%; position: relative; overflow: hidden; background: #FFFCF5; color-scheme: light; touch-action: none; }
 .bpmn-native-root .bjs-container { width: 100% !important; height: 100% !important; touch-action: none; }
 /* Mobile UX C2 fix: prevent iOS Safari / Android Chrome from hijacking
    single-finger pan as page-scroll and two-finger pinch as page-zoom.

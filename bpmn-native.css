@@ -1339,8 +1339,8 @@
    the leaf parent has implicit height. Flex:1 from inline style + this
    width:100% gives the correct sizing in the column flex container. */
 /* Paper surface: the diagram stays light in every Obsidian theme, matching the
-   X6 board's --pg-canvas (#FFFCF5). Chrome (.da-topbar) follows the theme. */
-.bpmn-native-root { width: 100%; position: relative; overflow: hidden; background: #FFFCF5; color-scheme: light; touch-action: none; }
+   bpmn-js pool fill (white). Chrome (.da-topbar) follows the theme. */
+.bpmn-native-root { width: 100%; position: relative; overflow: hidden; background: #FFFFFF; color-scheme: light; touch-action: none; }
 .bpmn-native-root .bjs-container { width: 100% !important; height: 100% !important; touch-action: none; }
 /* Mobile UX C2 fix: prevent iOS Safari / Android Chrome from hijacking
    single-finger pan as page-scroll and two-finger pinch as page-zoom.
@@ -1364,11 +1364,9 @@
 }
 .bpmn-native-error { padding: 2em; color: var(--text-error, #d22); font-family: var(--font-monospace, monospace); white-space: pre-wrap; }
 .bpmn-native-error pre { background: var(--background-secondary, #f5f5f5); padding: 1em; border-radius: 4px; overflow: auto; max-height: 300px; font-size: 0.85em; }
-.theme-dark .bpmn-native-root .djs-palette { background: var(--background-secondary); border-color: var(--background-modifier-border); }
-.theme-dark .bpmn-native-root .djs-palette .entry:hover, .theme-dark .bpmn-native-root .djs-context-pad .entry:hover { background: var(--background-modifier-hover); }
-.bpmn-native-root .bpmn-nav-widget { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 6px; background: var(--background-secondary, #fff); border: 1px solid var(--background-modifier-border, #ddd); border-radius: 6px; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.15); z-index: 10; }
-.bpmn-native-root .bpmn-nav-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 4px; color: var(--text-muted, #666); cursor: pointer; padding: 0; margin: 0; transition: background .15s, color .15s; }
-.bpmn-native-root .bpmn-nav-btn:hover { background: var(--background-modifier-hover, #eee); color: var(--text-normal, #222); }
+.bpmn-native-root .bpmn-nav-widget { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 6px; background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 4px; box-shadow: 0 2px 8px rgba(0,0,0,.15); z-index: 10; } /* floats on the paper → fixed light */
+.bpmn-native-root .bpmn-nav-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: 4px; color: #666; cursor: pointer; padding: 0; margin: 0; transition: background .15s, color .15s; }
+.bpmn-native-root .bpmn-nav-btn:hover { background: #eee; color: #222; }
 .bpmn-native-root .bpmn-custom-more-btn { display: flex !important; align-items: center; justify-content: center; cursor: pointer !important; }
 .bpmn-native-root .bpmn-custom-more-btn svg { width: 20px; height: 20px; stroke: currentColor; }
 

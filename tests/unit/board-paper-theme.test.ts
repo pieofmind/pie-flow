@@ -36,8 +36,14 @@ describe("paper board theme", () => {
   it("bpmn-native.css paints .bpmn-native-root as paper, not the app background", () => {
     const block = /\n\.bpmn-native-root\s*\{[^}]*\}/.exec(native)?.[0] ?? "";
     expect(block).not.toMatch(/background:\s*var\(--background-primary/);
-    expect(block).toMatch(/background:\s*#FFFCF5/i);
+    expect(block).toMatch(/background:\s*#FFFFFF/i); // white = bpmn-js pool fill, not cream
     expect(block).toMatch(/color-scheme:\s*light/);
+  });
+  it("bpmn-native.css has no theme-dependent chrome floating over the paper", () => {
+    // palette / context-pad / nav widget sit ON the diagram → must stay light
+    expect(native).not.toMatch(/\.theme-dark/);
+    const nav = /\.bpmn-native-root \.bpmn-nav-widget\s*\{[^}]*\}/.exec(native)?.[0] ?? "";
+    expect(nav).not.toMatch(/var\(--background/);
   });
   it("bpmn-native.css does not repaint the diagram container dark", () => {
     expect(native).not.toMatch(/\.theme-dark\s+\.bpmn-native-root\s+\.djs-container\b/);

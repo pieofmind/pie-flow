@@ -408,7 +408,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       id,
       shape,
       x, y, width, height,
-      label: (fn.name ?? "").replace(/&#10;/g, "\n"),
+      label: ((fn.$type === "bpmn:TextAnnotation" ? (fn as { text?: string }).text : fn.name) ?? "").replace(/&#10;/g, "\n"),
       ...(flowNodeParentId.get(id) ? { parentId: flowNodeParentId.get(id) } : {}),
       ...(flowNodeLaneId.get(id) ? { laneId: flowNodeLaneId.get(id) } : {}),
       attrs: {
@@ -454,7 +454,11 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     const targetId = fe.targetRef?.id;
     if (!id || !sourceId || !targetId) return null;
     const di = diEdges.get(id);
-    const wps = di?.waypoint ?? [];
+    const rawWps = di?.waypoint ?? [];
+    // Interior waypoints that coincide with a neighbour (bpmn-js docking
+    // artefacts, or an orth bend sitting on an endpoint) must not become
+    // vertices — they create zero-length tail segments in the canvas.
+    const wps = rawWps.filter((p, i) => i === 0 || Math.hypot(p.x - rawWps[i - 1].x, p.y - rawWps[i - 1].y) > 0.5);
     const vertices = wps.length > 2 ? wps.slice(1, -1).map((p) => ({ x: p.x, y: p.y })) : undefined;
     const srcBox = nodeBox.get(sourceId);
     const tgtBox = nodeBox.get(targetId);

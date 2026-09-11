@@ -484,7 +484,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       if (bpmnStroke) shapeAttrs["bioc:stroke"] = bpmnStroke;
       else { delete shapeAttrs["bioc:stroke"]; delete shapeAttrs["color:border-color"]; }
     } else {
-      const fe = m.create(shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs), { id: n.id, name: n.label ?? "" }) as ModdleElement;
+      const fe = m.create(shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs), n.shape === "bpmn-annotation" ? { id: n.id, text: n.label ?? "" } : n.shape === "bpmn-group" ? { id: n.id } : { id: n.id, name: n.label ?? "" }) as ModdleElement;
       applyBpmnExtras(m, fe, n.shape, (n.attrs ?? {}) as BpmnNodeAttrs);
       (targetContainer.flowElements ??= []).push(fe);
       flowById.set(n.id, fe);
@@ -509,7 +509,9 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     // Patch name + BPMN extras (Đợt F) on existing nodes too — survives
     // re-export when user adds a trigger/marker after import.
     if (existing) {
-      if (typeof n.label === "string") existing.name = n.label;
+      if (typeof n.label === "string") {
+        if (n.shape === "bpmn-annotation") (existing as { text?: string }).text = n.label; else if (n.shape !== "bpmn-group") existing.name = n.label;
+      }
       applyBpmnExtras(m, existing, n.shape, (n.attrs ?? {}) as BpmnNodeAttrs);
     }
   }
@@ -639,7 +641,8 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       if (!sourceFe || !targetFe) continue;
       sf = m.create(bpmnTypeForEdgeKind(kind), {
         id: e.id,
-        name: e.label ?? "",
+        // bpmn:Association is an artifact with no `name` in the BPMN schema.
+        ...(kind === "association" ? {} : { name: e.label ?? "" }),
         sourceRef: sourceFe,
         targetRef: targetFe,
       }) as ModdleElement;
@@ -660,7 +663,8 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
         (process.flowElements ??= []).push(sf);
       }
       flowById.set(e.id, sf);
-    } else if (typeof e.label === "string") {
+    } else if (typeof e.label === "string" && kind !== "association") {
+      // Associations carry no `name`; re-export must not re-stamp one.
       sf.name = e.label;
     }
     // Apply Phase A extras (condition / associationDirection) every export.
@@ -739,26 +743,61 @@ function emitPoolLaneShapes(
     return laneSet;
   };
 
-  // bbox of all flow nodes (everything that isn't a pool).
+  // Flow nodes (everything that isn't a pool).
   const flow = model.nodes.filter((n) =>
     n.shape !== "bpmn-pool" &&
     (n.attrs?.__source as { kind?: string } | undefined)?.kind !== "pool",
   );
   if (!flow.length) return;
-  const minX = Math.min(...flow.map((n) => n.x));
-  const minY = Math.min(...flow.map((n) => n.y));
-  const maxX = Math.max(...flow.map((n) => n.x + n.width));
-  const maxY = Math.max(...flow.map((n) => n.y + n.height));
 
-  const poolX = minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN;
-  const poolY = minY - POOL_MARGIN;
-  const poolW = (maxX - minX) + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2;
-  const poolH = (maxY - minY) + POOL_MARGIN * 2;
+  // Membership of a flow node in a pool — same precedence as the process
+  // assignment in exportBpmn (findOwningProcess): parentId → laneId → centre
+  // inside the pool's canvas rectangle. Single-pool keeps the legacy "every
+  // flow node" bbox so existing boards render exactly as before.
+  const laneOwner = new Map<string, string>();
+  for (const pool of pools) {
+    for (const ln of (pool.attrs?.lanes as Array<{ id: string }> | undefined) ?? []) laneOwner.set(ln.id, pool.id);
+  }
+  const ownerOf = (n: CanvasModel["nodes"][number]): string | undefined => {
+    if (n.parentId && pools.some((p) => p.id === n.parentId)) return n.parentId;
+    if (n.laneId && laneOwner.has(n.laneId)) return laneOwner.get(n.laneId);
+    const cx = n.x + n.width / 2, cy = n.y + n.height / 2;
+    const hit = pools.find((p) => cx >= p.x && cx <= p.x + p.width && cy >= p.y && cy <= p.y + p.height);
+    return hit?.id;
+  };
+  const membersOf = (poolId: string) =>
+    pools.length <= 1 ? flow : flow.filter((n) => ownerOf(n) === poolId);
+  const bboxOf = (pool: CanvasModel["nodes"][number]) => {
+    const members = membersOf(pool.id);
+    if (!members.length) {
+      // No resolvable member: trust the pool's own canvas rectangle.
+      return { poolX: pool.x, poolY: pool.y, poolW: pool.width, poolH: pool.height };
+    }
+    const minX = Math.min(...members.map((n) => n.x));
+    const minY = Math.min(...members.map((n) => n.y));
+    const maxX = Math.max(...members.map((n) => n.x + n.width));
+    const maxY = Math.max(...members.map((n) => n.y + n.height));
+    return {
+      poolX: minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN,
+      poolY: minY - POOL_MARGIN,
+      poolW: (maxX - minX) + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2,
+      poolH: (maxY - minY) + POOL_MARGIN * 2,
+    };
+  };
+  // Collaboration: all participants share one width/left edge (aligned
+  // borders) but keep their own vertical extent.
+  const boxes = new Map(pools.map((p) => [p.id, bboxOf(p)]));
+  const sharedX = Math.min(...[...boxes.values()].map((b) => b.poolX));
+  const sharedRight = Math.max(...[...boxes.values()].map((b) => b.poolX + b.poolW));
 
-  // Single pool is the realistic case; for >1 just stack them (rare).
   for (const pool of pools) {
     const prefix: ModdleElement[] = [];
     const poolProcess = processForPool(pool.id);
+    const box = boxes.get(pool.id)!;
+    const poolX = pools.length > 1 ? sharedX : box.poolX;
+    const poolW = pools.length > 1 ? sharedRight - sharedX : box.poolW;
+    const poolY = box.poolY;
+    const poolH = box.poolH;
 
     // Participant shape — patch existing or create new.
     let pdi = diShape.get(pool.id);
@@ -942,7 +981,11 @@ function buildWaypoints(
     waypoints = [start, ...mid, end];
   }
 
-  return waypoints.map((w) => point(w.x, w.y));
+  // Drop consecutive duplicates (a straight orth line yields a bend that
+  // coincides with an endpoint → zero-length tail segment → bent arrowhead
+  // after round-trip).
+  const clean = waypoints.filter((w, i) => i === 0 || Math.hypot(w.x - waypoints[i - 1].x, w.y - waypoints[i - 1].y) > 0.5);
+  return clean.map((w) => point(w.x, w.y));
 }
 
 function pointAtDistance(wps: Array<{ x: number; y: number }>, distance: number): { x: number; y: number } {
@@ -1135,7 +1178,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
   for (const n of model.nodes) {
     const srcKind = (n.attrs?.__source as { kind?: string } | undefined)?.kind;
     if (n.shape === "bpmn-pool" || n.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
-    const fe = m.create(shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs), { id: n.id, name: n.label ?? "" }) as ModdleElement;
+    const fe = m.create(shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs), n.shape === "bpmn-annotation" ? { id: n.id, text: n.label ?? "" } : n.shape === "bpmn-group" ? { id: n.id } : { id: n.id, name: n.label ?? "" }) as ModdleElement;
     applyBpmnExtras(m, fe, n.shape, (n.attrs ?? {}) as BpmnNodeAttrs);
     feById.set(n.id, fe);
   }
@@ -1187,7 +1230,8 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
 
     const sf = m.create(typeStr, {
       id: e.id,
-      name: e.label ?? "",
+      // bpmn:Association is an artifact with no `name` in the BPMN schema.
+      ...(kind === "association" ? {} : { name: e.label ?? "" }),
       sourceRef: feById.get(e.source),
       targetRef: feById.get(e.target),
     }) as ModdleElement;

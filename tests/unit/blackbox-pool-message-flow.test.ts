@@ -57,6 +57,18 @@ describe("black-box pool with message flows to/from the pool border", () => {
     expect(messages).toEqual(["pool_customer->start", "send_quote->pool_customer"]);
   });
 
+  it("round-trip keeps the pool-side anchor of each message flow (not snapped to the pool's mid)", async () => {
+    const { model: back } = await importBpmn(await exportBpmn(model));
+    const pool = back.nodes.find((n) => n.id === "pool_customer")!;
+    const at = (id: string, end: "source" | "target") => {
+      const e = back.edges.find((x) => x.id === id)!;
+      const a = end === "source" ? e.sourceAnchor : e.targetAnchor;
+      return a && { x: pool.x + a.dx, y: pool.y + a.dy };
+    };
+    expect(at("m_in", "source")).toEqual({ x: 118, y: 120 });
+    expect(at("m_out", "target")).toEqual({ x: 350, y: 120 });
+  });
+
   it("patching saved XML keeps a newly drawn message flow to the black-box pool", async () => {
     const raw = await exportBpmn(model);
     const edited = {

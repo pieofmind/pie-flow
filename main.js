@@ -11602,7 +11602,7 @@ async function inspectBpmnDiagrams(raw2) {
   return { diagramCount: diagrams.length, diagrams };
 }
 async function importBpmn(raw2, options) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I, _J, _K, _L;
   if (raw2.length > MAX_BPMN_BYTES) {
     throw new Error(`BPMN file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 4 MB.`);
   }
@@ -11781,6 +11781,12 @@ async function importBpmn(raw2, options) {
   }
   const nodeBox2 = /* @__PURE__ */ new Map();
   for (const n4 of model.nodes) nodeBox2.set(n4.id, { x: n4.x, y: n4.y, width: n4.width, height: n4.height });
+  for (const root2 of (_x = definitions.rootElements) != null ? _x : []) {
+    for (const part of (_y = root2.participants) != null ? _y : []) {
+      const b4 = part.id ? (_z = diShapes.get(part.id)) == null ? void 0 : _z.bounds : void 0;
+      if (b4 && part.id) nodeBox2.set(part.id, b4);
+    }
+  }
   const buildEdge = (fe3, kind) => {
     var _a4, _b3, _c2, _d2, _e4, _f2, _g2, _h2;
     const id = fe3.id;
@@ -11882,12 +11888,12 @@ async function importBpmn(raw2, options) {
   }
   for (const edge of model.edges) {
     if (defaultEdgeIds.has(edge.id)) {
-      edge.attrs = { ...(_x = edge.attrs) != null ? _x : {}, isDefault: true };
+      edge.attrs = { ...(_A = edge.attrs) != null ? _A : {}, isDefault: true };
     }
   }
   const defs = definitions;
   const processById = /* @__PURE__ */ new Map();
-  for (const root2 of (_y = defs.rootElements) != null ? _y : []) {
+  for (const root2 of (_B = defs.rootElements) != null ? _B : []) {
     if (root2.$type === "bpmn:Process" && root2.id) processById.set(root2.id, root2);
   }
   const pools = [];
@@ -11895,12 +11901,12 @@ async function importBpmn(raw2, options) {
   const LANE_HEAD = 24;
   const PAD = 30;
   const flowNodePoolId = /* @__PURE__ */ new Map();
-  for (const root2 of (_z = defs.rootElements) != null ? _z : []) {
+  for (const root2 of (_C = defs.rootElements) != null ? _C : []) {
     if (root2.$type !== "bpmn:Collaboration") continue;
-    for (const part of (_A = root2.participants) != null ? _A : []) {
-      const processRefId = (_B = part.processRef) == null ? void 0 : _B.id;
+    for (const part of (_D = root2.participants) != null ? _D : []) {
+      const processRefId = (_E = part.processRef) == null ? void 0 : _E.id;
       const proc = processRefId ? processById.get(processRefId) : void 0;
-      const lanes = ((_C = proc == null ? void 0 : proc.laneSets) != null ? _C : []).flatMap((ls) => {
+      const lanes = ((_F = proc == null ? void 0 : proc.laneSets) != null ? _F : []).flatMap((ls) => {
         var _a4;
         return (_a4 = ls.lanes) != null ? _a4 : [];
       });
@@ -11934,16 +11940,16 @@ async function importBpmn(raw2, options) {
           if (fe3.id) flowNodePoolId.set(fe3.id, part.id);
         }
       }
-      const isHorizontal5 = part.id ? ((_D = diShapes.get(part.id)) == null ? void 0 : _D.isHorizontal) !== false : true;
+      const isHorizontal5 = part.id ? ((_G = diShapes.get(part.id)) == null ? void 0 : _G.isHorizontal) !== false : true;
       const isBlackBox = !processRefId;
       pools.push({
-        id: (_E = part.id) != null ? _E : `pool_${pools.length}`,
+        id: (_H = part.id) != null ? _H : `pool_${pools.length}`,
         shape: "bpmn-pool",
         x: px2,
         y: py,
         width: pw,
         height: ph,
-        label: (_F = part.name) != null ? _F : "",
+        label: (_I = part.name) != null ? _I : "",
         attrs: {
           lanes: laneAttrs.length ? laneAttrs : void 0,
           poolHorizontal: isHorizontal5,
@@ -11956,7 +11962,7 @@ async function importBpmn(raw2, options) {
   for (const n4 of model.nodes) {
     const pid = flowNodePoolId.get(n4.id);
     if (pid) {
-      n4.attrs = { ...(_G = n4.attrs) != null ? _G : {}, poolId: pid, __source: { ...(_I = (_H = n4.attrs) == null ? void 0 : _H.__source) != null ? _I : {}, poolId: pid } };
+      n4.attrs = { ...(_J = n4.attrs) != null ? _J : {}, poolId: pid, __source: { ...(_L = (_K = n4.attrs) == null ? void 0 : _K.__source) != null ? _L : {}, poolId: pid } };
     }
   }
   if (pools.length) model.nodes.unshift(...pools);

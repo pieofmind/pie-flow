@@ -442,6 +442,15 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
   // geometry (we no longer trust just the order of items in the list).
   const nodeBox = new Map<string, ModdleBounds>();
   for (const n of model.nodes) nodeBox.set(n.id, { x: n.x, y: n.y, width: n.width, height: n.height });
+  // Pools are built after edges (below), but a MessageFlow may end on the
+  // participant itself — without its box the pool-side anchor is lost and the
+  // canvas snaps every such flow to the pool's mid-side.
+  for (const root of (definitions as ModdleElement).rootElements ?? []) {
+    for (const part of root.participants ?? []) {
+      const b = part.id ? diShapes.get(part.id)?.bounds : undefined;
+      if (b && part.id) nodeBox.set(part.id, b);
+    }
+  }
 
   // Edges — vertices + ports + label position. Phase A: handle SequenceFlow,
   // MessageFlow, and Association uniformly through `buildEdge`.

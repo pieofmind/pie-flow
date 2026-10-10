@@ -79,6 +79,11 @@ interface BpmnNodeAttrs {
 
 /** BPMN edge kind tag → bpmn:* element type + container slot. Phase A. */
 type EdgeKind = "sequence" | "message" | "association";
+/** Black-box pool = participant with no process (attrs.blackBox, set by import.ts). */
+function isBlackBoxPool(pool: { attrs?: Record<string, unknown> }): boolean {
+  return pool.attrs?.blackBox === true;
+}
+
 function edgeKindOf(e: CanvasModel["edges"][number]): EdgeKind {
   return (e.kind as EdgeKind | undefined) ?? "sequence";
 }
@@ -636,9 +641,15 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     // Resolve or create the bpmn:* edge element. Container differs by kind.
     let sf = flowById.get(e.id);
     if (!sf) {
-      const sourceFe = flowById.get(e.source);
-      const targetFe = flowById.get(e.target);
-      if (!sourceFe || !targetFe) continue;
+      // MessageFlow may end on a participant (black-box pool) — BPMN 2.0 §9.3.
+      const refOf = (id: string) => flowById.get(id)
+        ?? (kind === "message" ? collaboration?.participants?.find((p: ModdleElement) => p.id === id) : undefined);
+      const sourceFe = refOf(e.source);
+      const targetFe = refOf(e.target);
+      if (!sourceFe || !targetFe) {
+        console.warn(`[omniboard:bpmn] dropped ${kind} flow "${e.id}": endpoint has no BPMN element (${e.source} → ${e.target})`);
+        continue;
+      }
       sf = m.create(bpmnTypeForEdgeKind(kind), {
         id: e.id,
         // bpmn:Association is an artifact with no `name` in the BPMN schema.
@@ -810,7 +821,7 @@ function emitPoolLaneShapes(
           id: pool.id,
           name: pool.label ?? "Pool",
           // Each participant references its OWN process when multi-pool.
-          processRef: poolProcess,
+          ...(isBlackBoxPool(pool) ? {} : { processRef: poolProcess }),
         }) as ModdleElement;
         (ensureCollaboration().participants ??= []).push(part);
       }
@@ -1078,6 +1089,8 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
   let process: ModdleElement;
   if (multiPool) {
     for (const pool of pools) {
+      // Black-box participant: no process of its own (pie-flow#1).
+      if (isBlackBoxPool(pool)) continue;
       const proc = m.create("bpmn:Process", {
         id: `Process_${pool.id}`,
         isExecutable: false,
@@ -1090,7 +1103,14 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     // for orphan handling and `emitPoolLaneShapes`. Use the first pool's
     // process as the default sink for elements that can't be mapped to any
     // pool (rare; usually means model is inconsistent).
-    process = processByPoolId.get(pools[0].id)!;
+    const firstWhiteBox = pools.find((p) => !isBlackBoxPool(p));
+    if (firstWhiteBox) {
+      process = processByPoolId.get(firstWhiteBox.id)!;
+    } else {
+      process = m.create("bpmn:Process", { id: "Process_Export", isExecutable: false }) as ModdleElement;
+      process.flowElements = [];
+      (defs.rootElements ??= []).push(process);
+    }
   } else {
     process = m.create("bpmn:Process", {
       id: "Process_Export",
@@ -1106,7 +1126,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       id: pool.id,
       name: pool.label ?? "Pool",
       // Multi-pool: each participant → its own process. Single-pool: shared.
-      processRef: multiPool ? processByPoolId.get(pool.id) : process,
+      ...(isBlackBoxPool(pool) ? {} : { processRef: multiPool ? processByPoolId.get(pool.id) : process }),
     }) as ModdleElement);
     (defs.rootElements ??= []).push(collaboration);
 
@@ -1228,14 +1248,20 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       typeStr = "bpmn:MessageFlow";
     }
 
+    // MessageFlow may end on a participant (black-box pool) — BPMN 2.0 §9.3.
+    const refOf = (id: string) => feById.get(id)
+      ?? (typeStr === "bpmn:MessageFlow" ? collaborationRoot?.participants?.find((p: ModdleElement) => p.id === id) : undefined);
     const sf = m.create(typeStr, {
       id: e.id,
       // bpmn:Association is an artifact with no `name` in the BPMN schema.
       ...(kind === "association" ? {} : { name: e.label ?? "" }),
-      sourceRef: feById.get(e.source),
-      targetRef: feById.get(e.target),
+      sourceRef: refOf(e.source),
+      targetRef: refOf(e.target),
     }) as ModdleElement;
-    if (!sf.sourceRef || !sf.targetRef) continue;
+    if (!sf.sourceRef || !sf.targetRef) {
+      console.warn(`[omniboard:bpmn] dropped ${typeStr} "${e.id}": endpoint has no BPMN element (${e.source} → ${e.target})`);
+      continue;
+    }
     const extrasKind = (typeStr === "bpmn:MessageFlow")
       ? "sequence"
       : (kind === "message" && !collaborationRoot)

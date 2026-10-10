@@ -74380,6 +74380,10 @@ function shapeToBpmnType(shape, attrs) {
   const tag = (_a3 = SHAPE_TO_BPMN[shape]) != null ? _a3 : "task";
   return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
 }
+function isBlackBoxPool(pool) {
+  var _a3;
+  return ((_a3 = pool.attrs) == null ? void 0 : _a3.blackBox) === true;
+}
 function edgeKindOf(e5) {
   var _a3;
   return (_a3 = e5.kind) != null ? _a3 : "sequence";
@@ -74835,9 +74839,16 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
     const wps = buildWaypoints(e5, srcNode, tgtNode, m7);
     let sf = flowById.get(e5.id);
     if (!sf) {
-      const sourceFe = flowById.get(e5.source);
-      const targetFe = flowById.get(e5.target);
-      if (!sourceFe || !targetFe) continue;
+      const refOf = (id) => {
+        var _a4, _b3;
+        return (_b3 = flowById.get(id)) != null ? _b3 : kind === "message" ? (_a4 = collaboration == null ? void 0 : collaboration.participants) == null ? void 0 : _a4.find((p6) => p6.id === id) : void 0;
+      };
+      const sourceFe = refOf(e5.source);
+      const targetFe = refOf(e5.target);
+      if (!sourceFe || !targetFe) {
+        console.warn(`[omniboard:bpmn] dropped ${kind} flow "${e5.id}": endpoint has no BPMN element (${e5.source} \u2192 ${e5.target})`);
+        continue;
+      }
       sf = m7.create(bpmnTypeForEdgeKind(kind), {
         id: e5.id,
         // bpmn:Association is an artifact with no `name` in the BPMN schema.
@@ -74978,7 +74989,7 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
           id: pool.id,
           name: (_c = pool.label) != null ? _c : "Pool",
           // Each participant references its OWN process when multi-pool.
-          processRef: poolProcess
+          ...isBlackBoxPool(pool) ? {} : { processRef: poolProcess }
         });
         ((_e3 = (_d = ensureCollaboration()).participants) != null ? _e3 : _d.participants = []).push(part);
       }
@@ -75187,7 +75198,7 @@ function nodeLabelBoundsFromModel(m7, node3) {
   return m7.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
 }
 async function emitMinimal(model, m7) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C;
   const defs = m7.create("bpmn:Definitions", {
     id: "Definitions_Export",
     targetNamespace: "http://omniboard.local/bpmn"
@@ -75203,6 +75214,7 @@ async function emitMinimal(model, m7) {
   let process2;
   if (multiPool) {
     for (const pool of pools) {
+      if (isBlackBoxPool(pool)) continue;
       const proc = m7.create("bpmn:Process", {
         id: `Process_${pool.id}`,
         isExecutable: false
@@ -75211,14 +75223,21 @@ async function emitMinimal(model, m7) {
       ((_a3 = defs.rootElements) != null ? _a3 : defs.rootElements = []).push(proc);
       processByPoolId.set(pool.id, proc);
     }
-    process2 = processByPoolId.get(pools[0].id);
+    const firstWhiteBox = pools.find((p6) => !isBlackBoxPool(p6));
+    if (firstWhiteBox) {
+      process2 = processByPoolId.get(firstWhiteBox.id);
+    } else {
+      process2 = m7.create("bpmn:Process", { id: "Process_Export", isExecutable: false });
+      process2.flowElements = [];
+      ((_b2 = defs.rootElements) != null ? _b2 : defs.rootElements = []).push(process2);
+    }
   } else {
     process2 = m7.create("bpmn:Process", {
       id: "Process_Export",
       isExecutable: false
     });
     process2.flowElements = [];
-    ((_b2 = defs.rootElements) != null ? _b2 : defs.rootElements = []).push(process2);
+    ((_c = defs.rootElements) != null ? _c : defs.rootElements = []).push(process2);
   }
   if (pools.length) {
     const collaboration = m7.create("bpmn:Collaboration", { id: "Collaboration_Export" });
@@ -75228,13 +75247,13 @@ async function emitMinimal(model, m7) {
         id: pool.id,
         name: (_a4 = pool.label) != null ? _a4 : "Pool",
         // Multi-pool: each participant → its own process. Single-pool: shared.
-        processRef: multiPool ? processByPoolId.get(pool.id) : process2
+        ...isBlackBoxPool(pool) ? {} : { processRef: multiPool ? processByPoolId.get(pool.id) : process2 }
       });
     });
-    ((_c = defs.rootElements) != null ? _c : defs.rootElements = []).push(collaboration);
+    ((_d = defs.rootElements) != null ? _d : defs.rootElements = []).push(collaboration);
     const globalSeenLaneIds = /* @__PURE__ */ new Set();
     for (const pool of pools) {
-      const poolLanes = (_e3 = (_d = pool.attrs) == null ? void 0 : _d.lanes) != null ? _e3 : [];
+      const poolLanes = (_f = (_e3 = pool.attrs) == null ? void 0 : _e3.lanes) != null ? _f : [];
       if (!poolLanes.length) continue;
       const lanes = poolLanes.map((ln3) => {
         if (!globalSeenLaneIds.has(ln3.id)) {
@@ -75258,9 +75277,9 @@ async function emitMinimal(model, m7) {
         })];
       }
       const laneSet = targetProcess.laneSets[0];
-      (_f = laneSet.lanes) != null ? _f : laneSet.lanes = [];
+      (_g = laneSet.lanes) != null ? _g : laneSet.lanes = [];
       for (const ln3 of lanes) {
-        laneSet.lanes.push(m7.create("bpmn:Lane", { id: ln3.id, name: (_g = ln3.label) != null ? _g : ln3.id }));
+        laneSet.lanes.push(m7.create("bpmn:Lane", { id: ln3.id, name: (_h = ln3.label) != null ? _h : ln3.id }));
       }
     }
   }
@@ -75285,24 +75304,24 @@ async function emitMinimal(model, m7) {
   };
   const feById = /* @__PURE__ */ new Map();
   for (const n4 of model.nodes) {
-    const srcKind = (_i = (_h = n4.attrs) == null ? void 0 : _h.__source) == null ? void 0 : _i.kind;
+    const srcKind = (_j = (_i = n4.attrs) == null ? void 0 : _i.__source) == null ? void 0 : _j.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
-    const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), n4.shape === "bpmn-annotation" ? { id: n4.id, text: (_j = n4.label) != null ? _j : "" } : n4.shape === "bpmn-group" ? { id: n4.id } : { id: n4.id, name: (_k = n4.label) != null ? _k : "" });
-    applyBpmnExtras(m7, fe3, n4.shape, (_l = n4.attrs) != null ? _l : {});
+    const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), n4.shape === "bpmn-annotation" ? { id: n4.id, text: (_k = n4.label) != null ? _k : "" } : n4.shape === "bpmn-group" ? { id: n4.id } : { id: n4.id, name: (_l = n4.label) != null ? _l : "" });
+    applyBpmnExtras(m7, fe3, n4.shape, (_m = n4.attrs) != null ? _m : {});
     feById.set(n4.id, fe3);
   }
   for (const n4 of model.nodes) {
-    const srcKind = (_n2 = (_m = n4.attrs) == null ? void 0 : _m.__source) == null ? void 0 : _n2.kind;
+    const srcKind = (_o = (_n2 = n4.attrs) == null ? void 0 : _n2.__source) == null ? void 0 : _o.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const fe3 = feById.get(n4.id);
     const parent = n4.parentId ? feById.get(n4.parentId) : void 0;
     const container = parent != null ? parent : findOwningProcess(n4);
-    ((_o = container.flowElements) != null ? _o : container.flowElements = []).push(fe3);
+    ((_p = container.flowElements) != null ? _p : container.flowElements = []).push(fe3);
   }
   const allProcesses = multiPool ? [...processByPoolId.values()] : [process2];
   for (const proc of allProcesses) {
-    for (const ls of (_p = proc.laneSets) != null ? _p : []) {
-      for (const ln3 of (_q = ls.lanes) != null ? _q : []) {
+    for (const ls of (_q = proc.laneSets) != null ? _q : []) {
+      for (const ln3 of (_r = ls.lanes) != null ? _r : []) {
         const refs = [];
         for (const n4 of model.nodes) {
           if (n4.laneId !== ln3.id) continue;
@@ -75316,7 +75335,7 @@ async function emitMinimal(model, m7) {
   const sfById = /* @__PURE__ */ new Map();
   const nodeIdSet = new Set(model.nodes.map((n4) => n4.id));
   const validEdges = model.edges.filter((e5) => nodeIdSet.has(e5.source) && nodeIdSet.has(e5.target));
-  const collaborationRoot = (_s = ((_r = defs.rootElements) != null ? _r : []).find((r5) => r5.$type === "bpmn:Collaboration")) != null ? _s : null;
+  const collaborationRoot = (_t3 = ((_s = defs.rootElements) != null ? _s : []).find((r5) => r5.$type === "bpmn:Collaboration")) != null ? _t3 : null;
   const nodeById2 = new Map(model.nodes.map((n4) => [n4.id, n4]));
   for (const e5 of validEdges) {
     const kind = edgeKindOf(e5);
@@ -75330,29 +75349,36 @@ async function emitMinimal(model, m7) {
     if (isCrossPool && kind === "sequence" && collaborationRoot) {
       typeStr = "bpmn:MessageFlow";
     }
+    const refOf = (id) => {
+      var _a4, _b3;
+      return (_b3 = feById.get(id)) != null ? _b3 : typeStr === "bpmn:MessageFlow" ? (_a4 = collaborationRoot == null ? void 0 : collaborationRoot.participants) == null ? void 0 : _a4.find((p6) => p6.id === id) : void 0;
+    };
     const sf = m7.create(typeStr, {
       id: e5.id,
       // bpmn:Association is an artifact with no `name` in the BPMN schema.
-      ...kind === "association" ? {} : { name: (_t3 = e5.label) != null ? _t3 : "" },
-      sourceRef: feById.get(e5.source),
-      targetRef: feById.get(e5.target)
+      ...kind === "association" ? {} : { name: (_u = e5.label) != null ? _u : "" },
+      sourceRef: refOf(e5.source),
+      targetRef: refOf(e5.target)
     });
-    if (!sf.sourceRef || !sf.targetRef) continue;
+    if (!sf.sourceRef || !sf.targetRef) {
+      console.warn(`[omniboard:bpmn] dropped ${typeStr} "${e5.id}": endpoint has no BPMN element (${e5.source} \u2192 ${e5.target})`);
+      continue;
+    }
     const extrasKind = typeStr === "bpmn:MessageFlow" ? "sequence" : kind === "message" && !collaborationRoot ? "sequence" : kind;
     applyEdgeExtras(m7, sf, extrasKind, e5.attrs);
     if (typeStr === "bpmn:MessageFlow" && collaborationRoot) {
-      ((_u = collaborationRoot.messageFlows) != null ? _u : collaborationRoot.messageFlows = []).push(sf);
+      ((_v = collaborationRoot.messageFlows) != null ? _v : collaborationRoot.messageFlows = []).push(sf);
     } else if (kind === "association") {
-      ((_v = srcProc.artifacts) != null ? _v : srcProc.artifacts = []).push(sf);
+      ((_w = srcProc.artifacts) != null ? _w : srcProc.artifacts = []).push(sf);
     } else if (kind === "message" && collaborationRoot) {
-      ((_w = collaborationRoot.messageFlows) != null ? _w : collaborationRoot.messageFlows = []).push(sf);
+      ((_x = collaborationRoot.messageFlows) != null ? _x : collaborationRoot.messageFlows = []).push(sf);
     } else {
-      ((_x = srcProc.flowElements) != null ? _x : srcProc.flowElements = []).push(sf);
+      ((_y = srcProc.flowElements) != null ? _y : srcProc.flowElements = []).push(sf);
     }
     sfById.set(e5.id, sf);
   }
   for (const e5 of validEdges) {
-    if (!((_y = e5.attrs) == null ? void 0 : _y.isDefault)) continue;
+    if (!((_z = e5.attrs) == null ? void 0 : _z.isDefault)) continue;
     if (edgeKindOf(e5) !== "sequence") continue;
     const srcFe = feById.get(e5.source);
     const edgeFe = sfById.get(e5.id);
@@ -75365,7 +75391,7 @@ async function emitMinimal(model, m7) {
   });
   const diShape = /* @__PURE__ */ new Map();
   for (const n4 of model.nodes) {
-    const srcKind = (_A = (_z = n4.attrs) == null ? void 0 : _z.__source) == null ? void 0 : _A.kind;
+    const srcKind = (_B = (_A = n4.attrs) == null ? void 0 : _A.__source) == null ? void 0 : _B.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const nLabel = nodeLabelBoundsFromModel(m7, n4);
     const di = m7.create("bpmndi:BPMNShape", {
@@ -75393,7 +75419,7 @@ async function emitMinimal(model, m7) {
   }
   emitPoolLaneShapes(model, defs, process2, plane, diShape, m7, multiPool ? processByPoolId : void 0);
   const dia = m7.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-  ((_B = defs.diagrams) != null ? _B : defs.diagrams = []).push(dia);
+  ((_C = defs.diagrams) != null ? _C : defs.diagrams = []).push(dia);
   const { xml: xml3 } = await m7.toXML(defs, { format: true });
   return patchCamundaXml(xml3, model);
 }

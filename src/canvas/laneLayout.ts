@@ -60,3 +60,28 @@ export function resizeLaneBoundary<T extends PoolLane>(
   const next = hs.map((h, i) => (i === index ? upper : i === index + 1 ? pair - upper : h));
   return lanes.map((ln, i) => ({ ...ln, height: Math.round(next[i]) }));
 }
+
+/** The pool was resized from `prevH` to `newH` by dragging its `edge`: the
+ *  height change goes to the lane on that edge (like bpmn-js), so the other
+ *  lanes — and the shapes in them — stay put. Shrinking past a lane's minimum
+ *  takes the rest from its neighbours. Every lane gets an explicit height. */
+export function resizePoolLanes<T extends PoolLane>(
+  lanes: readonly T[],
+  prevH: number,
+  newH: number,
+  edge: "top" | "bottom",
+  minHeight = 30,
+): T[] {
+  const hs = laneHeights(lanes, prevH);
+  const order = hs.map((_, i) => i);
+  if (edge === "bottom") order.reverse();
+  let delta = newH - prevH;
+  if (delta > 0) hs[order[0]] += delta;
+  for (const i of order) {
+    if (delta >= 0) break;
+    const take = Math.min(-delta, Math.max(0, hs[i] - minHeight));
+    hs[i] -= take;
+    delta += take;
+  }
+  return lanes.map((ln, i) => ({ ...ln, height: Math.round(hs[i]) }));
+}

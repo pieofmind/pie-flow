@@ -97,6 +97,35 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(document.querySelector('[data-cell-id="added-later"]'), 'canvas stopped rendering after a failing job (stuck: ' + queue.isFlushing + ')');
   });
 
+  await run('an external label keeps its flipped side after the node is re-rendered (label edit)', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'lt1', shape: 'bpmn-task-user', x: 100, y: 330, width: 120, height: 80, label: 'Ghi số' },
+      { id: 'ld1', shape: 'bpmn-data-object', x: 300, y: 140, width: 40, height: 60, label: 'Số điện thoại / Zalo' },
+    ], edges: [{ id: 'lx1', source: 'lt1', sourcePort: 'right', target: 'ld1', targetPort: 'bottom', kind: 'association' }] });
+    await tick(300);
+    const cls = () => document.querySelector('[data-cell-id="ld1"] .bp-dataobj').className;
+    assert(/label-top/.test(cls()), 'label not flipped above to begin with: ' + cls());
+    const n = cell('ld1');
+    n.setData({ ...n.getData(), label: 'Số điện thoại' });
+    window.__ob.rerender(n);
+    await tick(300);
+    assert(/label-top/.test(cls()), 'flip lost after re-render: ' + cls());
+  });
+
+  await run('resizing a pool by its bottom edge grows only the last lane', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'rpool', shape: 'bpmn-pool', x: 40, y: 40, width: 700, height: 300, label: 'KALIX',
+        attrs: { lanes: [{ id: 'r1', label: 'A' }, { id: 'r2', label: 'B' }, { id: 'r3', label: 'C' }] } },
+    ], edges: [] });
+    await tick(300);
+    cell('rpool').resize(700, 400, { ui: true, direction: 'bottom' });   // what dragging the bottom handle does
+    await tick(200);
+    const hs = cell('rpool').getData().lanes.map((l) => l.height);
+    assert(JSON.stringify(hs) === JSON.stringify([100, 100, 200]), 'lane heights: ' + hs);
+    const dom = [...document.querySelectorAll('[data-cell-id="rpool"] .bp-pool-lane')].map((l) => Math.round(l.getBoundingClientRect().height / window.__ob.graph.scale().sy));
+    assert(Math.abs(dom[0] - 100) <= 2 && Math.abs(dom[2] - 200) <= 2, 'drawn lanes: ' + dom);
+  });
+
   const failed = results.filter(r => !r.ok).length;
   w(failed ? `${failed} FAILED` : 'ALL PASS', failed ? 'fail' : 'pass');
   window.__results = results;

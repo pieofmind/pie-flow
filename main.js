@@ -73754,6 +73754,20 @@ function resizeLaneBoundary(lanes, poolH, index4, dy, minHeight) {
   const next = hs.map((h5, i6) => i6 === index4 ? upper : i6 === index4 + 1 ? pair - upper : h5);
   return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(next[i6]) }));
 }
+function resizePoolLanes(lanes, prevH, newH, edge, minHeight = 30) {
+  const hs = laneHeights(lanes, prevH);
+  const order = hs.map((_6, i6) => i6);
+  if (edge === "bottom") order.reverse();
+  let delta2 = newH - prevH;
+  if (delta2 > 0) hs[order[0]] += delta2;
+  for (const i6 of order) {
+    if (delta2 >= 0) break;
+    const take = Math.min(-delta2, Math.max(0, hs[i6] - minHeight));
+    hs[i6] -= take;
+    delta2 += take;
+  }
+  return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(hs[i6]) }));
+}
 
 // src/canvas/htmlNode.ts
 var XHTML = "http://www.w3.org/1999/xhtml";
@@ -82715,6 +82729,9 @@ function poolDropAnchor(pool, drop, other) {
   return { dx: clamp2(other.x - pool.x, 0, pool.width), dy: toBottom ? pool.height : 0 };
 }
 
+// src/canvas/OmniboardCanvas.ts
+init_labelGeometry();
+
 // src/canvas/bulkAlign.ts
 function reposition(cells, mut) {
   return cells.map((c6) => {
@@ -84353,6 +84370,16 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.graph.on("node:resized", () => {
       this.refreshContextBar();
       this.refreshContextPad();
+    });
+    this.graph.on("node:change:size", ({ node: node3, previous, current, options }) => {
+      var _a3;
+      if (this.nodeKind(node3) !== "bpmn-pool" || !previous || !current || previous.height === current.height) return;
+      const dir = String((_a3 = options == null ? void 0 : options.direction) != null ? _a3 : "");
+      const edge = dir.includes("top") ? "top" : dir.includes("bottom") ? "bottom" : null;
+      const lanes = this.nodeExtra(node3).lanes;
+      if (!edge || !lanes || lanes.length < 2) return;
+      node3.setData({ ...node3.getData(), lanes: resizePoolLanes(lanes, previous.height, current.height, edge) }, { deep: false });
+      this.rerender(node3);
     });
     this.graph.on("node:change:size", ({ node: node3 }) => {
       if (this.nodeKind(node3) !== "sq-activation") return;
@@ -86133,7 +86160,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     };
   }
   rerender(n4) {
-    n4.attr("content/html", nodeHtml(this.nodeKind(n4), this.nodeLabel(n4), this.nodeStyle(n4), this.nodeExtra(n4)));
+    n4.attr("content/html", nodeHtml(this.nodeKind(n4), this.nodeLabel(n4), this.nodeStyle(n4), this.nodeExtra(n4)), { async: false });
+    if (hasExternalLabel(this.nodeKind(n4))) this.refreshBpmnEventLabels();
     const k5 = this.nodeKind(n4);
     if (k5 === "mm-root" || k5 === "mm-branch" || k5 === "mm-leaf") {
       this.scheduleMindmapAutoGrow(n4);

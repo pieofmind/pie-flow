@@ -9,7 +9,7 @@
 import { describe, it, expect } from "vitest";
 import { exportBpmn } from "../../src/io/bpmn/export";
 import { importBpmn } from "../../src/io/bpmn/import";
-import { laneHeights, laneIndexAt, resizeLaneBoundary } from "../../src/canvas/laneLayout";
+import { laneHeights, laneIndexAt, resizeLaneBoundary, resizePoolLanes } from "../../src/canvas/laneLayout";
 import { nodeHtml } from "../../src/canvas/htmlNode";
 import type { CanvasModel } from "../../src/canvas/types";
 
@@ -73,6 +73,28 @@ describe("laneLayout helpers", () => {
     expect(resizeLaneBoundary(plain, 600, 1, -500, 60).map((l) => l.height)).toEqual([200, 60, 340]);
     // input is not mutated
     expect(plain[0].height).toBeUndefined();
+  });
+});
+
+describe("resizing the whole pool", () => {
+  const lanes: Lane[] = [{ id: "a", label: "A", height: 100 }, { id: "b", label: "B", height: 300 }, { id: "c", label: "C", height: 200 }];
+
+  it("dragging the bottom edge grows / shrinks only the last lane (like bpmn-js)", () => {
+    expect(resizePoolLanes(lanes, 600, 700, "bottom").map((l) => l.height)).toEqual([100, 300, 300]);
+    expect(resizePoolLanes(lanes, 600, 550, "bottom").map((l) => l.height)).toEqual([100, 300, 150]);
+  });
+
+  it("dragging the top edge changes only the first lane", () => {
+    expect(resizePoolLanes(lanes, 600, 680, "top").map((l) => l.height)).toEqual([180, 300, 200]);
+  });
+
+  it("legacy lanes (no height) get explicit heights from the equal split first", () => {
+    const legacy: Lane[] = [{ id: "a", label: "A" }, { id: "b", label: "B" }];
+    expect(resizePoolLanes(legacy, 400, 500, "bottom").map((l) => l.height)).toEqual([200, 300]);
+  });
+
+  it("a lane never shrinks below the minimum; the rest comes off its neighbours", () => {
+    expect(resizePoolLanes(lanes, 600, 300, "bottom", 60).map((l) => l.height)).toEqual([100, 140, 60]);
   });
 });
 

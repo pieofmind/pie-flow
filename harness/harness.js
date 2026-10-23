@@ -69740,6 +69740,20 @@
     const next = hs.map((h3, i3) => i3 === index3 ? upper : i3 === index3 + 1 ? pair - upper : h3);
     return lanes.map((ln3, i3) => ({ ...ln3, height: Math.round(next[i3]) }));
   }
+  function resizePoolLanes(lanes, prevH, newH, edge, minHeight = 30) {
+    const hs = laneHeights(lanes, prevH);
+    const order = hs.map((_4, i3) => i3);
+    if (edge === "bottom") order.reverse();
+    let delta = newH - prevH;
+    if (delta > 0) hs[order[0]] += delta;
+    for (const i3 of order) {
+      if (delta >= 0) break;
+      const take = Math.min(-delta, Math.max(0, hs[i3] - minHeight));
+      hs[i3] -= take;
+      delta += take;
+    }
+    return lanes.map((ln3, i3) => ({ ...ln3, height: Math.round(hs[i3]) }));
+  }
 
   // src/canvas/htmlNode.ts
   var XHTML = "http://www.w3.org/1999/xhtml";
@@ -70639,6 +70653,19 @@
     if (!nearTop && !nearBottom && !(pool.blackBox && onBody)) return null;
     const toBottom = other.y > bottom4 ? true : other.y < top4 ? false : Math.abs(drop.y - bottom4) < Math.abs(drop.y - top4);
     return { dx: clamp2(other.x - pool.x, 0, pool.width), dy: toBottom ? pool.height : 0 };
+  }
+
+  // src/io/bpmn/labelGeometry.ts
+  var isEvent = (shape) => shape.includes("event") || shape.includes("bpmn-start") || shape.includes("bpmn-intermediate") || shape.includes("bpmn-end");
+  var isGateway = (shape) => shape.includes("gateway");
+  var isData = (shape) => shape.startsWith("bpmn-data-");
+  function hasExternalLabel(shape) {
+    return isEvent(shape) || isGateway(shape) || isData(shape);
+  }
+  function defaultLabelDy(shape, height2) {
+    if (isGateway(shape)) return 37;
+    if (isData(shape)) return height2 / 2 + 16;
+    return 36;
   }
 
   // src/canvas/bulkAlign.ts
@@ -73910,6 +73937,15 @@
         this.refreshContextBar();
         this.refreshContextPad();
       });
+      this.graph.on("node:change:size", ({ node: node2, previous, current, options }) => {
+        if (this.nodeKind(node2) !== "bpmn-pool" || !previous || !current || previous.height === current.height) return;
+        const dir = String(options?.direction ?? "");
+        const edge = dir.includes("top") ? "top" : dir.includes("bottom") ? "bottom" : null;
+        const lanes = this.nodeExtra(node2).lanes;
+        if (!edge || !lanes || lanes.length < 2) return;
+        node2.setData({ ...node2.getData(), lanes: resizePoolLanes(lanes, previous.height, current.height, edge) }, { deep: false });
+        this.rerender(node2);
+      });
       this.graph.on("node:change:size", ({ node: node2 }) => {
         if (this.nodeKind(node2) !== "sq-activation") return;
         const s3 = node2.getSize();
@@ -75658,7 +75694,8 @@
       };
     }
     rerender(n2) {
-      n2.attr("content/html", nodeHtml(this.nodeKind(n2), this.nodeLabel(n2), this.nodeStyle(n2), this.nodeExtra(n2)));
+      n2.attr("content/html", nodeHtml(this.nodeKind(n2), this.nodeLabel(n2), this.nodeStyle(n2), this.nodeExtra(n2)), { async: false });
+      if (hasExternalLabel(this.nodeKind(n2))) this.refreshBpmnEventLabels();
       const k3 = this.nodeKind(n2);
       if (k3 === "mm-root" || k3 === "mm-branch" || k3 === "mm-leaf") {
         this.scheduleMindmapAutoGrow(n2);
@@ -83438,19 +83475,6 @@
     } else {
       return horizontal || vertical || "intersect";
     }
-  }
-
-  // src/io/bpmn/labelGeometry.ts
-  var isEvent = (shape) => shape.includes("event") || shape.includes("bpmn-start") || shape.includes("bpmn-intermediate") || shape.includes("bpmn-end");
-  var isGateway = (shape) => shape.includes("gateway");
-  var isData = (shape) => shape.startsWith("bpmn-data-");
-  function hasExternalLabel(shape) {
-    return isEvent(shape) || isGateway(shape) || isData(shape);
-  }
-  function defaultLabelDy(shape, height2) {
-    if (isGateway(shape)) return 37;
-    if (isData(shape)) return height2 / 2 + 16;
-    return 36;
   }
 
   // src/io/bpmn/shapes.ts

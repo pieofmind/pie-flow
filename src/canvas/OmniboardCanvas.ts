@@ -11,8 +11,9 @@ import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type 
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
-import { laneHeights, laneIndexAt, resizeLaneBoundary } from "./laneLayout";
+import { laneHeights, laneIndexAt, resizeLaneBoundary, resizePoolLanes } from "./laneLayout";
 import { poolDropAnchor } from "./poolConnect";
+import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignMiddleV, alignBottom,
@@ -1430,6 +1431,18 @@ export class OmniboardCanvas {
       }
     });
     this.graph.on("node:resized", () => { this.refreshContextBar(); this.refreshContextPad(); });
+    // Resizing a pool by its top / bottom edge changes only the lane on that
+    // edge (like bpmn-js); the other lanes and their shapes stay put. X6's
+    // Transform passes the dragged handle as options.direction.
+    this.graph.on("node:change:size", ({ node, previous, current, options }) => {
+      if (this.nodeKind(node) !== "bpmn-pool" || !previous || !current || previous.height === current.height) return;
+      const dir = String((options as { direction?: string } | undefined)?.direction ?? "");
+      const edge = dir.includes("top") ? "top" : dir.includes("bottom") ? "bottom" : null;
+      const lanes = this.nodeExtra(node).lanes;
+      if (!edge || !lanes || lanes.length < 2) return;
+      node.setData({ ...node.getData(), lanes: resizePoolLanes(lanes, previous.height, current.height, edge) }, { deep: false });
+      this.rerender(node);
+    });
     // Sequence activation bar is a thin vertical lifeline overlay: pin its width
     // so resize only changes height (X6 minWidth would otherwise fatten it).
     this.graph.on("node:change:size", ({ node }) => {
@@ -3128,7 +3141,11 @@ export class OmniboardCanvas {
     };
   }
   private rerender(n: Node) {
-    n.attr("content/html", nodeHtml(this.nodeKind(n), this.nodeLabel(n), this.nodeStyle(n), this.nodeExtra(n)));
+    // Render now (async: false): the HTML is replaced, and event / gateway /
+    // data labels lose the side refreshBpmnEventLabels put them on — re-apply
+    // it right away instead of leaving the label on the default side.
+    n.attr("content/html", nodeHtml(this.nodeKind(n), this.nodeLabel(n), this.nodeStyle(n), this.nodeExtra(n)), { async: false });
+    if (hasExternalLabel(this.nodeKind(n))) this.refreshBpmnEventLabels();
     // Mindmap nodes wrap text — re-measure on the next paint so the bbox grows
     // to fit content (otherwise long labels overflow the visible frame).
     const k = this.nodeKind(n);

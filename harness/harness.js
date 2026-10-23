@@ -73210,6 +73210,8 @@
       /** Sub-process whose steps are shown on their own page (null = the whole process). */
       this.drillRoot = null;
       this.crumbs = null;
+      /** View of each level above the current page, saved when going deeper. */
+      this.drillViews = [];
       this.root = root2;
       this.categories = categories;
       this.onChange = onChange;
@@ -76408,6 +76410,10 @@
     }
     setDrillRoot(id) {
       const prev = this.drillRoot ? this.graph.getCellById(this.drillRoot) : null;
+      const back = this.drillViews.findIndex((v4) => v4.id === id);
+      const saved = back >= 0 ? this.drillViews[back] : null;
+      if (saved) this.drillViews = this.drillViews.slice(0, back);
+      else this.drillViews = [...this.drillViews, { id: this.drillRoot, scale: this.graph.scale().sx, ...this.graph.translate() }];
       this.drillRoot = id;
       if (prev?.isNode() && prev.id !== id && prev.getData()?.collapsed === true && this.nodeKind(prev) === "bpmn-subprocess" && !(prev.getChildren() ?? []).some((c4) => c4.isNode())) {
         const d2 = prev.getData() ?? {};
@@ -76418,7 +76424,10 @@
       this.refreshSubprocessVisibility();
       this.renderCrumbs();
       const shown = this.graph.getNodes().filter((n2) => n2.isVisible());
-      if (id && shown.length) this.graph.zoomToRect(this.graph.getCellsBBox(shown).inflate(80), { maxScale: 1 });
+      if (saved) {
+        this.graph.zoomTo(saved.scale);
+        this.graph.translate(saved.tx, saved.ty);
+      } else if (id && shown.length) this.graph.zoomToRect(this.graph.getCellsBBox(shown).inflate(80), { maxScale: 1 });
       else if (id) this.graph.centerCell(this.graph.getCellById(id));
       else if (prev) this.graph.centerCell(prev);
     }
@@ -77512,6 +77521,7 @@
     }
     loadModel(model, opts) {
       this.drillRoot = null;
+      this.drillViews = [];
       this.renderCrumbs();
       model = this.dedupeLaneIdsAcrossPools(model);
       this.flushPendingRender();

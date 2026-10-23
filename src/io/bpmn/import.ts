@@ -292,6 +292,12 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       if (ar.$type === "bpmn:Association") associations.push(ar);
       else if (ar.$type === "bpmn:TextAnnotation" || ar.$type === "bpmn:Group") flowNodes.push(ar);
     }
+    // Data input / output of a process (or sub-process) sit in its ioSpecification.
+    const io = (parent as { ioSpecification?: { dataInputs?: ModdleElement[]; dataOutputs?: ModdleElement[] } }).ioSpecification;
+    for (const d of [...(io?.dataInputs ?? []), ...(io?.dataOutputs ?? [])]) {
+      flowNodes.push(d);
+      if (parentSubprocessId && d.id) flowNodeParentId.set(d.id, parentSubprocessId);
+    }
   };
   for (const root of (definitions as ModdleElement).rootElements ?? []) {
     collectFlow(root);
@@ -386,7 +392,9 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     // the mirror of export (shapeToBpmnType), so it keeps the task look.
     const collapsedTask = tagLc === "subProcess" && !extras.kindOverride && di?.isExpanded === false
       && !(fn as { flowElements?: unknown[] }).flowElements?.length;
-    const shape = collapsedTask ? "bpmn-task" : extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
+    // isCollection lives on the DataObject a reference points at.
+    const collection = tagLc === "dataObjectReference" && (fn as { dataObjectRef?: { isCollection?: boolean } }).dataObjectRef?.isCollection === true;
+    const shape = collapsedTask ? "bpmn-task" : collection ? "bpmn-data-collection" : extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
     const markers = collapsedTask ? [...(extras.markers ?? []), "subprocess"] : extras.markers;
     const bounds = di?.bounds;
     const x = bounds?.x ?? 100;
@@ -418,7 +426,9 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       id,
       shape,
       x, y, width, height,
-      label: ((fn.$type === "bpmn:TextAnnotation" ? (fn as { text?: string }).text : fn.name) ?? "").replace(/&#10;/g, "\n"),
+      label: ((fn.$type === "bpmn:TextAnnotation" ? (fn as { text?: string }).text
+        : fn.$type === "bpmn:Group" ? (fn as { categoryValueRef?: { value?: string } }).categoryValueRef?.value
+        : fn.name) ?? "").replace(/&#10;/g, "\n"),
       ...(flowNodeParentId.get(id) ? { parentId: flowNodeParentId.get(id) } : {}),
       ...(flowNodeLaneId.get(id) ? { laneId: flowNodeLaneId.get(id) } : {}),
       attrs: {

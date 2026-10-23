@@ -85,6 +85,76 @@ function collapsedOwner(byId: Map<string, CanvasModel["nodes"][number]>, id: str
   return undefined;
 }
 
+/** Which root process a Board node belongs to: its lane's process, its pool's
+ *  (attrs.poolId from import, else the pool its centre is in), else the first. */
+function processOwner(model: CanvasModel, processes: ModdleElement[], collaboration: ModdleElement | null): (n: CanvasModel["nodes"][number]) => ModdleElement {
+  const byId = new Map(processes.map((p) => [p.id, p] as const));
+  const ofLane = new Map<string, ModdleElement>();
+  const walk = (lanes: ModdleElement[] | undefined, pr: ModdleElement): void => {
+    for (const ln of lanes ?? []) {
+      if (ln.id) ofLane.set(ln.id, pr);
+      walk((ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes, pr);
+    }
+  };
+  for (const pr of processes) for (const ls of pr.laneSets ?? []) walk(ls.lanes, pr);
+  const ofPool = new Map<string, ModdleElement>();
+  for (const part of collaboration?.participants ?? []) {
+    const ref = (part as { processRef?: ModdleElement | string }).processRef;
+    const pr = byId.get(typeof ref === "string" ? ref : ref?.id);
+    if (part.id && pr) ofPool.set(part.id, pr);
+  }
+  const pools = model.nodes.filter((n) => n.shape === "bpmn-pool" && ofPool.has(n.id));
+  return (n) => {
+    const lane = n.laneId ? ofLane.get(n.laneId) : undefined;
+    if (lane) return lane;
+    const poolId = (n.attrs as { poolId?: string } | undefined)?.poolId;
+    if (poolId && ofPool.has(poolId)) return ofPool.get(poolId)!;
+    const cx = n.x + n.width / 2, cy = n.y + n.height / 2;
+    const pool = pools.find((p) => cx >= p.x && cx <= p.x + p.width && cy >= p.y && cy <= p.y + p.height);
+    return (pool && ofPool.get(pool.id)) || processes[0];
+  };
+}
+
+const isArtifactShape = (shape: string): boolean => shape === "bpmn-annotation" || shape === "bpmn-group";
+
+/** Put a newly drawn element where BPMN wants it in its container: annotations
+ *  and groups in `artifacts`, data input / output in the `ioSpecification`, a
+ *  data object reference next to the DataObject it points at; the rest in
+ *  `flowElements`. */
+function addToContainer(m: BpmnModdle, defs: ModdleElement, container: ModdleElement, n: CanvasModel["nodes"][number], fe: ModdleElement): void {
+  if (isArtifactShape(n.shape)) {
+    (container.artifacts ??= []).push(fe);
+    if (n.shape === "bpmn-group") setGroupLabel(m, defs, fe, n.label ?? "");
+    return;
+  }
+  if (n.shape === "bpmn-data-input" || n.shape === "bpmn-data-output") {
+    const c = container as ModdleElement & { ioSpecification?: ModdleElement & { dataInputs?: ModdleElement[]; dataOutputs?: ModdleElement[]; inputSets?: ModdleElement[]; outputSets?: ModdleElement[] } };
+    const io = (c.ioSpecification ??= m.create("bpmn:InputOutputSpecification", { id: `${container.id}_io`, dataInputs: [], dataOutputs: [] }) as never);
+    if (n.shape === "bpmn-data-input") (io.dataInputs ??= []).push(fe); else (io.dataOutputs ??= []).push(fe);
+    // BPMN asks for one input set and one output set listing them.
+    io.inputSets = [m.create("bpmn:InputSet", { dataInputRefs: io.dataInputs ?? [] }) as ModdleElement];
+    io.outputSets = [m.create("bpmn:OutputSet", { dataOutputRefs: io.dataOutputs ?? [] }) as ModdleElement];
+    return;
+  }
+  if (n.shape === "bpmn-data-object" || n.shape === "bpmn-data-collection") {
+    const dataObject = m.create("bpmn:DataObject", { id: `${n.id}_object`, ...(n.shape === "bpmn-data-collection" ? { isCollection: true } : {}) }) as ModdleElement;
+    (fe as ModdleElement & { dataObjectRef?: ModdleElement }).dataObjectRef = dataObject;
+    (container.flowElements ??= []).push(dataObject);
+  }
+  (container.flowElements ??= []).push(fe);
+}
+
+/** A group's label lives in a CategoryValue (BPMN has no name on bpmn:Group). */
+function setGroupLabel(m: BpmnModdle, defs: ModdleElement, group: ModdleElement, label: string): void {
+  const g = group as ModdleElement & { categoryValueRef?: ModdleElement & { value?: string } };
+  if (g.categoryValueRef) { g.categoryValueRef.value = label; return; }
+  if (!label) return;
+  const cv = m.create("bpmn:CategoryValue", { id: `${group.id}_value`, value: label }) as ModdleElement;
+  const cat = m.create("bpmn:Category", { id: `${group.id}_category`, categoryValue: [cv] }) as ModdleElement;
+  (defs.rootElements ??= []).push(cat);
+  g.categoryValueRef = cv;
+}
+
 /** Put every DI shape / edge on its plane — children of a collapsed sub-process
  *  on that sub-process's plane (BPMN drill-down), the rest on the main plane —
  *  and drop sub-planes left empty (the sub-process was expanded or deleted). */
@@ -164,8 +234,10 @@ function bpmnTypeForEdgeKind(kind: EdgeKind): string {
 function applyEdgeExtras(m: BpmnModdle, fe: ModdleElement, kind: EdgeKind, attrs: CanvasModel["edges"][number]["attrs"] | undefined): void {
   if (kind === "sequence") {
     if (attrs?.condition) {
-      const ce = m.create("bpmn:FormalExpression", { body: attrs.condition }) as ModdleElement;
-      fe.conditionExpression = ce;
+      // Keep the existing expression (its language) — only its text changes.
+      const ce = fe.conditionExpression as (ModdleElement & { body?: string }) | undefined;
+      if (ce) ce.body = attrs.condition;
+      else fe.conditionExpression = m.create("bpmn:FormalExpression", { body: attrs.condition }) as ModdleElement;
     } else {
       // Strip prior condition if it was removed.
       delete fe.conditionExpression;
@@ -195,33 +267,37 @@ function findCollaboration(defs: ModdleElement): ModdleElement | null {
  *  + triggeredByEvent + isCollection onto a freshly-created or patched moddle element.
  *  Đợt F. */
 function applyBpmnExtras(m: BpmnModdle, fe: ModdleElement, shape: string, attrs: BpmnNodeAttrs): void {
-  // Event trigger → <bpmn:xxxEventDefinition/> (idempotent; replaces existing if present)
-  if (attrs.trigger && TRIGGER_TO_EVENT_DEF[attrs.trigger]) {
-    const defName = TRIGGER_TO_EVENT_DEF[attrs.trigger];
-    const defType = "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1);
-    const def = m.create(defType, {}) as ModdleElement;
-    (fe as ModdleElement & { eventDefinitions?: ModdleElement[] }).eventDefinitions = [def];
+  // Each part below keeps what the file already has when the Board still asks
+  // for the same thing (timer value, messageRef, loop cardinality …), replaces
+  // it when the Board changed it, and removes it when the Board dropped it.
+  const el = fe as ModdleElement & {
+    eventDefinitions?: ModdleElement[]; loopCharacteristics?: ModdleElement & { isSequential?: boolean };
+    isForCompensation?: boolean; isInterrupting?: boolean; cancelActivity?: boolean;
+  };
+  // Event trigger → <bpmn:xxxEventDefinition/>
+  if (/^bpmn-event-(start|intermediate|end)/.test(shape)) {
+    const defName = attrs.trigger ? TRIGGER_TO_EVENT_DEF[attrs.trigger] : undefined;
+    const defType = defName ? "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1) : undefined;
+    if (!defType) delete el.eventDefinitions;
+    else if (el.eventDefinitions?.[0]?.$type !== defType) el.eventDefinitions = [m.create(defType, {}) as ModdleElement];
   }
   // Loop / multi-instance
   const markers = attrs.markers ?? [];
-  if (markers.includes("mi-par") || markers.includes("mi-seq")) {
-    const loop = m.create("bpmn:MultiInstanceLoopCharacteristics", { isSequential: markers.includes("mi-seq") }) as ModdleElement;
-    (fe as ModdleElement & { loopCharacteristics?: ModdleElement }).loopCharacteristics = loop;
-  } else if (markers.includes("loop")) {
-    const loop = m.create("bpmn:StandardLoopCharacteristics", {}) as ModdleElement;
-    (fe as ModdleElement & { loopCharacteristics?: ModdleElement }).loopCharacteristics = loop;
+  const loopType = markers.includes("mi-par") || markers.includes("mi-seq") ? "bpmn:MultiInstanceLoopCharacteristics"
+    : markers.includes("loop") ? "bpmn:StandardLoopCharacteristics" : undefined;
+  if (!loopType) delete el.loopCharacteristics;
+  else if (el.loopCharacteristics?.$type !== loopType) el.loopCharacteristics = m.create(loopType, {}) as ModdleElement;
+  if (loopType === "bpmn:MultiInstanceLoopCharacteristics") {
+    if (markers.includes("mi-seq")) el.loopCharacteristics!.isSequential = true;
+    else delete el.loopCharacteristics!.isSequential;
   }
-  if (markers.includes("compensation")) {
-    (fe as ModdleElement & { isForCompensation?: boolean }).isForCompensation = true;
-  }
-  // Interrupting (event-subprocess start + boundary)
-  if (attrs.interrupting === false) {
-    if (shape === "bpmn-event-start") {
-      (fe as ModdleElement & { isInterrupting?: boolean }).isInterrupting = false;
-    } else {
-      // boundary uses cancelActivity (true=interrupting per spec; false=non-interrupting)
-      (fe as ModdleElement & { cancelActivity?: boolean }).cancelActivity = false;
-    }
+  if (markers.includes("compensation")) el.isForCompensation = true;
+  else delete el.isForCompensation;
+  // Interrupting (event-subprocess start: isInterrupting; boundary: cancelActivity)
+  if (shape === "bpmn-event-start") {
+    if (attrs.interrupting === false) el.isInterrupting = false; else delete el.isInterrupting;
+  } else if (shape === "bpmn-event-intermediate") {
+    if (attrs.interrupting === false && attrs.attachedTo) el.cancelActivity = false; else delete el.cancelActivity;
   }
   // Boundary attachment
   if (attrs.attachedTo) {
@@ -231,18 +307,19 @@ function applyBpmnExtras(m: BpmnModdle, fe: ModdleElement, shape: string, attrs:
   if (shape === "bpmn-event-subprocess") {
     (fe as ModdleElement & { triggeredByEvent?: boolean }).triggeredByEvent = true;
   }
-  // Collection flag for data object collection
-  if (shape === "bpmn-data-collection") {
-    (fe as ModdleElement & { isCollection?: boolean }).isCollection = true;
+  // Collection flag: on the DataObject the reference points at (BPMN), not the reference.
+  const dataObject = (fe as ModdleElement & { dataObjectRef?: ModdleElement & { isCollection?: boolean } }).dataObjectRef;
+  if (dataObject && typeof dataObject === "object") {
+    if (shape === "bpmn-data-collection") dataObject.isCollection = true;
+    else if (shape === "bpmn-data-object") delete dataObject.isCollection;
   }
-  // Phase D — documentation text.
-  if (typeof attrs.bpmnDoc === "string" && attrs.bpmnDoc.trim()) {
-    const doc = m.create("bpmn:Documentation", { text: attrs.bpmnDoc.trim() }) as ModdleElement;
-    (fe as ModdleElement & { documentation?: ModdleElement[] }).documentation = [doc];
-  } else {
-    // Clear stale documentation when user deleted the text.
-    delete (fe as ModdleElement & { documentation?: unknown }).documentation;
-  }
+  // Phase D — documentation: the Board edits the first one only; keep the rest.
+  const docEl = fe as ModdleElement & { documentation?: Array<ModdleElement & { text?: string }> };
+  const rest = (docEl.documentation ?? []).slice(1);
+  const text = typeof attrs.bpmnDoc === "string" ? attrs.bpmnDoc.trim() : "";
+  const first = text ? [m.create("bpmn:Documentation", { text }) as ModdleElement] : [];
+  if (first.length || rest.length) docEl.documentation = [...first, ...rest];
+  else delete docEl.documentation;
   // Phase D — Camunda extensionElements. We preserve the raw extensionElements
   // from the source XML (bpmn-moddle keeps unknown namespaces intact), so here
   // we only need to UPDATE the known scalar fields when the user changed them.
@@ -509,8 +586,9 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     }
   }
 
-  // Find the first root process (most BPMN docs have exactly one).
-  const process = (definitions.rootElements ?? []).find((r) => r.$type === "bpmn:Process") ?? null;
+  // Every root process (one per white-box pool); the first is the fallback.
+  const processes = (definitions.rootElements ?? []).filter((r) => r.$type === "bpmn:Process");
+  const process = processes[0] ?? null;
   if (!process) throw new Error("BPMN export: source document has no bpmn:Process.");
 
   // Index existing flow elements by id so we can patch/drop/keep.
@@ -525,10 +603,14 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       if (fe.flowElements) collect(fe);
     }
     for (const ar of parent.artifacts ?? []) {
-      if (ar.id && ar.$type === "bpmn:Association") { flowById.set(ar.id, ar); containerOf.set(ar.id, parent); }
+      if (ar.id && /Association|TextAnnotation|Group/.test(ar.$type)) { flowById.set(ar.id, ar); containerOf.set(ar.id, parent); }
+    }
+    const io = (parent as { ioSpecification?: { dataInputs?: ModdleElement[]; dataOutputs?: ModdleElement[] } }).ioSpecification;
+    for (const d of [...(io?.dataInputs ?? []), ...(io?.dataOutputs ?? [])]) {
+      if (d.id) { flowById.set(d.id, d); containerOf.set(d.id, parent); }
     }
   };
-  collect(process);
+  processes.forEach(collect);
   // MessageFlows live on the Collaboration root, not the Process.
   const collaboration = findCollaboration(definitions);
   if (collaboration) {
@@ -539,7 +621,8 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
 
   const modelNodeIds = new Set(model.nodes.map((n) => n.id));
   const endpointIds = new Set<string>(flowById.keys());
-  for (const ar of process.artifacts ?? []) if (ar.id) endpointIds.add(ar.id);
+  for (const pr of processes) for (const ar of pr.artifacts ?? []) if (ar.id) endpointIds.add(ar.id);
+  const owningProcess = processOwner(model, processes, collaboration);
   for (const p of collaboration?.participants ?? []) if (p.id) endpointIds.add(p.id);
   // Keep only edges whose endpoints still exist either in the current canvas
   // nodes or as preserved BPMN endpoints from the source XML (e.g. imported
@@ -576,7 +659,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     // (rare; only when caller emits children before their container), the
     // fallback is still safe because the next outer-iteration patch will
     // relocate anything mis-rooted.
-    const targetContainer: ModdleElement = (n.parentId && flowById.get(n.parentId)) || process;
+    const targetContainer: ModdleElement = (n.parentId && flowById.get(n.parentId)) || owningProcess(n);
     let di = diShape.get(n.id);
     if (di?.bounds) {
       di.bounds.x = n.x; di.bounds.y = n.y; di.bounds.width = n.width; di.bounds.height = n.height;
@@ -597,7 +680,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     } else {
       const fe = m.create(shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs), n.shape === "bpmn-annotation" ? { id: n.id, text: n.label ?? "" } : n.shape === "bpmn-group" ? { id: n.id } : { id: n.id, name: n.label ?? "" }) as ModdleElement;
       applyBpmnExtras(m, fe, n.shape, (n.attrs ?? {}) as BpmnNodeAttrs);
-      (targetContainer.flowElements ??= []).push(fe);
+      addToContainer(m, definitions, targetContainer, n, fe);
       flowById.set(n.id, fe);
       containerOf.set(n.id, targetContainer);
       di = m.create("bpmndi:BPMNShape", {
@@ -624,7 +707,8 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       flowById.set(n.id, sub);
       existing = sub;
     }
-    if (existing && curContainer && curContainer !== targetContainer) {
+    // (Artifacts and ioSpecification data stay where the file has them.)
+    if (existing && curContainer && curContainer !== targetContainer && curContainer.flowElements?.includes(existing)) {
       curContainer.flowElements = (curContainer.flowElements ?? []).filter((fe) => fe.id !== n.id);
       (targetContainer.flowElements ??= []).push(existing);
       containerOf.set(n.id, targetContainer);
@@ -633,7 +717,9 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     // re-export when user adds a trigger/marker after import.
     if (existing) {
       if (typeof n.label === "string") {
-        if (n.shape === "bpmn-annotation") (existing as { text?: string }).text = n.label; else if (n.shape !== "bpmn-group") existing.name = n.label;
+        if (n.shape === "bpmn-annotation") (existing as { text?: string }).text = n.label;
+        else if (n.shape === "bpmn-group") setGroupLabel(m, definitions, existing, n.label);
+        else existing.name = n.label;
       }
       applyBpmnExtras(m, existing, n.shape, (n.attrs ?? {}) as BpmnNodeAttrs);
     }
@@ -655,11 +741,9 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     if (src) referenced.add(src);
     if (tgt) referenced.add(tgt);
   };
-  for (const fe of process.flowElements ?? []) {
-    if (fe.$type === "bpmn:SequenceFlow") collectRefs(fe);
-  }
-  for (const ar of process.artifacts ?? []) {
-    if (ar.$type === "bpmn:Association") collectRefs(ar);
+  for (const pr of processes) {
+    for (const fe of pr.flowElements ?? []) if (fe.$type === "bpmn:SequenceFlow") collectRefs(fe);
+    for (const ar of pr.artifacts ?? []) if (ar.$type === "bpmn:Association") collectRefs(ar);
   }
   if (collaboration) {
     for (const mf of collaboration.messageFlows ?? []) collectRefs(mf);
@@ -668,17 +752,25 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
   // Phase B — drop deleted flow elements recursively through nested
   // subprocesses (not only at top level). Otherwise a node deleted from
   // inside a subProcess would survive the export.
+  const survives = (fe: ModdleElement): boolean => modelNodeIds.has(fe.id!) || referenced.has(fe.id!);
   const filterFlowElements = (parent: ModdleElement): void => {
-    parent.flowElements = (parent.flowElements ?? []).filter((fe) => {
+    const kept = (parent.flowElements ?? []).filter((fe) => {
       if (fe.$type === "bpmn:SequenceFlow") return modelSequenceEdgeIds.has(fe.id!);
-      const survives = modelNodeIds.has(fe.id!) || referenced.has(fe.id!);
-      return survives;
+      return fe.$type === "bpmn:DataObject" || survives(fe);   // DataObjects: below
     });
+    // A DataObject stays while a surviving reference still points at it.
+    const used = new Set(kept.map((fe) => refIdOf((fe as { dataObjectRef?: ModdleElement }).dataObjectRef)));
+    parent.flowElements = kept.filter((fe) => fe.$type !== "bpmn:DataObject" || used.has(fe.id) || survives(fe));
+    const io = (parent as { ioSpecification?: { dataInputs?: ModdleElement[]; dataOutputs?: ModdleElement[] } }).ioSpecification;
+    if (io) {
+      if (io.dataInputs) io.dataInputs = io.dataInputs.filter(survives);
+      if (io.dataOutputs) io.dataOutputs = io.dataOutputs.filter(survives);
+    }
     for (const fe of parent.flowElements) {
       if (fe.flowElements) filterFlowElements(fe);
     }
   };
-  filterFlowElements(process);
+  processes.forEach(filterFlowElements);
   // Phase B — rebuild every Lane's flowNodeRef from the model's laneId field.
   // The exporter is the single source of truth: any stale ref in the source
   // XML is dropped, and every node with laneId set is added to its lane.
@@ -697,14 +789,14 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     const refsOf = (laneId: string) => (byLaneId.get(laneId) ?? [])
       .map((id) => flowById.get(id))
       .filter((fe): fe is ModdleElement => !!fe);
-    for (const ls of process.laneSets ?? []) fillLaneRefs(ls.lanes, refsOf);
+    for (const pr of processes) for (const ls of pr.laneSets ?? []) fillLaneRefs(ls.lanes, refsOf);
   }
-  // Filter artifacts (Associations + TextAnnotation + Group). Keep Associations
-  // only if still in the model; keep non-Association artifacts verbatim
-  // (TextAnnotation/Group survive even if Omniboard doesn't track them yet).
-  if (process.artifacts) {
-    process.artifacts = process.artifacts.filter((ar) => {
+  // Filter artifacts: Associations still in the model; annotations / groups
+  // still on the Board (the importer maps them to nodes); anything else verbatim.
+  for (const pr of processes.filter((x) => x.artifacts)) {
+    pr.artifacts = pr.artifacts!.filter((ar) => {
       if (ar.$type === "bpmn:Association") return modelAssociationEdgeIds.has(ar.id!);
+      if (ar.$type === "bpmn:TextAnnotation" || ar.$type === "bpmn:Group") return survives(ar);
       return true;
     });
   }
@@ -737,6 +829,12 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
   //      the swimlane correctly (parent-first order + exact lane tiling).
   emitPoolLaneShapes(model, definitions, process, mainPlane, diShape, m);
 
+  // Root process an element sits in (through any sub-processes).
+  const rootProcessOf = (id: string): ModdleElement => {
+    let c = containerOf.get(id);
+    for (let i = 0; c && c.$type !== "bpmn:Process" && i < 64; i++) c = containerOf.get(c.id!);
+    return c ?? process;
+  };
   // (2) Patch edges — waypoints from model.vertices (+ endpoint anchors derived
   //     from node bounds). Add new ones; drop deleted (already handled above).
   for (const e of validModelEdges) {
@@ -771,15 +869,16 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       if (kind === "message") {
         if (!collaboration) {
           // (Round-trip will downgrade kind on next import.)
-          (process.flowElements ??= []).push(sf);
+          (rootProcessOf(e.source).flowElements ??= []).push(sf);
         } else {
           (collaboration.messageFlows ??= []).push(sf);
         }
       } else if (kind === "association") {
-        (process.artifacts ??= []).push(sf);
+        (rootProcessOf(e.source).artifacts ??= []).push(sf);
       } else {
-        (process.flowElements ??= []).push(sf);
+        (rootProcessOf(e.source).flowElements ??= []).push(sf);
       }
+      containerOf.set(e.id, kind === "message" && collaboration ? collaboration : rootProcessOf(e.source));
       flowById.set(e.id, sf);
     } else if (typeof e.label === "string" && kind !== "association") {
       // Associations carry no `name`; re-export must not re-stamp one.
@@ -825,9 +924,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     const p = parentOf.get(e.source);
     const home = p && p === parentOf.get(e.target) ? flowById.get(p) : undefined;
     const cur = containerOf.get(e.id) ?? process;
-    let up = cur;
-    while (up.$type !== "bpmn:Process" && containerOf.get(up.id!)) up = containerOf.get(up.id!)!;
-    const target = home ?? up;
+    const target = home ?? rootProcessOf(e.source);
     if (target === cur) continue;
     cur.flowElements = (cur.flowElements ?? []).filter((fe) => fe !== sf);
     (target.flowElements ??= []).push(sf);
@@ -1299,8 +1396,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     if (n.shape === "bpmn-pool" || n.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const fe = feById.get(n.id)!;
     const parent = n.parentId ? feById.get(n.parentId) : undefined;
-    const container = parent ?? findOwningProcess(n);
-    (container.flowElements ??= []).push(fe);
+    addToContainer(m, defs, parent ?? findOwningProcess(n), n, fe);
   }
   // Backfill flowNodeRef on every Lane across every process.
   const allProcesses = multiPool ? [...processByPoolId.values()] : [process];

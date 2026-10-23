@@ -72867,6 +72867,7 @@
       ensureSeqConnector();
       ensureMindmapConnector();
       this.graph = this.initGraph();
+      this.guardRenderQueue();
       if (this.isMobile) {
         this.buildMobileToolbar();
       } else {
@@ -76714,8 +76715,44 @@
       edge.setConnector("mm-edge");
     }
     // ── Model load / serialize ───────────────────────────────────────────────
+    /**
+     * X6's async render loop (JobQueue.flushJobs) has no try/catch: one render
+     * job that throws leaves the queue marked "flushing" forever, so nothing new
+     * is ever drawn again (cells reach the model, never the screen) — a frozen
+     * canvas. Keep the loop alive: log the error and carry on with the rest.
+     */
+    guardRenderQueue() {
+      const q3 = this.graph.renderer?.schedule?.queue;
+      if (!q3 || typeof q3.flushJobs !== "function") return;
+      const flush = q3.flushJobs.bind(q3);
+      q3.flushJobs = () => {
+        try {
+          flush();
+        } catch (err2) {
+          console.error("[omniboard] X6 render job failed; rendering continues", err2);
+          q3.isFlushing = false;
+          if (q3.queue.length) q3.queueFlush();
+        }
+      };
+    }
+    /**
+     * Run X6's queued (async) render jobs now. A load that lands while the
+     * previous load's cells are still waiting to render (board opening:
+     * mount + onCanvasReady; file reloaded from disk) would otherwise clear
+     * those cells first; their render jobs still run afterwards and throw for an
+     * edge whose source node is gone ("Edge's source node … not exists").
+     * X6's async flush has no try/catch, so that throw leaves its queue stuck
+     * "flushing" and X6 never renders again — the canvas freezes and stops
+     * answering clicks / right-clicks. (`queueFlushSync` is a no-op while an
+     * async flush is pending, hence flushJobsSync.)
+     */
+    flushPendingRender() {
+      const queue = this.graph.renderer?.schedule?.queue;
+      queue?.flushJobsSync?.();
+    }
     loadModel(model, opts) {
       model = this.dedupeLaneIdsAcrossPools(model);
+      this.flushPendingRender();
       this.graph.clearCells();
       this.graph.startBatch("load");
       for (const n2 of model.nodes) {

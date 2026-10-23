@@ -408,6 +408,7 @@ export class OmniboardCanvas {
     ensureSeqConnector();
     ensureMindmapConnector();
     this.graph = this.initGraph();
+    this.guardRenderQueue();
     if (this.isMobile) {
       // Excalidraw-style single bottom bar (thumb zone); no left rail / zoom +/-.
       this.buildMobileToolbar();
@@ -4159,6 +4160,44 @@ export class OmniboardCanvas {
   }
 
   // ── Model load / serialize ───────────────────────────────────────────────
+  /**
+   * X6's async render loop (JobQueue.flushJobs) has no try/catch: one render
+   * job that throws leaves the queue marked "flushing" forever, so nothing new
+   * is ever drawn again (cells reach the model, never the screen) — a frozen
+   * canvas. Keep the loop alive: log the error and carry on with the rest.
+   */
+  private guardRenderQueue(): void {
+    type Queue = { flushJobs: () => void; isFlushing: boolean; queue: unknown[]; queueFlush: () => void };
+    const q = (this.graph as unknown as { renderer?: { schedule?: { queue?: Queue } } }).renderer?.schedule?.queue;
+    if (!q || typeof q.flushJobs !== "function") return;
+    const flush = q.flushJobs.bind(q);
+    q.flushJobs = () => {
+      try { flush(); }
+      catch (err) {
+        console.error("[omniboard] X6 render job failed; rendering continues", err);
+        q.isFlushing = false;
+        if (q.queue.length) q.queueFlush();
+      }
+    };
+  }
+
+  /**
+   * Run X6's queued (async) render jobs now. A load that lands while the
+   * previous load's cells are still waiting to render (board opening:
+   * mount + onCanvasReady; file reloaded from disk) would otherwise clear
+   * those cells first; their render jobs still run afterwards and throw for an
+   * edge whose source node is gone ("Edge's source node … not exists").
+   * X6's async flush has no try/catch, so that throw leaves its queue stuck
+   * "flushing" and X6 never renders again — the canvas freezes and stops
+   * answering clicks / right-clicks. (`queueFlushSync` is a no-op while an
+   * async flush is pending, hence flushJobsSync.)
+   */
+  private flushPendingRender(): void {
+    const queue = (this.graph as unknown as { renderer?: { schedule?: { queue?: { flushJobsSync?: () => void } } } })
+      .renderer?.schedule?.queue;
+    queue?.flushJobsSync?.();
+  }
+
   loadModel(model: CanvasModel, opts?: { keepView?: boolean }) {
     // Migration: legacy pool defaults hardcoded lane id "l1", so files with
     // ≥2 pools have duplicate lane ids across pools. exportBpmn dồn lanes
@@ -4167,6 +4206,7 @@ export class OmniboardCanvas {
     // emit unique ids. Children's `data.laneId` is recomputed by spatial
     // overlap during `getModel()`, so we only need to rename pool lanes.
     model = this.dedupeLaneIdsAcrossPools(model);
+    this.flushPendingRender();
     this.graph.clearCells();
     this.graph.startBatch("load");
     for (const n of model.nodes) {

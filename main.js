@@ -83293,6 +83293,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     ensureSeqConnector();
     ensureMindmapConnector();
     this.graph = this.initGraph();
+    this.guardRenderQueue();
     if (this.isMobile) {
       this.buildMobileToolbar();
     } else {
@@ -87228,9 +87229,47 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     edge.setConnector("mm-edge");
   }
   // ── Model load / serialize ───────────────────────────────────────────────
+  /**
+   * X6's async render loop (JobQueue.flushJobs) has no try/catch: one render
+   * job that throws leaves the queue marked "flushing" forever, so nothing new
+   * is ever drawn again (cells reach the model, never the screen) — a frozen
+   * canvas. Keep the loop alive: log the error and carry on with the rest.
+   */
+  guardRenderQueue() {
+    var _a3, _b2;
+    const q5 = (_b2 = (_a3 = this.graph.renderer) == null ? void 0 : _a3.schedule) == null ? void 0 : _b2.queue;
+    if (!q5 || typeof q5.flushJobs !== "function") return;
+    const flush = q5.flushJobs.bind(q5);
+    q5.flushJobs = () => {
+      try {
+        flush();
+      } catch (err2) {
+        console.error("[omniboard] X6 render job failed; rendering continues", err2);
+        q5.isFlushing = false;
+        if (q5.queue.length) q5.queueFlush();
+      }
+    };
+  }
+  /**
+   * Run X6's queued (async) render jobs now. A load that lands while the
+   * previous load's cells are still waiting to render (board opening:
+   * mount + onCanvasReady; file reloaded from disk) would otherwise clear
+   * those cells first; their render jobs still run afterwards and throw for an
+   * edge whose source node is gone ("Edge's source node … not exists").
+   * X6's async flush has no try/catch, so that throw leaves its queue stuck
+   * "flushing" and X6 never renders again — the canvas freezes and stops
+   * answering clicks / right-clicks. (`queueFlushSync` is a no-op while an
+   * async flush is pending, hence flushJobsSync.)
+   */
+  flushPendingRender() {
+    var _a3, _b2, _c;
+    const queue = (_b2 = (_a3 = this.graph.renderer) == null ? void 0 : _a3.schedule) == null ? void 0 : _b2.queue;
+    (_c = queue == null ? void 0 : queue.flushJobsSync) == null ? void 0 : _c.call(queue);
+  }
   loadModel(model, opts) {
     var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l;
     model = this.dedupeLaneIdsAcrossPools(model);
+    this.flushPendingRender();
     this.graph.clearCells();
     this.graph.startBatch("load");
     for (const n4 of model.nodes) {

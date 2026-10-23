@@ -64,6 +64,39 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     return `grab Ø ${Math.round(r.width)}px`;
   });
 
+  await run('two loads in a row (board opened / file reloaded) never freeze rendering', async () => {
+    // X6 renders asynchronously. A load right after another one used to leave
+    // the previous edges' render jobs queued; they ran after the cells were
+    // cleared and threw for an edge whose source node is gone — which stopped
+    // X6 rendering for good (canvas frozen, right-click dead).
+    const errs = []; const onErr = (e) => errs.push(e.message);
+    window.addEventListener('error', onErr);
+    window.__ob.loadModel({ nodes: [t('n1', 100, 100), t('n2', 300, 100)], edges: [{ id: 'f1', source: 'n1', target: 'n2' }] });
+    window.__ob.loadModel({ nodes: [t('m1', 100, 300), t('n2', 300, 100)], edges: [{ id: 'f1', source: 'm1', target: 'n2' }] });
+    await tick(300);
+    window.__ob.loadModel({ nodes: [t('alive', 500, 300)], edges: [] });
+    await tick(300);
+    window.removeEventListener('error', onErr);
+    assert(!errs.length, 'render error: ' + errs[0]);
+    assert(document.querySelector('[data-cell-id="alive"]'), 'canvas stopped rendering');
+  });
+
+  await run('one failing render job never stops later rendering', async () => {
+    window.__ob.loadModel({ nodes: [t('mover', 300, 300)], edges: [] });
+    await tick(300);
+    const queue = window.__ob.graph.renderer.schedule.queue;
+    const onErr = (e) => e.preventDefault();
+    window.addEventListener('error', onErr);
+    queue.queueJob({ id: 'boom', priority: 1 << 1, cb: () => { throw new Error('test: bad render job'); } });
+    queue.queueFlush();
+    await tick(100);
+    // an ordinary edit (no loadModel) must still reach the screen
+    g().addNode({ id: 'added-later', shape: 'rect', x: 600, y: 100, width: 40, height: 40 });
+    await tick(300);
+    window.removeEventListener('error', onErr);
+    assert(document.querySelector('[data-cell-id="added-later"]'), 'canvas stopped rendering after a failing job (stuck: ' + queue.isFlushing + ')');
+  });
+
   const failed = results.filter(r => !r.ok).length;
   w(failed ? `${failed} FAILED` : 'ALL PASS', failed ? 'fail' : 'pass');
   window.__results = results;

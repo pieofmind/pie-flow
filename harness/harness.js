@@ -70598,17 +70598,32 @@
   // src/canvas/boundaryLayout.ts
   var clamp2 = (v4, lo, hi) => Math.min(Math.max(v4, lo), hi);
   var centreOf = (b2) => ({ x: b2.x + b2.width / 2, y: b2.y + b2.height / 2 });
-  function hostSide(event, host2) {
+  function edgeDistances(event, host2) {
     const c4 = centreOf(event);
     const along = (v4, lo, hi) => v4 - clamp2(v4, lo, hi);
     const dist = (dx, dy) => Math.hypot(dx, dy);
-    const d2 = {
+    return {
       top: dist(along(c4.x, host2.x, host2.x + host2.width), c4.y - host2.y),
       bottom: dist(along(c4.x, host2.x, host2.x + host2.width), c4.y - (host2.y + host2.height)),
       left: dist(c4.x - host2.x, along(c4.y, host2.y, host2.y + host2.height)),
       right: dist(c4.x - (host2.x + host2.width), along(c4.y, host2.y, host2.y + host2.height))
     };
+  }
+  function hostSide(event, host2) {
+    const d2 = edgeDistances(event, host2);
     return Object.keys(d2).reduce((best, s3) => d2[s3] < d2[best] ? s3 : best, "top");
+  }
+  function distanceToBorder(event, host2) {
+    return Math.min(...Object.values(edgeDistances(event, host2)));
+  }
+  var ATTACH_DISTANCE = 30;
+  function pickHost(event, hosts, maxDist = ATTACH_DISTANCE) {
+    let best = null;
+    for (const h3 of hosts) {
+      const d2 = distanceToBorder(event, h3.box);
+      if (d2 <= maxDist && (!best || d2 < best.d)) best = { id: h3.id, d: d2 };
+    }
+    return best?.id ?? null;
   }
   function placeOn(event, host2, side, t3) {
     const horizontal = side === "top" || side === "bottom";
@@ -74211,6 +74226,9 @@
         this.refreshMindmapFabs();
         this.refreshContextPad();
       });
+      this.graph.on("node:moved", ({ node: node2 }) => {
+        this.settleBoundaryEvent(node2);
+      });
       this.graph.on("node:moved", () => {
         this.refreshContextBar();
         this.refreshProps();
@@ -76243,7 +76261,7 @@
     toggleBoundaryAttach(node2) {
       const data2 = node2.getData() ?? {};
       if (data2.attachedTo) {
-        node2.setData({ ...data2, attachedTo: void 0 });
+        node2.setData({ ...data2, attachedTo: void 0 }, { deep: false });
         this.rerender(node2);
         this.onChange();
         this.refreshContextBar();
@@ -77051,9 +77069,32 @@
       const hostId = node2.getData()?.attachedTo;
       const host2 = hostId ? this.graph.getCellById(hostId) : null;
       if (!host2 || !host2.isNode()) return;
+      if (distanceToBorder(this.boxOf(node2), this.boxOf(host2)) > ATTACH_DISTANCE) return;
       const p4 = snapToHostBorder(this.boxOf(node2), this.boxOf(host2));
       const cur = node2.getPosition();
       if (p4.x !== cur.x || p4.y !== cur.y) node2.setPosition(p4.x, p4.y, { "__boundary_follow": true });
+    }
+    /** A boundary event was dropped: onto (near) an activity's border → attach
+     *  to that activity, like bpmn-js; clear of every activity → detach.
+     *  Free events are never auto-attached (use the attach toggle). */
+    settleBoundaryEvent(node2) {
+      const cur = node2.getData()?.attachedTo;
+      if (!cur) return;
+      const hosts = this.graph.getNodes().filter((n2) => n2.id !== node2.id && BPMN_ACTIVITY_KINDS.has(this.nodeKind(n2))).map((n2) => ({ id: n2.id, box: this.boxOf(n2) }));
+      const next = pickHost(this.boxOf(node2), hosts);
+      if (next !== cur) node2.setData({ ...node2.getData(), attachedTo: next ?? void 0 }, { deep: false });
+      const host2 = next ? this.graph.getCellById(next) : null;
+      if (host2 && host2.isNode()) {
+        const p4 = snapToHostBorder(this.boxOf(node2), this.boxOf(host2));
+        node2.setPosition(p4.x, p4.y, { "__boundary_follow": true });
+        this.raiseBoundaryEvents();
+      }
+      if (next !== cur) {
+        this.rerender(node2);
+        this.refreshContextBar();
+        this.onChange();
+      }
+      this.refreshBpmnEventLabels();
     }
     /** Boundary events must paint above their host, or the host hides them. */
     raiseBoundaryEvents() {

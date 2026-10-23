@@ -6,7 +6,7 @@
  *  - the label goes outside the host so it never covers the host's name.
  */
 import { describe, it, expect } from "vitest";
-import { snapToHostBorder, followHost, hostSide, eventLabelSide } from "../../src/canvas/boundaryLayout";
+import { snapToHostBorder, followHost, hostSide, eventLabelSide, distanceToBorder, pickHost, ATTACH_DISTANCE } from "../../src/canvas/boundaryLayout";
 import { exportBpmn } from "../../src/io/bpmn/export";
 import { importBpmn } from "../../src/io/bpmn/import";
 import { renderModelToCard } from "../../src/canvas/staticRender";
@@ -29,6 +29,27 @@ describe("snapToHostBorder", () => {
   it("clamps the slide to the edge's length", () => {
     // dragged far past the bottom-right corner → corner
     expect(centre({ ...ev(0, 0), ...snapToHostBorder(ev(1200, 900), host) })).toEqual({ x: 940, y: 840 });
+  });
+});
+
+describe("re-attaching / detaching by dragging", () => {
+  const other = { x: 1100, y: 760, width: 120, height: 80 };
+  const hosts = [{ id: "sub", box: host }, { id: "other", box: other }];
+
+  it("distance from the event centre to a host's border", () => {
+    expect(distanceToBorder(ev(880, 760), host)).toBe(0);      // on the top edge
+    expect(distanceToBorder(ev(880, 720), host)).toBe(40);     // 40 above it
+    expect(distanceToBorder(ev(880, 800), host)).toBe(40);     // inside, 40 from top / bottom
+  });
+
+  it("dropped near a host's border → that host (the nearest one)", () => {
+    expect(pickHost(ev(880, 845), hosts)).toBe("sub");
+    expect(pickHost(ev(1100 + 10, 800), hosts)).toBe("other");
+  });
+
+  it("dropped clear of every host → none (detach)", () => {
+    expect(pickHost(ev(1000, 600), hosts)).toBeNull();
+    expect(pickHost(ev(880, 760 - ATTACH_DISTANCE - 1), hosts)).toBeNull();
   });
 });
 

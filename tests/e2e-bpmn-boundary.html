@@ -87,11 +87,30 @@ const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bot
   });
 
   await run('dragging the event slides it along the host border', async () => {
-    const ev = cell('evt_msg');
-    ev.setPosition(700, 100, { ui: true, translateBy: 'evt_msg' });   // far to the top-right
+    const ev = cell('evt_msg'), s = box('sub');
+    // 15px right of the host's right edge, near its top → onto the right edge
+    ev.setPosition(s.x + s.width + 15 - 18, s.y + 15 - 18, { ui: true, translateBy: 'evt_msg' });
     await tick();
-    const c = centre(box('evt_msg')), s = box('sub');
-    assert(c.x === s.x + s.width && c.y === s.y, `msg centre ${c.x},${c.y} not at the host's top-right corner`);
+    const c = centre(box('evt_msg'));
+    assert(c.x === s.x + s.width && c.y === s.y + 15, `msg centre ${c.x},${c.y} not on the right edge`);
+  });
+
+  await run('dropped on another activity border it re-attaches there; dropped clear it detaches', async () => {
+    const ev = cell('evt_msg');
+    const t = box('task');
+    // drag the event onto the task's top edge (centre 20px above it is within reach)
+    ev.setPosition(t.x + 40 - 18, t.y - 20 - 18, { ui: true, translateBy: 'evt_msg' });
+    g().trigger('node:moved', { node: ev, cell: ev });
+    await tick();
+    assert(ev.getData().attachedTo === 'task', 'attachedTo ' + ev.getData().attachedTo);
+    assert(centre(box('evt_msg')).y === t.y, 'not snapped onto the task border');
+    // drag it far away from everything
+    ev.setPosition(1000, 40, { ui: true, translateBy: 'evt_msg' });
+    g().trigger('node:moved', { node: ev, cell: ev });
+    await tick();
+    assert(!ev.getData().attachedTo, 'still attached: ' + ev.getData().attachedTo);
+    const p = cell('evt_msg').getPosition();
+    assert(p.x === 1000 && p.y === 40, 'a detached event stays where it was dropped');
   });
 
   const failed = results.filter(r => !r.ok).length;

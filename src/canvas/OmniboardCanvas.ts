@@ -16,7 +16,7 @@ import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
-import { eventLabelSide, followHost, hostSide, snapToHostBorder, type Box } from "./boundaryLayout";
+import { ATTACH_DISTANCE, distanceToBorder, eventLabelSide, followHost, hostSide, pickHost, snapToHostBorder, type Box } from "./boundaryLayout";
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignMiddleV, alignBottom,
@@ -1451,6 +1451,7 @@ export class OmniboardCanvas {
 
     this.graph.on("node:selected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
     this.graph.on("node:unselected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
+    this.graph.on("node:moved", ({ node }) => { this.settleBoundaryEvent(node as Node); });
     this.graph.on("node:moved", () => {
       // Pinned-port endpoints follow the port (X6 native); body-drop endpoints
       // re-dock automatically via the edge's anchor=center + boundary crop. No
@@ -3465,8 +3466,8 @@ export class OmniboardCanvas {
   private toggleBoundaryAttach(node: Node): void {
     const data = node.getData() ?? {};
     if (data.attachedTo) {
-      // Detach
-      node.setData({ ...data, attachedTo: undefined });
+      // Detach (deep: false — a deep merge would keep the old attachedTo)
+      node.setData({ ...data, attachedTo: undefined }, { deep: false });
       this.rerender(node);
       this.onChange();
       this.refreshContextBar();
@@ -4216,9 +4217,33 @@ export class OmniboardCanvas {
     const hostId = node.getData()?.attachedTo as string | undefined;
     const host = hostId ? this.graph.getCellById(hostId) : null;
     if (!host || !host.isNode()) return;
+    // Pulled further than ATTACH_DISTANCE: let it go (it detaches on drop).
+    if (distanceToBorder(this.boxOf(node), this.boxOf(host)) > ATTACH_DISTANCE) return;
     const p = snapToHostBorder(this.boxOf(node), this.boxOf(host));
     const cur = node.getPosition();
     if (p.x !== cur.x || p.y !== cur.y) node.setPosition(p.x, p.y, { "__boundary_follow": true } as Record<string, unknown>);
+  }
+
+  /** A boundary event was dropped: onto (near) an activity's border → attach
+   *  to that activity, like bpmn-js; clear of every activity → detach.
+   *  Free events are never auto-attached (use the attach toggle). */
+  private settleBoundaryEvent(node: Node): void {
+    const cur = node.getData()?.attachedTo as string | undefined;
+    if (!cur) return;
+    const hosts = this.graph.getNodes()
+      .filter((n) => n.id !== node.id && BPMN_ACTIVITY_KINDS.has(this.nodeKind(n)))
+      .map((n) => ({ id: n.id, box: this.boxOf(n) }));
+    const next = pickHost(this.boxOf(node), hosts);
+    // deep: false — a deep merge keeps the old attachedTo when the new one is undefined
+    if (next !== cur) node.setData({ ...node.getData(), attachedTo: next ?? undefined }, { deep: false });
+    const host = next ? this.graph.getCellById(next) : null;
+    if (host && host.isNode()) {
+      const p = snapToHostBorder(this.boxOf(node), this.boxOf(host));
+      node.setPosition(p.x, p.y, { "__boundary_follow": true } as Record<string, unknown>);
+      this.raiseBoundaryEvents();
+    }
+    if (next !== cur) { this.rerender(node); this.refreshContextBar(); this.onChange(); }
+    this.refreshBpmnEventLabels();
   }
 
   /** Boundary events must paint above their host, or the host hides them. */

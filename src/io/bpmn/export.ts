@@ -1,7 +1,7 @@
 import { BpmnModdle } from "bpmn-moddle";
 import type { CanvasModel } from "../../canvas/types";
 import type { SourceMeta } from "../types";
-import { asStackLanes, laneHeights, type PoolLane } from "../../canvas/laneLayout";
+import { allLaneIds, asStackLanes, laneHeights, type PoolLane } from "../../canvas/laneLayout";
 import { SHAPE_TO_BPMN, TRIGGER_TO_EVENT_DEF } from "./shapes";
 import { defaultLabelDy, hasExternalLabel } from "./labelGeometry";
 
@@ -232,10 +232,10 @@ function normalizeModelIdsForBpmn(model: CanvasModel): CanvasModel {
   for (const n of model.nodes) nodeMap.set(n.id, normalizeBpmnId(n.id, "N", used));
   for (const e of model.edges) edgeMap.set(e.id, normalizeBpmnId(e.id, "E", used));
   for (const n of model.nodes) {
-    const lanes = (n.attrs?.lanes as Array<{ id: string; label?: string }> | undefined) ?? [];
-    for (const ln of lanes) {
-      if (!ln.id || laneMap.has(ln.id)) continue;
-      laneMap.set(ln.id, normalizeBpmnId(ln.id, "L", used));
+    const lanes = (n.attrs?.lanes as ModelLane[] | undefined) ?? [];
+    for (const id of allLaneIds(lanes)) {
+      if (!id || laneMap.has(id)) continue;
+      laneMap.set(id, normalizeBpmnId(id, "L", used));
     }
   }
   for (const n of model.nodes) {
@@ -245,10 +245,12 @@ function normalizeModelIdsForBpmn(model: CanvasModel): CanvasModel {
 
   return {
     nodes: model.nodes.map((n) => {
-      const lanes = (n.attrs?.lanes as Array<{ id: string; label?: string }> | undefined)?.map((ln) => ({
+      const renameLanes = (list: ModelLane[]): ModelLane[] => list.map((ln) => ({
         ...ln,
         id: laneMap.get(ln.id) ?? ln.id,
+        ...(ln.lanes ? { lanes: renameLanes(ln.lanes) } : {}),
       }));
+      const lanes = n.attrs?.lanes ? renameLanes(n.attrs.lanes as ModelLane[]) : undefined;
       return {
         ...n,
         id: nodeMap.get(n.id) ?? n.id,
@@ -345,11 +347,47 @@ function findParticipant(defs: ModdleElement, id: string): ModdleElement | undef
 
 /** Locate an existing <lane> by id inside a process's laneSets. */
 function findLane(process: ModdleElement, id: string): ModdleElement | undefined {
+  const inLanes = (lanes: ModdleElement[] | undefined): ModdleElement | undefined => {
+    for (const l of lanes ?? []) {
+      if (l.id === id) return l;
+      const hit = inLanes((l as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes);
+      if (hit) return hit;
+    }
+    return undefined;
+  };
   for (const ls of process.laneSets ?? []) {
-    const found = (ls.lanes ?? []).find((l) => l.id === id);
+    const found = inLanes(ls.lanes);
     if (found) return found;
   }
   return undefined;
+}
+
+type ModelLane = PoolLane & { width?: number; lanes?: ModelLane[] };
+
+/** A bpmn:Lane for a model lane, with a childLaneSet holding its child lanes. */
+function createLaneEl(m: BpmnModdle, ln: ModelLane, idOf: (id: string) => string = (id) => id): ModdleElement {
+  const el = m.create("bpmn:Lane", { id: idOf(ln.id), name: ln.label ?? ln.id }) as ModdleElement;
+  if (ln.lanes?.length) {
+    (el as { childLaneSet?: ModdleElement }).childLaneSet = m.create("bpmn:LaneSet", {
+      id: `LaneSet_${el.id}`,
+      lanes: ln.lanes.map((c) => createLaneEl(m, c, idOf)),
+    }) as ModdleElement;
+  }
+  return el;
+}
+
+/** Set every lane's flowNodeRef from the shapes' (leaf) laneId; a lane with
+ *  child lanes references the union of its children's shapes. */
+function fillLaneRefs(lanes: ModdleElement[] | undefined, refsOf: (laneId: string) => ModdleElement[]): ModdleElement[] {
+  const all: ModdleElement[] = [];
+  for (const ln of lanes ?? []) {
+    const children = (ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes;
+    const own = ln.id ? refsOf(ln.id) : [];
+    const refs = children?.length ? [...fillLaneRefs(children, refsOf), ...own] : own;
+    ln.flowNodeRef = refs;
+    all.push(...refs);
+  }
+  return all;
 }
 
 // pool vertical title strip width — MUST match bpmn-js's internal participant
@@ -575,24 +613,13 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       arr.push(n.id);
       byLaneId.set(n.laneId, arr);
     }
-    const walkLanesForRewrite = (lanes: ModdleElement[] | undefined): void => {
-      for (const ln of lanes ?? []) {
-        const child = (ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes;
-        if (child?.length) { walkLanesForRewrite(child); continue; }
-        const ids = ln.id ? byLaneId.get(ln.id) : undefined;
-        if (!ids?.length) {
-          ln.flowNodeRef = [];
-          continue;
-        }
-        // Resolve each id to its moddle element so the serializer emits a
-        // proper IDREF (`<flowNodeRef>id</flowNodeRef>`) tied to the actual
-        // element. flowById already contains every surviving flow node.
-        ln.flowNodeRef = ids
-          .map((id) => flowById.get(id))
-          .filter((fe): fe is ModdleElement => !!fe);
-      }
-    };
-    for (const ls of process.laneSets ?? []) walkLanesForRewrite(ls.lanes);
+    // Resolve each id to its moddle element so the serializer emits a proper
+    // IDREF (`<flowNodeRef>id</flowNodeRef>`) tied to the actual element.
+    // flowById already contains every surviving flow node.
+    const refsOf = (laneId: string) => (byLaneId.get(laneId) ?? [])
+      .map((id) => flowById.get(id))
+      .filter((fe): fe is ModdleElement => !!fe);
+    for (const ls of process.laneSets ?? []) fillLaneRefs(ls.lanes, refsOf);
   }
   // Filter artifacts (Associations + TextAnnotation + Group). Keep Associations
   // only if still in the model; keep non-Association artifacts verbatim
@@ -785,7 +812,7 @@ function emitPoolLaneShapes(
     if (!sized && !flow.length) continue;
     const box = sized ? pool : fallbackBox();
     const poolX = box.x, poolY = box.y, poolW = box.width, poolH = box.height;
-    const lanes = (pool.attrs?.lanes as PoolLane[] | undefined) ?? [];
+    const lanes = (pool.attrs?.lanes as ModelLane[] | undefined) ?? [];
 
     // Participant shape — patch existing or create new.
     let pdi = diShape.get(pool.id);
@@ -816,22 +843,26 @@ function emitPoolLaneShapes(
     // Board draws them: each lane's own height, else an equal split.
     if (lanes.length) {
       const horizontal = (pool.attrs?.poolHorizontal as boolean | undefined) !== false;
-      const rects = laneRects(lanes, { x: poolX, y: poolY, width: poolW, height: poolH }, horizontal);
-      lanes.forEach((ln, i) => {
+      const emitLane = (ln: ModelLane, r: { x: number; y: number; width: number; height: number }, parentEl?: ModdleElement): void => {
         if (!ln.id) return;
-        const r = rects[i];
+        // Lane lives in THIS pool's process (multi-pool) or the shared
+        // process (single-pool). findLane must look in the right process,
+        // else we'd create a duplicate lane element when emitting DI.
+        let laneEl = findLane(poolProcess, ln.id);
+        if (!laneEl) {
+          laneEl = m.create("bpmn:Lane", { id: ln.id, name: ln.label ?? ln.id }) as ModdleElement;
+          if (parentEl) {
+            const holder = parentEl as { childLaneSet?: ModdleElement };
+            holder.childLaneSet ??= m.create("bpmn:LaneSet", { id: `LaneSet_${parentEl.id}`, lanes: [] }) as ModdleElement;
+            (holder.childLaneSet.lanes ??= []).push(laneEl);
+          } else {
+            (ensureLaneSetIn(poolProcess).lanes ??= []).push(laneEl);
+          }
+        }
         let ldi = diShape.get(ln.id);
         if (ldi?.bounds) {
           ldi.bounds.x = r.x; ldi.bounds.y = r.y; ldi.bounds.width = r.width; ldi.bounds.height = r.height;
         } else {
-          // Lane lives in THIS pool's process (multi-pool) or the shared
-          // process (single-pool). findLane must look in the right process,
-          // else we'd create a duplicate lane element when emitting DI.
-          let laneEl = findLane(poolProcess, ln.id);
-          if (!laneEl) {
-            laneEl = m.create("bpmn:Lane", { id: ln.id, name: ln.label ?? ln.id }) as ModdleElement;
-            (ensureLaneSetIn(poolProcess).lanes ??= []).push(laneEl);
-          }
           ldi = m.create("bpmndi:BPMNShape", {
             bpmnElement: laneEl,
             bounds: m.create("dc:Bounds", { x: r.x, y: r.y, width: r.width, height: r.height }),
@@ -840,7 +871,17 @@ function emitPoolLaneShapes(
           diShape.set(ln.id, ldi);
           prefix.push(ldi);
         }
-      });
+        // Child lanes tile the parent's band after its own title strip.
+        if (ln.lanes?.length) {
+          const inner = horizontal
+            ? { x: r.x + LANE_HEADER, y: r.y, width: r.width - LANE_HEADER, height: r.height }
+            : { x: r.x, y: r.y + LANE_HEADER, width: r.width, height: r.height - LANE_HEADER };
+          const childRects = laneRects(ln.lanes, inner, horizontal, 0);
+          ln.lanes.forEach((c, j) => emitLane(c, childRects[j], laneEl));
+        }
+      };
+      const rects = laneRects(lanes, { x: poolX, y: poolY, width: poolW, height: poolH }, horizontal);
+      lanes.forEach((ln, i) => emitLane(ln, rects[i]));
     }
 
     // Insert NEW shapes parent-first at the very front (participant then lanes).
@@ -855,13 +896,14 @@ function laneRects(
   lanes: Array<PoolLane & { width?: number }>,
   pool: { x: number; y: number; width: number; height: number },
   horizontal: boolean,
+  header = POOL_HEADER,
 ): Array<{ x: number; y: number; width: number; height: number }> {
   const extent = horizontal ? pool.height : pool.width;
   let at = horizontal ? pool.y : pool.x;
   return laneHeights(asStackLanes(lanes, horizontal), extent).map((size) => {
     const r = horizontal
-      ? { x: pool.x + POOL_HEADER, y: at, width: pool.width - POOL_HEADER, height: size }
-      : { x: at, y: pool.y + POOL_HEADER, width: size, height: pool.height - POOL_HEADER };
+      ? { x: pool.x + header, y: at, width: pool.width - header, height: size }
+      : { x: at, y: pool.y + header, width: size, height: pool.height - header };
     at += size;
     return r;
   });
@@ -1089,23 +1131,16 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     // Canvas elementRegistry is per-modeler, not per-process, so two lanes
     // with the same id in different processes still collide on import.
     const globalSeenLaneIds = new Set<string>();
+    const uniqueLaneId = (id: string): string => {
+      if (!globalSeenLaneIds.has(id)) { globalSeenLaneIds.add(id); return id; }
+      let suffix = 2;
+      while (globalSeenLaneIds.has(`${id}_${suffix}`)) suffix += 1;
+      globalSeenLaneIds.add(`${id}_${suffix}`);
+      return `${id}_${suffix}`;
+    };
     for (const pool of pools) {
-      const poolLanes = (pool.attrs?.lanes as Array<{ id: string; label?: string }> | undefined) ?? [];
-      if (!poolLanes.length) continue;
-      const lanes = poolLanes.map((ln) => {
-        if (!globalSeenLaneIds.has(ln.id)) {
-          globalSeenLaneIds.add(ln.id);
-          return ln;
-        }
-        let suffix = 2;
-        let fresh = `${ln.id}_${suffix}`;
-        while (globalSeenLaneIds.has(fresh)) {
-          suffix += 1;
-          fresh = `${ln.id}_${suffix}`;
-        }
-        globalSeenLaneIds.add(fresh);
-        return { ...ln, id: fresh };
-      });
+      const lanes = (pool.attrs?.lanes as ModelLane[] | undefined) ?? [];
+      if (!lanes.length) continue;
       const targetProcess = multiPool ? processByPoolId.get(pool.id)! : process;
       if (!targetProcess.laneSets || !targetProcess.laneSets.length) {
         targetProcess.laneSets = [m.create("bpmn:LaneSet", {
@@ -1115,9 +1150,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       }
       const laneSet = targetProcess.laneSets[0];
       laneSet.lanes ??= [];
-      for (const ln of lanes) {
-        laneSet.lanes.push(m.create("bpmn:Lane", { id: ln.id, name: ln.label ?? ln.id }) as ModdleElement);
-      }
+      for (const ln of lanes) laneSet.lanes.push(createLaneEl(m, ln, uniqueLaneId));
     }
   }
 
@@ -1131,8 +1164,8 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     if (n.parentId && processByPoolId.has(n.parentId)) return processByPoolId.get(n.parentId)!;
     if (n.laneId) {
       for (const pool of pools) {
-        const ls = (pool.attrs?.lanes as Array<{ id: string }> | undefined) ?? [];
-        if (ls.some((l) => l.id === n.laneId)) return processByPoolId.get(pool.id)!;
+        const ls = (pool.attrs?.lanes as ModelLane[] | undefined) ?? [];
+        if (allLaneIds(ls).includes(n.laneId)) return processByPoolId.get(pool.id)!;
       }
     }
     const cx = n.x + n.width / 2;
@@ -1167,17 +1200,11 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
   // Backfill flowNodeRef on every Lane across every process.
   const allProcesses = multiPool ? [...processByPoolId.values()] : [process];
   for (const proc of allProcesses) {
-    for (const ls of proc.laneSets ?? []) {
-      for (const ln of (ls.lanes ?? []) as ModdleElement[]) {
-        const refs: ModdleElement[] = [];
-        for (const n of model.nodes) {
-          if (n.laneId !== ln.id) continue;
-          const fe = feById.get(n.id);
-          if (fe) refs.push(fe);
-        }
-        ln.flowNodeRef = refs;
-      }
-    }
+    const refsOf = (laneId: string) => model.nodes
+      .filter((n) => n.laneId === laneId)
+      .map((n) => feById.get(n.id))
+      .filter((fe): fe is ModdleElement => !!fe);
+    for (const ls of proc.laneSets ?? []) fillLaneRefs(ls.lanes as ModdleElement[] | undefined, refsOf);
   }
   // Edges — route by source node's owning process. Cross-pool sequence flow
   // is invalid BPMN; upgrade to MessageFlow on the collaboration root.

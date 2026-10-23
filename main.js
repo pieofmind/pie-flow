@@ -11929,13 +11929,20 @@ async function importBpmn(raw2, options) {
         return (_a4 = ls.lanes) != null ? _a4 : [];
       });
       const poolIsHorizontal = part.id ? ((_G = diShapes.get(part.id)) == null ? void 0 : _G.isHorizontal) !== false : true;
-      const laneAttrs = lanes.map((ln3) => {
-        var _a4, _b3, _c2;
+      const toLaneAttr = (ln3, depth) => {
+        var _a4, _b3, _c2, _d2, _e4;
         const b4 = ln3.id ? (_a4 = diShapes.get(ln3.id)) == null ? void 0 : _a4.bounds : void 0;
         const size2 = poolIsHorizontal ? b4 == null ? void 0 : b4.height : b4 == null ? void 0 : b4.width;
         const key = poolIsHorizontal ? "height" : "width";
-        return { id: (_b3 = ln3.id) != null ? _b3 : "", label: (_c2 = ln3.name) != null ? _c2 : "", ...size2 && size2 > 0 ? { [key]: size2 } : {} };
-      });
+        const children2 = depth === 0 ? (_c2 = (_b3 = ln3.childLaneSet) == null ? void 0 : _b3.lanes) != null ? _c2 : [] : [];
+        return {
+          id: (_d2 = ln3.id) != null ? _d2 : "",
+          label: (_e4 = ln3.name) != null ? _e4 : "",
+          ...size2 && size2 > 0 ? { [key]: size2 } : {},
+          ...children2.length ? { lanes: children2.map((c6) => toLaneAttr(c6, 1)) } : {}
+        };
+      };
+      const laneAttrs = lanes.map((ln3) => toLaneAttr(ln3, 0));
       let px2, py, pw, ph;
       const partDi = part.id ? diShapes.get(part.id) : void 0;
       if (partDi == null ? void 0 : partDi.bounds) {
@@ -73792,12 +73799,36 @@ function resizePoolLanes(lanes, prevH, newH, edge, minHeight = 30) {
   return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(hs[i6]) }));
 }
 function asStackLanes(lanes, horizontal) {
-  return horizontal ? [...lanes] : lanes.map((ln3) => ({ id: ln3.id, label: ln3.label, height: ln3.width }));
+  return horizontal ? [...lanes] : lanes.map((ln3) => {
+    var _a3;
+    return {
+      id: ln3.id,
+      label: ln3.label,
+      height: ln3.width,
+      ...((_a3 = ln3.lanes) == null ? void 0 : _a3.length) ? { lanes: asStackLanes(ln3.lanes, false) } : {}
+    };
+  });
 }
 function fromStackLanes(lanes, sized, horizontal) {
   return lanes.map((ln3, i6) => {
     var _a3, _b2;
     return horizontal ? { ...ln3, height: (_a3 = sized[i6]) == null ? void 0 : _a3.height } : { ...ln3, width: (_b2 = sized[i6]) == null ? void 0 : _b2.height };
+  });
+}
+function leafLaneAt(lanes, extent, rel) {
+  var _a3;
+  if (!lanes.length) return void 0;
+  const hs = laneHeights(lanes, extent);
+  const i6 = laneIndexAt(lanes, extent, rel);
+  const lane = lanes[i6];
+  if (!((_a3 = lane.lanes) == null ? void 0 : _a3.length)) return lane.id;
+  const start = hs.slice(0, i6).reduce((a5, b4) => a5 + b4, 0);
+  return lane.lanes[laneIndexAt(lane.lanes, hs[i6], rel - start)].id;
+}
+function allLaneIds(lanes) {
+  return lanes.flatMap((ln3) => {
+    var _a3;
+    return [ln3.id, ...((_a3 = ln3.lanes) != null ? _a3 : []).map((c6) => c6.id)];
   });
 }
 
@@ -74181,12 +74212,20 @@ function bpPool(label, extra) {
   }
   const lanes = ((_a3 = extra == null ? void 0 : extra.lanes) == null ? void 0 : _a3.length) ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
   const orient = (extra == null ? void 0 : extra.poolHorizontal) === false ? " is-vertical" : "";
-  const weights = laneWeights(asStackLanes(lanes, (extra == null ? void 0 : extra.poolHorizontal) !== false));
-  const laneHtml = lanes.map((ln3, i6) => {
-    const flex = weights ? ` style="flex: ${weights[i6]} 1 0px"` : "";
-    const divider = i6 < lanes.length - 1 ? `<div class="bp-pool-lane-divider" data-lane-idx="${i6}"></div>` : "";
-    return `<div class="bp-pool-lane" data-lane-id="${esc(ln3.id)}"${flex}><div class="bp-pool-lane-head">${esc(ln3.label)}</div><div class="bp-pool-lane-body"></div>${divider}</div>`;
-  }).join("");
+  const horizontal = (extra == null ? void 0 : extra.poolHorizontal) !== false;
+  const laneList = (list, parent) => {
+    const weights = laneWeights(asStackLanes(list, horizontal));
+    return list.map((ln3, i6) => {
+      var _a4;
+      const flex = weights ? ` style="flex: ${weights[i6]} 1 0px"` : "";
+      const at3 = parent === void 0 ? `data-lane-idx="${i6}"` : `data-lane-path="${parent}/${i6}"`;
+      const divider = i6 < list.length - 1 ? `<div class="bp-pool-lane-divider" ${at3}></div>` : "";
+      const body = parent === void 0 && ((_a4 = ln3.lanes) == null ? void 0 : _a4.length) ? `<div class="bp-pool-sublanes">${laneList(ln3.lanes, i6)}</div>` : `<div class="bp-pool-lane-body"></div>`;
+      const cls = parent === void 0 ? "bp-pool-lane" : "bp-pool-lane is-child";
+      return `<div class="${cls}" data-lane-id="${esc(ln3.id)}"${flex}><div class="bp-pool-lane-head">${esc(ln3.label)}</div>${body}${divider}</div>`;
+    }).join("");
+  };
+  const laneHtml = laneList(lanes);
   return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
 }
 
@@ -74628,9 +74667,9 @@ function normalizeModelIdsForBpmn(model) {
   for (const e5 of model.edges) edgeMap.set(e5.id, normalizeBpmnId(e5.id, "E", used));
   for (const n4 of model.nodes) {
     const lanes = (_b2 = (_a3 = n4.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
-    for (const ln3 of lanes) {
-      if (!ln3.id || laneMap.has(ln3.id)) continue;
-      laneMap.set(ln3.id, normalizeBpmnId(ln3.id, "L", used));
+    for (const id of allLaneIds(lanes)) {
+      if (!id || laneMap.has(id)) continue;
+      laneMap.set(id, normalizeBpmnId(id, "L", used));
     }
   }
   for (const n4 of model.nodes) {
@@ -74639,20 +74678,22 @@ function normalizeModelIdsForBpmn(model) {
   }
   return {
     nodes: model.nodes.map((n4) => {
-      var _a4, _b3, _c, _d, _e3, _f;
-      const lanes = (_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.lanes) == null ? void 0 : _b3.map((ln3) => {
+      var _a4, _b3, _c, _d, _e3;
+      const renameLanes = (list) => list.map((ln3) => {
         var _a5;
         return {
           ...ln3,
-          id: (_a5 = laneMap.get(ln3.id)) != null ? _a5 : ln3.id
+          id: (_a5 = laneMap.get(ln3.id)) != null ? _a5 : ln3.id,
+          ...ln3.lanes ? { lanes: renameLanes(ln3.lanes) } : {}
         };
       });
+      const lanes = ((_a4 = n4.attrs) == null ? void 0 : _a4.lanes) ? renameLanes(n4.attrs.lanes) : void 0;
       return {
         ...n4,
-        id: (_c = nodeMap.get(n4.id)) != null ? _c : n4.id,
-        ...n4.parentId ? { parentId: (_d = nodeMap.get(n4.parentId)) != null ? _d : n4.parentId } : {},
-        ...n4.laneId ? { laneId: (_e3 = laneMap.get(n4.laneId)) != null ? _e3 : n4.laneId } : {},
-        attrs: lanes ? { ...(_f = n4.attrs) != null ? _f : {}, lanes } : n4.attrs
+        id: (_b3 = nodeMap.get(n4.id)) != null ? _b3 : n4.id,
+        ...n4.parentId ? { parentId: (_c = nodeMap.get(n4.parentId)) != null ? _c : n4.parentId } : {},
+        ...n4.laneId ? { laneId: (_d = laneMap.get(n4.laneId)) != null ? _d : n4.laneId } : {},
+        attrs: lanes ? { ...(_e3 = n4.attrs) != null ? _e3 : {}, lanes } : n4.attrs
       };
     }),
     edges: model.edges.map((e5) => {
@@ -74741,12 +74782,44 @@ function findParticipant(defs, id) {
   return void 0;
 }
 function findLane(process2, id) {
-  var _a3, _b2;
+  var _a3;
+  const inLanes = (lanes) => {
+    var _a4;
+    for (const l5 of lanes != null ? lanes : []) {
+      if (l5.id === id) return l5;
+      const hit = inLanes((_a4 = l5.childLaneSet) == null ? void 0 : _a4.lanes);
+      if (hit) return hit;
+    }
+    return void 0;
+  };
   for (const ls of (_a3 = process2.laneSets) != null ? _a3 : []) {
-    const found = ((_b2 = ls.lanes) != null ? _b2 : []).find((l5) => l5.id === id);
+    const found = inLanes(ls.lanes);
     if (found) return found;
   }
   return void 0;
+}
+function createLaneEl(m7, ln3, idOf = (id) => id) {
+  var _a3, _b2;
+  const el4 = m7.create("bpmn:Lane", { id: idOf(ln3.id), name: (_a3 = ln3.label) != null ? _a3 : ln3.id });
+  if ((_b2 = ln3.lanes) == null ? void 0 : _b2.length) {
+    el4.childLaneSet = m7.create("bpmn:LaneSet", {
+      id: `LaneSet_${el4.id}`,
+      lanes: ln3.lanes.map((c6) => createLaneEl(m7, c6, idOf))
+    });
+  }
+  return el4;
+}
+function fillLaneRefs(lanes, refsOf) {
+  var _a3;
+  const all2 = [];
+  for (const ln3 of lanes != null ? lanes : []) {
+    const children2 = (_a3 = ln3.childLaneSet) == null ? void 0 : _a3.lanes;
+    const own = ln3.id ? refsOf(ln3.id) : [];
+    const refs = (children2 == null ? void 0 : children2.length) ? [...fillLaneRefs(children2, refsOf), ...own] : own;
+    ln3.flowNodeRef = refs;
+    all2.push(...refs);
+  }
+  return all2;
 }
 var POOL_HEADER = 30;
 var LANE_HEADER = 30;
@@ -74923,23 +74996,11 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
       arr.push(n4.id);
       byLaneId.set(n4.laneId, arr);
     }
-    const walkLanesForRewrite = (lanes) => {
+    const refsOf = (laneId) => {
       var _a4;
-      for (const ln3 of lanes != null ? lanes : []) {
-        const child = (_a4 = ln3.childLaneSet) == null ? void 0 : _a4.lanes;
-        if (child == null ? void 0 : child.length) {
-          walkLanesForRewrite(child);
-          continue;
-        }
-        const ids3 = ln3.id ? byLaneId.get(ln3.id) : void 0;
-        if (!(ids3 == null ? void 0 : ids3.length)) {
-          ln3.flowNodeRef = [];
-          continue;
-        }
-        ln3.flowNodeRef = ids3.map((id) => flowById.get(id)).filter((fe3) => !!fe3);
-      }
+      return ((_a4 = byLaneId.get(laneId)) != null ? _a4 : []).map((id) => flowById.get(id)).filter((fe3) => !!fe3);
     };
-    for (const ls of (_A = process2.laneSets) != null ? _A : []) walkLanesForRewrite(ls.lanes);
+    for (const ls of (_A = process2.laneSets) != null ? _A : []) fillLaneRefs(ls.lanes, refsOf);
   }
   if (process2.artifacts) {
     process2.artifacts = process2.artifacts.filter((ar) => {
@@ -75117,11 +75178,20 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
     }
     if (lanes.length) {
       const horizontal = ((_g = pool.attrs) == null ? void 0 : _g.poolHorizontal) !== false;
-      const rects = laneRects(lanes, { x: poolX, y: poolY, width: poolW, height: poolH }, horizontal);
-      lanes.forEach((ln3, i6) => {
-        var _a4, _b3, _c2;
+      const emitLane = (ln3, r5, parentEl) => {
+        var _a4, _b3, _c2, _d2, _e4, _f2, _g2;
         if (!ln3.id) return;
-        const r5 = rects[i6];
+        let laneEl = findLane(poolProcess, ln3.id);
+        if (!laneEl) {
+          laneEl = m7.create("bpmn:Lane", { id: ln3.id, name: (_a4 = ln3.label) != null ? _a4 : ln3.id });
+          if (parentEl) {
+            const holder = parentEl;
+            (_b3 = holder.childLaneSet) != null ? _b3 : holder.childLaneSet = m7.create("bpmn:LaneSet", { id: `LaneSet_${parentEl.id}`, lanes: [] });
+            ((_d2 = (_c2 = holder.childLaneSet).lanes) != null ? _d2 : _c2.lanes = []).push(laneEl);
+          } else {
+            ((_f2 = (_e4 = ensureLaneSetIn(poolProcess)).lanes) != null ? _f2 : _e4.lanes = []).push(laneEl);
+          }
+        }
         let ldi = diShape.get(ln3.id);
         if (ldi == null ? void 0 : ldi.bounds) {
           ldi.bounds.x = r5.x;
@@ -75129,11 +75199,6 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
           ldi.bounds.width = r5.width;
           ldi.bounds.height = r5.height;
         } else {
-          let laneEl = findLane(poolProcess, ln3.id);
-          if (!laneEl) {
-            laneEl = m7.create("bpmn:Lane", { id: ln3.id, name: (_a4 = ln3.label) != null ? _a4 : ln3.id });
-            ((_c2 = (_b3 = ensureLaneSetIn(poolProcess)).lanes) != null ? _c2 : _b3.lanes = []).push(laneEl);
-          }
           ldi = m7.create("bpmndi:BPMNShape", {
             bpmnElement: laneEl,
             bounds: m7.create("dc:Bounds", { x: r5.x, y: r5.y, width: r5.width, height: r5.height })
@@ -75142,16 +75207,23 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
           diShape.set(ln3.id, ldi);
           prefix2.push(ldi);
         }
-      });
+        if ((_g2 = ln3.lanes) == null ? void 0 : _g2.length) {
+          const inner = horizontal ? { x: r5.x + LANE_HEADER, y: r5.y, width: r5.width - LANE_HEADER, height: r5.height } : { x: r5.x, y: r5.y + LANE_HEADER, width: r5.width, height: r5.height - LANE_HEADER };
+          const childRects = laneRects(ln3.lanes, inner, horizontal, 0);
+          ln3.lanes.forEach((c6, j5) => emitLane(c6, childRects[j5], laneEl));
+        }
+      };
+      const rects = laneRects(lanes, { x: poolX, y: poolY, width: poolW, height: poolH }, horizontal);
+      lanes.forEach((ln3, i6) => emitLane(ln3, rects[i6]));
     }
     if (prefix2.length) ((_h = mainPlane.planeElement) != null ? _h : mainPlane.planeElement = []).unshift(...prefix2);
   }
 }
-function laneRects(lanes, pool, horizontal) {
+function laneRects(lanes, pool, horizontal, header = POOL_HEADER) {
   const extent = horizontal ? pool.height : pool.width;
   let at3 = horizontal ? pool.y : pool.x;
   return laneHeights(asStackLanes(lanes, horizontal), extent).map((size2) => {
-    const r5 = horizontal ? { x: pool.x + POOL_HEADER, y: at3, width: pool.width - POOL_HEADER, height: size2 } : { x: at3, y: pool.y + POOL_HEADER, width: size2, height: pool.height - POOL_HEADER };
+    const r5 = horizontal ? { x: pool.x + header, y: at3, width: pool.width - header, height: size2 } : { x: at3, y: pool.y + header, width: size2, height: pool.height - header };
     at3 += size2;
     return r5;
   });
@@ -75285,7 +75357,7 @@ function nodeLabelBoundsFromModel(m7, node3) {
   return m7.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
 }
 async function emitMinimal(model, m7) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A;
   const defs = m7.create("bpmn:Definitions", {
     id: "Definitions_Export",
     targetNamespace: "http://omniboard.local/bpmn"
@@ -75339,23 +75411,19 @@ async function emitMinimal(model, m7) {
     });
     ((_d = defs.rootElements) != null ? _d : defs.rootElements = []).push(collaboration);
     const globalSeenLaneIds = /* @__PURE__ */ new Set();
+    const uniqueLaneId = (id) => {
+      if (!globalSeenLaneIds.has(id)) {
+        globalSeenLaneIds.add(id);
+        return id;
+      }
+      let suffix = 2;
+      while (globalSeenLaneIds.has(`${id}_${suffix}`)) suffix += 1;
+      globalSeenLaneIds.add(`${id}_${suffix}`);
+      return `${id}_${suffix}`;
+    };
     for (const pool of pools) {
-      const poolLanes = (_f = (_e3 = pool.attrs) == null ? void 0 : _e3.lanes) != null ? _f : [];
-      if (!poolLanes.length) continue;
-      const lanes = poolLanes.map((ln3) => {
-        if (!globalSeenLaneIds.has(ln3.id)) {
-          globalSeenLaneIds.add(ln3.id);
-          return ln3;
-        }
-        let suffix = 2;
-        let fresh = `${ln3.id}_${suffix}`;
-        while (globalSeenLaneIds.has(fresh)) {
-          suffix += 1;
-          fresh = `${ln3.id}_${suffix}`;
-        }
-        globalSeenLaneIds.add(fresh);
-        return { ...ln3, id: fresh };
-      });
+      const lanes = (_f = (_e3 = pool.attrs) == null ? void 0 : _e3.lanes) != null ? _f : [];
+      if (!lanes.length) continue;
       const targetProcess = multiPool ? processByPoolId.get(pool.id) : process2;
       if (!targetProcess.laneSets || !targetProcess.laneSets.length) {
         targetProcess.laneSets = [m7.create("bpmn:LaneSet", {
@@ -75365,9 +75433,7 @@ async function emitMinimal(model, m7) {
       }
       const laneSet = targetProcess.laneSets[0];
       (_g = laneSet.lanes) != null ? _g : laneSet.lanes = [];
-      for (const ln3 of lanes) {
-        laneSet.lanes.push(m7.create("bpmn:Lane", { id: ln3.id, name: (_h = ln3.label) != null ? _h : ln3.id }));
-      }
+      for (const ln3 of lanes) laneSet.lanes.push(createLaneEl(m7, ln3, uniqueLaneId));
     }
   }
   const findOwningProcess = (n4) => {
@@ -75377,7 +75443,7 @@ async function emitMinimal(model, m7) {
     if (n4.laneId) {
       for (const pool of pools) {
         const ls = (_b3 = (_a4 = pool.attrs) == null ? void 0 : _a4.lanes) != null ? _b3 : [];
-        if (ls.some((l5) => l5.id === n4.laneId)) return processByPoolId.get(pool.id);
+        if (allLaneIds(ls).includes(n4.laneId)) return processByPoolId.get(pool.id);
       }
     }
     const cx = n4.x + n4.width / 2;
@@ -75391,38 +75457,29 @@ async function emitMinimal(model, m7) {
   };
   const feById = /* @__PURE__ */ new Map();
   for (const n4 of model.nodes) {
-    const srcKind = (_j = (_i = n4.attrs) == null ? void 0 : _i.__source) == null ? void 0 : _j.kind;
+    const srcKind = (_i = (_h = n4.attrs) == null ? void 0 : _h.__source) == null ? void 0 : _i.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
-    const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), n4.shape === "bpmn-annotation" ? { id: n4.id, text: (_k = n4.label) != null ? _k : "" } : n4.shape === "bpmn-group" ? { id: n4.id } : { id: n4.id, name: (_l = n4.label) != null ? _l : "" });
-    applyBpmnExtras(m7, fe3, n4.shape, (_m = n4.attrs) != null ? _m : {});
+    const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), n4.shape === "bpmn-annotation" ? { id: n4.id, text: (_j = n4.label) != null ? _j : "" } : n4.shape === "bpmn-group" ? { id: n4.id } : { id: n4.id, name: (_k = n4.label) != null ? _k : "" });
+    applyBpmnExtras(m7, fe3, n4.shape, (_l = n4.attrs) != null ? _l : {});
     feById.set(n4.id, fe3);
   }
   for (const n4 of model.nodes) {
-    const srcKind = (_o = (_n2 = n4.attrs) == null ? void 0 : _n2.__source) == null ? void 0 : _o.kind;
+    const srcKind = (_n2 = (_m = n4.attrs) == null ? void 0 : _m.__source) == null ? void 0 : _n2.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const fe3 = feById.get(n4.id);
     const parent = n4.parentId ? feById.get(n4.parentId) : void 0;
     const container = parent != null ? parent : findOwningProcess(n4);
-    ((_p = container.flowElements) != null ? _p : container.flowElements = []).push(fe3);
+    ((_o = container.flowElements) != null ? _o : container.flowElements = []).push(fe3);
   }
   const allProcesses = multiPool ? [...processByPoolId.values()] : [process2];
   for (const proc of allProcesses) {
-    for (const ls of (_q = proc.laneSets) != null ? _q : []) {
-      for (const ln3 of (_r = ls.lanes) != null ? _r : []) {
-        const refs = [];
-        for (const n4 of model.nodes) {
-          if (n4.laneId !== ln3.id) continue;
-          const fe3 = feById.get(n4.id);
-          if (fe3) refs.push(fe3);
-        }
-        ln3.flowNodeRef = refs;
-      }
-    }
+    const refsOf = (laneId) => model.nodes.filter((n4) => n4.laneId === laneId).map((n4) => feById.get(n4.id)).filter((fe3) => !!fe3);
+    for (const ls of (_p = proc.laneSets) != null ? _p : []) fillLaneRefs(ls.lanes, refsOf);
   }
   const sfById = /* @__PURE__ */ new Map();
   const nodeIdSet = new Set(model.nodes.map((n4) => n4.id));
   const validEdges = model.edges.filter((e5) => nodeIdSet.has(e5.source) && nodeIdSet.has(e5.target));
-  const collaborationRoot = (_t3 = ((_s = defs.rootElements) != null ? _s : []).find((r5) => r5.$type === "bpmn:Collaboration")) != null ? _t3 : null;
+  const collaborationRoot = (_r = ((_q = defs.rootElements) != null ? _q : []).find((r5) => r5.$type === "bpmn:Collaboration")) != null ? _r : null;
   const nodeById2 = new Map(model.nodes.map((n4) => [n4.id, n4]));
   for (const e5 of validEdges) {
     const kind = edgeKindOf(e5);
@@ -75443,7 +75500,7 @@ async function emitMinimal(model, m7) {
     const sf = m7.create(typeStr, {
       id: e5.id,
       // bpmn:Association is an artifact with no `name` in the BPMN schema.
-      ...kind === "association" ? {} : { name: (_u = e5.label) != null ? _u : "" },
+      ...kind === "association" ? {} : { name: (_s = e5.label) != null ? _s : "" },
       sourceRef: refOf(e5.source),
       targetRef: refOf(e5.target)
     });
@@ -75454,18 +75511,18 @@ async function emitMinimal(model, m7) {
     const extrasKind = typeStr === "bpmn:MessageFlow" ? "sequence" : kind === "message" && !collaborationRoot ? "sequence" : kind;
     applyEdgeExtras(m7, sf, extrasKind, e5.attrs);
     if (typeStr === "bpmn:MessageFlow" && collaborationRoot) {
-      ((_v = collaborationRoot.messageFlows) != null ? _v : collaborationRoot.messageFlows = []).push(sf);
+      ((_t3 = collaborationRoot.messageFlows) != null ? _t3 : collaborationRoot.messageFlows = []).push(sf);
     } else if (kind === "association") {
-      ((_w = srcProc.artifacts) != null ? _w : srcProc.artifacts = []).push(sf);
+      ((_u = srcProc.artifacts) != null ? _u : srcProc.artifacts = []).push(sf);
     } else if (kind === "message" && collaborationRoot) {
-      ((_x = collaborationRoot.messageFlows) != null ? _x : collaborationRoot.messageFlows = []).push(sf);
+      ((_v = collaborationRoot.messageFlows) != null ? _v : collaborationRoot.messageFlows = []).push(sf);
     } else {
-      ((_y = srcProc.flowElements) != null ? _y : srcProc.flowElements = []).push(sf);
+      ((_w = srcProc.flowElements) != null ? _w : srcProc.flowElements = []).push(sf);
     }
     sfById.set(e5.id, sf);
   }
   for (const e5 of validEdges) {
-    if (!((_z = e5.attrs) == null ? void 0 : _z.isDefault)) continue;
+    if (!((_x = e5.attrs) == null ? void 0 : _x.isDefault)) continue;
     if (edgeKindOf(e5) !== "sequence") continue;
     const srcFe = feById.get(e5.source);
     const edgeFe = sfById.get(e5.id);
@@ -75478,7 +75535,7 @@ async function emitMinimal(model, m7) {
   });
   const diShape = /* @__PURE__ */ new Map();
   for (const n4 of model.nodes) {
-    const srcKind = (_B = (_A = n4.attrs) == null ? void 0 : _A.__source) == null ? void 0 : _B.kind;
+    const srcKind = (_z = (_y = n4.attrs) == null ? void 0 : _y.__source) == null ? void 0 : _z.kind;
     if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
     const nLabel = nodeLabelBoundsFromModel(m7, n4);
     const di = m7.create("bpmndi:BPMNShape", {
@@ -75506,7 +75563,7 @@ async function emitMinimal(model, m7) {
   }
   emitPoolLaneShapes(model, defs, process2, plane, diShape, m7, multiPool ? processByPoolId : void 0);
   const dia = m7.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-  ((_C = defs.diagrams) != null ? _C : defs.diagrams = []).push(dia);
+  ((_A = defs.diagrams) != null ? _A : defs.diagrams = []).push(dia);
   const { xml: xml3 } = await m7.toXML(defs, { format: true });
   return patchCamundaXml(xml3, model);
 }
@@ -84019,25 +84076,31 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   enableLaneResize() {
     const MIN_LANE = 60;
     this.root.addEventListener("pointerdown", (e5) => {
-      var _a3, _b2, _c, _d, _e3, _f;
+      var _a3, _b2, _c, _d, _e3, _f, _g;
       const handle = (_b2 = (_a3 = e5.target) == null ? void 0 : _a3.closest) == null ? void 0 : _b2.call(_a3, ".bp-pool-lane-divider");
       if (!handle) return;
       const cellId = (_c = handle.closest(".x6-node")) == null ? void 0 : _c.getAttribute("data-cell-id");
       const node3 = cellId ? this.graph.getCellById(cellId) : null;
       if (!node3 || !node3.isNode()) return;
       const lanes = (_d = this.nodeExtra(node3).lanes) != null ? _d : [];
-      const idx = Number(handle.getAttribute("data-lane-idx"));
-      if (!Number.isInteger(idx) || idx >= lanes.length - 1) return;
+      const horizontal = this.nodeExtra(node3).poolHorizontal !== false;
+      const poolExtent = horizontal ? node3.getSize().height : node3.getSize().width;
+      const path2 = handle.getAttribute("data-lane-path");
+      const parent = path2 ? Number(path2.split("/")[0]) : -1;
+      const idx = path2 ? Number(path2.split("/")[1]) : Number(handle.getAttribute("data-lane-idx"));
+      const siblings = parent >= 0 ? (_f = (_e3 = lanes[parent]) == null ? void 0 : _e3.lanes) != null ? _f : [] : lanes;
+      if (!Number.isInteger(idx) || idx >= siblings.length - 1) return;
+      const extent = parent >= 0 ? laneHeights(asStackLanes(lanes, horizontal), poolExtent)[parent] : poolExtent;
+      const write = (sized) => parent >= 0 ? lanes.map((ln3, i6) => i6 === parent ? { ...ln3, lanes: fromStackLanes(siblings, sized, horizontal) } : ln3) : fromStackLanes(lanes, sized, horizontal);
       e5.preventDefault();
       e5.stopPropagation();
       handle.classList.add("is-dragging");
-      const laneEls = Array.from((_f = (_e3 = handle.closest(".bp-pool-body")) == null ? void 0 : _e3.querySelectorAll(":scope > .bp-pool-lane")) != null ? _f : []);
-      const horizontal = this.nodeExtra(node3).poolHorizontal !== false;
-      const extent = horizontal ? node3.getSize().height : node3.getSize().width;
+      const container = handle.closest(parent >= 0 ? ".bp-pool-sublanes" : ".bp-pool-body");
+      const laneEls = Array.from((_g = container == null ? void 0 : container.querySelectorAll(":scope > .bp-pool-lane")) != null ? _g : []);
       const at3 = (ev) => horizontal ? ev.clientY : ev.clientX;
       const start = at3(e5);
       const scale2 = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
-      const resized = (ev) => resizeLaneBoundary(asStackLanes(lanes, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE);
+      const resized = (ev) => resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE / (parent >= 0 ? 2 : 1));
       const mv = (ev) => {
         resized(ev).forEach((ln3, i6) => {
           if (laneEls[i6]) laneEls[i6].style.flex = `${ln3.height} 1 0px`;
@@ -84050,7 +84113,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         if (Math.abs(at3(ev) - start) < 1) return;
         this.graph.startBatch("lane-resize");
         try {
-          node3.setData({ ...node3.getData(), lanes: fromStackLanes(lanes, resized(ev), horizontal) }, { deep: false });
+          node3.setData({ ...node3.getData(), lanes: write(resized(ev)) }, { deep: false });
           this.rerender(node3);
         } finally {
           this.graph.stopBatch("lane-resize");
@@ -86680,9 +86743,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   editLaneLabel(node3, laneId, anchor3) {
     var _a3;
     const ex = this.nodeExtra(node3);
-    const lanes = ((_a3 = ex.lanes) != null ? _a3 : []).slice();
-    const idx = lanes.findIndex((l5) => l5.id === laneId);
-    if (idx < 0) return;
+    const lanes = (_a3 = ex.lanes) != null ? _a3 : [];
+    const current = lanes.flatMap((l5) => {
+      var _a4;
+      return [l5, ...(_a4 = l5.lanes) != null ? _a4 : []];
+    }).find((l5) => l5.id === laneId);
+    if (!current) return;
+    const relabel = (list, v6) => list.map((l5) => l5.id === laneId ? { ...l5, label: v6 } : l5.lanes ? { ...l5, lanes: relabel(l5.lanes, v6) } : l5);
     const r5 = anchor3.getBoundingClientRect();
     const rr2 = this.root.getBoundingClientRect();
     this.inlineEdit({
@@ -86690,11 +86757,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       top: r5.top - rr2.top,
       width: r5.width,
       height: r5.height,
-      value: lanes[idx].label,
-      vertical: true,
+      value: current.label,
+      vertical: ex.poolHorizontal !== false,
       onCommit: (v6) => {
-        lanes[idx] = { ...lanes[idx], label: v6 };
-        node3.setData({ ...node3.getData(), lanes });
+        node3.setData({ ...node3.getData(), lanes: relabel(lanes, v6) }, { deep: false });
         this.rerender(node3);
         this.onChange();
       }
@@ -87714,7 +87780,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
             const poolLanes = (_b2 = poolExtra.lanes) != null ? _b2 : [{ id: "l1", label: "Lane 1" }];
             if (poolLanes.length > 0) {
               const horizontal = poolExtra.poolHorizontal !== false;
-              laneId = poolLanes[horizontal ? laneIndexAt(poolLanes, poolSize.height, cy - poolPos.y) : laneIndexAt(asStackLanes(poolLanes, false), poolSize.width, cx - poolPos.x)].id;
+              laneId = horizontal ? leafLaneAt(poolLanes, poolSize.height, cy - poolPos.y) : leafLaneAt(asStackLanes(poolLanes, false), poolSize.width, cx - poolPos.x);
               if (laneId !== data2.laneId) {
                 n4.setData({ ...data2, laneId }, { silent: true });
               }

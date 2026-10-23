@@ -69776,10 +69776,27 @@
     return lanes.map((ln3, i3) => ({ ...ln3, height: Math.round(hs[i3]) }));
   }
   function asStackLanes(lanes, horizontal) {
-    return horizontal ? [...lanes] : lanes.map((ln3) => ({ id: ln3.id, label: ln3.label, height: ln3.width }));
+    return horizontal ? [...lanes] : lanes.map((ln3) => ({
+      id: ln3.id,
+      label: ln3.label,
+      height: ln3.width,
+      ...ln3.lanes?.length ? { lanes: asStackLanes(ln3.lanes, false) } : {}
+    }));
   }
   function fromStackLanes(lanes, sized, horizontal) {
     return lanes.map((ln3, i3) => horizontal ? { ...ln3, height: sized[i3]?.height } : { ...ln3, width: sized[i3]?.height });
+  }
+  function leafLaneAt(lanes, extent, rel) {
+    if (!lanes.length) return void 0;
+    const hs = laneHeights(lanes, extent);
+    const i3 = laneIndexAt(lanes, extent, rel);
+    const lane = lanes[i3];
+    if (!lane.lanes?.length) return lane.id;
+    const start = hs.slice(0, i3).reduce((a3, b2) => a3 + b2, 0);
+    return lane.lanes[laneIndexAt(lane.lanes, hs[i3], rel - start)].id;
+  }
+  function allLaneIds(lanes) {
+    return lanes.flatMap((ln3) => [ln3.id, ...(ln3.lanes ?? []).map((c4) => c4.id)]);
   }
 
   // src/canvas/htmlNode.ts
@@ -70158,12 +70175,19 @@
     }
     const lanes = extra?.lanes?.length ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
     const orient = extra?.poolHorizontal === false ? " is-vertical" : "";
-    const weights = laneWeights(asStackLanes(lanes, extra?.poolHorizontal !== false));
-    const laneHtml = lanes.map((ln3, i3) => {
-      const flex = weights ? ` style="flex: ${weights[i3]} 1 0px"` : "";
-      const divider = i3 < lanes.length - 1 ? `<div class="bp-pool-lane-divider" data-lane-idx="${i3}"></div>` : "";
-      return `<div class="bp-pool-lane" data-lane-id="${esc(ln3.id)}"${flex}><div class="bp-pool-lane-head">${esc(ln3.label)}</div><div class="bp-pool-lane-body"></div>${divider}</div>`;
-    }).join("");
+    const horizontal = extra?.poolHorizontal !== false;
+    const laneList = (list, parent) => {
+      const weights = laneWeights(asStackLanes(list, horizontal));
+      return list.map((ln3, i3) => {
+        const flex = weights ? ` style="flex: ${weights[i3]} 1 0px"` : "";
+        const at3 = parent === void 0 ? `data-lane-idx="${i3}"` : `data-lane-path="${parent}/${i3}"`;
+        const divider = i3 < list.length - 1 ? `<div class="bp-pool-lane-divider" ${at3}></div>` : "";
+        const body = parent === void 0 && ln3.lanes?.length ? `<div class="bp-pool-sublanes">${laneList(ln3.lanes, i3)}</div>` : `<div class="bp-pool-lane-body"></div>`;
+        const cls = parent === void 0 ? "bp-pool-lane" : "bp-pool-lane is-child";
+        return `<div class="${cls}" data-lane-id="${esc(ln3.id)}"${flex}><div class="bp-pool-lane-head">${esc(ln3.label)}</div>${body}${divider}</div>`;
+      }).join("");
+    };
+    const laneHtml = laneList(lanes);
     return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
   }
 
@@ -73593,18 +73617,24 @@
         const node2 = cellId ? this.graph.getCellById(cellId) : null;
         if (!node2 || !node2.isNode()) return;
         const lanes = this.nodeExtra(node2).lanes ?? [];
-        const idx = Number(handle.getAttribute("data-lane-idx"));
-        if (!Number.isInteger(idx) || idx >= lanes.length - 1) return;
+        const horizontal = this.nodeExtra(node2).poolHorizontal !== false;
+        const poolExtent = horizontal ? node2.getSize().height : node2.getSize().width;
+        const path2 = handle.getAttribute("data-lane-path");
+        const parent = path2 ? Number(path2.split("/")[0]) : -1;
+        const idx = path2 ? Number(path2.split("/")[1]) : Number(handle.getAttribute("data-lane-idx"));
+        const siblings = parent >= 0 ? lanes[parent]?.lanes ?? [] : lanes;
+        if (!Number.isInteger(idx) || idx >= siblings.length - 1) return;
+        const extent = parent >= 0 ? laneHeights(asStackLanes(lanes, horizontal), poolExtent)[parent] : poolExtent;
+        const write = (sized) => parent >= 0 ? lanes.map((ln3, i3) => i3 === parent ? { ...ln3, lanes: fromStackLanes(siblings, sized, horizontal) } : ln3) : fromStackLanes(lanes, sized, horizontal);
         e2.preventDefault();
         e2.stopPropagation();
         handle.classList.add("is-dragging");
-        const laneEls = Array.from(handle.closest(".bp-pool-body")?.querySelectorAll(":scope > .bp-pool-lane") ?? []);
-        const horizontal = this.nodeExtra(node2).poolHorizontal !== false;
-        const extent = horizontal ? node2.getSize().height : node2.getSize().width;
+        const container = handle.closest(parent >= 0 ? ".bp-pool-sublanes" : ".bp-pool-body");
+        const laneEls = Array.from(container?.querySelectorAll(":scope > .bp-pool-lane") ?? []);
         const at3 = (ev) => horizontal ? ev.clientY : ev.clientX;
         const start = at3(e2);
         const scale2 = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
-        const resized = (ev) => resizeLaneBoundary(asStackLanes(lanes, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE);
+        const resized = (ev) => resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE / (parent >= 0 ? 2 : 1));
         const mv = (ev) => {
           resized(ev).forEach((ln3, i3) => {
             if (laneEls[i3]) laneEls[i3].style.flex = `${ln3.height} 1 0px`;
@@ -73617,7 +73647,7 @@
           if (Math.abs(at3(ev) - start) < 1) return;
           this.graph.startBatch("lane-resize");
           try {
-            node2.setData({ ...node2.getData(), lanes: fromStackLanes(lanes, resized(ev), horizontal) }, { deep: false });
+            node2.setData({ ...node2.getData(), lanes: write(resized(ev)) }, { deep: false });
             this.rerender(node2);
           } finally {
             this.graph.stopBatch("lane-resize");
@@ -76189,9 +76219,10 @@
     }
     editLaneLabel(node2, laneId, anchor3) {
       const ex = this.nodeExtra(node2);
-      const lanes = (ex.lanes ?? []).slice();
-      const idx = lanes.findIndex((l3) => l3.id === laneId);
-      if (idx < 0) return;
+      const lanes = ex.lanes ?? [];
+      const current = lanes.flatMap((l3) => [l3, ...l3.lanes ?? []]).find((l3) => l3.id === laneId);
+      if (!current) return;
+      const relabel = (list, v4) => list.map((l3) => l3.id === laneId ? { ...l3, label: v4 } : l3.lanes ? { ...l3, lanes: relabel(l3.lanes, v4) } : l3);
       const r2 = anchor3.getBoundingClientRect();
       const rr2 = this.root.getBoundingClientRect();
       this.inlineEdit({
@@ -76199,11 +76230,10 @@
         top: r2.top - rr2.top,
         width: r2.width,
         height: r2.height,
-        value: lanes[idx].label,
-        vertical: true,
+        value: current.label,
+        vertical: ex.poolHorizontal !== false,
         onCommit: (v4) => {
-          lanes[idx] = { ...lanes[idx], label: v4 };
-          node2.setData({ ...node2.getData(), lanes });
+          node2.setData({ ...node2.getData(), lanes: relabel(lanes, v4) }, { deep: false });
           this.rerender(node2);
           this.onChange();
         }
@@ -77189,7 +77219,7 @@
               const poolLanes = poolExtra.lanes ?? [{ id: "l1", label: "Lane 1" }];
               if (poolLanes.length > 0) {
                 const horizontal = poolExtra.poolHorizontal !== false;
-                laneId = poolLanes[horizontal ? laneIndexAt(poolLanes, poolSize.height, cy - poolPos.y) : laneIndexAt(asStackLanes(poolLanes, false), poolSize.width, cx - poolPos.x)].id;
+                laneId = horizontal ? leafLaneAt(poolLanes, poolSize.height, cy - poolPos.y) : leafLaneAt(asStackLanes(poolLanes, false), poolSize.width, cx - poolPos.x);
                 if (laneId !== data2.laneId) {
                   n2.setData({ ...data2, laneId }, { silent: true });
                 }
@@ -84145,12 +84175,19 @@
         const proc = processRefId ? processById.get(processRefId) : void 0;
         const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
         const poolIsHorizontal = part.id ? diShapes.get(part.id)?.isHorizontal !== false : true;
-        const laneAttrs = lanes.map((ln3) => {
+        const toLaneAttr = (ln3, depth) => {
           const b2 = ln3.id ? diShapes.get(ln3.id)?.bounds : void 0;
           const size = poolIsHorizontal ? b2?.height : b2?.width;
           const key = poolIsHorizontal ? "height" : "width";
-          return { id: ln3.id ?? "", label: ln3.name ?? "", ...size && size > 0 ? { [key]: size } : {} };
-        });
+          const children2 = depth === 0 ? ln3.childLaneSet?.lanes ?? [] : [];
+          return {
+            id: ln3.id ?? "",
+            label: ln3.name ?? "",
+            ...size && size > 0 ? { [key]: size } : {},
+            ...children2.length ? { lanes: children2.map((c4) => toLaneAttr(c4, 1)) } : {}
+          };
+        };
+        const laneAttrs = lanes.map((ln3) => toLaneAttr(ln3, 0));
         let px2, py, pw, ph;
         const partDi = part.id ? diShapes.get(part.id) : void 0;
         if (partDi?.bounds) {
@@ -84326,9 +84363,9 @@
     for (const e2 of model.edges) edgeMap.set(e2.id, normalizeBpmnId(e2.id, "E", used));
     for (const n2 of model.nodes) {
       const lanes = n2.attrs?.lanes ?? [];
-      for (const ln3 of lanes) {
-        if (!ln3.id || laneMap.has(ln3.id)) continue;
-        laneMap.set(ln3.id, normalizeBpmnId(ln3.id, "L", used));
+      for (const id of allLaneIds(lanes)) {
+        if (!id || laneMap.has(id)) continue;
+        laneMap.set(id, normalizeBpmnId(id, "L", used));
       }
     }
     for (const n2 of model.nodes) {
@@ -84337,10 +84374,12 @@
     }
     return {
       nodes: model.nodes.map((n2) => {
-        const lanes = n2.attrs?.lanes?.map((ln3) => ({
+        const renameLanes = (list) => list.map((ln3) => ({
           ...ln3,
-          id: laneMap.get(ln3.id) ?? ln3.id
+          id: laneMap.get(ln3.id) ?? ln3.id,
+          ...ln3.lanes ? { lanes: renameLanes(ln3.lanes) } : {}
         }));
+        const lanes = n2.attrs?.lanes ? renameLanes(n2.attrs.lanes) : void 0;
         return {
           ...n2,
           id: nodeMap.get(n2.id) ?? n2.id,
@@ -84426,11 +84465,40 @@
     return void 0;
   }
   function findLane(process2, id) {
+    const inLanes = (lanes) => {
+      for (const l3 of lanes ?? []) {
+        if (l3.id === id) return l3;
+        const hit = inLanes(l3.childLaneSet?.lanes);
+        if (hit) return hit;
+      }
+      return void 0;
+    };
     for (const ls of process2.laneSets ?? []) {
-      const found = (ls.lanes ?? []).find((l3) => l3.id === id);
+      const found = inLanes(ls.lanes);
       if (found) return found;
     }
     return void 0;
+  }
+  function createLaneEl(m4, ln3, idOf = (id) => id) {
+    const el2 = m4.create("bpmn:Lane", { id: idOf(ln3.id), name: ln3.label ?? ln3.id });
+    if (ln3.lanes?.length) {
+      el2.childLaneSet = m4.create("bpmn:LaneSet", {
+        id: `LaneSet_${el2.id}`,
+        lanes: ln3.lanes.map((c4) => createLaneEl(m4, c4, idOf))
+      });
+    }
+    return el2;
+  }
+  function fillLaneRefs(lanes, refsOf) {
+    const all = [];
+    for (const ln3 of lanes ?? []) {
+      const children2 = ln3.childLaneSet?.lanes;
+      const own = ln3.id ? refsOf(ln3.id) : [];
+      const refs = children2?.length ? [...fillLaneRefs(children2, refsOf), ...own] : own;
+      ln3.flowNodeRef = refs;
+      all.push(...refs);
+    }
+    return all;
   }
   var POOL_HEADER = 30;
   var LANE_HEADER = 30;
@@ -84603,22 +84671,8 @@
         arr.push(n2.id);
         byLaneId.set(n2.laneId, arr);
       }
-      const walkLanesForRewrite = (lanes) => {
-        for (const ln3 of lanes ?? []) {
-          const child = ln3.childLaneSet?.lanes;
-          if (child?.length) {
-            walkLanesForRewrite(child);
-            continue;
-          }
-          const ids = ln3.id ? byLaneId.get(ln3.id) : void 0;
-          if (!ids?.length) {
-            ln3.flowNodeRef = [];
-            continue;
-          }
-          ln3.flowNodeRef = ids.map((id) => flowById.get(id)).filter((fe3) => !!fe3);
-        }
-      };
-      for (const ls of process2.laneSets ?? []) walkLanesForRewrite(ls.lanes);
+      const refsOf = (laneId) => (byLaneId.get(laneId) ?? []).map((id) => flowById.get(id)).filter((fe3) => !!fe3);
+      for (const ls of process2.laneSets ?? []) fillLaneRefs(ls.lanes, refsOf);
     }
     if (process2.artifacts) {
       process2.artifacts = process2.artifacts.filter((ar) => {
@@ -84780,10 +84834,19 @@
       }
       if (lanes.length) {
         const horizontal = pool.attrs?.poolHorizontal !== false;
-        const rects = laneRects(lanes, { x: poolX, y: poolY, width: poolW, height: poolH }, horizontal);
-        lanes.forEach((ln3, i3) => {
+        const emitLane = (ln3, r2, parentEl) => {
           if (!ln3.id) return;
-          const r2 = rects[i3];
+          let laneEl = findLane(poolProcess, ln3.id);
+          if (!laneEl) {
+            laneEl = m4.create("bpmn:Lane", { id: ln3.id, name: ln3.label ?? ln3.id });
+            if (parentEl) {
+              const holder = parentEl;
+              holder.childLaneSet ??= m4.create("bpmn:LaneSet", { id: `LaneSet_${parentEl.id}`, lanes: [] });
+              (holder.childLaneSet.lanes ??= []).push(laneEl);
+            } else {
+              (ensureLaneSetIn(poolProcess).lanes ??= []).push(laneEl);
+            }
+          }
           let ldi = diShape.get(ln3.id);
           if (ldi?.bounds) {
             ldi.bounds.x = r2.x;
@@ -84791,11 +84854,6 @@
             ldi.bounds.width = r2.width;
             ldi.bounds.height = r2.height;
           } else {
-            let laneEl = findLane(poolProcess, ln3.id);
-            if (!laneEl) {
-              laneEl = m4.create("bpmn:Lane", { id: ln3.id, name: ln3.label ?? ln3.id });
-              (ensureLaneSetIn(poolProcess).lanes ??= []).push(laneEl);
-            }
             ldi = m4.create("bpmndi:BPMNShape", {
               bpmnElement: laneEl,
               bounds: m4.create("dc:Bounds", { x: r2.x, y: r2.y, width: r2.width, height: r2.height })
@@ -84804,16 +84862,23 @@
             diShape.set(ln3.id, ldi);
             prefix2.push(ldi);
           }
-        });
+          if (ln3.lanes?.length) {
+            const inner = horizontal ? { x: r2.x + LANE_HEADER, y: r2.y, width: r2.width - LANE_HEADER, height: r2.height } : { x: r2.x, y: r2.y + LANE_HEADER, width: r2.width, height: r2.height - LANE_HEADER };
+            const childRects = laneRects(ln3.lanes, inner, horizontal, 0);
+            ln3.lanes.forEach((c4, j3) => emitLane(c4, childRects[j3], laneEl));
+          }
+        };
+        const rects = laneRects(lanes, { x: poolX, y: poolY, width: poolW, height: poolH }, horizontal);
+        lanes.forEach((ln3, i3) => emitLane(ln3, rects[i3]));
       }
       if (prefix2.length) (mainPlane.planeElement ??= []).unshift(...prefix2);
     }
   }
-  function laneRects(lanes, pool, horizontal) {
+  function laneRects(lanes, pool, horizontal, header = POOL_HEADER) {
     const extent = horizontal ? pool.height : pool.width;
     let at3 = horizontal ? pool.y : pool.x;
     return laneHeights(asStackLanes(lanes, horizontal), extent).map((size) => {
-      const r2 = horizontal ? { x: pool.x + POOL_HEADER, y: at3, width: pool.width - POOL_HEADER, height: size } : { x: at3, y: pool.y + POOL_HEADER, width: size, height: pool.height - POOL_HEADER };
+      const r2 = horizontal ? { x: pool.x + header, y: at3, width: pool.width - header, height: size } : { x: at3, y: pool.y + header, width: size, height: pool.height - header };
       at3 += size;
       return r2;
     });
@@ -84991,23 +85056,19 @@
       }));
       (defs.rootElements ??= []).push(collaboration);
       const globalSeenLaneIds = /* @__PURE__ */ new Set();
+      const uniqueLaneId = (id) => {
+        if (!globalSeenLaneIds.has(id)) {
+          globalSeenLaneIds.add(id);
+          return id;
+        }
+        let suffix = 2;
+        while (globalSeenLaneIds.has(`${id}_${suffix}`)) suffix += 1;
+        globalSeenLaneIds.add(`${id}_${suffix}`);
+        return `${id}_${suffix}`;
+      };
       for (const pool of pools) {
-        const poolLanes = pool.attrs?.lanes ?? [];
-        if (!poolLanes.length) continue;
-        const lanes = poolLanes.map((ln3) => {
-          if (!globalSeenLaneIds.has(ln3.id)) {
-            globalSeenLaneIds.add(ln3.id);
-            return ln3;
-          }
-          let suffix = 2;
-          let fresh = `${ln3.id}_${suffix}`;
-          while (globalSeenLaneIds.has(fresh)) {
-            suffix += 1;
-            fresh = `${ln3.id}_${suffix}`;
-          }
-          globalSeenLaneIds.add(fresh);
-          return { ...ln3, id: fresh };
-        });
+        const lanes = pool.attrs?.lanes ?? [];
+        if (!lanes.length) continue;
         const targetProcess = multiPool ? processByPoolId.get(pool.id) : process2;
         if (!targetProcess.laneSets || !targetProcess.laneSets.length) {
           targetProcess.laneSets = [m4.create("bpmn:LaneSet", {
@@ -85017,9 +85078,7 @@
         }
         const laneSet = targetProcess.laneSets[0];
         laneSet.lanes ??= [];
-        for (const ln3 of lanes) {
-          laneSet.lanes.push(m4.create("bpmn:Lane", { id: ln3.id, name: ln3.label ?? ln3.id }));
-        }
+        for (const ln3 of lanes) laneSet.lanes.push(createLaneEl(m4, ln3, uniqueLaneId));
       }
     }
     const findOwningProcess = (n2) => {
@@ -85028,7 +85087,7 @@
       if (n2.laneId) {
         for (const pool of pools) {
           const ls = pool.attrs?.lanes ?? [];
-          if (ls.some((l3) => l3.id === n2.laneId)) return processByPoolId.get(pool.id);
+          if (allLaneIds(ls).includes(n2.laneId)) return processByPoolId.get(pool.id);
         }
       }
       const cx = n2.x + n2.width / 2;
@@ -85058,17 +85117,8 @@
     }
     const allProcesses = multiPool ? [...processByPoolId.values()] : [process2];
     for (const proc of allProcesses) {
-      for (const ls of proc.laneSets ?? []) {
-        for (const ln3 of ls.lanes ?? []) {
-          const refs = [];
-          for (const n2 of model.nodes) {
-            if (n2.laneId !== ln3.id) continue;
-            const fe3 = feById.get(n2.id);
-            if (fe3) refs.push(fe3);
-          }
-          ln3.flowNodeRef = refs;
-        }
-      }
+      const refsOf = (laneId) => model.nodes.filter((n2) => n2.laneId === laneId).map((n2) => feById.get(n2.id)).filter((fe3) => !!fe3);
+      for (const ls of proc.laneSets ?? []) fillLaneRefs(ls.lanes, refsOf);
     }
     const sfById = /* @__PURE__ */ new Map();
     const nodeIdSet = new Set(model.nodes.map((n2) => n2.id));

@@ -8,7 +8,8 @@
  * pool is resized they scale proportionally to fill the pool.
  */
 
-export interface PoolLane { id: string; label?: string; height?: number }
+/** A pool lane; `lanes` = its child lanes (one level of nesting). */
+export interface PoolLane { id: string; label?: string; height?: number; lanes?: PoolLane[] }
 
 const hasHeight = (ln: PoolLane): boolean => typeof ln.height === "number" && Number.isFinite(ln.height) && ln.height > 0;
 
@@ -92,11 +93,33 @@ export function resizePoolLanes<T extends PoolLane>(
  * them up left→right and keeps it in `width`. The functions above work on
  * `height`; these two map a pool's lanes to / from that form.
  */
-export function asStackLanes<T extends PoolLane & { width?: number }>(lanes: readonly T[], horizontal: boolean): PoolLane[] {
-  return horizontal ? [...lanes] : lanes.map((ln) => ({ id: ln.id, label: ln.label, height: ln.width }));
+type SizedLane = PoolLane & { width?: number; lanes?: SizedLane[] };
+export function asStackLanes<T extends SizedLane>(lanes: readonly T[], horizontal: boolean): PoolLane[] {
+  return horizontal ? [...lanes] : lanes.map((ln) => ({
+    id: ln.id, label: ln.label, height: ln.width,
+    ...(ln.lanes?.length ? { lanes: asStackLanes(ln.lanes, false) } : {}),
+  }));
 }
 export function fromStackLanes<T extends PoolLane & { width?: number }>(lanes: readonly T[], sized: readonly PoolLane[], horizontal: boolean): T[] {
   return lanes.map((ln, i) => (horizontal
     ? { ...ln, height: sized[i]?.height }
     : { ...ln, width: sized[i]?.height }));
+}
+
+/** Id of the leaf lane at `rel` (offset along the stacking axis from the
+ *  pool's start): the lane under it, or that lane's child under it when it
+ *  has child lanes (children split their parent's band by their own sizes). */
+export function leafLaneAt(lanes: readonly PoolLane[], extent: number, rel: number): string | undefined {
+  if (!lanes.length) return undefined;
+  const hs = laneHeights(lanes, extent);
+  const i = laneIndexAt(lanes, extent, rel);
+  const lane = lanes[i];
+  if (!lane.lanes?.length) return lane.id;
+  const start = hs.slice(0, i).reduce((a, b) => a + b, 0);
+  return lane.lanes[laneIndexAt(lane.lanes, hs[i], rel - start)].id;
+}
+
+/** Every lane id of a pool, parents and children. */
+export function allLaneIds(lanes: readonly PoolLane[]): string[] {
+  return lanes.flatMap((ln) => [ln.id, ...(ln.lanes ?? []).map((c) => c.id)]);
 }

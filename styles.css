@@ -958,6 +958,11 @@
   writing-mode: vertical-rl; transform: rotate(180deg);
   font-size: 11px; font-weight: 700; color: var(--pg-text-muted); padding: 6px 0; cursor: text; }
 .lk-root .bp-pool-lane-body { flex: 1 1 auto; min-width: 0; position: relative; }
+/* Child lanes stack inside their parent lane, after its title strip. */
+.lk-root .bp-pool-sublanes { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.lk-root .bp-pool-lane.is-child { min-height: 30px; }
+.lk-root .bp-pool.is-vertical .bp-pool-sublanes { flex-direction: row; }
+.lk-root .bp-pool.is-vertical .bp-pool-lane.is-child { min-height: 0; min-width: 30px; }
 /* Vertical pool: lanes are columns (title on top, divider on the right). */
 .lk-root .bp-pool.is-vertical .bp-pool-body { flex-direction: row; min-height: 0; }
 .lk-root .bp-pool.is-vertical .bp-pool-lane { flex-direction: column; min-height: 0; min-width: 60px;

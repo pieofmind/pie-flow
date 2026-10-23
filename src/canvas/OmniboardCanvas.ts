@@ -11,7 +11,7 @@ import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type 
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
-import { asStackLanes, fromStackLanes, laneHeights, laneIndexAt, resizeLaneBoundary, resizePoolLanes } from "./laneLayout";
+import { asStackLanes, fromStackLanes, laneHeights, leafLaneAt, resizeLaneBoundary, resizePoolLanes } from "./laneLayout";
 import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
@@ -1037,19 +1037,29 @@ export class OmniboardCanvas {
       const node = cellId ? this.graph.getCellById(cellId) : null;
       if (!node || !node.isNode()) return;
       const lanes = this.nodeExtra(node).lanes ?? [];
-      const idx = Number(handle.getAttribute("data-lane-idx"));
-      if (!Number.isInteger(idx) || idx >= lanes.length - 1) return;
-      e.preventDefault(); e.stopPropagation();
-      handle.classList.add("is-dragging");
-      const laneEls = Array.from(handle.closest(".bp-pool-body")?.querySelectorAll<HTMLElement>(":scope > .bp-pool-lane") ?? []);
       // Rows in a horizontal pool (drag along y), columns in a vertical one (x).
       const horizontal = this.nodeExtra(node).poolHorizontal !== false;
-      const extent = horizontal ? node.getSize().height : node.getSize().width;
+      const poolExtent = horizontal ? node.getSize().height : node.getSize().width;
+      // Top-level divider (data-lane-idx="i") or between the child lanes of
+      // lane p (data-lane-path="p/j"): resize two siblings within their band.
+      const path = handle.getAttribute("data-lane-path");
+      const parent = path ? Number(path.split("/")[0]) : -1;
+      const idx = path ? Number(path.split("/")[1]) : Number(handle.getAttribute("data-lane-idx"));
+      const siblings = parent >= 0 ? lanes[parent]?.lanes ?? [] : lanes;
+      if (!Number.isInteger(idx) || idx >= siblings.length - 1) return;
+      const extent = parent >= 0 ? laneHeights(asStackLanes(lanes, horizontal), poolExtent)[parent] : poolExtent;
+      const write = (sized: ReturnType<typeof resizeLaneBoundary>) => (parent >= 0
+        ? lanes.map((ln, i) => (i === parent ? { ...ln, lanes: fromStackLanes(siblings, sized, horizontal) } : ln))
+        : fromStackLanes(lanes, sized, horizontal));
+      e.preventDefault(); e.stopPropagation();
+      handle.classList.add("is-dragging");
+      const container = handle.closest(parent >= 0 ? ".bp-pool-sublanes" : ".bp-pool-body");
+      const laneEls = Array.from(container?.querySelectorAll<HTMLElement>(":scope > .bp-pool-lane") ?? []);
       const at = (ev: PointerEvent) => (horizontal ? ev.clientY : ev.clientX);
       const start = at(e);
       const scale = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
       const resized = (ev: PointerEvent) =>
-        resizeLaneBoundary(asStackLanes(lanes, horizontal), extent, idx, (at(ev) - start) / scale, MIN_LANE);
+        resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at(ev) - start) / scale, MIN_LANE / (parent >= 0 ? 2 : 1));
       const mv = (ev: PointerEvent) => {
         resized(ev).forEach((ln, i) => { if (laneEls[i]) laneEls[i].style.flex = `${ln.height} 1 0px`; });
       };
@@ -1060,7 +1070,7 @@ export class OmniboardCanvas {
         if (Math.abs(at(ev) - start) < 1) return;
         this.graph.startBatch("lane-resize");
         try {
-          node.setData({ ...node.getData(), lanes: fromStackLanes(lanes, resized(ev), horizontal) }, { deep: false });
+          node.setData({ ...node.getData(), lanes: write(resized(ev)) }, { deep: false });
           this.rerender(node);
         } finally { this.graph.stopBatch("lane-resize"); }
         this.onChange();
@@ -3606,16 +3616,19 @@ export class OmniboardCanvas {
 
   private editLaneLabel(node: Node, laneId: string, anchor: HTMLElement): void {
     const ex = this.nodeExtra(node);
-    const lanes = (ex.lanes ?? []).slice();
-    const idx = lanes.findIndex((l) => l.id === laneId);
-    if (idx < 0) return;
+    const lanes = ex.lanes ?? [];
+    // The lane may be a child lane (one level of nesting).
+    const current = lanes.flatMap((l) => [l, ...(l.lanes ?? [])]).find((l) => l.id === laneId);
+    if (!current) return;
+    const relabel = (list: typeof lanes, v: string): typeof lanes => list.map((l) => (l.id === laneId
+      ? { ...l, label: v }
+      : l.lanes ? { ...l, lanes: relabel(l.lanes, v) } : l));
     const r = anchor.getBoundingClientRect(); const rr = this.root.getBoundingClientRect();
     this.inlineEdit({
       left: r.left - rr.left, top: r.top - rr.top, width: r.width, height: r.height,
-      value: lanes[idx].label, vertical: true,
+      value: current.label, vertical: ex.poolHorizontal !== false,
       onCommit: (v) => {
-        lanes[idx] = { ...lanes[idx], label: v };
-        node.setData({ ...node.getData(), lanes });
+        node.setData({ ...node.getData(), lanes: relabel(lanes, v) }, { deep: false });
         this.rerender(node);
         this.onChange();
       },
@@ -4678,9 +4691,10 @@ export class OmniboardCanvas {
             if (poolLanes.length > 0) {
               // Rows by y in a horizontal pool, columns by x in a vertical one.
               const horizontal = poolExtra.poolHorizontal !== false;
-              laneId = poolLanes[horizontal
-                ? laneIndexAt(poolLanes, poolSize.height, cy - poolPos.y)
-                : laneIndexAt(asStackLanes(poolLanes, false), poolSize.width, cx - poolPos.x)].id;
+              // The leaf lane: a child lane when the lane under it has children.
+              laneId = horizontal
+                ? leafLaneAt(poolLanes, poolSize.height, cy - poolPos.y)
+                : leafLaneAt(asStackLanes(poolLanes, false), poolSize.width, cx - poolPos.x);
               
               // Keep the cached data in sync silently
               if (laneId !== data.laneId) {

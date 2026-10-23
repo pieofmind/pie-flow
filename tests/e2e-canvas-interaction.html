@@ -204,6 +204,21 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(lane === 'vc2', 'laneId by x: ' + lane);   // centre x 350 → 40+150 .. 40+450
   });
 
+  await run('nested lanes: child lanes drawn inside their parent, shapes get the leaf lane', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'npool', shape: 'bpmn-pool', x: 40, y: 40, width: 700, height: 400, label: 'Fanpage',
+        attrs: { lanes: [{ id: 'n_kh', label: 'Khách', height: 100 },
+                         { id: 'n_kalix', label: 'KALIX', height: 300, lanes: [{ id: 'n_tp', label: 'Trực page', height: 200 }, { id: 'n_sale', label: 'Sale', height: 100 }] }] } },
+      { id: 'nt', shape: 'bpmn-task-user', x: 300, y: 370, width: 100, height: 50, label: 'Gọi' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    const h = (id) => Math.round(document.querySelector(`[data-cell-id="npool"] [data-lane-id="${id}"]`).getBoundingClientRect().height);
+    assert(Math.abs(h('n_tp') - 200) <= 2 && Math.abs(h('n_sale') - 100) <= 2, 'child heights: ' + [h('n_tp'), h('n_sale')]);
+    const lane = window.__ob.getModel().nodes.find((n) => n.id === 'nt').laneId;
+    assert(lane === 'n_sale', 'leaf lane: ' + lane);    // centre y 395 → 40+100+200 .. 440
+  });
+
   const failed = results.filter(r => !r.ok).length;
   w(failed ? `${failed} FAILED` : 'ALL PASS', failed ? 'fail' : 'pass');
   window.__results = results;

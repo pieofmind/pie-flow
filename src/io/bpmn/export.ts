@@ -56,13 +56,17 @@ function moddle(): BpmnModdle {
   return moddleSingleton;
 }
 
-function shapeToBpmnType(shape: string, attrs?: { attachedTo?: string }): string {
+function shapeToBpmnType(shape: string, attrs?: { attachedTo?: string; markers?: string[] }): string {
   // Đợt F — if an intermediate event has attachedTo, export it as BoundaryEvent
   // (not IntermediateThrowEvent) per OMG.
   if (shape === "bpmn-event-intermediate" && attrs?.attachedTo) return "bpmn:BoundaryEvent";
+  // A task drawn with the ⊞ marker is a (collapsed) sub-process in BPMN.
+  if (attrs?.markers?.includes("subprocess") && (SHAPE_TO_BPMN[shape] ?? "task") === "task") return "bpmn:SubProcess";
   const tag = SHAPE_TO_BPMN[shape] ?? "task";
   return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
 }
+
+const isCollapsed = (n: { attrs?: unknown }): boolean => (n.attrs as { collapsed?: boolean } | undefined)?.collapsed === true;
 
 /** BPMN node attrs Đợt F — read by `applyBpmnExtras` to inject moddle children. */
 interface BpmnNodeAttrs {
@@ -537,6 +541,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       di = m.create("bpmndi:BPMNShape", {
         bpmnElement: fe,
         bounds: m.create("dc:Bounds", { x: n.x, y: n.y, width: n.width, height: n.height }),
+        ...(isCollapsed(n) ? { isExpanded: false } : {}),
       }) as ModdleElement;
       (mainPlane.planeElement ??= []).push(di);
       diShape.set(n.id, di);
@@ -544,8 +549,19 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     // Phase B — if the user moved this node to/from a subprocess, detach
     // from the old container and re-push into the new one. Only act when
     // the actual parent element differs from the desired container.
-    const existing = flowById.get(n.id);
+    let existing = flowById.get(n.id);
     const curContainer = containerOf.get(n.id);
+    // The ⊞ marker was added to a task read from the file: swap in a
+    // sub-process with the same id and properties (refs serialise by id).
+    if (existing?.$type === "bpmn:Task" && curContainer && shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs) === "bpmn:SubProcess") {
+      const { $type: _t, ...props } = Object.fromEntries(Object.entries(existing)) as Record<string, unknown>;
+      const sub = m.create("bpmn:SubProcess", props) as ModdleElement;
+      const old = existing;
+      curContainer.flowElements = (curContainer.flowElements ?? []).map((fe) => (fe === old ? sub : fe));
+      if (di) di.bpmnElement = sub;
+      flowById.set(n.id, sub);
+      existing = sub;
+    }
     if (existing && curContainer && curContainer !== targetContainer) {
       curContainer.flowElements = (curContainer.flowElements ?? []).filter((fe) => fe.id !== n.id);
       (targetContainer.flowElements ??= []).push(existing);
@@ -1293,6 +1309,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       bpmnElement: feById.get(n.id),
       bounds: m.create("dc:Bounds", { x: n.x, y: n.y, width: n.width, height: n.height }),
       ...(nLabel ? { label: m.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {}),
+      ...(isCollapsed(n) ? { isExpanded: false } : {}),
     }) as ModdleElement;
     plane.planeElement!.push(di);
     diShape.set(n.id, di);

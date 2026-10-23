@@ -85,3 +85,18 @@ export function resizePoolLanes<T extends PoolLane>(
   }
   return lanes.map((ln, i) => ({ ...ln, height: Math.round(hs[i]) }));
 }
+
+/**
+ * Lanes along the pool's stacking axis. A horizontal pool stacks its lanes
+ * top→bottom and keeps each lane's size in `height`; a vertical pool lines
+ * them up left→right and keeps it in `width`. The functions above work on
+ * `height`; these two map a pool's lanes to / from that form.
+ */
+export function asStackLanes<T extends PoolLane & { width?: number }>(lanes: readonly T[], horizontal: boolean): PoolLane[] {
+  return horizontal ? [...lanes] : lanes.map((ln) => ({ id: ln.id, label: ln.label, height: ln.width }));
+}
+export function fromStackLanes<T extends PoolLane & { width?: number }>(lanes: readonly T[], sized: readonly PoolLane[], horizontal: boolean): T[] {
+  return lanes.map((ln, i) => (horizontal
+    ? { ...ln, height: sized[i]?.height }
+    : { ...ln, width: sized[i]?.height }));
+}

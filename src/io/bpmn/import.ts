@@ -595,13 +595,15 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       const processRefId = part.processRef?.id;
       const proc = processRefId ? processById.get(processRefId) : undefined;
       const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
-      // Lane height from its own DI (e.g. resized in bpmn-js) so the Board
-      // draws the same bands. The Board stacks lanes top→bottom, so only a
-      // horizontal pool's lane height maps onto it.
+      // Lane size from its own DI (e.g. resized in bpmn-js) so the Board
+      // draws the same bands: height of a row in a horizontal pool, width of
+      // a column in a vertical one.
       const poolIsHorizontal = part.id ? ((diShapes.get(part.id) as { isHorizontal?: boolean } | undefined)?.isHorizontal !== false) : true;
       const laneAttrs = lanes.map((ln) => {
-        const h = poolIsHorizontal && ln.id ? diShapes.get(ln.id)?.bounds?.height : undefined;
-        return { id: ln.id ?? "", label: ln.name ?? "", ...(h && h > 0 ? { height: h } : {}) };
+        const b = ln.id ? diShapes.get(ln.id)?.bounds : undefined;
+        const size = poolIsHorizontal ? b?.height : b?.width;
+        const key = poolIsHorizontal ? "height" : "width";
+        return { id: ln.id ?? "", label: ln.name ?? "", ...(size && size > 0 ? { [key]: size } : {}) };
       });
 
       // Determine bounds: prefer the participant's own DI shape.

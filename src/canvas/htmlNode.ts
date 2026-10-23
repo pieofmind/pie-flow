@@ -1,6 +1,6 @@
 import { Graph } from "@antv/x6";
 import { makePorts } from "./shapes/ports";
-import { laneWeights } from "./laneLayout";
+import { asStackLanes, laneWeights } from "./laneLayout";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
 
@@ -58,8 +58,9 @@ export interface NodeExtra {
    *  Set by importDbml when DBML has `TableGroup` blocks. */
   headerColor?: string;
   labelOffset?: { x: number; y: number };
-  /** BPMN pool lanes (top→bottom). `height` optional — absent = equal split. */
-  lanes?: Array<{ id: string; label: string; height?: number }>;
+  /** BPMN pool lanes (top→bottom; left→right in a vertical pool). Own size
+   *  optional — `height` (horizontal pool) / `width` (vertical) — absent = equal split. */
+  lanes?: Array<{ id: string; label: string; height?: number; width?: number }>;
   poolHorizontal?: boolean;
   blackBox?: boolean;
   // ── BPMN 2.0 extras (Đợt A, 2026-06-01) ──
@@ -420,7 +421,8 @@ function bpPool(label: string, extra?: NodeExtra): string {
   const orient = extra?.poolHorizontal === false ? " is-vertical" : "";
   // Own height → flex weight, so lanes stay proportional when the pool is resized
   // (same rule as laneHeights()). Divider handle between lanes = drag to resize.
-  const weights = laneWeights(lanes);
+  // A vertical pool lines its lanes up as columns, sized by `width`.
+  const weights = laneWeights(asStackLanes(lanes, extra?.poolHorizontal !== false));
   const laneHtml = lanes.map((ln, i) => {
     const flex = weights ? ` style="flex: ${weights[i]} 1 0px"` : "";
     const divider = i < lanes.length - 1 ? `<div class="bp-pool-lane-divider" data-lane-idx="${i}"></div>` : "";

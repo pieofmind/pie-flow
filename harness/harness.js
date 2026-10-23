@@ -69775,6 +69775,12 @@
     }
     return lanes.map((ln3, i3) => ({ ...ln3, height: Math.round(hs[i3]) }));
   }
+  function asStackLanes(lanes, horizontal) {
+    return horizontal ? [...lanes] : lanes.map((ln3) => ({ id: ln3.id, label: ln3.label, height: ln3.width }));
+  }
+  function fromStackLanes(lanes, sized, horizontal) {
+    return lanes.map((ln3, i3) => horizontal ? { ...ln3, height: sized[i3]?.height } : { ...ln3, width: sized[i3]?.height });
+  }
 
   // src/canvas/htmlNode.ts
   var XHTML = "http://www.w3.org/1999/xhtml";
@@ -70152,7 +70158,7 @@
     }
     const lanes = extra?.lanes?.length ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
     const orient = extra?.poolHorizontal === false ? " is-vertical" : "";
-    const weights = laneWeights(lanes);
+    const weights = laneWeights(asStackLanes(lanes, extra?.poolHorizontal !== false));
     const laneHtml = lanes.map((ln3, i3) => {
       const flex = weights ? ` style="flex: ${weights[i3]} 1 0px"` : "";
       const divider = i3 < lanes.length - 1 ? `<div class="bp-pool-lane-divider" data-lane-idx="${i3}"></div>` : "";
@@ -73593,10 +73599,12 @@
         e2.stopPropagation();
         handle.classList.add("is-dragging");
         const laneEls = Array.from(handle.closest(".bp-pool-body")?.querySelectorAll(":scope > .bp-pool-lane") ?? []);
-        const poolH = node2.getSize().height;
-        const startY = e2.clientY;
-        const scale2 = this.graph.scale().sy || 1;
-        const resized = (ev) => resizeLaneBoundary(lanes, poolH, idx, (ev.clientY - startY) / scale2, MIN_LANE);
+        const horizontal = this.nodeExtra(node2).poolHorizontal !== false;
+        const extent = horizontal ? node2.getSize().height : node2.getSize().width;
+        const at3 = (ev) => horizontal ? ev.clientY : ev.clientX;
+        const start = at3(e2);
+        const scale2 = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
+        const resized = (ev) => resizeLaneBoundary(asStackLanes(lanes, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE);
         const mv = (ev) => {
           resized(ev).forEach((ln3, i3) => {
             if (laneEls[i3]) laneEls[i3].style.flex = `${ln3.height} 1 0px`;
@@ -73606,10 +73614,10 @@
           document.removeEventListener("pointermove", mv);
           document.removeEventListener("pointerup", up);
           handle.classList.remove("is-dragging");
-          if (Math.abs(ev.clientY - startY) < 1) return;
+          if (Math.abs(at3(ev) - start) < 1) return;
           this.graph.startBatch("lane-resize");
           try {
-            node2.setData({ ...node2.getData(), lanes: resized(ev) }, { deep: false });
+            node2.setData({ ...node2.getData(), lanes: fromStackLanes(lanes, resized(ev), horizontal) }, { deep: false });
             this.rerender(node2);
           } finally {
             this.graph.stopBatch("lane-resize");
@@ -74008,12 +74016,17 @@
         this.refreshContextPad();
       });
       this.graph.on("node:change:size", ({ node: node2, previous, current, options }) => {
-        if (this.nodeKind(node2) !== "bpmn-pool" || !previous || !current || previous.height === current.height) return;
+        if (this.nodeKind(node2) !== "bpmn-pool" || !previous || !current) return;
+        const horizontal = this.nodeExtra(node2).poolHorizontal !== false;
+        const [before2, after2] = horizontal ? [previous.height, current.height] : [previous.width, current.width];
+        if (before2 === after2) return;
         const dir = String(options?.direction ?? "");
-        const edge = dir.includes("top") ? "top" : dir.includes("bottom") ? "bottom" : null;
+        const [first, last] = horizontal ? ["top", "bottom"] : ["left", "right"];
+        const edge = dir.includes(first) ? "top" : dir.includes(last) ? "bottom" : null;
         const lanes = this.nodeExtra(node2).lanes;
         if (!edge || !lanes || lanes.length < 2) return;
-        node2.setData({ ...node2.getData(), lanes: resizePoolLanes(lanes, previous.height, current.height, edge) }, { deep: false });
+        const sized = resizePoolLanes(asStackLanes(lanes, horizontal), before2, after2, edge);
+        node2.setData({ ...node2.getData(), lanes: fromStackLanes(lanes, sized, horizontal) }, { deep: false });
         this.rerender(node2);
       });
       this.graph.on("node:change:size", ({ node: node2 }) => {
@@ -76087,13 +76100,16 @@
       const s3 = node2.getSize();
       const NEW_LANE_H = 70;
       const prev = ex.lanes ?? [{ id: "l1", label: "Lane 1" }];
-      const sized = prev.some((ln3) => ln3.height) ? laneHeights(prev, s3.height).map((h3, i3) => ({ ...prev[i3], height: Math.round(h3) })) : null;
+      const horizontal = ex.poolHorizontal !== false;
+      const stack = asStackLanes(prev, horizontal);
+      const sized = stack.some((ln3) => ln3.height) ? fromStackLanes(prev, laneHeights(stack, horizontal ? s3.height : s3.width).map((h3) => ({ id: "", height: Math.round(h3) })), horizontal) : null;
       const lanes = [...sized ?? prev];
-      const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}`, ...sized ? { height: NEW_LANE_H } : {} };
+      const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}`, ...sized ? { [horizontal ? "height" : "width"]: NEW_LANE_H } : {} };
       if (where === "above") lanes.unshift(next);
       else lanes.push(next);
       node2.setData({ ...node2.getData(), lanes }, { deep: false });
-      node2.resize(s3.width, s3.height + NEW_LANE_H);
+      if (horizontal) node2.resize(s3.width, s3.height + NEW_LANE_H);
+      else node2.resize(s3.width + NEW_LANE_H, s3.height);
       this.rerender(node2);
       this.refreshContextBar();
       this.onChange();
@@ -77172,7 +77188,8 @@
               const poolExtra = this.nodeExtra(pool);
               const poolLanes = poolExtra.lanes ?? [{ id: "l1", label: "Lane 1" }];
               if (poolLanes.length > 0) {
-                laneId = poolLanes[laneIndexAt(poolLanes, poolSize.height, cy - poolPos.y)].id;
+                const horizontal = poolExtra.poolHorizontal !== false;
+                laneId = poolLanes[horizontal ? laneIndexAt(poolLanes, poolSize.height, cy - poolPos.y) : laneIndexAt(asStackLanes(poolLanes, false), poolSize.width, cx - poolPos.x)].id;
                 if (laneId !== data2.laneId) {
                   n2.setData({ ...data2, laneId }, { silent: true });
                 }
@@ -84129,8 +84146,10 @@
         const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
         const poolIsHorizontal = part.id ? diShapes.get(part.id)?.isHorizontal !== false : true;
         const laneAttrs = lanes.map((ln3) => {
-          const h3 = poolIsHorizontal && ln3.id ? diShapes.get(ln3.id)?.bounds?.height : void 0;
-          return { id: ln3.id ?? "", label: ln3.name ?? "", ...h3 && h3 > 0 ? { height: h3 } : {} };
+          const b2 = ln3.id ? diShapes.get(ln3.id)?.bounds : void 0;
+          const size = poolIsHorizontal ? b2?.height : b2?.width;
+          const key = poolIsHorizontal ? "height" : "width";
+          return { id: ln3.id ?? "", label: ln3.name ?? "", ...size && size > 0 ? { [key]: size } : {} };
         });
         let px2, py, pw, ph;
         const partDi = part.id ? diShapes.get(part.id) : void 0;
@@ -84759,19 +84778,18 @@
         diShape.set(pool.id, pdi);
         prefix2.push(pdi);
       }
-      const laneX = poolX + POOL_HEADER;
-      const laneW = poolW - POOL_HEADER;
       if (lanes.length) {
-        const bands = laneBandsOf(lanes, poolY, poolH);
+        const horizontal = pool.attrs?.poolHorizontal !== false;
+        const rects = laneRects(lanes, { x: poolX, y: poolY, width: poolW, height: poolH }, horizontal);
         lanes.forEach((ln3, i3) => {
           if (!ln3.id) return;
-          const band = bands[i3];
+          const r2 = rects[i3];
           let ldi = diShape.get(ln3.id);
           if (ldi?.bounds) {
-            ldi.bounds.x = laneX;
-            ldi.bounds.y = band.y;
-            ldi.bounds.width = laneW;
-            ldi.bounds.height = band.h;
+            ldi.bounds.x = r2.x;
+            ldi.bounds.y = r2.y;
+            ldi.bounds.width = r2.width;
+            ldi.bounds.height = r2.height;
           } else {
             let laneEl = findLane(poolProcess, ln3.id);
             if (!laneEl) {
@@ -84780,10 +84798,9 @@
             }
             ldi = m4.create("bpmndi:BPMNShape", {
               bpmnElement: laneEl,
-              bounds: m4.create("dc:Bounds", { x: laneX, y: band.y, width: laneW, height: band.h })
+              bounds: m4.create("dc:Bounds", { x: r2.x, y: r2.y, width: r2.width, height: r2.height })
             });
-            const isHorizontal = pool.attrs?.poolHorizontal !== false;
-            ldi.isHorizontal = isHorizontal;
+            ldi.isHorizontal = horizontal;
             diShape.set(ln3.id, ldi);
             prefix2.push(ldi);
           }
@@ -84792,12 +84809,13 @@
       if (prefix2.length) (mainPlane.planeElement ??= []).unshift(...prefix2);
     }
   }
-  function laneBandsOf(lanes, poolY, poolH) {
-    let y3 = poolY;
-    return laneHeights(lanes, poolH).map((h3) => {
-      const band = { y: y3, h: h3 };
-      y3 += h3;
-      return band;
+  function laneRects(lanes, pool, horizontal) {
+    const extent = horizontal ? pool.height : pool.width;
+    let at3 = horizontal ? pool.y : pool.x;
+    return laneHeights(asStackLanes(lanes, horizontal), extent).map((size) => {
+      const r2 = horizontal ? { x: pool.x + POOL_HEADER, y: at3, width: pool.width - POOL_HEADER, height: size } : { x: at3, y: pool.y + POOL_HEADER, width: size, height: pool.height - POOL_HEADER };
+      at3 += size;
+      return r2;
     });
   }
   function getPortOffset(portId, width2, height2) {

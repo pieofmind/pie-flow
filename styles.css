@@ -958,6 +958,14 @@
   writing-mode: vertical-rl; transform: rotate(180deg);
   font-size: 11px; font-weight: 700; color: var(--pg-text-muted); padding: 6px 0; cursor: text; }
 .lk-root .bp-pool-lane-body { flex: 1 1 auto; min-width: 0; position: relative; }
+/* Vertical pool: lanes are columns (title on top, divider on the right). */
+.lk-root .bp-pool.is-vertical .bp-pool-body { flex-direction: row; min-height: 0; }
+.lk-root .bp-pool.is-vertical .bp-pool-lane { flex-direction: column; min-height: 0; min-width: 60px;
+  border-bottom: none; border-right: 1.4px solid var(--pg-border-strong); }
+.lk-root .bp-pool.is-vertical .bp-pool-lane:last-child { border-right: none; }
+.lk-root .bp-pool.is-vertical .bp-pool-lane-head { width: auto; height: 24px; writing-mode: horizontal-tb; transform: none;
+  border-right: none; border-bottom: 1.4px solid var(--pg-border-strong); padding: 0 6px; }
+.lk-root .bp-pool.is-vertical .bp-pool-lane-divider { left: auto; right: -5px; top: 0; bottom: 0; width: 10px; height: auto; cursor: col-resize; }
 .lk-root .bp-pool.is-blackbox .bp-pool-body { display: none; }
 .lk-root .bp-pool-blackbox-body {
   flex: 1 1 auto; min-width: 0;

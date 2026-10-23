@@ -190,6 +190,20 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(pts.includes('300,100') && pts.includes('450,100'), 'route ignores the bends: ' + pts);
   });
 
+  await run('vertical pool: lanes are columns, shapes get the column under them', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'vpool', shape: 'bpmn-pool', x: 40, y: 40, width: 600, height: 400, label: 'KALIX',
+        attrs: { poolHorizontal: false, lanes: [{ id: 'vc1', label: 'Khách', width: 150 }, { id: 'vc2', label: 'Trực page', width: 300 }, { id: 'vc3', label: 'Sale', width: 150 }] } },
+      { id: 'vt', shape: 'bpmn-task-user', x: 300, y: 200, width: 100, height: 60, label: 'x' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    const ws = [...document.querySelectorAll('[data-cell-id="vpool"] .bp-pool-lane')].map((l) => Math.round(l.getBoundingClientRect().width));
+    assert(Math.abs(ws[0] - 150) <= 2 && Math.abs(ws[1] - 300) <= 2 && Math.abs(ws[2] - 150) <= 2, 'column widths: ' + ws);
+    const lane = window.__ob.getModel().nodes.find((n) => n.id === 'vt').laneId;
+    assert(lane === 'vc2', 'laneId by x: ' + lane);   // centre x 350 → 40+150 .. 40+450
+  });
+
   const failed = results.filter(r => !r.ok).length;
   w(failed ? `${failed} FAILED` : 'ALL PASS', failed ? 'fail' : 'pass');
   window.__results = results;

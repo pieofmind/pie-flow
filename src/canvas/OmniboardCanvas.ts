@@ -11,7 +11,7 @@ import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type 
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
-import { laneHeights, laneIndexAt, resizeLaneBoundary, resizePoolLanes } from "./laneLayout";
+import { asStackLanes, fromStackLanes, laneHeights, laneIndexAt, resizeLaneBoundary, resizePoolLanes } from "./laneLayout";
 import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
@@ -1042,10 +1042,14 @@ export class OmniboardCanvas {
       e.preventDefault(); e.stopPropagation();
       handle.classList.add("is-dragging");
       const laneEls = Array.from(handle.closest(".bp-pool-body")?.querySelectorAll<HTMLElement>(":scope > .bp-pool-lane") ?? []);
-      const poolH = node.getSize().height;
-      const startY = e.clientY;
-      const scale = this.graph.scale().sy || 1;
-      const resized = (ev: PointerEvent) => resizeLaneBoundary(lanes, poolH, idx, (ev.clientY - startY) / scale, MIN_LANE);
+      // Rows in a horizontal pool (drag along y), columns in a vertical one (x).
+      const horizontal = this.nodeExtra(node).poolHorizontal !== false;
+      const extent = horizontal ? node.getSize().height : node.getSize().width;
+      const at = (ev: PointerEvent) => (horizontal ? ev.clientY : ev.clientX);
+      const start = at(e);
+      const scale = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
+      const resized = (ev: PointerEvent) =>
+        resizeLaneBoundary(asStackLanes(lanes, horizontal), extent, idx, (at(ev) - start) / scale, MIN_LANE);
       const mv = (ev: PointerEvent) => {
         resized(ev).forEach((ln, i) => { if (laneEls[i]) laneEls[i].style.flex = `${ln.height} 1 0px`; });
       };
@@ -1053,10 +1057,10 @@ export class OmniboardCanvas {
         document.removeEventListener("pointermove", mv);
         document.removeEventListener("pointerup", up);
         handle.classList.remove("is-dragging");
-        if (Math.abs(ev.clientY - startY) < 1) return;
+        if (Math.abs(at(ev) - start) < 1) return;
         this.graph.startBatch("lane-resize");
         try {
-          node.setData({ ...node.getData(), lanes: resized(ev) }, { deep: false });
+          node.setData({ ...node.getData(), lanes: fromStackLanes(lanes, resized(ev), horizontal) }, { deep: false });
           this.rerender(node);
         } finally { this.graph.stopBatch("lane-resize"); }
         this.onChange();
@@ -1453,13 +1457,19 @@ export class OmniboardCanvas {
     // Resizing a pool by its top / bottom edge changes only the lane on that
     // edge (like bpmn-js); the other lanes and their shapes stay put. X6's
     // Transform passes the dragged handle as options.direction.
+    // (A vertical pool: its left / right edge, the first / last column.)
     this.graph.on("node:change:size", ({ node, previous, current, options }) => {
-      if (this.nodeKind(node) !== "bpmn-pool" || !previous || !current || previous.height === current.height) return;
+      if (this.nodeKind(node) !== "bpmn-pool" || !previous || !current) return;
+      const horizontal = this.nodeExtra(node).poolHorizontal !== false;
+      const [before, after] = horizontal ? [previous.height, current.height] : [previous.width, current.width];
+      if (before === after) return;
       const dir = String((options as { direction?: string } | undefined)?.direction ?? "");
-      const edge = dir.includes("top") ? "top" : dir.includes("bottom") ? "bottom" : null;
+      const [first, last] = horizontal ? ["top", "bottom"] : ["left", "right"];
+      const edge = dir.includes(first) ? "top" : dir.includes(last) ? "bottom" : null;
       const lanes = this.nodeExtra(node).lanes;
       if (!edge || !lanes || lanes.length < 2) return;
-      node.setData({ ...node.getData(), lanes: resizePoolLanes(lanes, previous.height, current.height, edge) }, { deep: false });
+      const sized = resizePoolLanes(asStackLanes(lanes, horizontal), before, after, edge);
+      node.setData({ ...node.getData(), lanes: fromStackLanes(lanes, sized, horizontal) }, { deep: false });
       this.rerender(node);
     });
     // Sequence activation bar is a thin vertical lifeline overlay: pin its width
@@ -3509,15 +3519,19 @@ export class OmniboardCanvas {
     const s = node.getSize();
     const NEW_LANE_H = 70;
     const prev = ex.lanes ?? [{ id: "l1", label: "Lane 1" }];
-    // Lanes with their own height keep it: the pool grows by exactly the new lane.
-    const sized = prev.some((ln) => ln.height)
-      ? laneHeights(prev, s.height).map((h, i) => ({ ...prev[i], height: Math.round(h) }))
+    // A vertical pool adds a column (width), a horizontal one a row (height).
+    const horizontal = ex.poolHorizontal !== false;
+    const stack = asStackLanes(prev, horizontal);
+    // Lanes with their own size keep it: the pool grows by exactly the new lane.
+    const sized = stack.some((ln) => ln.height)
+      ? fromStackLanes(prev, laneHeights(stack, horizontal ? s.height : s.width).map((h) => ({ id: "", height: Math.round(h) })), horizontal)
       : null;
     const lanes = [...(sized ?? prev)];
-    const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}`, ...(sized ? { height: NEW_LANE_H } : {}) };
+    const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}`, ...(sized ? { [horizontal ? "height" : "width"]: NEW_LANE_H } : {}) };
     if (where === "above") lanes.unshift(next); else lanes.push(next);
     node.setData({ ...node.getData(), lanes }, { deep: false });
-    node.resize(s.width, s.height + NEW_LANE_H); // grow to fit new lane
+    if (horizontal) node.resize(s.width, s.height + NEW_LANE_H); // grow to fit new lane
+    else node.resize(s.width + NEW_LANE_H, s.height);
     this.rerender(node);
     this.refreshContextBar();
     this.onChange();
@@ -4662,7 +4676,11 @@ export class OmniboardCanvas {
             const poolExtra = this.nodeExtra(pool);
             const poolLanes = poolExtra.lanes ?? [{ id: "l1", label: "Lane 1" }];
             if (poolLanes.length > 0) {
-              laneId = poolLanes[laneIndexAt(poolLanes, poolSize.height, cy - poolPos.y)].id;
+              // Rows by y in a horizontal pool, columns by x in a vertical one.
+              const horizontal = poolExtra.poolHorizontal !== false;
+              laneId = poolLanes[horizontal
+                ? laneIndexAt(poolLanes, poolSize.height, cy - poolPos.y)
+                : laneIndexAt(asStackLanes(poolLanes, false), poolSize.width, cx - poolPos.x)].id;
               
               // Keep the cached data in sync silently
               if (laneId !== data.laneId) {

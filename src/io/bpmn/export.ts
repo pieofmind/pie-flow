@@ -1,7 +1,7 @@
 import { BpmnModdle } from "bpmn-moddle";
 import type { CanvasModel } from "../../canvas/types";
 import type { SourceMeta } from "../types";
-import { laneHeights, type PoolLane } from "../../canvas/laneLayout";
+import { asStackLanes, laneHeights, type PoolLane } from "../../canvas/laneLayout";
 import { SHAPE_TO_BPMN, TRIGGER_TO_EVENT_DEF } from "./shapes";
 import { defaultLabelDy, hasExternalLabel } from "./labelGeometry";
 
@@ -814,16 +814,15 @@ function emitPoolLaneShapes(
 
     // Lane shapes tile the pool interior (minus pool header) exactly as the
     // Board draws them: each lane's own height, else an equal split.
-    const laneX = poolX + POOL_HEADER;
-    const laneW = poolW - POOL_HEADER;
     if (lanes.length) {
-      const bands = laneBandsOf(lanes, poolY, poolH);
+      const horizontal = (pool.attrs?.poolHorizontal as boolean | undefined) !== false;
+      const rects = laneRects(lanes, { x: poolX, y: poolY, width: poolW, height: poolH }, horizontal);
       lanes.forEach((ln, i) => {
         if (!ln.id) return;
-        const band = bands[i];
+        const r = rects[i];
         let ldi = diShape.get(ln.id);
         if (ldi?.bounds) {
-          ldi.bounds.x = laneX; ldi.bounds.y = band.y; ldi.bounds.width = laneW; ldi.bounds.height = band.h;
+          ldi.bounds.x = r.x; ldi.bounds.y = r.y; ldi.bounds.width = r.width; ldi.bounds.height = r.height;
         } else {
           // Lane lives in THIS pool's process (multi-pool) or the shared
           // process (single-pool). findLane must look in the right process,
@@ -835,10 +834,9 @@ function emitPoolLaneShapes(
           }
           ldi = m.create("bpmndi:BPMNShape", {
             bpmnElement: laneEl,
-            bounds: m.create("dc:Bounds", { x: laneX, y: band.y, width: laneW, height: band.h }),
+            bounds: m.create("dc:Bounds", { x: r.x, y: r.y, width: r.width, height: r.height }),
           }) as ModdleElement;
-          const isHorizontal = (pool.attrs?.poolHorizontal as boolean | undefined) !== false;
-          (ldi as { isHorizontal?: boolean }).isHorizontal = isHorizontal;
+          (ldi as { isHorizontal?: boolean }).isHorizontal = horizontal;
           diShape.set(ln.id, ldi);
           prefix.push(ldi);
         }
@@ -850,13 +848,22 @@ function emitPoolLaneShapes(
   }
 }
 
-/** Contiguous Y-bands tiling the pool, one per lane (see laneLayout). */
-function laneBandsOf(lanes: PoolLane[], poolY: number, poolH: number): Array<{ y: number; h: number }> {
-  let y = poolY;
-  return laneHeights(lanes, poolH).map((h) => {
-    const band = { y, h };
-    y += h;
-    return band;
+/** One rectangle per lane, tiling the pool minus its title strip: rows
+ *  (top→bottom) in a horizontal pool, columns (left→right) in a vertical one
+ *  — each lane's own size, else an equal split (see laneLayout). */
+function laneRects(
+  lanes: Array<PoolLane & { width?: number }>,
+  pool: { x: number; y: number; width: number; height: number },
+  horizontal: boolean,
+): Array<{ x: number; y: number; width: number; height: number }> {
+  const extent = horizontal ? pool.height : pool.width;
+  let at = horizontal ? pool.y : pool.x;
+  return laneHeights(asStackLanes(lanes, horizontal), extent).map((size) => {
+    const r = horizontal
+      ? { x: pool.x + POOL_HEADER, y: at, width: pool.width - POOL_HEADER, height: size }
+      : { x: at, y: pool.y + POOL_HEADER, width: size, height: pool.height - POOL_HEADER };
+    at += size;
+    return r;
   });
 }
 

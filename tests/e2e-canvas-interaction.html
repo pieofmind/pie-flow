@@ -219,6 +219,53 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(lane === 'n_sale', 'leaf lane: ' + lane);    // centre y 395 → 40+100+200 .. 440
   });
 
+  await run('a sub-process inside a pool is on top of it: a click selects the sub-process', async () => {
+    // Pools and sub-processes were both sent to z -1000, so the pool (drawn
+    // later) covered the sub-process: clicks and drags went to the pool.
+    window.__ob.loadModel({ nodes: [
+      { id: 'zpool', shape: 'bpmn-pool', x: 40, y: 40, width: 700, height: 300, label: 'KALIX', attrs: { lanes: [{ id: 'z1', label: 'A' }] } },
+      { id: 'zsub', shape: 'bpmn-subprocess', x: 200, y: 120, width: 200, height: 120, label: 'Sub' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    const hitAt = () => {
+      const r = document.querySelector('[data-cell-id="zsub"]').getBoundingClientRect();
+      return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('[data-cell-id]')?.getAttribute('data-cell-id');
+    };
+    assert(hitAt() === 'zsub', 'loaded: centre hits ' + hitAt());
+    // one added after the pool, the way the palette adds it
+    g().removeCell('zsub');
+    window.__ob.addHtmlNode('bpmn-subprocess', 200, 120, 200, 120, 'Sub', undefined, 'zsub');
+    await tick(300);
+    assert(hitAt() === 'zsub', 'added: centre hits ' + hitAt());
+  });
+
+  await run('a selected pool shows no "+ next shape" buttons on its border', async () => {
+    g().resetSelection([cell('zpool')]);
+    await tick(100);
+    const layer = window.__ob.padLayer;
+    assert(!layer || layer.style.display === 'none' || !layer.children.length, 'pad shown: ' + layer?.children.length);
+    g().resetSelection([cell('zsub')]);
+    await tick(100);
+    assert(layer && layer.style.display !== 'none' && layer.children.length, 'sub-process lost its pad');
+  });
+
+  await run('an open arrowhead ends at the shape edge, not inside it', async () => {
+    // X6 centres a path marker on the line end unless told otherwise; ours are
+    // drawn with the tip at x = 0, so the tip poked ~7 units into the shape.
+    window.__ob.loadModel({ nodes: [
+      { id: 'at', shape: 'bpmn-task-user', x: 40, y: 200, width: 100, height: 80, label: 'Tạo Lead' },
+      { id: 'ads', shape: 'bpmn-data-store', x: 300, y: 100, width: 60, height: 50, label: 'Lead Odoo' },
+    ], edges: [{ id: 'aa', source: 'at', sourcePort: 'right', target: 'ads', targetPort: 'left', kind: 'association' }] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    const line = [...document.querySelectorAll('[data-cell-id="aa"] path')].find((p) => p.getAttribute('marker-end'));
+    const id = line.getAttribute('marker-end').match(/#([^)]+)/)[1];
+    const bb = document.getElementById(id).querySelector('path').getBBox();
+    // marker drawn rotate(180): tip = -bb.x must not pass the line end (x ≤ 0 + stroke)
+    assert(Math.abs(bb.x) <= 0.5, 'arrowhead offset from line end: ' + bb.x);
+  });
+
   const failed = results.filter(r => !r.ok).length;
   w(failed ? `${failed} FAILED` : 'ALL PASS', failed ? 'fail' : 'pass');
   window.__results = results;

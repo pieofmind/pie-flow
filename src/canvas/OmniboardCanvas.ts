@@ -1,4 +1,4 @@
-import { Graph, Node, Edge } from "@antv/x6";
+import { Graph, Node, Edge, Path } from "@antv/x6";
 import { Selection } from "@antv/x6-plugin-selection";
 import { Clipboard } from "@antv/x6-plugin-clipboard";
 import { History } from "@antv/x6-plugin-history";
@@ -191,6 +191,11 @@ const FRAME_KINDS = new Set<string>([
   "bpmn-subprocess", "bpmn-transaction", "bpmn-event-subprocess", "bpmn-adhoc-subprocess",
   "bpmn-lane", "bpmn-pool", "bpmn-annotation", "bpmn-group",
 ]);
+/** z of a frame shape: behind regular nodes, and pools / lanes behind every
+ *  other frame — a sub-process or group drawn inside a pool must stay on top
+ *  of it (clickable, draggable). Nested frames add their depth. */
+const frameZ = (kind: string, depth = 0): number =>
+  (kind === "bpmn-pool" || kind === "bpmn-lane" ? -2000 : -1000) + depth;
 // Container shapes whose bbox should hug their children after auto-layout.
 // (annotation = sticky note, NOT a container — stays as a normal node.)
 const CONTAINER_KINDS = new Set<string>([
@@ -280,6 +285,17 @@ function portEndpoint(cell: string, port: string) {
 }
 // Full arrowhead set for BOTH ends (flowchart + UML/ERD relationships).
 function buildMarker(kind: string | undefined, color: string): Record<string, unknown> | null {
+  const m = markerOf(kind, color);
+  return m?.name === "path" ? { ...m, ...keepOrigin(String(m.d)) } : m;
+}
+// Our path markers are drawn with the line end at (0, 0). X6 centres a path
+// marker's bbox on the line end unless given offsets — which pushed arrowheads
+// into the shape. These offsets cancel the centring.
+function keepOrigin(d: string): { offsetX: number; offsetY: number } {
+  const b = Path.parse(d).bbox();
+  return b ? { offsetX: -b.width / 2 - b.x, offsetY: -b.height / 2 - b.y } : { offsetX: 0, offsetY: 0 };
+}
+function markerOf(kind: string | undefined, color: string): Record<string, unknown> | null {
   switch (kind) {
     case "arrow": return { name: "block", width: 12, height: 9, fill: color };                       // mũi tên đặc
     case "arrow-open": return { name: "path", d: "M 14 -7 0 0 14 7", fill: "none", stroke: color, "stroke-width": 1.8 }; // mũi tên hở
@@ -739,6 +755,8 @@ export class OmniboardCanvas {
     if (sel.length !== 1 || !sel[0].isNode()) { this.padLayer.style.display = "none"; return; }
     const node = sel[0] as Node;
     if (this.nodeKind(node).startsWith("mm-")) { this.padLayer.style.display = "none"; return; } // mindmap uses its own fabs
+    // A pool / lane is a container, not a flow step: no "+ next shape" on its border.
+    if (this.nodeKind(node) === "bpmn-pool" || this.nodeKind(node) === "bpmn-lane") { this.padLayer.style.display = "none"; return; }
     const bbox = node.getBBox(); const sc = this.graph.scale().sx; const tr = this.graph.translate();
     const left = bbox.x * sc + tr.tx, top = bbox.y * sc + tr.ty, w = bbox.width * sc, h = bbox.height * sc;
     const midX = left + w / 2, midY = top + h / 2;
@@ -3164,7 +3182,7 @@ export class OmniboardCanvas {
     }
     // Container/frame shapes (fragments, sub-process, lanes, pool, annotation)
     // sit behind regular nodes so they visually group them.
-    if (FRAME_KINDS.has(kind)) node.toBack();
+    if (FRAME_KINDS.has(kind)) node.setZIndex(frameZ(kind));
     // Story 2.2 — ERD per-column ports. Add absolute-positioned col:NAME-left/-right
     // ports on top of the 12 cardinal ports so edges can dock at row Y.
     if (kind === "erd-entity" && ex.cols?.length) {
@@ -4578,8 +4596,7 @@ export class OmniboardCanvas {
       if (!FRAME_KINDS.has(n.shape)) continue;
       const cell = this.graph.getCellById(n.id);
       if (!cell || !cell.isNode()) continue;
-      // Base for frames is negative (toBack). Add depth so nested wins.
-      cell.setZIndex(-1000 + depthOf(n.id));
+      cell.setZIndex(frameZ(n.shape, depthOf(n.id)));
     }
     this.graph.stopBatch("load");
     this.resyncHtmlNodes();   // rebuild the mobile overlay from the freshly loaded nodes

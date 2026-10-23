@@ -72755,6 +72755,7 @@
     "bpmn-annotation",
     "bpmn-group"
   ]);
+  var frameZ = (kind, depth = 0) => (kind === "bpmn-pool" || kind === "bpmn-lane" ? -2e3 : -1e3) + depth;
   var CONTAINER_KINDS2 = /* @__PURE__ */ new Set([
     "sq-frag-alt",
     "sq-frag-opt",
@@ -72869,6 +72870,14 @@
     return { cell, port: port2, connectionPoint: PORT_CONNECTION_POINT };
   }
   function buildMarker(kind, color) {
+    const m4 = markerOf(kind, color);
+    return m4?.name === "path" ? { ...m4, ...keepOrigin(String(m4.d)) } : m4;
+  }
+  function keepOrigin(d2) {
+    const b2 = Path.parse(d2).bbox();
+    return b2 ? { offsetX: -b2.width / 2 - b2.x, offsetY: -b2.height / 2 - b2.y } : { offsetX: 0, offsetY: 0 };
+  }
+  function markerOf(kind, color) {
     switch (kind) {
       case "arrow":
         return { name: "block", width: 12, height: 9, fill: color };
@@ -73432,6 +73441,10 @@
       }
       const node2 = sel[0];
       if (this.nodeKind(node2).startsWith("mm-")) {
+        this.padLayer.style.display = "none";
+        return;
+      }
+      if (this.nodeKind(node2) === "bpmn-pool" || this.nodeKind(node2) === "bpmn-lane") {
         this.padLayer.style.display = "none";
         return;
       }
@@ -75918,7 +75931,7 @@
       if (this.autoGrowSelector(kind)) {
         this.scheduleMindmapAutoGrow(node2);
       }
-      if (FRAME_KINDS.has(kind)) node2.toBack();
+      if (FRAME_KINDS.has(kind)) node2.setZIndex(frameZ(kind));
       if (kind === "erd-entity" && ex.cols?.length) {
         const colPorts = buildErdColumnPorts(ex.cols, w3);
         if (colPorts.length) {
@@ -77275,7 +77288,7 @@
         if (!FRAME_KINDS.has(n2.shape)) continue;
         const cell = this.graph.getCellById(n2.id);
         if (!cell || !cell.isNode()) continue;
-        cell.setZIndex(-1e3 + depthOf(n2.id));
+        cell.setZIndex(frameZ(n2.shape, depthOf(n2.id)));
       }
       this.graph.stopBatch("load");
       this.resyncHtmlNodes();

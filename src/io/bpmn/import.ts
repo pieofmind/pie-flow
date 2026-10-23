@@ -629,6 +629,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
   for (const root of defs.rootElements ?? []) {
     if (root.$type !== "bpmn:Collaboration") continue;
     for (const part of root.participants ?? []) {
+      if (part.id && foreign.has(part.id)) continue;   // another diagram's pool
       const processRefId = part.processRef?.id;
       const proc = processRefId ? processById.get(processRefId) : undefined;
       const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);

@@ -77984,6 +77984,7 @@
       this.raiseBoundaryEvents();
       this.refreshSubprocessVisibility();
       this.graph.stopBatch("load");
+      this.graph.cleanHistory();
       this.resyncHtmlNodes();
       setTimeout(() => {
         this.graph.getNodes().forEach((n2) => {
@@ -85223,6 +85224,7 @@
     for (const root2 of defs.rootElements ?? []) {
       if (root2.$type !== "bpmn:Collaboration") continue;
       for (const part of root2.participants ?? []) {
+        if (part.id && foreign.has(part.id)) continue;
         const processRefId = part.processRef?.id;
         const proc = processRefId ? processById.get(processRefId) : void 0;
         const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);

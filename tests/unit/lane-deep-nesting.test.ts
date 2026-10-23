@@ -181,3 +181,23 @@ describe("import / export of four nested levels", () => {
     expect(back.nodes.find((n) => n.id === "t")!.laneId).toBe("sang");
   });
 });
+
+describe("space tool on lanes", () => {
+  const lanes = [{ id: "a", height: 100 }, { id: "b", height: 200, lanes: [{ id: "b1", height: 120 }, { id: "b2", height: 80 }] }];
+  it("the leaf lane under the line takes the room, its parent with it, others keep size", async () => {
+    const { growLaneAt, leafLaneSize } = await import("../../src/canvas/laneLayout");
+    const out = growLaneAt(lanes, 300, 250, 40);   // 250 → lane b, child b2
+    expect(out.map((l) => l.height)).toEqual([100, 240]);
+    expect(out[1].lanes?.map((l) => l.height)).toEqual([120, 120]);
+    expect(leafLaneSize(lanes, 300, 250)).toBe(80);
+    expect(growLaneAt(lanes, 300, 250, -50)[1].lanes?.map((l) => l.height)).toEqual([120, 30]);
+  });
+  it("maps back to widths for a vertical pool, at every depth", async () => {
+    const { fromStackLanesDeep, asStackLanes, growLaneAt } = await import("../../src/canvas/laneLayout");
+    const cols = [{ id: "a", width: 100 }, { id: "b", width: 200, lanes: [{ id: "b1", width: 120 }, { id: "b2", width: 80 }] }];
+    const grown = growLaneAt(asStackLanes(cols, false), 300, 250, 40);
+    const back = fromStackLanesDeep(cols, grown, false);
+    expect(back.map((l) => l.width)).toEqual([100, 240]);
+    expect(back[1].lanes?.map((l) => l.width)).toEqual([120, 120]);
+  });
+});

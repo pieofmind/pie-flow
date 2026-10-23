@@ -203,3 +203,36 @@ export function removeChildLane<T extends EditLane>(lanes: readonly T[], childId
     return kids.length ? { ...ln, lanes: removeChildLane(kids, childId) } : ln;
   });
 }
+
+/** The space tool opened (or closed) `delta` of room at offset `rel` of a pool:
+ *  the leaf lane there grows by it, every lane above it in the tree with it, and
+ *  the others keep their size. Every lane gets an explicit height. */
+export function growLaneAt<T extends PoolLane>(lanes: readonly T[], extent: number, rel: number, delta: number): T[] {
+  const hs = laneHeights(lanes, extent);
+  const at = laneIndexAt(lanes, extent, rel);
+  const start = hs.slice(0, Math.max(at, 0)).reduce((a, b) => a + b, 0);
+  return lanes.map((ln, k) => {
+    const h = hs[k] + (k === at ? delta : 0);
+    const kids = k === at && ln.lanes?.length ? growLaneAt(ln.lanes as T[], hs[k], rel - start, delta) : ln.lanes;
+    return { ...ln, height: Math.round(h), ...(kids ? { lanes: kids } : {}) };
+  });
+}
+
+/** Height of the leaf lane at offset `rel` (how much room it can give up). */
+export function leafLaneSize(lanes: readonly PoolLane[], extent: number, rel: number): number {
+  if (!lanes.length) return extent;
+  const hs = laneHeights(lanes, extent);
+  const at = laneIndexAt(lanes, extent, rel);
+  const lane = lanes[at];
+  if (!lane.lanes?.length) return hs[at];
+  return leafLaneSize(lane.lanes, hs[at], rel - hs.slice(0, at).reduce((a, b) => a + b, 0));
+}
+
+/** `fromStackLanes` at every depth. */
+export function fromStackLanesDeep<T extends PoolLane & { width?: number }>(lanes: readonly T[], sized: readonly PoolLane[], horizontal: boolean): T[] {
+  return lanes.map((ln, i) => {
+    const sz = sized[i];
+    const kids = ln.lanes?.length && sz?.lanes ? fromStackLanesDeep(ln.lanes as T[], sz.lanes, horizontal) : ln.lanes;
+    return { ...ln, ...(horizontal ? { height: sz?.height } : { width: sz?.height }), ...(kids ? { lanes: kids } : {}) };
+  });
+}

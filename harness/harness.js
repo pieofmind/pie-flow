@@ -69855,6 +69855,31 @@
       return kids.length ? { ...ln3, lanes: removeChildLane(kids, childId) } : ln3;
     });
   }
+  function growLaneAt(lanes, extent, rel, delta) {
+    const hs = laneHeights(lanes, extent);
+    const at3 = laneIndexAt(lanes, extent, rel);
+    const start = hs.slice(0, Math.max(at3, 0)).reduce((a3, b2) => a3 + b2, 0);
+    return lanes.map((ln3, k3) => {
+      const h3 = hs[k3] + (k3 === at3 ? delta : 0);
+      const kids = k3 === at3 && ln3.lanes?.length ? growLaneAt(ln3.lanes, hs[k3], rel - start, delta) : ln3.lanes;
+      return { ...ln3, height: Math.round(h3), ...kids ? { lanes: kids } : {} };
+    });
+  }
+  function leafLaneSize(lanes, extent, rel) {
+    if (!lanes.length) return extent;
+    const hs = laneHeights(lanes, extent);
+    const at3 = laneIndexAt(lanes, extent, rel);
+    const lane = lanes[at3];
+    if (!lane.lanes?.length) return hs[at3];
+    return leafLaneSize(lane.lanes, hs[at3], rel - hs.slice(0, at3).reduce((a3, b2) => a3 + b2, 0));
+  }
+  function fromStackLanesDeep(lanes, sized, horizontal) {
+    return lanes.map((ln3, i3) => {
+      const sz = sized[i3];
+      const kids = ln3.lanes?.length && sz?.lanes ? fromStackLanesDeep(ln3.lanes, sz.lanes, horizontal) : ln3.lanes;
+      return { ...ln3, ...horizontal ? { height: sz?.height } : { width: sz?.height }, ...kids ? { lanes: kids } : {} };
+    });
+  }
 
   // src/canvas/htmlNode.ts
   var XHTML = "http://www.w3.org/1999/xhtml";
@@ -73285,7 +73310,7 @@
         const guide = el("div", "lk-space-guide");
         guide.style.display = "none";
         this.graphMount.appendChild(guide);
-        this.space = { id: e2.pointerId, sx: p4.x, sy: p4.y, axis: null, line: 0, last: 0, move: [], resize: [], edges: [], guide, boxes: [], plan: null };
+        this.space = { id: e2.pointerId, sx: p4.x, sy: p4.y, axis: null, line: 0, last: 0, move: [], resize: [], edges: [], guide, boxes: [], plan: null, pools: [], floor: -Infinity };
         try {
           this.graphMount.setPointerCapture(e2.pointerId);
         } catch {
@@ -73302,7 +73327,7 @@
         }
         const axis = s3.axis;
         const want = axis === "x" ? p4.x - s3.sx : p4.y - s3.sy;
-        const delta = Math.round(clampDelta(want, s3.boxes, s3.plan.resize, axis));
+        const delta = Math.max(Math.round(clampDelta(want, s3.boxes, s3.plan.resize, axis)), s3.floor);
         const step = delta - s3.last;
         if (step === 0) {
           e2.preventDefault();
@@ -73311,6 +73336,11 @@
         s3.last = delta;
         for (const n2 of s3.move) n2.translate(axis === "x" ? step : 0, axis === "y" ? step : 0);
         for (const r2 of s3.resize) r2.node.resize(r2.w + (axis === "x" ? delta : 0), r2.h + (axis === "y" ? delta : 0));
+        for (const pl of s3.pools) {
+          const grown = growLaneAt(asStackLanes(pl.lanes, pl.horizontal), pl.extent, pl.rel, delta);
+          pl.node.setData({ ...pl.node.getData(), lanes: fromStackLanesDeep(pl.lanes, grown, pl.horizontal) }, { deep: false });
+          this.rerender(pl.node);
+        }
         for (const it3 of s3.edges) it3.edge.setVertices(shiftVertices(it3.verts, axis, s3.line, delta));
         e2.preventDefault();
       };
@@ -74916,6 +74946,15 @@
         const z3 = n2.getSize();
         return { node: n2, w: z3.width, h: z3.height };
       });
+      for (const r3 of s3.resize) {
+        const ex = this.nodeExtra(r3.node);
+        const horizontal = ex.poolHorizontal !== false;
+        if (this.nodeKind(r3.node) !== "bpmn-pool" || !ex.lanes?.length || (horizontal ? "y" : "x") !== axis) continue;
+        const extent = horizontal ? r3.h : r3.w;
+        const rel = s3.line - r3.node.getPosition()[axis];
+        s3.pools.push({ node: r3.node, lanes: ex.lanes, horizontal, extent, rel });
+        s3.floor = Math.max(s3.floor, 30 - leafLaneSize(asStackLanes(ex.lanes, horizontal), extent, rel));
+      }
       s3.edges = this.graph.getEdges().filter((e2) => e2.getVertices().length).map((edge) => ({ edge, verts: edge.getVertices().map((v4) => ({ x: v4.x, y: v4.y })) }));
       s3.guide.style.display = "block";
       const c4 = this.graph.localToClient(s3.sx, s3.sy);

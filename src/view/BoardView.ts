@@ -678,6 +678,9 @@ export class BoardView extends TextFileView {
 
   private pendingSourceMeta: SourceMeta | null = null;
 
+  /** Open the find box (the Command Palette way, when Obsidian takes Ctrl+F first). */
+  findOnBoard(): void { this.canvas?.openSearch(); }
+
   /** Show another diagram of the BPMN file this board came from; the edits so far go into the file first. */
   async switchDiagram(): Promise<void> {
     if (!this.canvas) return;

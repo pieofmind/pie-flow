@@ -11,7 +11,7 @@ import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type 
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
-import { addChildLane, allLaneIds, asStackLanes, fromStackLanes, laneBandOf, laneHeights, leafLaneAt, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, setSiblings, splitLane } from "./laneLayout";
+import { addChildLane, allLaneIds, asStackLanes, fromStackLanes, fromStackLanesDeep, growLaneAt, laneBandOf, laneHeights, leafLaneAt, leafLaneSize, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, setSiblings, splitLane } from "./laneLayout";
 import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
@@ -2096,6 +2096,7 @@ export class OmniboardCanvas {
     id: number; sx: number; sy: number; axis: Axis | null; line: number; last: number;
     move: Node[]; resize: Array<{ node: Node; w: number; h: number }>; edges: Array<{ edge: Edge; verts: Array<{ x: number; y: number }> }>;
     guide: HTMLElement; boxes: SpaceBox[]; plan: ReturnType<typeof planSpace> | null;
+    pools: Array<{ node: Node; lanes: NonNullable<ReturnType<OmniboardCanvas["nodeExtra"]>["lanes"]>; horizontal: boolean; extent: number; rel: number }>; floor: number;
   } | null = null;
 
   private onSpaceDown = (e: PointerEvent): void => {
@@ -2105,7 +2106,7 @@ export class OmniboardCanvas {
     const guide = el("div", "lk-space-guide");
     guide.style.display = "none";
     this.graphMount.appendChild(guide);
-    this.space = { id: e.pointerId, sx: p.x, sy: p.y, axis: null, line: 0, last: 0, move: [], resize: [], edges: [], guide, boxes: [], plan: null };
+    this.space = { id: e.pointerId, sx: p.x, sy: p.y, axis: null, line: 0, last: 0, move: [], resize: [], edges: [], guide, boxes: [], plan: null, pools: [], floor: -Infinity };
     try { this.graphMount.setPointerCapture(e.pointerId); } catch { /* capture unsupported */ }
     e.preventDefault();
   };
@@ -2119,12 +2120,18 @@ export class OmniboardCanvas {
     }
     const axis = s.axis!;
     const want = (axis === "x" ? p.x - s.sx : p.y - s.sy);
-    const delta = Math.round(clampDelta(want, s.boxes, s.plan!.resize, axis));
+    const delta = Math.max(Math.round(clampDelta(want, s.boxes, s.plan!.resize, axis)), s.floor);
     const step = delta - s.last;
     if (step === 0) { e.preventDefault(); return; }
     s.last = delta;
     for (const n of s.move) n.translate(axis === "x" ? step : 0, axis === "y" ? step : 0);
     for (const r of s.resize) r.node.resize(r.w + (axis === "x" ? delta : 0), r.h + (axis === "y" ? delta : 0));
+    // The lane the line crosses takes the room; the others (and their shapes) keep their size.
+    for (const pl of s.pools) {
+      const grown = growLaneAt(asStackLanes(pl.lanes, pl.horizontal), pl.extent, pl.rel, delta);
+      pl.node.setData({ ...pl.node.getData(), lanes: fromStackLanesDeep(pl.lanes, grown, pl.horizontal) }, { deep: false });
+      this.rerender(pl.node);
+    }
     for (const it of s.edges) it.edge.setVertices(shiftVertices(it.verts, axis, s.line, delta));
     e.preventDefault();
   };
@@ -2142,6 +2149,16 @@ export class OmniboardCanvas {
     const byId = new Map(nodes.map((n) => [n.id, n]));
     s.move = s.plan.move.map((id) => byId.get(id)!);
     s.resize = s.plan.resize.map((id) => { const n = byId.get(id)!; const z = n.getSize(); return { node: n, w: z.width, h: z.height }; });
+    // A pool cut along its stacking axis: remember its lanes and where the line falls.
+    for (const r of s.resize) {
+      const ex = this.nodeExtra(r.node);
+      const horizontal = ex.poolHorizontal !== false;
+      if (this.nodeKind(r.node) !== "bpmn-pool" || !ex.lanes?.length || (horizontal ? "y" : "x") !== axis) continue;
+      const extent = horizontal ? r.h : r.w;
+      const rel = s.line - r.node.getPosition()[axis];
+      s.pools.push({ node: r.node, lanes: ex.lanes, horizontal, extent, rel });
+      s.floor = Math.max(s.floor, 30 - leafLaneSize(asStackLanes(ex.lanes, horizontal), extent, rel));
+    }
     s.edges = this.graph.getEdges().filter((e) => e.getVertices().length).map((edge) => ({ edge, verts: edge.getVertices().map((v) => ({ x: v.x, y: v.y })) }));
     // the guide line sits on the start point, across the whole board
     s.guide.style.display = "block";

@@ -376,8 +376,13 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     const tag = fn.$type.replace(/^bpmn:/, "");
     const tagLc = tag.charAt(0).toLowerCase() + tag.slice(1);
     const extras = bpmnExtras(fn as unknown as BpmnElementShape, tagLc);
-    const shape = extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
     const di = diShapes.get(id);
+    // A collapsed, empty sub-process is a task with the ⊞ marker on the Board —
+    // the mirror of export (shapeToBpmnType), so it keeps the task look.
+    const collapsedTask = tagLc === "subProcess" && !extras.kindOverride && di?.isExpanded === false
+      && !(fn as { flowElements?: unknown[] }).flowElements?.length;
+    const shape = collapsedTask ? "bpmn-task" : extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
+    const markers = collapsedTask ? [...(extras.markers ?? []), "subprocess"] : extras.markers;
     const bounds = di?.bounds;
     const x = bounds?.x ?? 100;
     const y = bounds?.y ?? 100;
@@ -431,7 +436,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
         ...(extras.throwing !== undefined ? { throwing: extras.throwing } : {}),
         ...(extras.interrupting !== undefined ? { interrupting: extras.interrupting } : {}),
         ...(extras.attachedTo ? { attachedTo: extras.attachedTo } : {}),
-        ...(extras.markers ? { markers: extras.markers } : {}),
+        ...(markers ? { markers } : {}),
         ...(nodeLabelOffset ? { labelOffset: nodeLabelOffset } : {}),
       },
     });

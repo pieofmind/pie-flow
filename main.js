@@ -73831,6 +73831,44 @@ function allLaneIds(lanes) {
     return [ln3.id, ...((_a3 = ln3.lanes) != null ? _a3 : []).map((c6) => c6.id)];
   });
 }
+var mapLanes = (lanes, id, fn2) => lanes.map((ln3) => ln3.id === id ? fn2(ln3) : ln3);
+function splitLane(lanes, laneId, ids3) {
+  return mapLanes(lanes, laneId, (ln3) => {
+    var _a3, _b2;
+    return {
+      ...ln3,
+      lanes: [{ id: ids3[0], label: `${(_a3 = ln3.label) != null ? _a3 : "Lane"} 1` }, { id: ids3[1], label: `${(_b2 = ln3.label) != null ? _b2 : "Lane"} 2` }]
+    };
+  });
+}
+function mergeChildLanes(lanes, laneId) {
+  return mapLanes(lanes, laneId, (ln3) => {
+    const { lanes: _children, ...rest } = ln3;
+    return rest;
+  });
+}
+function addChildLane(lanes, afterId, newId) {
+  return lanes.map((ln3) => {
+    var _a3, _b2, _c;
+    const i6 = (_b2 = (_a3 = ln3.lanes) == null ? void 0 : _a3.findIndex((c6) => c6.id === afterId)) != null ? _b2 : -1;
+    if (i6 < 0) return ln3;
+    const children2 = [...(_c = ln3.lanes) != null ? _c : []];
+    children2.splice(i6 + 1, 0, { id: newId, label: `Lane ${children2.length + 1}` });
+    return { ...ln3, lanes: children2 };
+  });
+}
+function removeChildLane(lanes, childId) {
+  return lanes.map((ln3) => {
+    var _a3;
+    if (!((_a3 = ln3.lanes) == null ? void 0 : _a3.some((c6) => c6.id === childId))) return ln3;
+    const children2 = ln3.lanes.filter((c6) => c6.id !== childId);
+    if (children2.length < 2) {
+      const { lanes: _children, ...rest } = ln3;
+      return rest;
+    }
+    return { ...ln3, lanes: children2 };
+  });
+}
 
 // src/canvas/htmlNode.ts
 var XHTML = "http://www.w3.org/1999/xhtml";
@@ -84640,8 +84678,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }, 0);
     });
     this.graph.on("node:contextmenu", ({ node: node3, e: e5 }) => {
+      var _a3, _b2, _c, _d;
       e5.preventDefault();
       this.graph.select(node3);
+      const laneId = (_d = (_c = (_b2 = (_a3 = e5.target) == null ? void 0 : _a3.closest) == null ? void 0 : _b2.call(_a3, ".bp-pool-lane-head")) == null ? void 0 : _c.closest(".bp-pool-lane")) == null ? void 0 : _d.getAttribute("data-lane-id");
+      if (laneId && this.nodeKind(node3) === "bpmn-pool") {
+        this.showLaneMenu(node3, laneId, e5.clientX, e5.clientY);
+        return;
+      }
       this.showContextMenu(e5.clientX, e5.clientY);
     });
   }
@@ -86199,6 +86243,43 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.popupLayer.innerHTML = "";
   }
   // ── Right-click context menu ─────────────────────────────────────────────
+  /** Menu for one lane of a pool: split into / merge child lanes, add /
+   *  remove a child lane. One undo step each. */
+  showLaneMenu(pool, laneId, clientX, clientY) {
+    var _a3, _b2;
+    const lanes = (_a3 = this.nodeExtra(pool).lanes) != null ? _a3 : [];
+    const top4 = lanes.find((l5) => l5.id === laneId);
+    const apply4 = (next) => {
+      this.graph.startBatch("lane-edit");
+      try {
+        pool.setData({ ...pool.getData(), lanes: next }, { deep: false });
+        this.rerender(pool);
+      } finally {
+        this.graph.stopBatch("lane-edit");
+      }
+      this.onChange();
+    };
+    const items = top4 ? ((_b2 = top4.lanes) == null ? void 0 : _b2.length) ? [["G\u1ED9p c\xE1c lane con", () => apply4(mergeChildLanes(lanes, laneId))]] : [["Chia th\xE0nh 2 lane con", () => apply4(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))]] : [
+      ["Th\xEAm lane con b\xEAn d\u01B0\u1EDBi", () => apply4(addChildLane(lanes, laneId, this.newLaneId()))],
+      ["Xo\xE1 lane con n\xE0y", () => apply4(removeChildLane(lanes, laneId))]
+    ];
+    const menu = el2("div", "lk-context-menu");
+    for (const [label, fn2] of items) {
+      const item = el2("div", "lk-menu-item");
+      item.appendChild(el2("span", void 0, label));
+      item.onclick = () => {
+        fn2();
+        this.hidePopup();
+      };
+      menu.appendChild(item);
+    }
+    const rootRect = this.root.getBoundingClientRect();
+    this.popupLayer.innerHTML = "";
+    this.popupLayer.appendChild(menu);
+    this.popupLayer.style.display = "block";
+    this.popupLayer.style.left = clientX - rootRect.left + "px";
+    this.popupLayer.style.top = clientY - rootRect.top + "px";
+  }
   showContextMenu(clientX, clientY) {
     const menu = el2("div", "lk-context-menu");
     const rootRect = this.root.getBoundingClientRect();

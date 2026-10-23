@@ -8,7 +8,7 @@
  * walked childLaneSet to patch laneId, dropping the hierarchy.
  */
 import { describe, it, expect } from "vitest";
-import { leafLaneAt } from "../../src/canvas/laneLayout";
+import { leafLaneAt, splitLane, mergeChildLanes, addChildLane, removeChildLane } from "../../src/canvas/laneLayout";
 import { nodeHtml } from "../../src/canvas/htmlNode";
 import { exportBpmn } from "../../src/io/bpmn/export";
 import { importBpmn } from "../../src/io/bpmn/import";
@@ -33,6 +33,26 @@ describe("leaf lane at a point", () => {
     const lanes: Lane[] = [{ id: "p", label: "P", lanes: [{ id: "a", label: "A" }, { id: "b", label: "B" }] }];
     expect(leafLaneAt(lanes, 400, 150)).toBe("a");
     expect(leafLaneAt(lanes, 400, 250)).toBe("b");
+  });
+});
+
+describe("child lane edits (lane title right-click menu)", () => {
+  const flat: Lane[] = [{ id: "a", label: "Khách", height: 200 }, { id: "b", label: "KALIX", height: 400 }];
+
+  it("split a lane into two child lanes; merge them back", () => {
+    const split = splitLane(flat, "b", ["b1", "b2"]);
+    expect(split[1].lanes?.map((c) => [c.id, c.label])).toEqual([["b1", "KALIX 1"], ["b2", "KALIX 2"]]);
+    expect(split[1].height).toBe(400);
+    expect(flat[1].lanes).toBeUndefined();                       // input untouched
+    expect(mergeChildLanes(split, "b")[1].lanes).toBeUndefined();
+  });
+
+  it("add a child lane after another; removing down to one child merges", () => {
+    const two = splitLane(flat, "b", ["b1", "b2"]);
+    const three = addChildLane(two, "b1", "b3");
+    expect(three[1].lanes?.map((c) => c.id)).toEqual(["b1", "b3", "b2"]);
+    expect(removeChildLane(three, "b3")[1].lanes?.map((c) => c.id)).toEqual(["b1", "b2"]);
+    expect(removeChildLane(two, "b2")[1].lanes).toBeUndefined();
   });
 });
 

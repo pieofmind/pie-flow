@@ -11,7 +11,7 @@ import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type 
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
-import { asStackLanes, fromStackLanes, laneHeights, leafLaneAt, resizeLaneBoundary, resizePoolLanes } from "./laneLayout";
+import { addChildLane, asStackLanes, fromStackLanes, laneHeights, leafLaneAt, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, splitLane } from "./laneLayout";
 import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
@@ -1592,6 +1592,10 @@ export class OmniboardCanvas {
     this.graph.on("node:contextmenu", ({ node, e }) => {
       e.preventDefault();
       this.graph.select(node);
+      // Right-click on a pool lane's title strip → that lane's menu.
+      const laneId = (e.target as HTMLElement | null)?.closest?.(".bp-pool-lane-head")
+        ?.closest(".bp-pool-lane")?.getAttribute("data-lane-id");
+      if (laneId && this.nodeKind(node as Node) === "bpmn-pool") { this.showLaneMenu(node as Node, laneId, e.clientX, e.clientY); return; }
       this.showContextMenu(e.clientX, e.clientY);
     });
   }
@@ -3066,6 +3070,42 @@ export class OmniboardCanvas {
   }
 
   // ── Right-click context menu ─────────────────────────────────────────────
+  /** Menu for one lane of a pool: split into / merge child lanes, add /
+   *  remove a child lane. One undo step each. */
+  private showLaneMenu(pool: Node, laneId: string, clientX: number, clientY: number): void {
+    const lanes = this.nodeExtra(pool).lanes ?? [];
+    const top = lanes.find((l) => l.id === laneId);
+    const apply = (next: typeof lanes) => {
+      this.graph.startBatch("lane-edit");
+      try {
+        pool.setData({ ...pool.getData(), lanes: next }, { deep: false });
+        this.rerender(pool);
+      } finally { this.graph.stopBatch("lane-edit"); }
+      this.onChange();
+    };
+    const items: Array<[string, () => void]> = top
+      ? top.lanes?.length
+        ? [["Gộp các lane con", () => apply(mergeChildLanes(lanes, laneId))]]
+        : [["Chia thành 2 lane con", () => apply(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))]]
+      : [
+        ["Thêm lane con bên dưới", () => apply(addChildLane(lanes, laneId, this.newLaneId()))],
+        ["Xoá lane con này", () => apply(removeChildLane(lanes, laneId))],
+      ];
+    const menu = el("div", "lk-context-menu");
+    for (const [label, fn] of items) {
+      const item = el("div", "lk-menu-item");
+      item.appendChild(el("span", undefined, label));
+      item.onclick = () => { fn(); this.hidePopup(); };
+      menu.appendChild(item);
+    }
+    const rootRect = this.root.getBoundingClientRect();
+    this.popupLayer.innerHTML = "";
+    this.popupLayer.appendChild(menu);
+    this.popupLayer.style.display = "block";
+    this.popupLayer.style.left = (clientX - rootRect.left) + "px";
+    this.popupLayer.style.top = (clientY - rootRect.top) + "px";
+  }
+
   private showContextMenu(clientX: number, clientY: number) {
     const menu = el("div", "lk-context-menu");
     const rootRect = this.root.getBoundingClientRect();

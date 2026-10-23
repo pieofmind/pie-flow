@@ -69798,6 +69798,39 @@
   function allLaneIds(lanes) {
     return lanes.flatMap((ln3) => [ln3.id, ...(ln3.lanes ?? []).map((c4) => c4.id)]);
   }
+  var mapLanes = (lanes, id, fn2) => lanes.map((ln3) => ln3.id === id ? fn2(ln3) : ln3);
+  function splitLane(lanes, laneId, ids) {
+    return mapLanes(lanes, laneId, (ln3) => ({
+      ...ln3,
+      lanes: [{ id: ids[0], label: `${ln3.label ?? "Lane"} 1` }, { id: ids[1], label: `${ln3.label ?? "Lane"} 2` }]
+    }));
+  }
+  function mergeChildLanes(lanes, laneId) {
+    return mapLanes(lanes, laneId, (ln3) => {
+      const { lanes: _children, ...rest } = ln3;
+      return rest;
+    });
+  }
+  function addChildLane(lanes, afterId, newId) {
+    return lanes.map((ln3) => {
+      const i3 = ln3.lanes?.findIndex((c4) => c4.id === afterId) ?? -1;
+      if (i3 < 0) return ln3;
+      const children2 = [...ln3.lanes ?? []];
+      children2.splice(i3 + 1, 0, { id: newId, label: `Lane ${children2.length + 1}` });
+      return { ...ln3, lanes: children2 };
+    });
+  }
+  function removeChildLane(lanes, childId) {
+    return lanes.map((ln3) => {
+      if (!ln3.lanes?.some((c4) => c4.id === childId)) return ln3;
+      const children2 = ln3.lanes.filter((c4) => c4.id !== childId);
+      if (children2.length < 2) {
+        const { lanes: _children, ...rest } = ln3;
+        return rest;
+      }
+      return { ...ln3, lanes: children2 };
+    });
+  }
 
   // src/canvas/htmlNode.ts
   var XHTML = "http://www.w3.org/1999/xhtml";
@@ -74149,6 +74182,11 @@
       this.graph.on("node:contextmenu", ({ node: node2, e: e2 }) => {
         e2.preventDefault();
         this.graph.select(node2);
+        const laneId = e2.target?.closest?.(".bp-pool-lane-head")?.closest(".bp-pool-lane")?.getAttribute("data-lane-id");
+        if (laneId && this.nodeKind(node2) === "bpmn-pool") {
+          this.showLaneMenu(node2, laneId, e2.clientX, e2.clientY);
+          return;
+        }
         this.showContextMenu(e2.clientX, e2.clientY);
       });
     }
@@ -75683,6 +75721,42 @@
       this.popupLayer.innerHTML = "";
     }
     // ── Right-click context menu ─────────────────────────────────────────────
+    /** Menu for one lane of a pool: split into / merge child lanes, add /
+     *  remove a child lane. One undo step each. */
+    showLaneMenu(pool, laneId, clientX, clientY) {
+      const lanes = this.nodeExtra(pool).lanes ?? [];
+      const top4 = lanes.find((l3) => l3.id === laneId);
+      const apply4 = (next) => {
+        this.graph.startBatch("lane-edit");
+        try {
+          pool.setData({ ...pool.getData(), lanes: next }, { deep: false });
+          this.rerender(pool);
+        } finally {
+          this.graph.stopBatch("lane-edit");
+        }
+        this.onChange();
+      };
+      const items = top4 ? top4.lanes?.length ? [["G\u1ED9p c\xE1c lane con", () => apply4(mergeChildLanes(lanes, laneId))]] : [["Chia th\xE0nh 2 lane con", () => apply4(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))]] : [
+        ["Th\xEAm lane con b\xEAn d\u01B0\u1EDBi", () => apply4(addChildLane(lanes, laneId, this.newLaneId()))],
+        ["Xo\xE1 lane con n\xE0y", () => apply4(removeChildLane(lanes, laneId))]
+      ];
+      const menu = el("div", "lk-context-menu");
+      for (const [label, fn2] of items) {
+        const item = el("div", "lk-menu-item");
+        item.appendChild(el("span", void 0, label));
+        item.onclick = () => {
+          fn2();
+          this.hidePopup();
+        };
+        menu.appendChild(item);
+      }
+      const rootRect = this.root.getBoundingClientRect();
+      this.popupLayer.innerHTML = "";
+      this.popupLayer.appendChild(menu);
+      this.popupLayer.style.display = "block";
+      this.popupLayer.style.left = clientX - rootRect.left + "px";
+      this.popupLayer.style.top = clientY - rootRect.top + "px";
+    }
     showContextMenu(clientX, clientY) {
       const menu = el("div", "lk-context-menu");
       const rootRect = this.root.getBoundingClientRect();
@@ -84764,7 +84838,7 @@
     const { xml: xml3 } = await m4.toXML(definitions, { format: true });
     return patchCamundaXml(xml3, model);
   }
-  function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m4, processByPoolId) {
+  function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m4, processByPoolId, laneIdByPool) {
     const pools = model.nodes.filter(
       (n2) => n2.shape === "bpmn-pool" || n2.attrs?.__source?.kind === "pool"
     );
@@ -84834,11 +84908,13 @@
       }
       if (lanes.length) {
         const horizontal = pool.attrs?.poolHorizontal !== false;
+        const renamed = laneIdByPool?.get(pool.id);
         const emitLane = (ln3, r2, parentEl) => {
           if (!ln3.id) return;
-          let laneEl = findLane(poolProcess, ln3.id);
+          const laneId = renamed?.get(ln3.id) ?? ln3.id;
+          let laneEl = findLane(poolProcess, laneId);
           if (!laneEl) {
-            laneEl = m4.create("bpmn:Lane", { id: ln3.id, name: ln3.label ?? ln3.id });
+            laneEl = m4.create("bpmn:Lane", { id: laneId, name: ln3.label ?? ln3.id });
             if (parentEl) {
               const holder = parentEl;
               holder.childLaneSet ??= m4.create("bpmn:LaneSet", { id: `LaneSet_${parentEl.id}`, lanes: [] });
@@ -84847,7 +84923,7 @@
               (ensureLaneSetIn(poolProcess).lanes ??= []).push(laneEl);
             }
           }
-          let ldi = diShape.get(ln3.id);
+          let ldi = diShape.get(laneId);
           if (ldi?.bounds) {
             ldi.bounds.x = r2.x;
             ldi.bounds.y = r2.y;
@@ -84859,7 +84935,7 @@
               bounds: m4.create("dc:Bounds", { x: r2.x, y: r2.y, width: r2.width, height: r2.height })
             });
             ldi.isHorizontal = horizontal;
-            diShape.set(ln3.id, ldi);
+            diShape.set(laneId, ldi);
             prefix2.push(ldi);
           }
           if (ln3.lanes?.length) {
@@ -85016,6 +85092,7 @@
     const pools = model.nodes.filter(
       (n2) => n2.shape === "bpmn-pool" || n2.attrs?.__source?.kind === "pool"
     );
+    const laneIdByPool = /* @__PURE__ */ new Map();
     const processByPoolId = /* @__PURE__ */ new Map();
     const multiPool = pools.length >= 2;
     let process2;
@@ -85078,7 +85155,14 @@
         }
         const laneSet = targetProcess.laneSets[0];
         laneSet.lanes ??= [];
-        for (const ln3 of lanes) laneSet.lanes.push(createLaneEl(m4, ln3, uniqueLaneId));
+        const renames = /* @__PURE__ */ new Map();
+        laneIdByPool.set(pool.id, renames);
+        const idOf = (id) => {
+          const u3 = uniqueLaneId(id);
+          renames.set(id, u3);
+          return u3;
+        };
+        for (const ln3 of lanes) laneSet.lanes.push(createLaneEl(m4, ln3, idOf));
       }
     }
     const findOwningProcess = (n2) => {
@@ -85202,7 +85286,7 @@
         ...eLabel ? { label: m4.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}
       }));
     }
-    emitPoolLaneShapes(model, defs, process2, plane, diShape, m4, multiPool ? processByPoolId : void 0);
+    emitPoolLaneShapes(model, defs, process2, plane, diShape, m4, multiPool ? processByPoolId : void 0, laneIdByPool);
     const dia = m4.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
     (defs.diagrams ??= []).push(dia);
     const { xml: xml3 } = await m4.toXML(defs, { format: true });

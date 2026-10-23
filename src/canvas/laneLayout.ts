@@ -123,3 +123,48 @@ export function leafLaneAt(lanes: readonly PoolLane[], extent: number, rel: numb
 export function allLaneIds(lanes: readonly PoolLane[]): string[] {
   return lanes.flatMap((ln) => [ln.id, ...(ln.lanes ?? []).map((c) => c.id)]);
 }
+
+// ── Child lane edits (pure; the Board's lane-title menu calls these) ─────────
+type EditLane = PoolLane & { label?: string };
+const mapLanes = <T extends EditLane>(lanes: readonly T[], id: string, fn: (ln: T) => T): T[] =>
+  lanes.map((ln) => (ln.id === id ? fn(ln) : ln));
+
+/** Lane `laneId` gets two child lanes (its band split equally). */
+export function splitLane<T extends EditLane>(lanes: readonly T[], laneId: string, ids: [string, string]): T[] {
+  return mapLanes(lanes, laneId, (ln) => ({
+    ...ln,
+    lanes: [{ id: ids[0], label: `${ln.label ?? "Lane"} 1` }, { id: ids[1], label: `${ln.label ?? "Lane"} 2` }],
+  }));
+}
+
+/** Lane `laneId` loses its child lanes (shapes fall back into it). */
+export function mergeChildLanes<T extends EditLane>(lanes: readonly T[], laneId: string): T[] {
+  return mapLanes(lanes, laneId, (ln) => {
+    const { lanes: _children, ...rest } = ln;
+    return rest as T;
+  });
+}
+
+/** A new child lane right after child `afterId`. */
+export function addChildLane<T extends EditLane>(lanes: readonly T[], afterId: string, newId: string): T[] {
+  return lanes.map((ln) => {
+    const i = ln.lanes?.findIndex((c) => c.id === afterId) ?? -1;
+    if (i < 0) return ln;
+    const children = [...(ln.lanes ?? [])];
+    children.splice(i + 1, 0, { id: newId, label: `Lane ${children.length + 1}` });
+    return { ...ln, lanes: children };
+  });
+}
+
+/** Remove child `childId`; a lane left with one child has its children merged. */
+export function removeChildLane<T extends EditLane>(lanes: readonly T[], childId: string): T[] {
+  return lanes.map((ln) => {
+    if (!ln.lanes?.some((c) => c.id === childId)) return ln;
+    const children = ln.lanes.filter((c) => c.id !== childId);
+    if (children.length < 2) {
+      const { lanes: _children, ...rest } = ln;
+      return rest as T;
+    }
+    return { ...ln, lanes: children };
+  });
+}

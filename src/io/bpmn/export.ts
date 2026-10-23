@@ -1,3 +1,4 @@
+import { addForeignFlows, foreignIds } from "./diagramScope";
 import { BpmnModdle } from "bpmn-moddle";
 import type { CanvasModel } from "../../canvas/types";
 import type { SourceMeta } from "../types";
@@ -89,7 +90,7 @@ function collapsedOwner(byId: Map<string, CanvasModel["nodes"][number]>, id: str
 
 /** Which root process a Board node belongs to: its lane's process, its pool's
  *  (attrs.poolId from import, else the pool its centre is in), else the first. */
-function processOwner(model: CanvasModel, processes: ModdleElement[], collaboration: ModdleElement | null): (n: CanvasModel["nodes"][number]) => ModdleElement {
+function processOwner(model: CanvasModel, processes: ModdleElement[], collaboration: ModdleElement | null, fallback: ModdleElement = processes[0]): (n: CanvasModel["nodes"][number]) => ModdleElement {
   const byId = new Map(processes.map((p) => [p.id, p] as const));
   const ofLane = new Map<string, ModdleElement>();
   const walk = (lanes: ModdleElement[] | undefined, pr: ModdleElement): void => {
@@ -113,7 +114,7 @@ function processOwner(model: CanvasModel, processes: ModdleElement[], collaborat
     if (poolId && ofPool.has(poolId)) return ofPool.get(poolId)!;
     const cx = n.x + n.width / 2, cy = n.y + n.height / 2;
     const pool = pools.find((p) => cx >= p.x && cx <= p.x + p.width && cy >= p.y && cy <= p.y + p.height);
-    return (pool && ofPool.get(pool.id)) || processes[0];
+    return (pool && ofPool.get(pool.id)) || fallback;
   };
 }
 
@@ -614,7 +615,10 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
 
   // Every root process (one per white-box pool); the first is the fallback.
   const processes = (definitions.rootElements ?? []).filter((r) => r.$type === "bpmn:Process");
-  const process = processes[0] ?? null;
+  // The shown diagram's own process when it draws one (several diagrams, several processes).
+  const shownRef = (mainPlane.bpmnElement ?? undefined) as ModdleElement | string | undefined;
+  const shownId = typeof shownRef === "string" ? shownRef : shownRef?.id;
+  const process = processes.find((p) => p.id === shownId) ?? processes[0] ?? null;
   if (!process) throw new Error("BPMN export: source document has no bpmn:Process.");
 
   // Index existing flow elements by id so we can patch/drop/keep.
@@ -658,10 +662,13 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     if (di) { diShape.delete(was); diShape.set(n.id, di); }
   }
 
+  // Drawn only on the file's other diagrams: not on this Board, so not ours to drop.
+  const foreign = foreignIds(diagrams.map((d) => d.plane).filter((pl) => !isSubPlane(pl)), indexedPlanes);
+  addForeignFlows(foreign, [...flowById.values(), ...(collaboration?.messageFlows ?? [])]);
   const modelNodeIds = new Set(model.nodes.map((n) => n.id));
   const endpointIds = new Set<string>(flowById.keys());
   for (const pr of processes) for (const ar of pr.artifacts ?? []) if (ar.id) endpointIds.add(ar.id);
-  const owningProcess = processOwner(model, processes, collaboration);
+  const owningProcess = processOwner(model, processes, collaboration, process);
   for (const p of collaboration?.participants ?? []) if (p.id) endpointIds.add(p.id);
   // Keep only edges whose endpoints still exist either in the current canvas
   // nodes or as preserved BPMN endpoints from the source XML (e.g. imported
@@ -677,6 +684,10 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
   const modelSequenceEdgeIds = new Set(validModelEdges.filter((e) => edgeKindOf(e) === "sequence").map((e) => e.id));
   const modelAssociationEdgeIds = new Set(validModelEdges.filter((e) => edgeKindOf(e) === "association").map((e) => e.id));
   const modelMessageEdgeIds = new Set(validModelEdges.filter((e) => edgeKindOf(e) === "message").map((e) => e.id));
+  for (const id of foreign) {
+    modelNodeIds.add(id); modelEdgeIds.add(id);
+    modelSequenceEdgeIds.add(id); modelAssociationEdgeIds.add(id); modelMessageEdgeIds.add(id);
+  }
 
   // (1) Patch existing nodes' bounds; add new ones; drop deleted.
   for (const n of model.nodes) {
@@ -826,9 +837,19 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     // Resolve each id to its moddle element so the serializer emits a proper
     // IDREF (`<flowNodeRef>id</flowNodeRef>`) tied to the actual element.
     // flowById already contains every surviving flow node.
-    const refsOf = (laneId: string) => (byLaneId.get(laneId) ?? [])
+    // A lane of another diagram keeps the members the Board never saw.
+    const foreignRefs = new Map<string, ModdleElement[]>();
+    const scanLanes = (lanes: ModdleElement[] | undefined): void => {
+      for (const ln of lanes ?? []) {
+        const kids = (ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes;
+        if (kids?.length) scanLanes(kids);
+        else if (ln.id) foreignRefs.set(ln.id, ((ln.flowNodeRef ?? []) as ModdleElement[]).filter((r) => foreign.has(refIdOf(r) ?? "")));
+      }
+    };
+    for (const pr of processes) for (const ls of pr.laneSets ?? []) scanLanes(ls.lanes);
+    const refsOf = (laneId: string) => [...(byLaneId.get(laneId) ?? [])
       .map((id) => flowById.get(id))
-      .filter((fe): fe is ModdleElement => !!fe);
+      .filter((fe): fe is ModdleElement => !!fe), ...(foreignRefs.get(laneId) ?? [])];
     for (const pr of processes) for (const ls of pr.laneSets ?? []) fillLaneRefs(ls.lanes, refsOf);
   }
   // Filter artifacts: Associations still in the model; annotations / groups

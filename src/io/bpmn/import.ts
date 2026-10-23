@@ -1,3 +1,4 @@
+import { addForeignFlows, foreignIds } from "./diagramScope";
 import { BpmnModdle } from "bpmn-moddle";
 import { getOrientation } from "diagram-js/lib/layout/LayoutUtil";
 import { defaultLabelDy } from "./labelGeometry";
@@ -239,13 +240,14 @@ function parseCamundaExt(ext: BpmnElementShape["extensionElements"], nodeAttrs?:
  *  (enterprise files we've seen top out around 1 MB). */
 const MAX_BPMN_BYTES = 4 * 1024 * 1024;
 
-export async function inspectBpmnDiagrams(raw: string): Promise<{ diagramCount: number; diagrams: Array<{ index: number; id: string; planeRef?: string; elementCount: number }> }> {
+export async function inspectBpmnDiagrams(raw: string): Promise<{ diagramCount: number; diagrams: Array<{ index: number; id: string; planeRef?: string; elementCount: number; subProcess: boolean }> }> {
   const { rootElement: definitions } = await moddle().fromXML(raw, "bpmn:Definitions");
   const diagrams = ((definitions as ModdleElement).diagrams ?? []).map((d, index) => ({
     index,
     id: (d as unknown as { id?: string }).id ?? `Diagram_${index + 1}`,
     planeRef: d.plane?.bpmnElement?.id,
     elementCount: d.plane?.planeElement?.length ?? 0,
+    subProcess: /SubProcess|Transaction/.test(d.plane?.bpmnElement?.$type ?? ""),
   }));
   return { diagramCount: diagrams.length, diagrams };
 }
@@ -373,6 +375,14 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     warnings.push(`BPMN có ${diagrams.length} diagrams; đang import plane #${chosenDiagramIndex + 1} (nhiều phần tử nhất).`);
   }
   const chosenPlane = diagrams[chosenDiagramIndex]?.plane;
+  // What only the other top-level diagrams draw stays in the file, not on the Board.
+  const foreign = foreignIds(diagrams.filter((d) => !isSubPlane(d)).map((d) => d.plane), [chosenPlane, ...diagrams.filter(isSubPlane).map((d) => d.plane)].filter(Boolean) as ModdleDiagram["plane"][]);
+  addForeignFlows(foreign, [...sequenceFlows, ...associations, ...messageFlows]);
+  if (foreign.size) {
+    for (const list of [flowNodes, sequenceFlows, associations, messageFlows]) {
+      list.splice(0, list.length, ...list.filter((e) => !e.id || !foreign.has(e.id)));
+    }
+  }
 
   // Map BPMN element id → DI shape / edge so we can pull bounds + waypoints.
   const diShapes = new Map<string, ModdleDiElement>();

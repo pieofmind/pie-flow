@@ -78565,6 +78565,32 @@
     }
   };
 
+  // src/io/bpmn/diagramScope.ts
+  var refOf = (pe3) => typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : pe3.bpmnElement?.id;
+  function foreignIds(topPlanes, shown) {
+    const mine = /* @__PURE__ */ new Set();
+    for (const pl of shown) for (const pe3 of pl.planeElement ?? []) {
+      const id = refOf(pe3);
+      if (id) mine.add(id);
+    }
+    const out = /* @__PURE__ */ new Set();
+    for (const pl of topPlanes) {
+      if (shown.includes(pl)) continue;
+      for (const pe3 of pl.planeElement ?? []) {
+        const id = refOf(pe3);
+        if (id && !mine.has(id)) out.add(id);
+      }
+    }
+    return out;
+  }
+  function addForeignFlows(foreign, flows) {
+    const idOf = (r2) => typeof r2 === "string" ? r2 : r2?.id;
+    for (const f3 of flows) {
+      const a3 = idOf(f3.sourceRef), b2 = idOf(f3.targetRef);
+      if (f3.id && a3 && b2 && foreign.has(a3) && foreign.has(b2)) foreign.add(f3.id);
+    }
+  }
+
   // ../../../../../../../Users/linhji/obsidian-dev/pie-flow/obsidian-omniboard/node_modules/min-dash/dist/index.js
   var nativeToString = Object.prototype.toString;
   var nativeHasOwnProperty = Object.prototype.hasOwnProperty;
@@ -84947,6 +84973,13 @@
       warnings.push(`BPMN c\xF3 ${diagrams.length} diagrams; \u0111ang import plane #${chosenDiagramIndex + 1} (nhi\u1EC1u ph\u1EA7n t\u1EED nh\u1EA5t).`);
     }
     const chosenPlane = diagrams[chosenDiagramIndex]?.plane;
+    const foreign = foreignIds(diagrams.filter((d2) => !isSubPlane2(d2)).map((d2) => d2.plane), [chosenPlane, ...diagrams.filter(isSubPlane2).map((d2) => d2.plane)].filter(Boolean));
+    addForeignFlows(foreign, [...sequenceFlows, ...associations2, ...messageFlows]);
+    if (foreign.size) {
+      for (const list of [flowNodes, sequenceFlows, associations2, messageFlows]) {
+        list.splice(0, list.length, ...list.filter((e2) => !e2.id || !foreign.has(e2.id)));
+      }
+    }
     const diShapes = /* @__PURE__ */ new Map();
     const diEdges = /* @__PURE__ */ new Map();
     const readPlanes = [...diagrams.filter(isSubPlane2).map((d2) => d2.plane), ...chosenPlane ? [chosenPlane] : []];
@@ -85246,7 +85279,7 @@
     }
     return void 0;
   }
-  function processOwner(model, processes, collaboration) {
+  function processOwner(model, processes, collaboration, fallback = processes[0]) {
     const byId = new Map(processes.map((p4) => [p4.id, p4]));
     const ofLane = /* @__PURE__ */ new Map();
     const walk = (lanes, pr) => {
@@ -85270,7 +85303,7 @@
       if (poolId && ofPool.has(poolId)) return ofPool.get(poolId);
       const cx = n2.x + n2.width / 2, cy = n2.y + n2.height / 2;
       const pool = pools.find((p4) => cx >= p4.x && cx <= p4.x + p4.width && cy >= p4.y && cy <= p4.y + p4.height);
-      return pool && ofPool.get(pool.id) || processes[0];
+      return pool && ofPool.get(pool.id) || fallback;
     };
   }
   function retype(m4, el2, type) {
@@ -85655,7 +85688,9 @@
       }
     }
     const processes = (definitions.rootElements ?? []).filter((r2) => r2.$type === "bpmn:Process");
-    const process2 = processes[0] ?? null;
+    const shownRef = mainPlane.bpmnElement ?? void 0;
+    const shownId = typeof shownRef === "string" ? shownRef : shownRef?.id;
+    const process2 = processes.find((p4) => p4.id === shownId) ?? processes[0] ?? null;
     if (!process2) throw new Error("BPMN export: source document has no bpmn:Process.");
     const flowById = /* @__PURE__ */ new Map();
     const containerOf = /* @__PURE__ */ new Map();
@@ -85703,10 +85738,12 @@
         diShape.set(n2.id, di);
       }
     }
+    const foreign = foreignIds(diagrams.map((d2) => d2.plane).filter((pl) => !isSubPlane(pl)), indexedPlanes);
+    addForeignFlows(foreign, [...flowById.values(), ...collaboration?.messageFlows ?? []]);
     const modelNodeIds = new Set(model.nodes.map((n2) => n2.id));
     const endpointIds = new Set(flowById.keys());
     for (const pr of processes) for (const ar of pr.artifacts ?? []) if (ar.id) endpointIds.add(ar.id);
-    const owningProcess = processOwner(model, processes, collaboration);
+    const owningProcess = processOwner(model, processes, collaboration, process2);
     for (const p4 of collaboration?.participants ?? []) if (p4.id) endpointIds.add(p4.id);
     const validModelEdges = model.edges.filter(
       (e2) => (modelNodeIds.has(e2.source) || endpointIds.has(e2.source)) && (modelNodeIds.has(e2.target) || endpointIds.has(e2.target))
@@ -85716,6 +85753,13 @@
     const modelSequenceEdgeIds = new Set(validModelEdges.filter((e2) => edgeKindOf(e2) === "sequence").map((e2) => e2.id));
     const modelAssociationEdgeIds = new Set(validModelEdges.filter((e2) => edgeKindOf(e2) === "association").map((e2) => e2.id));
     const modelMessageEdgeIds = new Set(validModelEdges.filter((e2) => edgeKindOf(e2) === "message").map((e2) => e2.id));
+    for (const id of foreign) {
+      modelNodeIds.add(id);
+      modelEdgeIds.add(id);
+      modelSequenceEdgeIds.add(id);
+      modelAssociationEdgeIds.add(id);
+      modelMessageEdgeIds.add(id);
+    }
     for (const n2 of model.nodes) {
       const srcKind = n2.attrs?.__source?.kind;
       const isPool = n2.shape === "bpmn-pool" || srcKind === "pool";
@@ -85826,7 +85870,16 @@
         arr.push(n2.id);
         byLaneId.set(n2.laneId, arr);
       }
-      const refsOf = (laneId) => (byLaneId.get(laneId) ?? []).map((id) => flowById.get(id)).filter((fe3) => !!fe3);
+      const foreignRefs = /* @__PURE__ */ new Map();
+      const scanLanes = (lanes) => {
+        for (const ln3 of lanes ?? []) {
+          const kids = ln3.childLaneSet?.lanes;
+          if (kids?.length) scanLanes(kids);
+          else if (ln3.id) foreignRefs.set(ln3.id, (ln3.flowNodeRef ?? []).filter((r2) => foreign.has(refIdOf(r2) ?? "")));
+        }
+      };
+      for (const pr of processes) for (const ls of pr.laneSets ?? []) scanLanes(ls.lanes);
+      const refsOf = (laneId) => [...(byLaneId.get(laneId) ?? []).map((id) => flowById.get(id)).filter((fe3) => !!fe3), ...foreignRefs.get(laneId) ?? []];
       for (const pr of processes) for (const ls of pr.laneSets ?? []) fillLaneRefs(ls.lanes, refsOf);
     }
     for (const pr of processes.filter((x3) => x3.artifacts)) {
@@ -85866,9 +85919,9 @@
       const wps = buildWaypoints(e2, srcNode, tgtNode, m4);
       let sf = flowById.get(e2.id);
       if (!sf) {
-        const refOf = (id) => flowById.get(id) ?? (kind === "message" ? collaboration?.participants?.find((p4) => p4.id === id) : void 0);
-        const sourceFe = refOf(e2.source);
-        const targetFe = refOf(e2.target);
+        const refOf2 = (id) => flowById.get(id) ?? (kind === "message" ? collaboration?.participants?.find((p4) => p4.id === id) : void 0);
+        const sourceFe = refOf2(e2.source);
+        const targetFe = refOf2(e2.target);
         if (!sourceFe || !targetFe) {
           console.warn(`[omniboard:bpmn] dropped ${kind} flow "${e2.id}": endpoint has no BPMN element (${e2.source} \u2192 ${e2.target})`);
           continue;
@@ -86322,13 +86375,13 @@
       if (isCrossPool && kind === "sequence" && collaborationRoot) {
         typeStr = "bpmn:MessageFlow";
       }
-      const refOf = (id) => feById.get(id) ?? (typeStr === "bpmn:MessageFlow" ? collaborationRoot?.participants?.find((p4) => p4.id === id) : void 0);
+      const refOf2 = (id) => feById.get(id) ?? (typeStr === "bpmn:MessageFlow" ? collaborationRoot?.participants?.find((p4) => p4.id === id) : void 0);
       const sf = m4.create(typeStr, {
         id: e2.id,
         // bpmn:Association is an artifact with no `name` in the BPMN schema.
         ...kind === "association" ? {} : { name: e2.label ?? "" },
-        sourceRef: refOf(e2.source),
-        targetRef: refOf(e2.target)
+        sourceRef: refOf2(e2.source),
+        targetRef: refOf2(e2.target)
       });
       if (!sf.sourceRef || !sf.targetRef) {
         console.warn(`[omniboard:bpmn] dropped ${typeStr} "${e2.id}": endpoint has no BPMN element (${e2.source} \u2192 ${e2.target})`);

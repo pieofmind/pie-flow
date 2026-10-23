@@ -124,6 +124,17 @@ export default class DiagramsPlugin extends Plugin {
     });
 
     this.addCommand({
+      id: "switch-bpmn-diagram",
+      name: "Chuyển sang sơ đồ khác của file BPMN",
+      checkCallback: (checking) => {
+        const view = this.app.workspace.getActiveViewOfType(BoardView);
+        if (!view) return false;
+        if (!checking) void view.switchDiagram();
+        return true;
+      },
+    });
+
+    this.addCommand({
       id: "open-as-markdown",
       name: "Open current board as Markdown",
       checkCallback: (checking) => {

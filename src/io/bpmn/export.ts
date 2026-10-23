@@ -1,6 +1,7 @@
 import { BpmnModdle } from "bpmn-moddle";
 import type { CanvasModel } from "../../canvas/types";
 import type { SourceMeta } from "../types";
+import { laneHeights, laneWeights, type PoolLane } from "../../canvas/laneLayout";
 import { SHAPE_TO_BPMN, TRIGGER_TO_EVENT_DEF } from "./shapes";
 
 /**
@@ -807,8 +808,13 @@ function emitPoolLaneShapes(
     const box = boxes.get(pool.id)!;
     const poolX = pools.length > 1 ? sharedX : box.poolX;
     const poolW = pools.length > 1 ? sharedRight - sharedX : box.poolW;
-    const poolY = box.poolY;
-    const poolH = box.poolH;
+    // Lanes with their own height (dragged on the Board / resized in bpmn-js)
+    // pin the pool to its Board rect vertically: the lane bands must land
+    // exactly where the Board drew them. Legacy pools still hug their members.
+    const lanes = (pool.attrs?.lanes as PoolLane[] | undefined) ?? [];
+    const sizedLanes = laneWeights(lanes) !== null;
+    const poolY = sizedLanes ? pool.y : box.poolY;
+    const poolH = sizedLanes ? pool.height : box.poolH;
 
     // Participant shape — patch existing or create new.
     let pdi = diShape.get(pool.id);
@@ -836,14 +842,14 @@ function emitPoolLaneShapes(
     }
 
     // Lane shapes tile the pool interior (minus pool header). Per-lane band is
-    // derived from each lane's member-node Y-range when available, else equal.
-    const lanes = (pool.attrs?.lanes as Array<{ id: string; label?: string }> | undefined) ?? [];
+    // the lane's own height when set, else derived from each lane's member-node
+    // Y-range when available, else equal.
     const laneX = poolX + POOL_HEADER;
     const laneW = poolW - POOL_HEADER;
     if (lanes.length) {
       // Build contiguous bands. If a lane has no member info we fall back to an
       // equal split so the bands always exactly tile poolH.
-      const bands = laneBands(lanes, poolProcess, model, poolY, poolH);
+      const bands = sizedLanes ? sizedLaneBands(lanes, poolY, poolH) : laneBands(lanes, poolProcess, model, poolY, poolH);
       lanes.forEach((ln, i) => {
         if (!ln.id) return;
         const band = bands[i];
@@ -874,6 +880,16 @@ function emitPoolLaneShapes(
     // Insert NEW shapes parent-first at the very front (participant then lanes).
     if (prefix.length) (mainPlane.planeElement ??= []).unshift(...prefix);
   }
+}
+
+/** Contiguous Y-bands from each lane's own height (see laneLayout). */
+function sizedLaneBands(lanes: PoolLane[], poolY: number, poolH: number): Array<{ y: number; h: number }> {
+  let y = poolY;
+  return laneHeights(lanes, poolH).map((h) => {
+    const band = { y, h };
+    y += h;
+    return band;
+  });
 }
 
 /** Contiguous Y-bands tiling [poolY, poolY+poolH] — one per lane. Uses each

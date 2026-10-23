@@ -595,7 +595,14 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       const processRefId = part.processRef?.id;
       const proc = processRefId ? processById.get(processRefId) : undefined;
       const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
-      const laneAttrs = lanes.map((ln) => ({ id: ln.id ?? "", label: ln.name ?? "" }));
+      // Lane height from its own DI (e.g. resized in bpmn-js) so the Board
+      // draws the same bands. The Board stacks lanes top→bottom, so only a
+      // horizontal pool's lane height maps onto it.
+      const poolIsHorizontal = part.id ? ((diShapes.get(part.id) as { isHorizontal?: boolean } | undefined)?.isHorizontal !== false) : true;
+      const laneAttrs = lanes.map((ln) => {
+        const h = poolIsHorizontal && ln.id ? diShapes.get(ln.id)?.bounds?.height : undefined;
+        return { id: ln.id ?? "", label: ln.name ?? "", ...(h && h > 0 ? { height: h } : {}) };
+      });
 
       // Determine bounds: prefer the participant's own DI shape.
       let px: number, py: number, pw: number, ph: number;
@@ -624,7 +631,6 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
           if (fe.id) flowNodePoolId.set(fe.id, part.id);
         }
       }
-      const isHorizontal = part.id ? ((diShapes.get(part.id) as { isHorizontal?: boolean } | undefined)?.isHorizontal !== false) : true;
       // `processRef` may exist as an unresolved reference object without `id`.
       // Treat participants without a concrete processRef id as black-box pools.
       const isBlackBox = !processRefId;
@@ -635,7 +641,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
         label: part.name ?? "",
         attrs: {
           lanes: laneAttrs.length ? laneAttrs : undefined,
-          poolHorizontal: isHorizontal,
+          poolHorizontal: poolIsHorizontal,
           blackBox: isBlackBox,
           __source: { format: "bpmn", sourceId: part.id, kind: "pool" },
         },

@@ -11,6 +11,7 @@ import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type 
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
+import { laneHeights, laneIndexAt, resizeLaneBoundary } from "./laneLayout";
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignMiddleV, alignBottom,
@@ -443,6 +444,7 @@ export class OmniboardCanvas {
     this.enableTrackpadPan();
     this.enablePinch();       // mobile: two-finger pinch-zoom + pan
     this.enableLabelDrag();
+    this.enableLaneResize();
     this.enableInlineLabelEdit();
     this.refreshProps();
     this.setTool("select");   // wire the touch select/move handlers
@@ -1005,6 +1007,49 @@ export class OmniboardCanvas {
         const n = node as Node;
         n.setData({ ...n.getData(), labelOffset: final });
         this.rerender(n);
+        this.onChange();
+      };
+      document.addEventListener("pointermove", mv);
+      document.addEventListener("pointerup", up);
+    });
+  }
+
+  /**
+   * Drag the line between two lanes of a BPMN pool to move height from one
+   * lane to the other (pool keeps its size). Result lands in
+   * `lanes[i].height` as one undo step.
+   */
+  private enableLaneResize(): void {
+    const MIN_LANE = 60;   // = CSS min-height of .bp-pool-lane
+    this.root.addEventListener("pointerdown", (e: PointerEvent) => {
+      const handle = (e.target as HTMLElement | null)?.closest?.(".bp-pool-lane-divider") as HTMLElement | null;
+      if (!handle) return;
+      const cellId = handle.closest(".x6-node")?.getAttribute("data-cell-id");
+      const node = cellId ? this.graph.getCellById(cellId) : null;
+      if (!node || !node.isNode()) return;
+      const lanes = this.nodeExtra(node).lanes ?? [];
+      const idx = Number(handle.getAttribute("data-lane-idx"));
+      if (!Number.isInteger(idx) || idx >= lanes.length - 1) return;
+      e.preventDefault(); e.stopPropagation();
+      handle.classList.add("is-dragging");
+      const laneEls = Array.from(handle.closest(".bp-pool-body")?.querySelectorAll<HTMLElement>(":scope > .bp-pool-lane") ?? []);
+      const poolH = node.getSize().height;
+      const startY = e.clientY;
+      const scale = this.graph.scale().sy || 1;
+      const resized = (ev: PointerEvent) => resizeLaneBoundary(lanes, poolH, idx, (ev.clientY - startY) / scale, MIN_LANE);
+      const mv = (ev: PointerEvent) => {
+        resized(ev).forEach((ln, i) => { if (laneEls[i]) laneEls[i].style.flex = `${ln.height} 1 0px`; });
+      };
+      const up = (ev: PointerEvent) => {
+        document.removeEventListener("pointermove", mv);
+        document.removeEventListener("pointerup", up);
+        handle.classList.remove("is-dragging");
+        if (Math.abs(ev.clientY - startY) < 1) return;
+        this.graph.startBatch("lane-resize");
+        try {
+          node.setData({ ...node.getData(), lanes: resized(ev) }, { deep: false });
+          this.rerender(node);
+        } finally { this.graph.stopBatch("lane-resize"); }
         this.onChange();
       };
       document.addEventListener("pointermove", mv);
@@ -3450,12 +3495,18 @@ export class OmniboardCanvas {
 
   private addLaneToPool(node: Node, where: "above" | "below"): void {
     const ex = this.nodeExtra(node);
-    const lanes = [...(ex.lanes ?? [{ id: "l1", label: "Lane 1" }])];
-    const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}` };
-    if (where === "above") lanes.unshift(next); else lanes.push(next);
-    node.setData({ ...node.getData(), lanes });
     const s = node.getSize();
-    node.resize(s.width, s.height + 70); // grow to fit new lane
+    const NEW_LANE_H = 70;
+    const prev = ex.lanes ?? [{ id: "l1", label: "Lane 1" }];
+    // Lanes with their own height keep it: the pool grows by exactly the new lane.
+    const sized = prev.some((ln) => ln.height)
+      ? laneHeights(prev, s.height).map((h, i) => ({ ...prev[i], height: Math.round(h) }))
+      : null;
+    const lanes = [...(sized ?? prev)];
+    const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}`, ...(sized ? { height: NEW_LANE_H } : {}) };
+    if (where === "above") lanes.unshift(next); else lanes.push(next);
+    node.setData({ ...node.getData(), lanes }, { deep: false });
+    node.resize(s.width, s.height + NEW_LANE_H); // grow to fit new lane
     this.rerender(node);
     this.refreshContextBar();
     this.onChange();
@@ -4484,7 +4535,7 @@ export class OmniboardCanvas {
       
       // Live laneId determination based on physical pool overlap (Phase B).
       // Since lanes are not X6 nodes, we find the pool node that contains this node's center,
-      // and determine which lane it falls into based on vertical division of the pool.
+      // and determine which lane it falls into from each lane's own height (laneLayout).
       let laneId = data.laneId;
       if (
         this.nodeKind(n) !== "bpmn-pool" &&
@@ -4506,10 +4557,7 @@ export class OmniboardCanvas {
             const poolExtra = this.nodeExtra(pool);
             const poolLanes = poolExtra.lanes ?? [{ id: "l1", label: "Lane 1" }];
             if (poolLanes.length > 0) {
-              const laneHeight = poolSize.height / poolLanes.length;
-              const relY = cy - poolPos.y;
-              const laneIdx = Math.max(0, Math.min(poolLanes.length - 1, Math.floor(relY / laneHeight)));
-              laneId = poolLanes[laneIdx].id;
+              laneId = poolLanes[laneIndexAt(poolLanes, poolSize.height, cy - poolPos.y)].id;
               
               // Keep the cached data in sync silently
               if (laneId !== data.laneId) {

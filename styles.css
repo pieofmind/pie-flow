@@ -940,8 +940,15 @@
   border-right: none; border-bottom: 1.6px solid var(--pg-border-strong);
 }
 .lk-root .bp-pool-body { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; }
-.lk-root .bp-pool-lane { flex: 1 1 auto; display: flex; flex-direction: row; min-height: 60px;
-  border-bottom: 1.4px solid var(--pg-border-strong); }
+/* basis 0 → equal split regardless of label length (matches laneLayout / laneId). */
+.lk-root .bp-pool-lane { flex: 1 1 0px; display: flex; flex-direction: row; min-height: 60px;
+  border-bottom: 1.4px solid var(--pg-border-strong); position: relative; }
+/* Drag handle on the line between two lanes → resize both (OmniboardCanvas.enableLaneResize). */
+.lk-root .bp-pool-lane-divider { position: absolute; left: 0; right: 0; bottom: -5px; height: 10px;
+  cursor: row-resize; z-index: 2; }
+.lk-root .hn .bp-pool-lane-divider { pointer-events: auto; }
+.lk-root .bp-pool-lane-divider:hover,
+.lk-root .bp-pool-lane-divider.is-dragging { background: var(--interactive-accent, #3b82f6); opacity: 0.35; }
 .lk-root .bp-pool-lane:last-child { border-bottom: none; }
 .lk-root .bp-pool-lane-head { width: 24px; flex: 0 0 auto;
   border-right: 1.4px solid var(--pg-border-strong);

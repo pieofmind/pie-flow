@@ -11910,9 +11910,11 @@ async function importBpmn(raw2, options) {
         var _a4;
         return (_a4 = ls.lanes) != null ? _a4 : [];
       });
+      const poolIsHorizontal = part.id ? ((_G = diShapes.get(part.id)) == null ? void 0 : _G.isHorizontal) !== false : true;
       const laneAttrs = lanes.map((ln3) => {
-        var _a4, _b3;
-        return { id: (_a4 = ln3.id) != null ? _a4 : "", label: (_b3 = ln3.name) != null ? _b3 : "" };
+        var _a4, _b3, _c2, _d2;
+        const h5 = poolIsHorizontal && ln3.id ? (_b3 = (_a4 = diShapes.get(ln3.id)) == null ? void 0 : _a4.bounds) == null ? void 0 : _b3.height : void 0;
+        return { id: (_c2 = ln3.id) != null ? _c2 : "", label: (_d2 = ln3.name) != null ? _d2 : "", ...h5 && h5 > 0 ? { height: h5 } : {} };
       });
       let px2, py, pw, ph;
       const partDi = part.id ? diShapes.get(part.id) : void 0;
@@ -11940,7 +11942,6 @@ async function importBpmn(raw2, options) {
           if (fe3.id) flowNodePoolId.set(fe3.id, part.id);
         }
       }
-      const isHorizontal5 = part.id ? ((_G = diShapes.get(part.id)) == null ? void 0 : _G.isHorizontal) !== false : true;
       const isBlackBox = !processRefId;
       pools.push({
         id: (_H = part.id) != null ? _H : `pool_${pools.length}`,
@@ -11952,7 +11953,7 @@ async function importBpmn(raw2, options) {
         label: (_I = part.name) != null ? _I : "",
         attrs: {
           lanes: laneAttrs.length ? laneAttrs : void 0,
-          poolHorizontal: isHorizontal5,
+          poolHorizontal: poolIsHorizontal,
           blackBox: isBlackBox,
           __source: { format: "bpmn", sourceId: part.id, kind: "pool" }
         }
@@ -73686,6 +73687,39 @@ function pickDropTarget(items, pt2) {
   return best;
 }
 
+// src/canvas/laneLayout.ts
+var hasHeight = (ln3) => typeof ln3.height === "number" && Number.isFinite(ln3.height) && ln3.height > 0;
+function laneWeights(lanes) {
+  const known = lanes.filter(hasHeight);
+  if (!known.length) return null;
+  const avg = known.reduce((s5, ln3) => s5 + ln3.height, 0) / known.length;
+  return lanes.map((ln3) => hasHeight(ln3) ? ln3.height : avg);
+}
+function laneHeights(lanes, poolH) {
+  if (!lanes.length) return [];
+  const w5 = laneWeights(lanes);
+  if (!w5) return lanes.map(() => poolH / lanes.length);
+  const total = w5.reduce((s5, h5) => s5 + h5, 0);
+  return w5.map((h5) => h5 * poolH / total);
+}
+function laneIndexAt(lanes, poolH, relY) {
+  const hs = laneHeights(lanes, poolH);
+  let acc = 0;
+  for (let i6 = 0; i6 < hs.length; i6++) {
+    acc += hs[i6];
+    if (relY < acc) return i6;
+  }
+  return hs.length - 1;
+}
+function resizeLaneBoundary(lanes, poolH, index4, dy, minHeight) {
+  const hs = laneHeights(lanes, poolH);
+  if (index4 < 0 || index4 >= hs.length - 1) return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(hs[i6]) }));
+  const pair = hs[index4] + hs[index4 + 1];
+  const upper = Math.min(Math.max(hs[index4] + dy, minHeight), pair - minHeight);
+  const next = hs.map((h5, i6) => i6 === index4 ? upper : i6 === index4 + 1 ? pair - upper : h5);
+  return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(next[i6]) }));
+}
+
 // src/canvas/htmlNode.ts
 var XHTML = "http://www.w3.org/1999/xhtml";
 var registered = false;
@@ -74060,7 +74094,12 @@ function bpPool(label, extra) {
   }
   const lanes = ((_a3 = extra == null ? void 0 : extra.lanes) == null ? void 0 : _a3.length) ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
   const orient = (extra == null ? void 0 : extra.poolHorizontal) === false ? " is-vertical" : "";
-  const laneHtml = lanes.map((ln3) => `<div class="bp-pool-lane" data-lane-id="${esc(ln3.id)}"><div class="bp-pool-lane-head">${esc(ln3.label)}</div><div class="bp-pool-lane-body"></div></div>`).join("");
+  const weights = laneWeights(lanes);
+  const laneHtml = lanes.map((ln3, i6) => {
+    const flex = weights ? ` style="flex: ${weights[i6]} 1 0px"` : "";
+    const divider = i6 < lanes.length - 1 ? `<div class="bp-pool-lane-divider" data-lane-idx="${i6}"></div>` : "";
+    return `<div class="bp-pool-lane" data-lane-id="${esc(ln3.id)}"${flex}><div class="bp-pool-lane-head">${esc(ln3.label)}</div><div class="bp-pool-lane-body"></div>${divider}</div>`;
+  }).join("");
   return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
 }
 
@@ -74980,8 +75019,10 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
     const box = boxes.get(pool.id);
     const poolX = pools.length > 1 ? sharedX : box.poolX;
     const poolW = pools.length > 1 ? sharedRight - sharedX : box.poolW;
-    const poolY = box.poolY;
-    const poolH = box.poolH;
+    const lanes = (_d = (_c = pool.attrs) == null ? void 0 : _c.lanes) != null ? _d : [];
+    const sizedLanes = laneWeights(lanes) !== null;
+    const poolY = sizedLanes ? pool.y : box.poolY;
+    const poolH = sizedLanes ? pool.height : box.poolH;
     let pdi = diShape.get(pool.id);
     if (pdi == null ? void 0 : pdi.bounds) {
       pdi.bounds.x = poolX;
@@ -74993,26 +75034,25 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
       if (!part) {
         part = m7.create("bpmn:Participant", {
           id: pool.id,
-          name: (_c = pool.label) != null ? _c : "Pool",
+          name: (_e3 = pool.label) != null ? _e3 : "Pool",
           // Each participant references its OWN process when multi-pool.
           ...isBlackBoxPool(pool) ? {} : { processRef: poolProcess }
         });
-        ((_e3 = (_d = ensureCollaboration()).participants) != null ? _e3 : _d.participants = []).push(part);
+        ((_g = (_f = ensureCollaboration()).participants) != null ? _g : _f.participants = []).push(part);
       }
       pdi = m7.create("bpmndi:BPMNShape", {
         bpmnElement: part,
         bounds: m7.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
       });
-      const isHorizontal5 = ((_f = pool.attrs) == null ? void 0 : _f.poolHorizontal) !== false;
+      const isHorizontal5 = ((_h = pool.attrs) == null ? void 0 : _h.poolHorizontal) !== false;
       pdi.isHorizontal = isHorizontal5;
       diShape.set(pool.id, pdi);
       prefix2.push(pdi);
     }
-    const lanes = (_h = (_g = pool.attrs) == null ? void 0 : _g.lanes) != null ? _h : [];
     const laneX = poolX + POOL_HEADER;
     const laneW = poolW - POOL_HEADER;
     if (lanes.length) {
-      const bands = laneBands(lanes, poolProcess, model, poolY, poolH);
+      const bands = sizedLanes ? sizedLaneBands(lanes, poolY, poolH) : laneBands(lanes, poolProcess, model, poolY, poolH);
       lanes.forEach((ln3, i6) => {
         var _a4, _b3, _c2, _d2;
         if (!ln3.id) return;
@@ -75042,6 +75082,14 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
     }
     if (prefix2.length) ((_i = mainPlane.planeElement) != null ? _i : mainPlane.planeElement = []).unshift(...prefix2);
   }
+}
+function sizedLaneBands(lanes, poolY, poolH) {
+  let y5 = poolY;
+  return laneHeights(lanes, poolH).map((h5) => {
+    const band = { y: y5, h: h5 };
+    y5 += h5;
+    return band;
+  });
 }
 function laneBands(lanes, process2, model, poolY, poolH) {
   if (lanes.length <= 1) return [{ y: poolY, h: poolH }];
@@ -83271,6 +83319,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.enableTrackpadPan();
     this.enablePinch();
     this.enableLabelDrag();
+    this.enableLaneResize();
     this.enableInlineLabelEdit();
     this.refreshProps();
     this.setTool("select");
@@ -83864,6 +83913,54 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         const n4 = node3;
         n4.setData({ ...n4.getData(), labelOffset: final });
         this.rerender(n4);
+        this.onChange();
+      };
+      document.addEventListener("pointermove", mv);
+      document.addEventListener("pointerup", up);
+    });
+  }
+  /**
+   * Drag the line between two lanes of a BPMN pool to move height from one
+   * lane to the other (pool keeps its size). Result lands in
+   * `lanes[i].height` as one undo step.
+   */
+  enableLaneResize() {
+    const MIN_LANE = 60;
+    this.root.addEventListener("pointerdown", (e5) => {
+      var _a3, _b2, _c, _d, _e3, _f;
+      const handle = (_b2 = (_a3 = e5.target) == null ? void 0 : _a3.closest) == null ? void 0 : _b2.call(_a3, ".bp-pool-lane-divider");
+      if (!handle) return;
+      const cellId = (_c = handle.closest(".x6-node")) == null ? void 0 : _c.getAttribute("data-cell-id");
+      const node3 = cellId ? this.graph.getCellById(cellId) : null;
+      if (!node3 || !node3.isNode()) return;
+      const lanes = (_d = this.nodeExtra(node3).lanes) != null ? _d : [];
+      const idx = Number(handle.getAttribute("data-lane-idx"));
+      if (!Number.isInteger(idx) || idx >= lanes.length - 1) return;
+      e5.preventDefault();
+      e5.stopPropagation();
+      handle.classList.add("is-dragging");
+      const laneEls = Array.from((_f = (_e3 = handle.closest(".bp-pool-body")) == null ? void 0 : _e3.querySelectorAll(":scope > .bp-pool-lane")) != null ? _f : []);
+      const poolH = node3.getSize().height;
+      const startY = e5.clientY;
+      const scale2 = this.graph.scale().sy || 1;
+      const resized = (ev) => resizeLaneBoundary(lanes, poolH, idx, (ev.clientY - startY) / scale2, MIN_LANE);
+      const mv = (ev) => {
+        resized(ev).forEach((ln3, i6) => {
+          if (laneEls[i6]) laneEls[i6].style.flex = `${ln3.height} 1 0px`;
+        });
+      };
+      const up = (ev) => {
+        document.removeEventListener("pointermove", mv);
+        document.removeEventListener("pointerup", up);
+        handle.classList.remove("is-dragging");
+        if (Math.abs(ev.clientY - startY) < 1) return;
+        this.graph.startBatch("lane-resize");
+        try {
+          node3.setData({ ...node3.getData(), lanes: resized(ev) }, { deep: false });
+          this.rerender(node3);
+        } finally {
+          this.graph.stopBatch("lane-resize");
+        }
         this.onChange();
       };
       document.addEventListener("pointermove", mv);
@@ -86390,13 +86487,16 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   addLaneToPool(node3, where) {
     var _a3;
     const ex = this.nodeExtra(node3);
-    const lanes = [...(_a3 = ex.lanes) != null ? _a3 : [{ id: "l1", label: "Lane 1" }]];
-    const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}` };
+    const s5 = node3.getSize();
+    const NEW_LANE_H = 70;
+    const prev = (_a3 = ex.lanes) != null ? _a3 : [{ id: "l1", label: "Lane 1" }];
+    const sized = prev.some((ln3) => ln3.height) ? laneHeights(prev, s5.height).map((h5, i6) => ({ ...prev[i6], height: Math.round(h5) })) : null;
+    const lanes = [...sized != null ? sized : prev];
+    const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}`, ...sized ? { height: NEW_LANE_H } : {} };
     if (where === "above") lanes.unshift(next);
     else lanes.push(next);
-    node3.setData({ ...node3.getData(), lanes });
-    const s5 = node3.getSize();
-    node3.resize(s5.width, s5.height + 70);
+    node3.setData({ ...node3.getData(), lanes }, { deep: false });
+    node3.resize(s5.width, s5.height + NEW_LANE_H);
     this.rerender(node3);
     this.refreshContextBar();
     this.onChange();
@@ -87419,10 +87519,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
             const poolExtra = this.nodeExtra(pool);
             const poolLanes = (_b2 = poolExtra.lanes) != null ? _b2 : [{ id: "l1", label: "Lane 1" }];
             if (poolLanes.length > 0) {
-              const laneHeight = poolSize.height / poolLanes.length;
-              const relY = cy - poolPos.y;
-              const laneIdx = Math.max(0, Math.min(poolLanes.length - 1, Math.floor(relY / laneHeight)));
-              laneId = poolLanes[laneIdx].id;
+              laneId = poolLanes[laneIndexAt(poolLanes, poolSize.height, cy - poolPos.y)].id;
               if (laneId !== data2.laneId) {
                 n4.setData({ ...data2, laneId }, { silent: true });
               }

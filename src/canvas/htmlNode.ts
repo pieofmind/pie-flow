@@ -346,11 +346,11 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
     case "bpmn-adhoc-subprocess": return `<div class="bp-frame bp-sub is-adhoc"><span class="bp-frame-lbl">${L || "Ad-hoc sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}<span class="bp-adhoc-mark">∼</span></div>`;
     case "bpmn-call-activity": return `<div class="bp-task is-call">${nl(L) || "Call activity"}${renderMarkers(extra?.markers)}</div>`;
     // Data artifacts (Đợt A — Collection/Input/Output)
-    case "bpmn-data-object": return bpData("", DATA_PAGE, L, extra);
-    case "bpmn-data-collection": return bpData(" is-collection", DATA_PAGE, L, extra, `<span class="bp-coll-bars"></span>`);
-    case "bpmn-data-input": return bpData(" is-input", DATA_PAGE, L || "Input", extra, `<span class="bp-data-arr"></span>`);
-    case "bpmn-data-output": return bpData(" is-output", DATA_PAGE, L || "Output", extra, `<span class="bp-data-arr"></span>`);
-    case "bpmn-data-store": return bpData("", DATA_CYLINDER, L, extra, "", "bp-datastore");
+    case "bpmn-data-object": return bpData("", dataShape(kind, "9 5 13 22"), L, extra);
+    case "bpmn-data-collection": return bpData(" is-collection", dataShape(kind, "9 5 13 22"), L, extra);
+    case "bpmn-data-input": return bpData(" is-input", dataShape(kind, "9 5 13 22"), L || "Input", extra);
+    case "bpmn-data-output": return bpData(" is-output", dataShape(kind, "9 5 13 22"), L || "Output", extra);
+    case "bpmn-data-store": return bpData("", dataShape(kind, "7 6 18 20"), L, extra, "bp-datastore");
     case "bpmn-annotation": return `<div class="bp-anno">${L || "Annotation"}</div>`;
     case "bpmn-group": return `<div class="bp-group">${L ? `<span class="bp-group-lbl">${L}</span>` : ""}</div>`;
     case "bpmn-lane": return `<div class="bp-lane"><span>${L}</span></div>`;
@@ -398,14 +398,27 @@ function bpEvent(kind: string, label: string, icon?: string, extra?: NodeExtra):
   const interrupt = extra?.interrupting === false ? " is-non-interrupting" : "";
   return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
 }
-// Data object / store: the shape fills the node box (like bpmn-js, node box =
-// shape), so ports and arrows meet the shape; the label is external, below it
-// (draggable, auto-flips up like event labels). `label` is already escaped.
-const DATA_PAGE = `<svg class="bp-data-shape" viewBox="0 0 36 50" preserveAspectRatio="none"><path d="M1 1h24l10 10v38H1z"/><path d="M25 1v10h10"/></svg>`;
-const DATA_CYLINDER = `<svg class="bp-data-shape" viewBox="0 0 50 50" preserveAspectRatio="none"><path d="M1 7v36c0 3.3 10.7 6 24 6s24-2.7 24-6V7"/><ellipse cx="25" cy="7" rx="24" ry="6"/><path d="M1 12c0 3.3 10.7 6 24 6s24-2.7 24-6"/></svg>`;
-function bpData(mod: string, shape: string, label: string, extra?: NodeExtra, deco = "", cls = "bp-dataobj"): string {
+// Data object / store: the palette's icon, cropped to the shape so it fills
+// the node box (like bpmn-js, node box = shape) and ports / arrows meet it;
+// colours come from the theme tokens (styles.css). The label is external,
+// below it (draggable, auto-flips up like event labels).
+const PAGE = `<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/>`;
+const FOLD = `<path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/>`;
+const ARROW = `<path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z"`;
+/** Shared with the shape palette (shapes/index.ts) — one drawing for both. */
+export const DATA_ICON: Record<string, string> = {
+  "bpmn-data-object": PAGE + FOLD,
+  "bpmn-data-collection": PAGE + FOLD + `<path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`,
+  "bpmn-data-input": PAGE + `${ARROW} fill="none" stroke="#607d8b" stroke-width="1.3"/>`,
+  "bpmn-data-output": PAGE + `${ARROW} fill="#607d8b"/>`,
+  // Body first, filled, so the lid sits on top of it.
+  "bpmn-data-store": `<path d="M7 9v14c0 1.6 4 3 9 3s9-1.4 9-3V9" fill="#fff" stroke="#607d8b" stroke-width="2"/><ellipse cx="16" cy="9" rx="9" ry="3" fill="#fff" stroke="#607d8b" stroke-width="2"/>`,
+};
+const dataShape = (shape: string, viewBox: string) =>
+  `<svg class="bp-data-shape" viewBox="${viewBox}" preserveAspectRatio="none">${DATA_ICON[shape]}</svg>`;
+function bpData(mod: string, shape: string, label: string, extra?: NodeExtra, cls = "bp-dataobj"): string {
   const lbl = label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : "";
-  return `<div class="${cls}${mod}">${shape}${deco}${lbl}</div>`;
+  return `<div class="${cls}${mod}">${shape}${lbl}</div>`;
 }
 function bpTask(label: string, iconKey?: string, extra?: NodeExtra): string {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";

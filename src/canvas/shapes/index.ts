@@ -1,5 +1,5 @@
 import type { ShapeCategory } from "../types";
-import { registerHtmlNode } from "../htmlNode";
+import { DATA_ICON, registerHtmlNode } from "../htmlNode";
 
 // All nodes now render as a single HTML node (design DOM + CSS); see htmlNode.ts
 export function registerAllShapes(): void {
@@ -250,13 +250,13 @@ const ICONS: Record<string, string> = {
   "bpmn-adhoc-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="2"/><path d="M11 18 q1.5 -2.5 3 0 t3 0 t3 0" fill="none" stroke="#1565c0" stroke-width="1.4"/>`),
   "bpmn-call-activity": I(`<rect x="4" y="10" width="24" height="12" rx="3" fill="#fff" stroke="#1565c0" stroke-width="3"/>`),
   // Đợt B — Data artifacts
-  "bpmn-data-collection": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/><path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`),
-  "bpmn-data-input": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="none" stroke="#607d8b" stroke-width="1.3"/>`),
-  "bpmn-data-output": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="#607d8b"/>`),
+  "bpmn-data-collection": I(DATA_ICON["bpmn-data-collection"]),
+  "bpmn-data-input": I(DATA_ICON["bpmn-data-input"]),
+  "bpmn-data-output": I(DATA_ICON["bpmn-data-output"]),
   // Đợt B — Group
   "bpmn-group": I(`<rect x="4" y="8" width="24" height="16" rx="4" fill="none" stroke="#5e7a99" stroke-width="1.8" stroke-dasharray="4 2"/>`),
-  "bpmn-data-object": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/>`),
-  "bpmn-data-store": I(`<ellipse cx="16" cy="9" rx="9" ry="3" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M7 9v14c0 1.6 4 3 9 3s9-1.4 9-3V9" fill="none" stroke="#607d8b" stroke-width="2"/>`),
+  "bpmn-data-object": I(DATA_ICON["bpmn-data-object"]),
+  "bpmn-data-store": I(DATA_ICON["bpmn-data-store"]),
   "bpmn-annotation": I(`<path d="M11 6H26V26H11" fill="none" stroke="#90a4ae" stroke-width="2"/><path d="M11 6V26" stroke="#607d8b" stroke-width="2.5"/>`),
   "bpmn-lane": I(`<rect x="4" y="9" width="24" height="14" fill="none" stroke="#546e7a" stroke-width="2"/><rect x="4" y="9" width="6" height="14" fill="#eceff1" stroke="#546e7a" stroke-width="2"/>`),
 };

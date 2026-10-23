@@ -885,7 +885,12 @@
    external .bp-elabel below, so arrows on the bottom port never cross text. */
 .lk-root .bp-dataobj, .lk-root .bp-datastore { width: 100%; height: 100%; position: relative; color: var(--pg-text); box-sizing: border-box; }
 .lk-root .bp-data-shape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.lk-root .bp-data-shape path, .lk-root .bp-data-shape ellipse { fill: var(--pg-surface); stroke: var(--pg-border-strong); stroke-width: 1.6px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+/* Same drawing as the palette icon (DATA_ICON); theme tokens instead of its colours:
+   outline = task border, inner marks (arrow / bars) = muted text like task icons. */
+.lk-root .bp-data-shape [stroke] { stroke: var(--pg-border-strong); stroke-width: 1.6px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.lk-root .bp-data-shape [fill="#fff"] { fill: var(--pg-surface); }
+.lk-root .bp-data-shape [stroke-width="1.3"], .lk-root .bp-data-shape [stroke-width="1.4"] { stroke: var(--pg-text-muted); stroke-width: 1.2px; }
+.lk-root .bp-data-shape [fill="#607d8b"] { fill: var(--pg-text-muted); }
 .lk-root .bp-dataobj.label-top .bp-elabel, .lk-root .bp-datastore.label-top .bp-elabel { top: auto; bottom: calc(100% + 6px); }
 .lk-root .bp-anno { width: 100%; height: 100%; box-sizing: border-box; border-left: 2px solid var(--pg-border-strong); padding: 6px 9px; font-size: 9px; color: var(--pg-text); display: grid; align-items: center; }
 .lk-root .bp-frame.bp-sub { position: relative; width: 100%; height: 100%; box-sizing: border-box; border: 1.6px solid var(--pg-border-strong); border-radius: 9px; background: color-mix(in srgb, var(--pg-accent) 4%, var(--pg-surface)); box-shadow: var(--sh-sm); }
@@ -907,12 +912,6 @@
 /* Đợt A — Activity markers row (icons stacked at the bottom of a task/sub-process) */
 .lk-root .bp-markers { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: none; }
 .lk-root .bp-markers .bp-mk-ic svg { width: 12px; height: 12px; color: var(--pg-text-muted); display: block; }
-/* Đợt B — Data artifact variants (Collection / Input / Output overlay marks) */
-.lk-root .bp-dataobj.is-collection .bp-coll-bars { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); width: 14px; height: 8px; background:
-  linear-gradient(to right, currentColor 0 2px, transparent 2px 6px, currentColor 6px 8px, transparent 8px 12px, currentColor 12px 14px); color: var(--pg-text-muted); }
-.lk-root .bp-dataobj.is-input .bp-data-arr, .lk-root .bp-dataobj.is-output .bp-data-arr { position: absolute; top: 4px; left: 6px; width: 11px; height: 8px;
-  background: currentColor; color: var(--pg-text-muted); clip-path: polygon(0% 30%, 60% 30%, 60% 0%, 100% 50%, 60% 100%, 60% 70%, 0% 70%); }
-.lk-root .bp-dataobj.is-input .bp-data-arr { background: transparent; border: 1.2px solid var(--pg-text-muted); clip-path: none; }
 .lk-root .bp-dataobj { position: relative; }
 /* Đợt B — Group (dashed-rounded container, no fill) */
 .lk-root .bp-group { width: 100%; height: 100%; box-sizing: border-box; border: 1.6px dashed var(--pg-border-strong); border-radius: 12px; background: transparent; position: relative; }

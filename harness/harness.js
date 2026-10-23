@@ -70144,15 +70144,15 @@
       case "bpmn-call-activity":
         return `<div class="bp-task is-call">${nl(L3) || "Call activity"}${renderMarkers(extra?.markers)}</div>`;
       case "bpmn-data-object":
-        return bpData("", DATA_PAGE, L3, extra);
+        return bpData("", dataShape(kind, "9 5 13 22"), L3, extra);
       case "bpmn-data-collection":
-        return bpData(" is-collection", DATA_PAGE, L3, extra, `<span class="bp-coll-bars"></span>`);
+        return bpData(" is-collection", dataShape(kind, "9 5 13 22"), L3, extra);
       case "bpmn-data-input":
-        return bpData(" is-input", DATA_PAGE, L3 || "Input", extra, `<span class="bp-data-arr"></span>`);
+        return bpData(" is-input", dataShape(kind, "9 5 13 22"), L3 || "Input", extra);
       case "bpmn-data-output":
-        return bpData(" is-output", DATA_PAGE, L3 || "Output", extra, `<span class="bp-data-arr"></span>`);
+        return bpData(" is-output", dataShape(kind, "9 5 13 22"), L3 || "Output", extra);
       case "bpmn-data-store":
-        return bpData("", DATA_CYLINDER, L3, extra, "", "bp-datastore");
+        return bpData("", dataShape(kind, "7 6 18 20"), L3, extra, "bp-datastore");
       case "bpmn-annotation":
         return `<div class="bp-anno">${L3 || "Annotation"}</div>`;
       case "bpmn-group":
@@ -70188,11 +70188,21 @@
     const interrupt = extra?.interrupting === false ? " is-non-interrupting" : "";
     return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
   }
-  var DATA_PAGE = `<svg class="bp-data-shape" viewBox="0 0 36 50" preserveAspectRatio="none"><path d="M1 1h24l10 10v38H1z"/><path d="M25 1v10h10"/></svg>`;
-  var DATA_CYLINDER = `<svg class="bp-data-shape" viewBox="0 0 50 50" preserveAspectRatio="none"><path d="M1 7v36c0 3.3 10.7 6 24 6s24-2.7 24-6V7"/><ellipse cx="25" cy="7" rx="24" ry="6"/><path d="M1 12c0 3.3 10.7 6 24 6s24-2.7 24-6"/></svg>`;
-  function bpData(mod3, shape, label, extra, deco = "", cls = "bp-dataobj") {
+  var PAGE = `<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/>`;
+  var FOLD = `<path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/>`;
+  var ARROW = `<path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z"`;
+  var DATA_ICON = {
+    "bpmn-data-object": PAGE + FOLD,
+    "bpmn-data-collection": PAGE + FOLD + `<path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`,
+    "bpmn-data-input": PAGE + `${ARROW} fill="none" stroke="#607d8b" stroke-width="1.3"/>`,
+    "bpmn-data-output": PAGE + `${ARROW} fill="#607d8b"/>`,
+    // Body first, filled, so the lid sits on top of it.
+    "bpmn-data-store": `<path d="M7 9v14c0 1.6 4 3 9 3s9-1.4 9-3V9" fill="#fff" stroke="#607d8b" stroke-width="2"/><ellipse cx="16" cy="9" rx="9" ry="3" fill="#fff" stroke="#607d8b" stroke-width="2"/>`
+  };
+  var dataShape = (shape, viewBox) => `<svg class="bp-data-shape" viewBox="${viewBox}" preserveAspectRatio="none">${DATA_ICON[shape]}</svg>`;
+  function bpData(mod3, shape, label, extra, cls = "bp-dataobj") {
     const lbl = label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : "";
-    return `<div class="${cls}${mod3}">${shape}${deco}${lbl}</div>`;
+    return `<div class="${cls}${mod3}">${shape}${lbl}</div>`;
   }
   function bpTask(label, iconKey, extra) {
     const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
@@ -70471,13 +70481,13 @@
     "bpmn-adhoc-subprocess": I(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="2"/><path d="M11 18 q1.5 -2.5 3 0 t3 0 t3 0" fill="none" stroke="#1565c0" stroke-width="1.4"/>`),
     "bpmn-call-activity": I(`<rect x="4" y="10" width="24" height="12" rx="3" fill="#fff" stroke="#1565c0" stroke-width="3"/>`),
     // Đợt B — Data artifacts
-    "bpmn-data-collection": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/><path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`),
-    "bpmn-data-input": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="none" stroke="#607d8b" stroke-width="1.3"/>`),
-    "bpmn-data-output": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="#607d8b"/>`),
+    "bpmn-data-collection": I(DATA_ICON["bpmn-data-collection"]),
+    "bpmn-data-input": I(DATA_ICON["bpmn-data-input"]),
+    "bpmn-data-output": I(DATA_ICON["bpmn-data-output"]),
     // Đợt B — Group
     "bpmn-group": I(`<rect x="4" y="8" width="24" height="16" rx="4" fill="none" stroke="#5e7a99" stroke-width="1.8" stroke-dasharray="4 2"/>`),
-    "bpmn-data-object": I(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/>`),
-    "bpmn-data-store": I(`<ellipse cx="16" cy="9" rx="9" ry="3" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M7 9v14c0 1.6 4 3 9 3s9-1.4 9-3V9" fill="none" stroke="#607d8b" stroke-width="2"/>`),
+    "bpmn-data-object": I(DATA_ICON["bpmn-data-object"]),
+    "bpmn-data-store": I(DATA_ICON["bpmn-data-store"]),
     "bpmn-annotation": I(`<path d="M11 6H26V26H11" fill="none" stroke="#90a4ae" stroke-width="2"/><path d="M11 6V26" stroke="#607d8b" stroke-width="2.5"/>`),
     "bpmn-lane": I(`<rect x="4" y="9" width="24" height="14" fill="none" stroke="#546e7a" stroke-width="2"/><rect x="4" y="9" width="6" height="14" fill="#eceff1" stroke="#546e7a" stroke-width="2"/>`)
   };
@@ -84498,9 +84508,11 @@
   }
   function shapeToBpmnType(shape, attrs) {
     if (shape === "bpmn-event-intermediate" && attrs?.attachedTo) return "bpmn:BoundaryEvent";
+    if (attrs?.markers?.includes("subprocess") && (SHAPE_TO_BPMN[shape] ?? "task") === "task") return "bpmn:SubProcess";
     const tag = SHAPE_TO_BPMN[shape] ?? "task";
     return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
   }
+  var isCollapsed = (n2) => n2.attrs?.collapsed === true;
   function isBlackBoxPool(pool) {
     return pool.attrs?.blackBox === true;
   }
@@ -84862,13 +84874,23 @@
         containerOf.set(n2.id, targetContainer);
         di = m4.create("bpmndi:BPMNShape", {
           bpmnElement: fe3,
-          bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height })
+          bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height }),
+          ...isCollapsed(n2) ? { isExpanded: false } : {}
         });
         (mainPlane.planeElement ??= []).push(di);
         diShape.set(n2.id, di);
       }
-      const existing = flowById.get(n2.id);
+      let existing = flowById.get(n2.id);
       const curContainer = containerOf.get(n2.id);
+      if (existing?.$type === "bpmn:Task" && curContainer && shapeToBpmnType(n2.shape, n2.attrs) === "bpmn:SubProcess") {
+        const { $type: _t3, ...props } = Object.fromEntries(Object.entries(existing));
+        const sub = m4.create("bpmn:SubProcess", props);
+        const old = existing;
+        curContainer.flowElements = (curContainer.flowElements ?? []).map((fe3) => fe3 === old ? sub : fe3);
+        if (di) di.bpmnElement = sub;
+        flowById.set(n2.id, sub);
+        existing = sub;
+      }
       if (existing && curContainer && curContainer !== targetContainer) {
         curContainer.flowElements = (curContainer.flowElements ?? []).filter((fe3) => fe3.id !== n2.id);
         (targetContainer.flowElements ??= []).push(existing);
@@ -84959,7 +84981,8 @@
           console.warn(`[omniboard:bpmn] dropped ${kind} flow "${e2.id}": endpoint has no BPMN element (${e2.source} \u2192 ${e2.target})`);
           continue;
         }
-        sf = m4.create(bpmnTypeForEdgeKind(kind), {
+        const orphanMessage = kind === "message" && !collaboration;
+        sf = m4.create(orphanMessage ? "bpmn:SequenceFlow" : bpmnTypeForEdgeKind(kind), {
           id: e2.id,
           // bpmn:Association is an artifact with no `name` in the BPMN schema.
           ...kind === "association" ? {} : { name: e2.label ?? "" },
@@ -84968,7 +84991,6 @@
         });
         if (kind === "message") {
           if (!collaboration) {
-            sf.$type = "bpmn:SequenceFlow";
             (process2.flowElements ??= []).push(sf);
           } else {
             (collaboration.messageFlows ??= []).push(sf);
@@ -85441,7 +85463,8 @@
         id: n2.id + "_di",
         bpmnElement: feById.get(n2.id),
         bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height }),
-        ...nLabel ? { label: m4.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {}
+        ...nLabel ? { label: m4.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {},
+        ...isCollapsed(n2) ? { isExpanded: false } : {}
       });
       plane.planeElement.push(di);
       diShape.set(n2.id, di);

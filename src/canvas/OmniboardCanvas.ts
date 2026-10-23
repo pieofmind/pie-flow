@@ -18,6 +18,8 @@ import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayo
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import { SUBPROCESS_KINDS, SUB_CLOSED, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
+import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
+import { findMatches, stepIndex } from "./search";
 import { ATTACH_DISTANCE, distanceToBorder, eventLabelSide, followHost, hostSide, pickHost, snapToHostBorder, type Box } from "./boundaryLayout";
 import {
   alignLeft, alignCenterH, alignRight,
@@ -144,6 +146,7 @@ function ensureMindmapConnector(): void {
 const ACCENT = "#5E8FB9";
 const EDGE_STROKE = "#9c8b7e"; // warm muted brown-grey
 const CURSOR_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l7 16 2-6 6-2z"/></svg>`;
+const SPACE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 8 22 12 18 16"/><polyline points="6 8 2 12 6 16"/><line x1="2" x2="22" y1="12" y2="12"/></svg>`;
 const HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6.5a1.5 1.5 0 0 0-3 0M15 10.5V5a1.5 1.5 0 0 0-3 0v5M12 10V6.5a1.5 1.5 0 0 0-3 0V11M9 11V8a1.5 1.5 0 0 0-3 0v6a6 6 0 0 0 6 6h1.5a5 5 0 0 0 5-5v-3"/></svg>`;
 const ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 const EDGE_ATTRS = { line: { stroke: EDGE_STROKE, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
@@ -379,7 +382,8 @@ export class OmniboardCanvas {
   private minimapSvg: SVGSVGElement | null = null;
   private minimapVp: HTMLElement | null = null;
   private mm = { scale: 1, ox: 0, oy: 0, bx: 0, by: 0 }; // minimap↔graph mapping
-  private tool: "select" | "pan" = "select";
+  private tool: "select" | "pan" | "space" = "select";
+  private railSpace: HTMLElement | null = null;
   private railSelect: HTMLElement | null = null;
   private railHand: HTMLElement | null = null;
   private panStart: { px: number; py: number; tx: number; ty: number; id: number } | null = null;
@@ -592,6 +596,8 @@ export class OmniboardCanvas {
     // Tool shortcuts (ignored while typing in an inline editor — keyboard plugin guards inputs).
     graph.bindKey("v", () => { this.setTool("select"); });
     graph.bindKey("h", () => { this.setTool("pan"); });
+    graph.bindKey("s", () => { this.setTool(this.tool === "space" ? "select" : "space"); });
+    graph.bindKey(["ctrl+f", "cmd+f"], () => { this.openSearch(); return false; });
 
     // Mindmap quick-add via keyboard — only when a mindmap node is selected.
     graph.bindKey("tab", () => {
@@ -1680,6 +1686,15 @@ export class OmniboardCanvas {
     rail.appendChild(hand);
     this.railHand = hand;
 
+    // Space tool — drag across the board to open or close room (bpmn-js style).
+    const space = el("div", "lk-rail-item");
+    space.innerHTML = SPACE_ICON;
+    space.title = "Giãn / thu khoảng cách (S)";
+    space.onclick = () => this.setTool(this.tool === "space" ? "select" : "space");
+    space.onmouseenter = () => this.scheduleFlyoutClose();
+    rail.appendChild(space);
+    this.railSpace = space;
+
     // Arrow / message tool (directly below pan): hover (desktop) or tap (mobile) →
     // pick an arrow type. Generic arrows are orthogonal; sequence lifelines still
     // switch to a horizontal sequence connector.
@@ -1824,19 +1839,21 @@ export class OmniboardCanvas {
    * board is draggable anywhere without a modifier key (essential on touch, where
    * there is no Space key) and node interaction is suspended so drags always pan.
    */
-  private setTool(tool: "select" | "pan"): void {
+  private setTool(tool: "select" | "pan" | "space"): void {
+    this.cancelSpaceDrag();
     this.tool = tool;
     const pan = tool === "pan";
+    const idle = tool !== "select";   // pan and space: nodes are not draggable, no rubberband
     // Suspend node interaction so a drag pans rather than moving a node. On mobile,
     // X6's native node-drag stays OFF even in select mode — we move nodes ourselves
     // via Pointer Events, and leaving X6's mouse-based drag on let it grab the
     // selected node off iOS-synthesised mouse events (the "node jumps to an empty
     // tap" bug). Arrowhead/magnet interaction stays on so edges still connect.
     (this.graph.options as { interacting?: unknown }).interacting =
-      pan ? false : (this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true });
+      idle ? false : (this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true });
     // Disable the rubberband (blue selection box) while panning.
     const g = this.graph as unknown as { enableRubberband?: () => void; disableRubberband?: () => void };
-    if (pan) g.disableRubberband?.(); else g.enableRubberband?.();
+    if (idle) g.disableRubberband?.(); else g.enableRubberband?.();
     // [Review][Patch P11] AC#7 — preserve selection across tool switches
     // (pan/zoom → select). Previously `cleanSelection()` ran on every switch
     // to pan, wiping the user's multi-selection. Selection indicators stay
@@ -1857,7 +1874,18 @@ export class OmniboardCanvas {
     m.removeEventListener("pointermove", this.onSelMove);
     m.removeEventListener("pointerup", this.onSelUp);
     m.removeEventListener("pointercancel", this.onSelUp);
-    if (pan) {
+    m.removeEventListener("pointerdown", this.onSpaceDown);
+    m.removeEventListener("pointermove", this.onSpaceMove);
+    m.removeEventListener("pointerup", this.onSpaceUp);
+    m.removeEventListener("pointercancel", this.onSpaceUp);
+    if (tool === "space") {
+      m.addEventListener("pointerdown", this.onSpaceDown);
+      m.addEventListener("pointermove", this.onSpaceMove);
+      m.addEventListener("pointerup", this.onSpaceUp);
+      m.addEventListener("pointercancel", this.onSpaceUp);
+      m.style.cursor = "col-resize";
+      this.setPending(null);
+    } else if (pan) {
       m.addEventListener("pointerdown", this.onPanDown);
       m.addEventListener("pointermove", this.onPanMove);
       m.addEventListener("pointerup", this.onPanUp);
@@ -1872,8 +1900,9 @@ export class OmniboardCanvas {
       m.style.cursor = "";
       this.panStart = null;
     }
-    this.railSelect?.classList.toggle("is-active", !pan);
+    this.railSelect?.classList.toggle("is-active", tool === "select");
     this.railHand?.classList.toggle("is-active", pan);
+    this.railSpace?.classList.toggle("is-active", tool === "space");
   }
 
   /**
@@ -1917,7 +1946,7 @@ export class OmniboardCanvas {
   /** Arm a shape for tap-to-place (mobile-friendly add); shows a hint banner. */
   private setPending(item: PaletteItem | null): void {
     this.pendingShape = item;
-    this.graphMount.style.cursor = item ? "copy" : (this.tool === "pan" ? "grab" : "");
+    this.graphMount.style.cursor = item ? "copy" : (this.tool === "pan" ? "grab" : this.tool === "space" ? "col-resize" : "");
     if (item && !this.pendingHint) {
       this.pendingHint = el("div", "lk-place-hint", "Chạm vào canvas để đặt hình");
       this.root.appendChild(this.pendingHint);
@@ -2046,6 +2075,127 @@ export class OmniboardCanvas {
     this.panStart = null;
     if (this.tool === "pan") this.graphMount.style.cursor = "grab";
   };
+
+  // ── Space tool ───────────────────────────────────────────────────────────
+  private space: {
+    id: number; sx: number; sy: number; axis: Axis | null; line: number; last: number;
+    move: Node[]; resize: Array<{ node: Node; w: number; h: number }>; edges: Array<{ edge: Edge; verts: Array<{ x: number; y: number }> }>;
+    guide: HTMLElement; boxes: SpaceBox[]; plan: ReturnType<typeof planSpace> | null;
+  } | null = null;
+
+  private onSpaceDown = (e: PointerEvent): void => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    this.closeFlyoutNow(); this.hidePopup();
+    const p = this.graph.clientToLocal(e.clientX, e.clientY);
+    const guide = el("div", "lk-space-guide");
+    guide.style.display = "none";
+    this.graphMount.appendChild(guide);
+    this.space = { id: e.pointerId, sx: p.x, sy: p.y, axis: null, line: 0, last: 0, move: [], resize: [], edges: [], guide, boxes: [], plan: null };
+    try { this.graphMount.setPointerCapture(e.pointerId); } catch { /* capture unsupported */ }
+    e.preventDefault();
+  };
+
+  private onSpaceMove = (e: PointerEvent): void => {
+    const s = this.space; if (!s || e.pointerId !== s.id) return;
+    const p = this.graph.clientToLocal(e.clientX, e.clientY);
+    if (!s.axis) {
+      if (Math.hypot(p.x - s.sx, p.y - s.sy) < 6 / (this.graph.scale().sx || 1)) return;
+      this.beginSpace(s, Math.abs(p.x - s.sx) >= Math.abs(p.y - s.sy) ? "x" : "y");
+    }
+    const axis = s.axis!;
+    const want = (axis === "x" ? p.x - s.sx : p.y - s.sy);
+    const delta = Math.round(clampDelta(want, s.boxes, s.plan!.resize, axis));
+    const step = delta - s.last;
+    if (step === 0) { e.preventDefault(); return; }
+    s.last = delta;
+    for (const n of s.move) n.translate(axis === "x" ? step : 0, axis === "y" ? step : 0);
+    for (const r of s.resize) r.node.resize(r.w + (axis === "x" ? delta : 0), r.h + (axis === "y" ? delta : 0));
+    for (const it of s.edges) it.edge.setVertices(shiftVertices(it.verts, axis, s.line, delta));
+    e.preventDefault();
+  };
+
+  /** Fix the axis and line, snapshot what the drag acts on, open one undo step. */
+  private beginSpace(s: NonNullable<OmniboardCanvas["space"]>, axis: Axis): void {
+    s.axis = axis;
+    s.line = axis === "x" ? s.sx : s.sy;
+    const nodes = this.graph.getNodes().filter((n) => n.isVisible());
+    s.boxes = nodes.map((n) => {
+      const b = n.getBBox();
+      return { id: n.id, x: b.x, y: b.y, w: b.width, h: b.height, frame: FRAME_KINDS.has(this.nodeKind(n)), parentId: n.getParent()?.id };
+    });
+    s.plan = planSpace(s.boxes, axis, s.line);
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    s.move = s.plan.move.map((id) => byId.get(id)!);
+    s.resize = s.plan.resize.map((id) => { const n = byId.get(id)!; const z = n.getSize(); return { node: n, w: z.width, h: z.height }; });
+    s.edges = this.graph.getEdges().filter((e) => e.getVertices().length).map((edge) => ({ edge, verts: edge.getVertices().map((v) => ({ x: v.x, y: v.y })) }));
+    // the guide line sits on the start point, across the whole board
+    s.guide.style.display = "block";
+    const c = this.graph.localToClient(s.sx, s.sy);
+    const r = this.graphMount.getBoundingClientRect();
+    s.guide.style.cssText = axis === "x"
+      ? `display:block;left:${c.x - r.left}px;top:0;bottom:0;width:0;border-left:1.5px dashed var(--pg-accent)`
+      : `display:block;top:${c.y - r.top}px;left:0;right:0;height:0;border-top:1.5px dashed var(--pg-accent)`;
+    this.graph.cleanSelection();
+    this.graph.startBatch("space");
+  }
+
+  private onSpaceUp = (e: PointerEvent): void => {
+    const s = this.space; if (!s || e.pointerId !== s.id) return;
+    try { this.graphMount.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+    this.endSpace(true);
+  };
+  private cancelSpaceDrag(): void { if (this.space) this.endSpace(false); }
+  private endSpace(commit: boolean): void {
+    const s = this.space; if (!s) return;
+    this.space = null;
+    s.guide.remove();
+    if (!s.axis) return;
+    this.graph.stopBatch("space");
+    if (!commit) { if (s.last !== 0) this.graph.undo(); return; }
+    for (const r of s.resize) this.rerender(r.node);
+    if (s.last !== 0) this.onChange();
+  }
+
+  // ── Find on the board (Ctrl+F) ───────────────────────────────────────────
+  private searchBox: HTMLElement | null = null;
+  openSearch(): void {
+    if (this.searchBox) { (this.searchBox.querySelector("input") as HTMLInputElement).select(); return; }
+    const box = el("div", "lk-search");
+    const input = el("input", "lk-pinput") as HTMLInputElement;
+    input.placeholder = "Tìm phần tử…";
+    const count = el("span", "lk-search-count", "");
+    const prev = el("button", "lk-cb-btn", "↑"); prev.title = "Kết quả trước (Shift+Enter)";
+    const next = el("button", "lk-cb-btn", "↓"); next.title = "Kết quả sau (Enter)";
+    const close = el("button", "lk-cb-btn", "✕"); close.title = "Đóng (Esc)";
+    box.append(input, count, prev, next, close);
+    this.root.appendChild(box);
+    this.searchBox = box;
+    let matches: Node[] = [];
+    let cur = -1;
+    const show = () => {
+      count.textContent = input.value.trim() ? (matches.length ? `${cur + 1}/${matches.length}` : "0") : "";
+      const n = matches[cur];
+      if (!n) return;
+      this.graph.resetSelection([n]);
+      this.graph.centerCell(n);
+    };
+    const search = () => {
+      const items = this.graph.getNodes().filter((n) => n.isVisible()).map((n) => ({ id: n.id, label: this.nodeLabel(n), x: n.getPosition().x, y: n.getPosition().y, node: n }));
+      matches = findMatches(items, input.value).map((m) => m.node);
+      cur = matches.length ? 0 : -1;
+      show();
+    };
+    const step = (dir: 1 | -1) => { cur = stepIndex(cur, matches.length, dir); show(); };
+    const closeBox = () => { box.remove(); this.searchBox = null; };
+    input.oninput = search;
+    input.onkeydown = (ev) => {
+      ev.stopPropagation();
+      if (ev.key === "Enter") { ev.preventDefault(); step(ev.shiftKey ? -1 : 1); }
+      else if (ev.key === "Escape") { ev.preventDefault(); closeBox(); }
+    };
+    prev.onclick = () => step(-1); next.onclick = () => step(1); close.onclick = closeBox;
+    input.focus();
+  }
 
   private openFlyout(cat: ShapeCategory, anchor: HTMLElement) {
     this.cancelFlyoutClose();
@@ -5546,6 +5696,8 @@ export class OmniboardCanvas {
     this.commitLabel();
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
+    this.cancelSpaceDrag();
+    this.searchBox?.remove(); this.searchBox = null;
     if (this.wheelPan) this.graphMount.removeEventListener("wheel", this.wheelPan);
     // Remove document-scoped listeners so they don't pile up (and keep firing
     // against a disposed graph) every time a board is re-opened.

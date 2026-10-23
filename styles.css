@@ -1818,3 +1818,9 @@ body.is-mobile .diagrams-card-header {
 .lk-root .lk-crumb:hover { background: var(--pg-hover); }
 .lk-root .lk-crumb.is-current { color: var(--pg-text); font-weight: 600; cursor: default; }
 .lk-root .lk-crumb-sep { color: var(--pg-text-muted); }
+
+/* Space tool guide line and find box */
+.lk-root .lk-space-guide { position: absolute; z-index: 15; pointer-events: none; }
+.lk-root .lk-search { position: absolute; top: 12px; right: 64px; z-index: 25; display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: var(--pg-surface); border: 1px solid var(--pg-border); border-radius: 8px; box-shadow: var(--sh-sm); }
+.lk-root .lk-search input { width: 180px; }
+.lk-root .lk-search-count { min-width: 32px; text-align: center; font-size: 12px; color: var(--pg-text-muted); }

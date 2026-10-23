@@ -11,7 +11,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
 </head><body>
 <div id="host" class="da-board-view"></div>
 <div id="log"></div>
-<script src="../harness/harness.js?v=interaction11"></script>
+<script src="../harness/harness.js?v=nhom3b"></script>
 <script>
 // Multi-select drag moves each node once per tick; ports are easy to grab.
 // Serve the repo root (python3 -m http.server) and open tests/e2e-canvas-interaction.html.
@@ -525,6 +525,79 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(view() === outer, 'back to Ngoài: ' + view() + ' expected ' + outer);
     document.querySelector('.lk-crumbs .lk-crumb').click(); await tick(150);
     assert(view() === top, 'back to Process: ' + view() + ' expected ' + top);
+  });
+
+  // ── Space tool and find ──
+  const mount = () => document.querySelector('.lk-graph-mount');
+  const ptr = (type, local, id = 1) => {
+    const c = g().localToClient(local.x, local.y);
+    mount().dispatchEvent(new PointerEvent(type, { clientX: c.x, clientY: c.y, pointerId: id, button: 0, bubbles: true, cancelable: true }));
+  };
+  const drag = async (from, to) => { ptr('pointerdown', from); await tick(30); ptr('pointermove', { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }); ptr('pointermove', to); await tick(30); ptr('pointerup', to); await tick(60); };
+  const pos = (id) => { const p = cell(id).getPosition(); return [p.x, p.y]; };
+
+  await run('space tool: dragging right opens room — shapes past the line move, a crossed frame grows, bends follow', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'sa', shape: 'bpmn-task', x: 100, y: 100, width: 100, height: 60, label: 'A' },
+      { id: 'sb', shape: 'bpmn-task', x: 400, y: 100, width: 100, height: 60, label: 'B' },
+      { id: 'spool', shape: 'bpmn-pool', x: 50, y: 40, width: 600, height: 200, label: 'P' },
+    ], edges: [{ id: 'sab', source: 'sa', target: 'sb', vertices: [{ x: 300, y: 250 }, { x: 450, y: 250 }] }] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    window.__ob.setTool('space');
+    await drag({ x: 300, y: 300 }, { x: 380, y: 305 });   // mostly horizontal: +80 on x
+    assert(pos('sa')[0] === 100, 'A moved: ' + pos('sa'));
+    assert(pos('sb')[0] === 480 && pos('sb')[1] === 100, 'B at ' + pos('sb'));
+    assert(cell('spool').getSize().width === 680, 'pool width ' + cell('spool').getSize().width);
+    assert(cell('sab').getVertices().map((v) => v.x).join() === '380,530', 'bends ' + JSON.stringify(cell('sab').getVertices()));
+    g().undo(); await tick(100);
+    assert(pos('sb')[0] === 400 && cell('spool').getSize().width === 600, 'one undo did not restore: ' + pos('sb') + ' ' + cell('spool').getSize().width);
+    window.__ob.setTool('select');
+  });
+
+  await run('space tool: a mostly vertical drag works on y, and a plain click changes nothing', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'va', shape: 'bpmn-task', x: 100, y: 50, width: 100, height: 60, label: 'A' },
+      { id: 'vb', shape: 'bpmn-task', x: 100, y: 300, width: 100, height: 60, label: 'B' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    window.__ob.setTool('space');
+    await drag({ x: 400, y: 200 }, { x: 405, y: 260 });
+    assert(pos('va')[1] === 50 && pos('vb')[1] === 360, 'y: ' + pos('va') + ' ' + pos('vb'));
+    await drag({ x: 400, y: 200 }, { x: 400, y: 200 });
+    assert(pos('vb')[1] === 360, 'click moved something');
+    window.__ob.setTool('select');
+  });
+
+  await run('find: Ctrl+F opens the box; typing selects the first match, Enter goes to the next, Esc closes', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'fa', shape: 'bpmn-task', x: 100, y: 100, width: 100, height: 60, label: 'Gọi khách hàng' },
+      { id: 'fb', shape: 'bpmn-task', x: 400, y: 100, width: 100, height: 60, label: 'Báo giá' },
+      { id: 'fc', shape: 'bpmn-task', x: 100, y: 300, width: 100, height: 60, label: 'Khách xác nhận' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    g().container.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', keyCode: 70, ctrlKey: true, bubbles: true, cancelable: true }));
+    await tick(100);
+    const box = document.querySelector('.lk-search');
+    assert(box, 'no search box after Ctrl+F');
+    const inp = box.querySelector('input');
+    inp.value = 'khach';
+    inp.dispatchEvent(new Event('input'));
+    await tick(100);
+    const sel = () => g().getSelectedCells().map((c) => c.id).join();
+    assert(sel() === 'fa', 'first match: ' + sel());
+    assert(box.textContent.includes('1/2'), 'counter: ' + box.textContent);
+    inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await tick(100);
+    assert(sel() === 'fc', 'next match: ' + sel());
+    inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true }));
+    await tick(100);
+    assert(sel() === 'fa', 'previous match: ' + sel());
+    inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await tick(100);
+    assert(!document.querySelector('.lk-search'), 'box still open after Esc');
   });
 
   const failed = results.filter(r => !r.ok).length;

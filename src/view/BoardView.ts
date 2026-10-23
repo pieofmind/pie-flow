@@ -16,6 +16,7 @@ import { BoardEditor, type BoardEditorProps } from "../ui/BoardEditor";
 import { readObsidianTheme } from "../core/theme";
 import type { DiagramAdapter } from "../core/adapter";
 import { buildBoardTopbar } from "../ui/boardTopbar";
+import { askExternalChange } from "./externalChange";
 
 registerAllShapes();
 
@@ -150,33 +151,6 @@ async function saveToLocal(
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   return suggestedName;
-}
-
-/** "File changed from outside while you were editing" — reload or keep mine. */
-class ExternalChangeModal extends Modal {
-  private answered = false;
-  constructor(view: BoardView, private readonly done: (c: "reload" | "keep") => void) {
-    super(view.app);
-  }
-  onOpen(): void {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("h3", { text: "File đã đổi bên ngoài" });
-    contentEl.createEl("p", { text: "File board này vừa bị sửa ngoài tab (script / plugin khác) trong lúc bạn đang có thay đổi chưa lưu." });
-    const actions = contentEl.createDiv({ cls: "lk-prow2" });
-    const btn = (text: string, choice: "reload" | "keep", cta = false) => {
-      const b = actions.createEl("button", { text });
-      if (cta) b.addClass("mod-cta");
-      b.onclick = () => { this.answered = true; this.done(choice); this.close(); };
-    };
-    btn("Nạp lại từ file", "reload", true);
-    btn("Giữ bản đang sửa (ghi đè file)", "keep");
-  }
-  onClose(): void {
-    this.contentEl.empty();
-    // Closed without choosing (Esc) → the safe option: take the file's version.
-    if (!this.answered) this.done("reload");
-  }
 }
 
 export const BOARD_VIEW_TYPE = "omniboard-board";
@@ -402,7 +376,7 @@ export class BoardView extends TextFileView {
 
   /** Ask whether to reload the file changed from outside or keep this tab's edits. */
   protected askExternalConflict(): Promise<"reload" | "keep"> {
-    return new Promise((resolve) => new ExternalChangeModal(this, resolve).open());
+    return askExternalChange(this.app);
   }
 
   getCanvas(): OmniboardCanvas | null {

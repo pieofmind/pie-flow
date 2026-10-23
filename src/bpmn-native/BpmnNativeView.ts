@@ -31,6 +31,7 @@ import { mergeBpmnImport, collectIds } from "../view/mergeBpmnCanvas";
 import type { CanvasModel } from "../canvas/types";
 import type { SourceMeta } from "../io/types";
 import { BOARD_VIEW_TYPE } from "../view/BoardView";
+import { askExternalChange } from "../view/externalChange";
 // Inline at build time via esbuild `loader: { ".css": "text" }`. Runtime
 // disk read fails on mobile (sync timing + sandboxed adapter).
 import BPMN_NATIVE_CSS from "./bpmn-native.css";
@@ -72,6 +73,15 @@ export class BpmnNativeView extends TextFileView {
   private wrapperCanvas: CanvasModel = { nodes: [], edges: [] };
   private wrapperBpmnIds: ReadonlySet<string> = new Set();
   private wrapperSourceMeta: SourceMeta | null = null;
+  /**
+   * Guard against writing over a file changed from outside (Board tab, a
+   * regenerating script): the text we know is on disk, set when we load it
+   * and right before each own write. Obsidian's TextFileView ignores
+   * `modify` while a save is in flight, so we check the disk ourselves.
+   */
+  private knownDisk: string | null = null;
+  /** Set while asking the user about a conflict; no save may write meanwhile. */
+  private conflict: Promise<void> | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: DiagramsPlugin) {
     super(leaf);
@@ -124,6 +134,7 @@ export class BpmnNativeView extends TextFileView {
     this.resetPendingSave();
     this.controller.dispose();
     this.data = data;
+    this.knownDisk = data;
     this.dirty = false;
 
     // Wrapper detection: an Omniboard markdown wrapper rather than a raw `.bpmn`.
@@ -436,6 +447,7 @@ export class BpmnNativeView extends TextFileView {
         console.warn("[BpmnNative] File changed during persistXml; aborting save");
         return;
       }
+      if (!(await this.safeToWrite())) return;
       await super.save();
       this.dirty = false;
     } catch (err: unknown) {
@@ -454,8 +466,61 @@ export class BpmnNativeView extends TextFileView {
       console.warn("[BpmnNative] File changed during save(); aborting");
       return;
     }
+    if (!(await this.safeToWrite())) return;
     await super.save(clear);
     this.dirty = false;
+  }
+
+  /** Last check before writing `this.data`: the disk must still hold what we
+   *  loaded / last wrote. If not, load it or ask instead of writing. */
+  private async safeToWrite(): Promise<boolean> {
+    if (this.conflict) return false;
+    if (!(await this.checkDisk())) return false;
+    this.knownDisk = this.data;   // our own write's `modify` must not look external
+    return true;
+  }
+
+  /** Obsidian calls this when the file changes on disk. Unlike the base
+   *  class we also look while a save is in flight. */
+  onModify(file: unknown): void {
+    if (file !== this.file) return;
+    void this.checkDisk();
+  }
+
+  /** True when the disk holds what we expect. Otherwise loads the outside
+   *  change (no unsaved modeler edits) or asks, and returns false. */
+  private async checkDisk(): Promise<boolean> {
+    if (!this.file) return true;
+    const disk = await this.app.vault.read(this.file);
+    if (disk === this.knownDisk) return true;
+    if (!this.dirty) await this.applyDisk(disk);
+    else await this.resolveConflict();
+    return false;
+  }
+
+  private async applyDisk(disk: string): Promise<void> {
+    (this as unknown as { lastSavedData: string | null }).lastSavedData = disk;
+    await this.setViewData(disk, false);
+  }
+
+  private resolveConflict(): Promise<void> {
+    this.conflict ??= (async () => {
+      try {
+        const choice = await this.askExternalConflict();
+        if (!this.file) return;
+        const disk = await this.app.vault.read(this.file);
+        if (choice === "reload") { this.dirty = false; await this.applyDisk(disk); return; }
+        // Keep mine: accept writing over what is on disk now.
+        this.knownDisk = disk;
+      } finally { this.conflict = null; }
+      void this.persistXml();
+    })();
+    return this.conflict;
+  }
+
+  /** Ask whether to reload the file changed from outside or keep the modeler's edits. */
+  protected askExternalConflict(): Promise<"reload" | "keep"> {
+    return askExternalChange(this.app);
   }
 
   /**

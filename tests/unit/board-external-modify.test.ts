@@ -9,91 +9,18 @@
  * (`onModify: this.saving || ... loadFileInternal`), so a change landing
  * during the tab's own save is never loaded, and the next save overwrites it.
  *
- * `FaithfulTextFileView` below ports the relevant part of Obsidian 1.14.5's
- * TextFileView (save / onModify / loadFileInternal / setData) so the race is
- * reproduced exactly; the vault is an in-memory fake.
+ * `_helpers/obsidian-faithful` ports the relevant part of Obsidian 1.14.5's
+ * TextFileView so the race is reproduced exactly; the vault is an in-memory fake.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { CanvasModel } from "../../src/canvas/types";
+import type { FakeVault } from "./_helpers/obsidian-faithful";
 
-vi.mock("obsidian", async () => {
-  const stub = await import("./_helpers/obsidian-stub");
-  class FaithfulTextFileView {
-    contentEl = document.createElement("div");
-    file: unknown = null;
-    app: unknown;
-    leaf: unknown;
-    data = "";
-    lastSavedData: string | null = null;
-    dirty = false;
-    saving = false;
-    saveAgain = false;
-    constructor(leaf: unknown) { this.leaf = leaf; }
-    getViewData(): string { return ""; }
-    setViewData(_d: string, _c: boolean): void {}
-    clear(): void {}
-    registerEvent(_e: unknown): void {}
-    // Obsidian debounces this (2 s); tests call save() themselves.
-    requestSave = (): void => { this.dirty = true; };
-    async save(clear?: boolean): Promise<void> {
-      this.dirty = false;
-      const file = this.file;
-      const vault = (this.app as { vault: FakeVault }).vault;
-      if (!file) return;
-      if (this.saving) { if (!clear) this.saveAgain = true; return; }
-      this.saveAgain = false;
-      const o = this.getViewData();
-      if (this.lastSavedData === o || this.lastSavedData === null) return;
-      const prev = this.lastSavedData;
-      this.data = o; this.lastSavedData = o; this.saving = true;
-      try { await vault.modify(file, o); }
-      catch (e) { this.lastSavedData = prev; throw e; }
-      finally { this.saving = false; if (this.saveAgain && !clear) void this.save(); }
-    }
-    onModify(file: unknown): void {
-      if (this.saving) return;
-      if (file === this.file) void this.loadFileInternal(file, false);
-    }
-    async loadFileInternal(file: unknown, clear: boolean): Promise<void> {
-      const n = await (this.app as { vault: FakeVault }).vault.read(file);
-      const i = this.lastSavedData;
-      this.lastSavedData = n;
-      if (!clear && i) {
-        if (i === n) return;
-        if (this.dirty && this.getViewData() === n) return;
-      }
-      this.setData(n, clear);
-    }
-    setData(e: string, t: boolean): void {
-      if (this.data !== e || t) { this.data = e; this.setViewData(e, t); }
-    }
-  }
-  class ItemView { contentEl = document.createElement("div"); constructor(public leaf: unknown) {} }
-  return { ...stub, TextFileView: FaithfulTextFileView, ItemView };
-});
+vi.mock("obsidian", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  ...(await import("./_helpers/obsidian-faithful")).faithfulOverrides(),
+}));
 vi.mock("../../src/canvas/OmniboardCanvas", () => ({ OmniboardCanvas: class {} }));
-
-/** In-memory vault. `modify` lands the text, fires `modify` (Obsidian does
- *  this before the write promise settles, while the view is still `saving`),
- *  then waits on `afterWrite` so a test can slip an external write in. */
-class FakeVault {
-  text = "";
-  writes: string[] = [];
-  view: { onModify(f: unknown): void } | null = null;
-  afterWrite: (() => Promise<void>) | null = null;
-  async read(_f: unknown): Promise<string> { return this.text; }
-  async modify(f: unknown, t: string): Promise<void> {
-    this.text = t; this.writes.push(t);
-    this.view?.onModify(f);
-    if (this.afterWrite) await this.afterWrite();
-  }
-  on(): object { return {}; }
-  /** Another tool rewrites the file. `silent` = no modify event reaches the view. */
-  external(f: unknown, t: string, silent = false): void {
-    this.text = t;
-    if (!silent) this.view?.onModify(f);
-  }
-}
 
 const POOLS = (n: number): CanvasModel => ({
   nodes: Array.from({ length: n }, (_, i) => ({
@@ -120,6 +47,7 @@ function fakeCanvas(view: { handleCanvasChange(): void }) {
 async function openBoard(initial: CanvasModel) {
   ({ serializeBoard, deserializeBoard } = await import("../../src/view/boardSerde"));
   const { BoardView } = await import("../../src/view/BoardView");
+  const { FakeVault } = await import("./_helpers/obsidian-faithful");
   const vault = new FakeVault();
   const file = { path: "Omniboards/x.omniboard.md", basename: "x" };
   vault.text = serializeBoard(initial, "", undefined, {});
@@ -127,7 +55,7 @@ async function openBoard(initial: CanvasModel) {
     InstanceType<typeof BoardView> & { file: unknown; app: unknown; loadFileInternal(f: unknown, c: boolean): Promise<void>; handleCanvasChange(): void; askExternalConflict(): Promise<"reload" | "keep"> };
   view.file = file;
   view.app = { vault, workspace: {} };
-  vault.view = view as never;
+  vault.views = [view as never];
   const canvas = fakeCanvas(view);
   (view as unknown as { canvas: unknown }).canvas = canvas;
   await view.loadFileInternal(file, true);   // what Obsidian does on open

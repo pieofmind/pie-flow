@@ -1,7 +1,7 @@
 import { BpmnModdle } from "bpmn-moddle";
 import type { CanvasModel } from "../../canvas/types";
 import type { SourceMeta } from "../types";
-import { laneHeights, laneWeights, type PoolLane } from "../../canvas/laneLayout";
+import { laneHeights, type PoolLane } from "../../canvas/laneLayout";
 import { SHAPE_TO_BPMN, TRIGGER_TO_EVENT_DEF } from "./shapes";
 
 /**
@@ -760,61 +760,31 @@ function emitPoolLaneShapes(
     n.shape !== "bpmn-pool" &&
     (n.attrs?.__source as { kind?: string } | undefined)?.kind !== "pool",
   );
-  if (!flow.length) return;
 
-  // Membership of a flow node in a pool — same precedence as the process
-  // assignment in exportBpmn (findOwningProcess): parentId → laneId → centre
-  // inside the pool's canvas rectangle. Single-pool keeps the legacy "every
-  // flow node" bbox so existing boards render exactly as before.
-  const laneOwner = new Map<string, string>();
-  for (const pool of pools) {
-    for (const ln of (pool.attrs?.lanes as Array<{ id: string }> | undefined) ?? []) laneOwner.set(ln.id, pool.id);
-  }
-  const ownerOf = (n: CanvasModel["nodes"][number]): string | undefined => {
-    if (n.parentId && pools.some((p) => p.id === n.parentId)) return n.parentId;
-    if (n.laneId && laneOwner.has(n.laneId)) return laneOwner.get(n.laneId);
-    const cx = n.x + n.width / 2, cy = n.y + n.height / 2;
-    const hit = pools.find((p) => cx >= p.x && cx <= p.x + p.width && cy >= p.y && cy <= p.y + p.height);
-    return hit?.id;
-  };
-  const membersOf = (poolId: string) =>
-    pools.length <= 1 ? flow : flow.filter((n) => ownerOf(n) === poolId);
-  const bboxOf = (pool: CanvasModel["nodes"][number]) => {
-    const members = membersOf(pool.id);
-    if (!members.length) {
-      // No resolvable member: trust the pool's own canvas rectangle.
-      return { poolX: pool.x, poolY: pool.y, poolW: pool.width, poolH: pool.height };
-    }
-    const minX = Math.min(...members.map((n) => n.x));
-    const minY = Math.min(...members.map((n) => n.y));
-    const maxX = Math.max(...members.map((n) => n.x + n.width));
-    const maxY = Math.max(...members.map((n) => n.y + n.height));
+  // Each participant / lane is written at its Board rectangle, so switching to
+  // the native view and back gives the same layout. Only a pool without a
+  // usable size (hand-written model) falls back to hugging the flow nodes.
+  const fallbackBox = () => {
+    const minX = Math.min(...flow.map((n) => n.x));
+    const minY = Math.min(...flow.map((n) => n.y));
+    const maxX = Math.max(...flow.map((n) => n.x + n.width));
+    const maxY = Math.max(...flow.map((n) => n.y + n.height));
     return {
-      poolX: minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN,
-      poolY: minY - POOL_MARGIN,
-      poolW: (maxX - minX) + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2,
-      poolH: (maxY - minY) + POOL_MARGIN * 2,
+      x: minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN,
+      y: minY - POOL_MARGIN,
+      width: (maxX - minX) + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2,
+      height: (maxY - minY) + POOL_MARGIN * 2,
     };
   };
-  // Collaboration: all participants share one width/left edge (aligned
-  // borders) but keep their own vertical extent.
-  const boxes = new Map(pools.map((p) => [p.id, bboxOf(p)]));
-  const sharedX = Math.min(...[...boxes.values()].map((b) => b.poolX));
-  const sharedRight = Math.max(...[...boxes.values()].map((b) => b.poolX + b.poolW));
 
   for (const pool of pools) {
     const prefix: ModdleElement[] = [];
     const poolProcess = processForPool(pool.id);
-    const box = boxes.get(pool.id)!;
-    const poolX = pools.length > 1 ? sharedX : box.poolX;
-    const poolW = pools.length > 1 ? sharedRight - sharedX : box.poolW;
-    // Lanes with their own height (dragged on the Board / resized in bpmn-js)
-    // pin the pool to its Board rect vertically: the lane bands must land
-    // exactly where the Board drew them. Legacy pools still hug their members.
+    const sized = pool.width > 0 && pool.height > 0;
+    if (!sized && !flow.length) continue;
+    const box = sized ? pool : fallbackBox();
+    const poolX = box.x, poolY = box.y, poolW = box.width, poolH = box.height;
     const lanes = (pool.attrs?.lanes as PoolLane[] | undefined) ?? [];
-    const sizedLanes = laneWeights(lanes) !== null;
-    const poolY = sizedLanes ? pool.y : box.poolY;
-    const poolH = sizedLanes ? pool.height : box.poolH;
 
     // Participant shape — patch existing or create new.
     let pdi = diShape.get(pool.id);
@@ -841,15 +811,12 @@ function emitPoolLaneShapes(
       prefix.push(pdi);
     }
 
-    // Lane shapes tile the pool interior (minus pool header). Per-lane band is
-    // the lane's own height when set, else derived from each lane's member-node
-    // Y-range when available, else equal.
+    // Lane shapes tile the pool interior (minus pool header) exactly as the
+    // Board draws them: each lane's own height, else an equal split.
     const laneX = poolX + POOL_HEADER;
     const laneW = poolW - POOL_HEADER;
     if (lanes.length) {
-      // Build contiguous bands. If a lane has no member info we fall back to an
-      // equal split so the bands always exactly tile poolH.
-      const bands = sizedLanes ? sizedLaneBands(lanes, poolY, poolH) : laneBands(lanes, poolProcess, model, poolY, poolH);
+      const bands = laneBandsOf(lanes, poolY, poolH);
       lanes.forEach((ln, i) => {
         if (!ln.id) return;
         const band = bands[i];
@@ -882,50 +849,14 @@ function emitPoolLaneShapes(
   }
 }
 
-/** Contiguous Y-bands from each lane's own height (see laneLayout). */
-function sizedLaneBands(lanes: PoolLane[], poolY: number, poolH: number): Array<{ y: number; h: number }> {
+/** Contiguous Y-bands tiling the pool, one per lane (see laneLayout). */
+function laneBandsOf(lanes: PoolLane[], poolY: number, poolH: number): Array<{ y: number; h: number }> {
   let y = poolY;
   return laneHeights(lanes, poolH).map((h) => {
     const band = { y, h };
     y += h;
     return band;
   });
-}
-
-/** Contiguous Y-bands tiling [poolY, poolY+poolH] — one per lane. Uses each
- *  lane's member-node Y-range when resolvable, else an equal split. */
-function laneBands(
-  lanes: Array<{ id: string }>,
-  process: ModdleElement,
-  model: CanvasModel,
-  poolY: number,
-  poolH: number,
-): Array<{ y: number; h: number }> {
-  if (lanes.length <= 1) return [{ y: poolY, h: poolH }];
-  const nodeY = new Map(model.nodes.map((n) => [n.id, { top: n.y, bot: n.y + n.height }]));
-  // Compute each lane's member mid-Y for ordering + extent.
-  const mids: number[] = lanes.map((ln) => {
-    const lane = findLane(process, ln.id);
-    const refs = (lane?.flowNodeRef ?? []) as Array<ModdleElement | string>;
-    const ys = refs.map((r) => nodeY.get(typeof r === "string" ? r : r.id ?? "")).filter(Boolean) as Array<{ top: number; bot: number }>;
-    if (!ys.length) return NaN;
-    return ys.reduce((s, v) => s + (v.top + v.bot) / 2, 0) / ys.length;
-  });
-  // If any lane lacks members, fall back to an equal split (still tiles exactly).
-  if (mids.some((v) => Number.isNaN(v))) {
-    const each = poolH / lanes.length;
-    return lanes.map((_, i) => ({ y: poolY + i * each, h: each }));
-  }
-  // Split boundaries at midpoints between consecutive lane centres.
-  const order = lanes.map((_, i) => i).sort((a, b) => mids[a] - mids[b]);
-  const bounds: number[] = [poolY];
-  for (let i = 0; i < order.length - 1; i++) {
-    bounds.push((mids[order[i]] + mids[order[i + 1]]) / 2);
-  }
-  bounds.push(poolY + poolH);
-  const bands: Array<{ y: number; h: number }> = new Array(lanes.length);
-  order.forEach((laneIdx, k) => { bands[laneIdx] = { y: bounds[k], h: bounds[k + 1] - bounds[k] }; });
-  return bands;
 }
 
 function getPortOffset(portId: string | undefined, width: number, height: number): { dx: number; dy: number } {

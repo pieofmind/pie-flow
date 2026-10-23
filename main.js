@@ -41407,10 +41407,10 @@ __export(main_exports18, {
   default: () => DiagramsPlugin
 });
 module.exports = __toCommonJS(main_exports18);
-var import_obsidian12 = require("obsidian");
+var import_obsidian13 = require("obsidian");
 
 // src/view/BoardView.ts
-var import_obsidian5 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 
 // node_modules/preact/dist/preact.module.js
 var n;
@@ -74948,7 +74948,7 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
   return patchCamundaXml(xml3, model);
 }
 function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7, processByPoolId) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
+  var _a3, _b2, _c, _d, _e3, _f, _g;
   const pools = model.nodes.filter(
     (n4) => {
       var _a4, _b3;
@@ -74981,48 +74981,26 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
       return n4.shape !== "bpmn-pool" && ((_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) !== "pool";
     }
   );
-  if (!flow.length) return;
-  const laneOwner = /* @__PURE__ */ new Map();
-  for (const pool of pools) {
-    for (const ln3 of (_b2 = (_a3 = pool.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : []) laneOwner.set(ln3.id, pool.id);
-  }
-  const ownerOf = (n4) => {
-    if (n4.parentId && pools.some((p6) => p6.id === n4.parentId)) return n4.parentId;
-    if (n4.laneId && laneOwner.has(n4.laneId)) return laneOwner.get(n4.laneId);
-    const cx = n4.x + n4.width / 2, cy = n4.y + n4.height / 2;
-    const hit = pools.find((p6) => cx >= p6.x && cx <= p6.x + p6.width && cy >= p6.y && cy <= p6.y + p6.height);
-    return hit == null ? void 0 : hit.id;
-  };
-  const membersOf = (poolId) => pools.length <= 1 ? flow : flow.filter((n4) => ownerOf(n4) === poolId);
-  const bboxOf = (pool) => {
-    const members = membersOf(pool.id);
-    if (!members.length) {
-      return { poolX: pool.x, poolY: pool.y, poolW: pool.width, poolH: pool.height };
-    }
-    const minX = Math.min(...members.map((n4) => n4.x));
-    const minY = Math.min(...members.map((n4) => n4.y));
-    const maxX = Math.max(...members.map((n4) => n4.x + n4.width));
-    const maxY = Math.max(...members.map((n4) => n4.y + n4.height));
+  const fallbackBox = () => {
+    const minX = Math.min(...flow.map((n4) => n4.x));
+    const minY = Math.min(...flow.map((n4) => n4.y));
+    const maxX = Math.max(...flow.map((n4) => n4.x + n4.width));
+    const maxY = Math.max(...flow.map((n4) => n4.y + n4.height));
     return {
-      poolX: minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN,
-      poolY: minY - POOL_MARGIN,
-      poolW: maxX - minX + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2,
-      poolH: maxY - minY + POOL_MARGIN * 2
+      x: minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN,
+      y: minY - POOL_MARGIN,
+      width: maxX - minX + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2,
+      height: maxY - minY + POOL_MARGIN * 2
     };
   };
-  const boxes = new Map(pools.map((p6) => [p6.id, bboxOf(p6)]));
-  const sharedX = Math.min(...[...boxes.values()].map((b4) => b4.poolX));
-  const sharedRight = Math.max(...[...boxes.values()].map((b4) => b4.poolX + b4.poolW));
   for (const pool of pools) {
     const prefix2 = [];
     const poolProcess = processForPool(pool.id);
-    const box = boxes.get(pool.id);
-    const poolX = pools.length > 1 ? sharedX : box.poolX;
-    const poolW = pools.length > 1 ? sharedRight - sharedX : box.poolW;
-    const lanes = (_d = (_c = pool.attrs) == null ? void 0 : _c.lanes) != null ? _d : [];
-    const sizedLanes = laneWeights(lanes) !== null;
-    const poolY = sizedLanes ? pool.y : box.poolY;
-    const poolH = sizedLanes ? pool.height : box.poolH;
+    const sized = pool.width > 0 && pool.height > 0;
+    if (!sized && !flow.length) continue;
+    const box = sized ? pool : fallbackBox();
+    const poolX = box.x, poolY = box.y, poolW = box.width, poolH = box.height;
+    const lanes = (_b2 = (_a3 = pool.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
     let pdi = diShape.get(pool.id);
     if (pdi == null ? void 0 : pdi.bounds) {
       pdi.bounds.x = poolX;
@@ -75034,17 +75012,17 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
       if (!part) {
         part = m7.create("bpmn:Participant", {
           id: pool.id,
-          name: (_e3 = pool.label) != null ? _e3 : "Pool",
+          name: (_c = pool.label) != null ? _c : "Pool",
           // Each participant references its OWN process when multi-pool.
           ...isBlackBoxPool(pool) ? {} : { processRef: poolProcess }
         });
-        ((_g = (_f = ensureCollaboration()).participants) != null ? _g : _f.participants = []).push(part);
+        ((_e3 = (_d = ensureCollaboration()).participants) != null ? _e3 : _d.participants = []).push(part);
       }
       pdi = m7.create("bpmndi:BPMNShape", {
         bpmnElement: part,
         bounds: m7.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
       });
-      const isHorizontal5 = ((_h = pool.attrs) == null ? void 0 : _h.poolHorizontal) !== false;
+      const isHorizontal5 = ((_f = pool.attrs) == null ? void 0 : _f.poolHorizontal) !== false;
       pdi.isHorizontal = isHorizontal5;
       diShape.set(pool.id, pdi);
       prefix2.push(pdi);
@@ -75052,7 +75030,7 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
     const laneX = poolX + POOL_HEADER;
     const laneW = poolW - POOL_HEADER;
     if (lanes.length) {
-      const bands = sizedLanes ? sizedLaneBands(lanes, poolY, poolH) : laneBands(lanes, poolProcess, model, poolY, poolH);
+      const bands = laneBandsOf(lanes, poolY, poolH);
       lanes.forEach((ln3, i6) => {
         var _a4, _b3, _c2, _d2;
         if (!ln3.id) return;
@@ -75080,46 +75058,16 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
         }
       });
     }
-    if (prefix2.length) ((_i = mainPlane.planeElement) != null ? _i : mainPlane.planeElement = []).unshift(...prefix2);
+    if (prefix2.length) ((_g = mainPlane.planeElement) != null ? _g : mainPlane.planeElement = []).unshift(...prefix2);
   }
 }
-function sizedLaneBands(lanes, poolY, poolH) {
+function laneBandsOf(lanes, poolY, poolH) {
   let y5 = poolY;
   return laneHeights(lanes, poolH).map((h5) => {
     const band = { y: y5, h: h5 };
     y5 += h5;
     return band;
   });
-}
-function laneBands(lanes, process2, model, poolY, poolH) {
-  if (lanes.length <= 1) return [{ y: poolY, h: poolH }];
-  const nodeY = new Map(model.nodes.map((n4) => [n4.id, { top: n4.y, bot: n4.y + n4.height }]));
-  const mids = lanes.map((ln3) => {
-    var _a3;
-    const lane = findLane(process2, ln3.id);
-    const refs = (_a3 = lane == null ? void 0 : lane.flowNodeRef) != null ? _a3 : [];
-    const ys = refs.map((r5) => {
-      var _a4;
-      return nodeY.get(typeof r5 === "string" ? r5 : (_a4 = r5.id) != null ? _a4 : "");
-    }).filter(Boolean);
-    if (!ys.length) return NaN;
-    return ys.reduce((s5, v6) => s5 + (v6.top + v6.bot) / 2, 0) / ys.length;
-  });
-  if (mids.some((v6) => Number.isNaN(v6))) {
-    const each = poolH / lanes.length;
-    return lanes.map((_6, i6) => ({ y: poolY + i6 * each, h: each }));
-  }
-  const order = lanes.map((_6, i6) => i6).sort((a5, b4) => mids[a5] - mids[b4]);
-  const bounds = [poolY];
-  for (let i6 = 0; i6 < order.length - 1; i6++) {
-    bounds.push((mids[order[i6]] + mids[order[i6 + 1]]) / 2);
-  }
-  bounds.push(poolY + poolH);
-  const bands = new Array(lanes.length);
-  order.forEach((laneIdx, k5) => {
-    bands[laneIdx] = { y: bounds[k5], h: bounds[k5 + 1] - bounds[k5] };
-  });
-  return bands;
 }
 function getPortOffset(portId, width2, height2) {
   if (!portId) return { dx: width2 / 2, dy: height2 / 2 };
@@ -88227,6 +88175,41 @@ function buildBoardTopbar(bar, opts) {
   };
 }
 
+// src/view/externalChange.ts
+var import_obsidian5 = require("obsidian");
+function askExternalChange(app) {
+  return new Promise((resolve3) => new ExternalChangeModal(app, resolve3).open());
+}
+var ExternalChangeModal = class extends import_obsidian5.Modal {
+  constructor(app, done) {
+    super(app);
+    this.done = done;
+    this.answered = false;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "File \u0111\xE3 \u0111\u1ED5i b\xEAn ngo\xE0i" });
+    contentEl.createEl("p", { text: "File n\xE0y v\u1EEBa b\u1ECB s\u1EEDa ngo\xE0i tab (script / plugin / tab kh\xE1c) trong l\xFAc b\u1EA1n \u0111ang c\xF3 thay \u0111\u1ED5i ch\u01B0a l\u01B0u." });
+    const actions = contentEl.createDiv({ cls: "lk-prow2" });
+    const btn = (text4, choice, cta = false) => {
+      const b4 = actions.createEl("button", { text: text4 });
+      if (cta) b4.addClass("mod-cta");
+      b4.onclick = () => {
+        this.answered = true;
+        this.done(choice);
+        this.close();
+      };
+    };
+    btn("N\u1EA1p l\u1EA1i t\u1EEB file", "reload", true);
+    btn("Gi\u1EEF b\u1EA3n \u0111ang s\u1EEDa (ghi \u0111\xE8 file)", "keep");
+  }
+  onClose() {
+    this.contentEl.empty();
+    if (!this.answered) this.done("reload");
+  }
+};
+
 // src/view/BoardView.ts
 registerAllShapes();
 function noticeFrag(kind, text4) {
@@ -88236,15 +88219,15 @@ function noticeFrag(kind, text4) {
   wrap.addClass(`da-notice-${kind}`);
   const iconEl = wrap.createSpan({ cls: "da-notice-icon" });
   const icon = kind === "success" ? "check-circle-2" : kind === "warn" ? "alert-triangle" : kind === "error" ? "x-circle" : "info";
-  (0, import_obsidian5.setIcon)(iconEl, icon);
+  (0, import_obsidian6.setIcon)(iconEl, icon);
   wrap.createSpan({ cls: "da-notice-text", text: text4 });
   frag.appendChild(wrap);
   return frag;
 }
 function notify(kind, text4, timeout) {
-  return new import_obsidian5.Notice(noticeFrag(kind, text4), timeout);
+  return new import_obsidian6.Notice(noticeFrag(kind, text4), timeout);
 }
-var DiagramPickerModal = class extends import_obsidian5.Modal {
+var DiagramPickerModal = class extends import_obsidian6.Modal {
   constructor(view, diagrams, onPick, onCancel) {
     super(view.app);
     this.diagrams = diagrams;
@@ -88334,35 +88317,6 @@ async function saveToLocal(data2, suggestedName, mimeType) {
   setTimeout(() => URL.revokeObjectURL(url), 1e3);
   return suggestedName;
 }
-var ExternalChangeModal = class extends import_obsidian5.Modal {
-  constructor(view, done) {
-    super(view.app);
-    this.done = done;
-    this.answered = false;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("h3", { text: "File \u0111\xE3 \u0111\u1ED5i b\xEAn ngo\xE0i" });
-    contentEl.createEl("p", { text: "File board n\xE0y v\u1EEBa b\u1ECB s\u1EEDa ngo\xE0i tab (script / plugin kh\xE1c) trong l\xFAc b\u1EA1n \u0111ang c\xF3 thay \u0111\u1ED5i ch\u01B0a l\u01B0u." });
-    const actions = contentEl.createDiv({ cls: "lk-prow2" });
-    const btn = (text4, choice, cta = false) => {
-      const b4 = actions.createEl("button", { text: text4 });
-      if (cta) b4.addClass("mod-cta");
-      b4.onclick = () => {
-        this.answered = true;
-        this.done(choice);
-        this.close();
-      };
-    };
-    btn("N\u1EA1p l\u1EA1i t\u1EEB file", "reload", true);
-    btn("Gi\u1EEF b\u1EA3n \u0111ang s\u1EEDa (ghi \u0111\xE8 file)", "keep");
-  }
-  onClose() {
-    this.contentEl.empty();
-    if (!this.answered) this.done("reload");
-  }
-};
 var BOARD_VIEW_TYPE3 = "omniboard-board";
 var EMPTY_MODEL = { nodes: [], edges: [] };
 var BOARD_TAB_STUB_ADAPTER = {
@@ -88382,7 +88336,7 @@ var BOARD_TAB_STUB_ADAPTER = {
   exportFormats: ["svg", "png", "pdf"],
   validate: () => ({ ok: true, errors: [] })
 };
-var BoardView = class _BoardView extends import_obsidian5.TextFileView {
+var BoardView = class _BoardView extends import_obsidian6.TextFileView {
   constructor(leaf, plugin) {
     super(leaf);
     this.canvas = null;
@@ -88557,7 +88511,7 @@ var BoardView = class _BoardView extends import_obsidian5.TextFileView {
   }
   /** Ask whether to reload the file changed from outside or keep this tab's edits. */
   askExternalConflict() {
-    return new Promise((resolve3) => new ExternalChangeModal(this, resolve3).open());
+    return askExternalChange(this.app);
   }
   getCanvas() {
     return this.canvas;
@@ -88593,7 +88547,7 @@ var BoardView = class _BoardView extends import_obsidian5.TextFileView {
     emitBpmnIssuesRefresh();
   }
   showExportMenu(e5) {
-    const menu = new import_obsidian5.Menu();
+    const menu = new import_obsidian6.Menu();
     menu.addItem((i6) => i6.setTitle("SVG").setIcon("file-code").onClick(() => this.handleExportSvg()));
     menu.addSeparator();
     [1, 2, 4].forEach(
@@ -89002,7 +88956,7 @@ function EmbedCard(props) {
 }
 
 // src/settings.ts
-var import_obsidian6 = require("obsidian");
+var import_obsidian7 = require("obsidian");
 
 // src/pom-header.ts
 var POM_LOGO = "data:image/png;base64,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";
@@ -89061,7 +89015,7 @@ var DEFAULT_SETTINGS = {
   compressDrawingData: false,
   boardFolder: "Omniboards"
 };
-var DiagramsSettingTab = class extends import_obsidian6.PluginSettingTab {
+var DiagramsSettingTab = class extends import_obsidian7.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -89070,19 +89024,19 @@ var DiagramsSettingTab = class extends import_obsidian6.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     renderPomHeader(containerEl, "Pie Flow", "V\u1EBD s\u01A1 \u0111\u1ED3 BPMN & board tr\u1EF1c quan ngay trong vault Obsidian");
-    new import_obsidian6.Setting(containerEl).setName("Default flow layout").setDesc("Direction used when auto-laying out new flow-style diagrams.").addDropdown(
+    new import_obsidian7.Setting(containerEl).setName("Default flow layout").setDesc("Direction used when auto-laying out new flow-style diagrams.").addDropdown(
       (d4) => d4.addOption("LR", "Left \u2192 Right").addOption("TB", "Top \u2192 Bottom").setValue(this.plugin.settings.defaultLayout).onChange(async (v6) => {
         this.plugin.settings.defaultLayout = v6;
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian6.Setting(containerEl).setName("Validate BPMN before export").setDesc("Run semantic BPMN checks and block BPMN export when errors are present.").addToggle(
+    new import_obsidian7.Setting(containerEl).setName("Validate BPMN before export").setDesc("Run semantic BPMN checks and block BPMN export when errors are present.").addToggle(
       (t6) => t6.setValue(this.plugin.settings.validateBpmnBeforeExport).onChange(async (v6) => {
         this.plugin.settings.validateBpmnBeforeExport = v6;
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian6.Setting(containerEl).setName("Compress drawing data (Gzip + Base64)").setDesc(
+    new import_obsidian7.Setting(containerEl).setName("Compress drawing data (Gzip + Base64)").setDesc(
       "When OFF (default): plain JSON is stored \u2014 AI agents and humans can read/write board files directly. When ON: drawing data is compressed \u2014 smaller file size but unreadable by AI agents."
     ).addToggle(
       (t6) => t6.setValue(this.plugin.settings.compressDrawingData).onChange(async (v6) => {
@@ -89090,7 +89044,7 @@ var DiagramsSettingTab = class extends import_obsidian6.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian6.Setting(containerEl).setName("Board folder").setDesc(
+    new import_obsidian7.Setting(containerEl).setName("Board folder").setDesc(
       "Folder where new board files (.omniboard.md) are created when you insert a board into a note. Leave empty to create them at the vault root."
     ).addText(
       (t6) => t6.setPlaceholder("Omniboards").setValue(this.plugin.settings.boardFolder).onChange(async (v6) => {
@@ -89106,7 +89060,7 @@ var DiagramsSettingTab = class extends import_obsidian6.PluginSettingTab {
 };
 
 // src/bpmn-native/BpmnNativeView.ts
-var import_obsidian7 = require("obsidian");
+var import_obsidian8 = require("obsidian");
 
 // node_modules/inherits-browser/dist/index.es.js
 function e4(e5, t6) {
@@ -122114,7 +122068,7 @@ var MINIMAL_BPMN_FALLBACK = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmndi:BPMNPlane id="pl_omniboard" bpmnElement="p_omniboard"/>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
-var BpmnNativeView = class extends import_obsidian7.TextFileView {
+var BpmnNativeView = class extends import_obsidian8.TextFileView {
   constructor(leaf, plugin) {
     super(leaf);
     this.bpmnContainer = null;
@@ -122136,6 +122090,15 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
     this.wrapperCanvas = { nodes: [], edges: [] };
     this.wrapperBpmnIds = /* @__PURE__ */ new Set();
     this.wrapperSourceMeta = null;
+    /**
+     * Guard against writing over a file changed from outside (Board tab, a
+     * regenerating script): the text we know is on disk, set when we load it
+     * and right before each own write. Obsidian's TextFileView ignores
+     * `modify` while a save is in flight, so we check the disk ourselves.
+     */
+    this.knownDisk = null;
+    /** Set while asking the user about a conflict; no save may write meanwhile. */
+    this.conflict = null;
     this.plugin = plugin;
     this.controller = new BpmnNativeController();
   }
@@ -122178,6 +122141,7 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
     this.resetPendingSave();
     this.controller.dispose();
     this.data = data2;
+    this.knownDisk = data2;
     this.dirty = false;
     const wrapperByExt = (_c = (_b2 = (_a3 = this.file) == null ? void 0 : _a3.path) == null ? void 0 : _b2.endsWith(OMNIBOARD_SUFFIX)) != null ? _c : false;
     const wrapperByMarker = isOmniboardMarkdown(data2);
@@ -122355,7 +122319,7 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
           void this.leaf.setViewState({ type: "markdown", state: { file: this.file.path } });
         }
       };
-      new import_obsidian7.Notice(`BPMN import l\u1ED7i: ${msg}`, 5e3);
+      new import_obsidian8.Notice(`BPMN import l\u1ED7i: ${msg}`, 5e3);
     }
   }
   async onModelerChanged() {
@@ -122390,6 +122354,7 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
         console.warn("[BpmnNative] File changed during persistXml; aborting save");
         return;
       }
+      if (!await this.safeToWrite()) return;
       await super.save();
       this.dirty = false;
     } catch (err2) {
@@ -122406,8 +122371,61 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
       console.warn("[BpmnNative] File changed during save(); aborting");
       return;
     }
+    if (!await this.safeToWrite()) return;
     await super.save(clear3);
     this.dirty = false;
+  }
+  /** Last check before writing `this.data`: the disk must still hold what we
+   *  loaded / last wrote. If not, load it or ask instead of writing. */
+  async safeToWrite() {
+    if (this.conflict) return false;
+    if (!await this.checkDisk()) return false;
+    this.knownDisk = this.data;
+    return true;
+  }
+  /** Obsidian calls this when the file changes on disk. Unlike the base
+   *  class we also look while a save is in flight. */
+  onModify(file) {
+    if (file !== this.file) return;
+    void this.checkDisk();
+  }
+  /** True when the disk holds what we expect. Otherwise loads the outside
+   *  change (no unsaved modeler edits) or asks, and returns false. */
+  async checkDisk() {
+    if (!this.file) return true;
+    const disk = await this.app.vault.read(this.file);
+    if (disk === this.knownDisk) return true;
+    if (!this.dirty) await this.applyDisk(disk);
+    else await this.resolveConflict();
+    return false;
+  }
+  async applyDisk(disk) {
+    this.lastSavedData = disk;
+    await this.setViewData(disk, false);
+  }
+  resolveConflict() {
+    var _a3;
+    (_a3 = this.conflict) != null ? _a3 : this.conflict = (async () => {
+      try {
+        const choice = await this.askExternalConflict();
+        if (!this.file) return;
+        const disk = await this.app.vault.read(this.file);
+        if (choice === "reload") {
+          this.dirty = false;
+          await this.applyDisk(disk);
+          return;
+        }
+        this.knownDisk = disk;
+      } finally {
+        this.conflict = null;
+      }
+      void this.persistXml();
+    })();
+    return this.conflict;
+  }
+  /** Ask whether to reload the file changed from outside or keep the modeler's edits. */
+  askExternalConflict() {
+    return askExternalChange(this.app);
   }
   /**
    * Sync modeler state into `this.data` (and, for wrappers, into the full
@@ -122449,7 +122467,7 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
           "[BpmnNative] Wrapper merge failed; preserving wrapper on disk (user BPMN edit kept in modeler only)",
           err2
         );
-        new import_obsidian7.Notice("L\u01B0u BPMN th\u1EA5t b\u1EA1i \u2014 wrapper tr\xEAn \u0111\u0129a \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.", 6e3);
+        new import_obsidian8.Notice("L\u01B0u BPMN th\u1EA5t b\u1EA1i \u2014 wrapper tr\xEAn \u0111\u0129a \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.", 6e3);
         return false;
       }
     }
@@ -122476,7 +122494,7 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
       document.head.appendChild(styleEl);
     } catch (err2) {
       console.error("[BpmnNative] Failed to inject BPMN CSS:", err2);
-      new import_obsidian7.Notice("Kh\xF4ng inject \u0111\u01B0\u1EE3c BPMN CSS.");
+      new import_obsidian8.Notice("Kh\xF4ng inject \u0111\u01B0\u1EE3c BPMN CSS.");
     }
   }
   buildTopBar() {
@@ -122488,39 +122506,39 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
       this.contentEl.insertBefore(bar, this.bpmnContainer);
     }
     const close = bar.createEl("button", { cls: "da-tb-close" });
-    (0, import_obsidian7.setIcon)(close, "x");
+    (0, import_obsidian8.setIcon)(close, "x");
     close.createSpan({ text: "\u0110\xF3ng" });
     close.onclick = () => this.leaf.detach();
     const badge = bar.createDiv({ cls: "da-tb-badge" });
-    (0, import_obsidian7.setIcon)(badge, "workflow");
+    (0, import_obsidian8.setIcon)(badge, "workflow");
     badge.createSpan({ text: "BPMN NATIVE" });
     this.boardTitleEl = bar.createDiv({ cls: "da-tb-title", text: (_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "BPMN Diagram" });
     bar.createDiv({ cls: "da-tb-grow" });
     const propsBtn = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian7.setIcon)(propsBtn, "sliders-horizontal");
+    (0, import_obsidian8.setIcon)(propsBtn, "sliders-horizontal");
     propsBtn.setAttribute("aria-label", "BPMN properties");
     propsBtn.title = "BPMN properties";
     propsBtn.onclick = () => this.openProperties();
     if (this.isWrapper) {
       const switchBtn = bar.createEl("button", { cls: "da-tb-ic" });
-      (0, import_obsidian7.setIcon)(switchBtn, "shapes");
+      (0, import_obsidian8.setIcon)(switchBtn, "shapes");
       switchBtn.setAttribute("aria-label", "Switch to Omniboard view");
       switchBtn.title = "Switch to Omniboard view";
       switchBtn.onclick = () => void this.switchToBoardView();
     }
     bar.createDiv({ cls: "da-tb-divider" });
     const imp = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian7.setIcon)(imp, "upload");
+    (0, import_obsidian8.setIcon)(imp, "upload");
     imp.setAttribute("aria-label", "Import .bpmn");
     imp.title = "Import .bpmn file";
     imp.onclick = () => void this.handleImportBpmn();
     const exp = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian7.setIcon)(exp, "download");
+    (0, import_obsidian8.setIcon)(exp, "download");
     exp.setAttribute("aria-label", "Export");
     exp.title = "Export BPMN / SVG / PNG";
     exp.onclick = (e5) => this.showExportMenu(e5);
     const save = bar.createEl("button", { cls: "da-tb-save" });
-    (0, import_obsidian7.setIcon)(save, "check");
+    (0, import_obsidian8.setIcon)(save, "check");
     save.createSpan({ text: "L\u01B0u & \u0111\xF3ng" });
     save.onclick = async () => {
       await this.persistXml();
@@ -122538,7 +122556,7 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
     const widget = this.bpmnContainer.createDiv({ cls: "bpmn-nav-widget" });
     const btn = (icon, title2, onClick) => {
       const b4 = widget.createEl("button", { cls: "bpmn-nav-btn" });
-      (0, import_obsidian7.setIcon)(b4, icon);
+      (0, import_obsidian8.setIcon)(b4, icon);
       b4.title = title2;
       b4.onclick = onClick;
     };
@@ -122578,14 +122596,14 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
     moreBtn.className = "entry bpmn-custom-more-btn";
     moreBtn.setAttribute("title", "Create element");
     moreBtn.setAttribute("aria-label", "Create element");
-    (0, import_obsidian7.setIcon)(moreBtn, "more-horizontal");
+    (0, import_obsidian8.setIcon)(moreBtn, "more-horizontal");
     moreBtn.onclick = (e5) => {
       this.showCreateElementMenu(e5);
     };
     paletteEntries.appendChild(moreBtn);
   }
   showCreateElementMenu(e5) {
-    const menu = new import_obsidian7.Menu();
+    const menu = new import_obsidian8.Menu();
     const addShape = (title2, type, iconKey, attrs) => {
       menu.addItem((i6) => {
         i6.setTitle(title2).setIcon(iconKey).onClick(() => {
@@ -122644,7 +122662,7 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
     }
   }
   showExportMenu(e5) {
-    const menu = new import_obsidian7.Menu();
+    const menu = new import_obsidian8.Menu();
     menu.addItem(
       (i6) => i6.setTitle("Export as .bpmn (XML)").setIcon("file-code-2").onClick(() => void this.handleExportBpmn())
     );
@@ -122665,14 +122683,14 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
     try {
       const xml3 = await this.controller.saveXml();
       if (!xml3) {
-        new import_obsidian7.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c BPMN XML t\u1EEB modeler.");
+        new import_obsidian8.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c BPMN XML t\u1EEB modeler.");
         return;
       }
       const saved = await saveToLocal2(xml3, this.suggestedName(".bpmn"), "application/xml");
-      if (saved) new import_obsidian7.Notice(`\u0110\xE3 export BPMN: ${saved}`);
+      if (saved) new import_obsidian8.Notice(`\u0110\xE3 export BPMN: ${saved}`);
     } catch (err2) {
       console.error("[BpmnNative] Export BPMN failed:", err2);
-      new import_obsidian7.Notice("Export BPMN l\u1ED7i.");
+      new import_obsidian8.Notice("Export BPMN l\u1ED7i.");
     }
   }
   async handleImportBpmn() {
@@ -122688,10 +122706,10 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
       await this.mountModeler(xml3);
       this.dirty = true;
       await this.persistXml();
-      new import_obsidian7.Notice("\u0110\xE3 import BPMN.");
+      new import_obsidian8.Notice("\u0110\xE3 import BPMN.");
     } catch (err2) {
       console.error("[BpmnNative] Import BPMN failed:", err2);
-      new import_obsidian7.Notice("Import BPMN l\u1ED7i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
+      new import_obsidian8.Notice("Import BPMN l\u1ED7i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
   suggestedName(ext) {
@@ -122703,10 +122721,10 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
     try {
       const svg3 = await this.controller.saveSvg();
       const saved = await saveToLocal2(svg3, this.suggestedName(".svg"), "image/svg+xml");
-      if (saved) new import_obsidian7.Notice(`\u0110\xE3 export SVG: ${saved}`);
+      if (saved) new import_obsidian8.Notice(`\u0110\xE3 export SVG: ${saved}`);
     } catch (err2) {
       console.error("[BpmnNative] Export SVG failed:", err2);
-      new import_obsidian7.Notice("Export SVG l\u1ED7i.");
+      new import_obsidian8.Notice("Export SVG l\u1ED7i.");
     }
   }
   async handleExportPng() {
@@ -122715,10 +122733,10 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
       const svg3 = await this.controller.saveSvg();
       const blob = await svgToPngBlob(svg3);
       const saved = await saveToLocal2(blob, this.suggestedName(".png"), "image/png");
-      if (saved) new import_obsidian7.Notice(`\u0110\xE3 export PNG: ${saved}`);
+      if (saved) new import_obsidian8.Notice(`\u0110\xE3 export PNG: ${saved}`);
     } catch (err2) {
       console.error("[BpmnNative] Export PNG failed:", err2);
-      new import_obsidian7.Notice("Export PNG l\u1ED7i.");
+      new import_obsidian8.Notice("Export PNG l\u1ED7i.");
     }
   }
 };
@@ -122845,7 +122863,7 @@ function svgToPngBlob(svgString) {
 }
 
 // src/bpmn-native/BpmnPropertiesView.ts
-var import_obsidian8 = require("obsidian");
+var import_obsidian9 = require("obsidian");
 var BPMN_PROPERTIES_VIEW_TYPE = "bpmn-properties";
 var SELECTION_EVENT2 = "bpmn-native-selection-change";
 var BPMN_ID_RE = /^[A-Za-z_][A-Za-z0-9_.:-]*$/;
@@ -122855,7 +122873,7 @@ function el3(tag, cls, text4) {
   if (text4 !== void 0) node3.textContent = text4;
   return node3;
 }
-var BpmnPropertiesView = class extends import_obsidian8.ItemView {
+var BpmnPropertiesView = class extends import_obsidian9.ItemView {
   constructor(leaf) {
     super(leaf);
     this.onSelection = () => this.render();
@@ -123119,7 +123137,7 @@ var BpmnPropertiesView = class extends import_obsidian8.ItemView {
 };
 
 // src/bpmn-native/bpmn-icons.ts
-var import_obsidian9 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 var svgWrap = (content5) => `<g transform="scale(4.167)">${content5}</g>`;
 function registerBpmnIcons() {
   const icons3 = {
@@ -123159,7 +123177,7 @@ function registerBpmnIcons() {
     "bpmn-text-annotation": svgWrap(`<path d="M9 4H5v16h4" fill="none" stroke="currentColor" stroke-width="2"/>`)
   };
   for (const [id, svgContent] of Object.entries(icons3)) {
-    (0, import_obsidian9.addIcon)(id, svgContent);
+    (0, import_obsidian10.addIcon)(id, svgContent);
   }
 }
 
@@ -123264,7 +123282,7 @@ async function saveToDisk(data2, suggestedName, mimeType) {
 }
 
 // src/view/FileBoardModal.ts
-var import_obsidian10 = require("obsidian");
+var import_obsidian11 = require("obsidian");
 
 // src/ui/boardSurface.ts
 function mountBoardSurface(container, opts) {
@@ -123303,7 +123321,7 @@ function mountBoardSurface(container, opts) {
 
 // src/view/FileBoardModal.ts
 init_boardSerde();
-var FileBoardModal = class extends import_obsidian10.Modal {
+var FileBoardModal = class extends import_obsidian11.Modal {
   constructor(app, plugin, file) {
     super(app);
     this.plugin = plugin;
@@ -123383,7 +123401,7 @@ var FileBoardModal = class extends import_obsidian10.Modal {
       await this.app.vault.modify(this.file, content5);
     } catch (e5) {
       console.error("[omniboard] FileBoardModal save failed", e5);
-      new import_obsidian10.Notice("L\u01B0u board th\u1EA5t b\u1EA1i \u2014 xem console.");
+      new import_obsidian11.Notice("L\u01B0u board th\u1EA5t b\u1EA1i \u2014 xem console.");
     }
   }
   onClose() {
@@ -123396,9 +123414,9 @@ var FileBoardModal = class extends import_obsidian10.Modal {
 };
 
 // src/ui/boardPickers.ts
-var import_obsidian11 = require("obsidian");
+var import_obsidian12 = require("obsidian");
 init_boardSerde();
-var BoardTypePicker = class extends import_obsidian11.SuggestModal {
+var BoardTypePicker = class extends import_obsidian12.SuggestModal {
   constructor(app, choices, onChoose) {
     super(app);
     this.choices = choices;
@@ -123413,14 +123431,14 @@ var BoardTypePicker = class extends import_obsidian11.SuggestModal {
   renderSuggestion(choice, el4) {
     el4.addClass("omniboard-type-suggestion");
     const icon = el4.createSpan({ cls: "omniboard-type-suggestion-icon" });
-    (0, import_obsidian11.setIcon)(icon, choice.icon);
+    (0, import_obsidian12.setIcon)(icon, choice.icon);
     el4.createSpan({ cls: "omniboard-type-suggestion-label", text: choice.label });
   }
   onChooseSuggestion(choice) {
     this.onChoose(choice);
   }
 };
-var ExistingBoardPicker = class extends import_obsidian11.FuzzySuggestModal {
+var ExistingBoardPicker = class extends import_obsidian12.FuzzySuggestModal {
   constructor(app, onChoose) {
     super(app);
     this.onChoose = onChoose;
@@ -124817,7 +124835,7 @@ var ALL_ADAPTERS = [
   stateAdapter,
   mindmapAdapter
 ];
-var DiagramsPlugin = class extends import_obsidian12.Plugin {
+var DiagramsPlugin = class extends import_obsidian13.Plugin {
   constructor() {
     super(...arguments);
     this.registry = new AdapterRegistry();
@@ -124843,7 +124861,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file, source) => {
         var _a3;
-        if (!(file instanceof import_obsidian12.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        if (!(file instanceof import_obsidian13.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
         const leaf = this.findLeafForFile(file);
         const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE3;
         menu.addItem((item) => {
@@ -125076,7 +125094,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       const { model, sourceMeta } = await importBpmn(xml3);
       const basename = bpmnFile.basename;
       const dir = (_b2 = (_a3 = bpmnFile.parent) == null ? void 0 : _a3.path) != null ? _b2 : "";
-      const wrapperPath = (0, import_obsidian12.normalizePath)(
+      const wrapperPath = (0, import_obsidian13.normalizePath)(
         (dir ? dir + "/" : "") + `${basename}${OMNIBOARD_SUFFIX}`
       );
       const content5 = serializeBoard(model, "", sourceMeta, {
@@ -125084,8 +125102,8 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
         bpmnXml: xml3
       });
       const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
-      if (existing instanceof import_obsidian12.TFile) {
-        new import_obsidian12.Notice(
+      if (existing instanceof import_obsidian13.TFile) {
+        new import_obsidian13.Notice(
           `\u0110\xE3 t\u1ED3n t\u1EA1i "${wrapperPath}". Xo\xE1 ho\u1EB7c \u0111\u1ED5i t\xEAn file \u0111\xF3 tr\u01B0\u1EDBc khi convert.`,
           7e3
         );
@@ -125096,19 +125114,19 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
         wrapperFile = await this.app.vault.create(wrapperPath, content5);
       } catch (createErr) {
         console.error("[omniboard] vault.create failed for wrapper", createErr);
-        new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
+        new import_obsidian13.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
         return;
       }
       const leaf = this.app.workspace.getLeaf(false);
       if (!leaf) {
-        new import_obsidian12.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
+        new import_obsidian13.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
         return;
       }
       await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: wrapperFile.path } });
-      new import_obsidian12.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
+      new import_obsidian13.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
     } catch (err2) {
       console.error("[omniboard] convertBpmnToWrapper failed", err2);
-      new import_obsidian12.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
+      new import_obsidian13.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
   /**
@@ -125123,7 +125141,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
     const name2 = ((baseName == null ? void 0 : baseName.trim()) || `Omniboard ${stamp}`).replace(/[\\/:*?"<>|]/g, "-");
     const dir = await this.ensureBoardFolder();
-    const path2 = (0, import_obsidian12.normalizePath)((dir ? dir + "/" : "") + `${name2}${OMNIBOARD_SUFFIX}`);
+    const path2 = (0, import_obsidian13.normalizePath)((dir ? dir + "/" : "") + `${name2}${OMNIBOARD_SUFFIX}`);
     const content5 = serializeBoard(seedModel != null ? seedModel : { nodes: [], edges: [] }, "", void 0, {
       compressDrawingData: this.settings.compressDrawingData
     });
@@ -125131,8 +125149,8 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       return await this.app.vault.create(path2, content5);
     } catch (e5) {
       const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing instanceof import_obsidian12.TFile) return existing;
-      new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
+      if (existing instanceof import_obsidian13.TFile) return existing;
+      new import_obsidian13.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
       return null;
     }
   }
@@ -125142,7 +125160,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     var _a3, _b2;
     const folder = (_b2 = (_a3 = this.settings.boardFolder) == null ? void 0 : _a3.trim()) != null ? _b2 : "";
     if (!folder) return "";
-    const dir = (0, import_obsidian12.normalizePath)(folder);
+    const dir = (0, import_obsidian13.normalizePath)(folder);
     if (!this.app.vault.getAbstractFileByPath(dir)) {
       try {
         await this.app.vault.createFolder(dir);
@@ -125271,7 +125289,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
-    if (!(file instanceof import_obsidian12.TFile)) return;
+    if (!(file instanceof import_obsidian13.TFile)) return;
     host.addClass("omniboard-embed-processed");
     const wrap = host.createDiv({ cls: "omniboard-embed-cardwrap" });
     let nodeCount = 0;
@@ -125302,7 +125320,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
         onEdit: () => this.openFileBoardEditor(file),
         onExportMenu: model ? (e5) => this.buildBoardExportMenu(model, file.basename).showAtMouseEvent(e5) : void 0,
         onMoreMenu: (e5) => this.buildBoardMoreMenu(file, model, sourcePath).showAtMouseEvent(e5),
-        setIcon: (el4, name2) => (0, import_obsidian12.setIcon)(el4, name2)
+        setIcon: (el4, name2) => (0, import_obsidian13.setIcon)(el4, name2)
       }),
       wrap
     );
@@ -125314,14 +125332,14 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
    *  Uses the standalone static renderer (self-contained SVG via collectPluginCss)
    *  so it works without a live canvas. */
   buildBoardExportMenu(model, baseName) {
-    const menu = new import_obsidian12.Menu();
+    const menu = new import_obsidian13.Menu();
     const run = async (fn2) => {
       try {
         const saved = await fn2();
-        if (saved) new import_obsidian12.Notice(`\u0110\xE3 export: ${saved}`);
+        if (saved) new import_obsidian13.Notice(`\u0110\xE3 export: ${saved}`);
       } catch (err2) {
         console.warn("[omniboard] board export failed", err2);
-        new import_obsidian12.Notice("Export th\u1EA5t b\u1EA1i \u2014 xem console.");
+        new import_obsidian13.Notice("Export th\u1EA5t b\u1EA1i \u2014 xem console.");
       }
     };
     menu.addItem(
@@ -125344,7 +125362,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
   /** Overflow (⋯) menu for a board embed card. `hostPath` is the note the
    *  embed lives in — used by "Xóa khỏi note" to remove the `![[...]]` line. */
   buildBoardMoreMenu(file, model, hostPath) {
-    const menu = new import_obsidian12.Menu();
+    const menu = new import_obsidian13.Menu();
     menu.addItem(
       (i6) => i6.setTitle("S\u1EEDa to\xE0n m\xE0n h\xECnh").setIcon("maximize-2").onClick(() => void this.openBoardFile(file))
     );
@@ -125359,9 +125377,9 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
           try {
             const png = await exportPng(model, 2);
             await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
-            new import_obsidian12.Notice("\u0110\xE3 copy v\xE0o clipboard");
+            new import_obsidian13.Notice("\u0110\xE3 copy v\xE0o clipboard");
           } catch (e5) {
-            new import_obsidian12.Notice("Copy clipboard th\u1EA5t b\u1EA1i (browser c\xF3 th\u1EC3 kh\xF4ng h\u1ED7 tr\u1EE3).");
+            new import_obsidian13.Notice("Copy clipboard th\u1EA5t b\u1EA1i (browser c\xF3 th\u1EC3 kh\xF4ng h\u1ED7 tr\u1EE3).");
           }
         })
       );
@@ -125381,8 +125399,8 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
   async removeEmbedFromNote(boardFile, hostPath) {
     var _a3, _b2;
     const host = this.app.vault.getAbstractFileByPath(hostPath);
-    if (!(host instanceof import_obsidian12.TFile)) {
-      new import_obsidian12.Notice("Kh\xF4ng t\xECm th\u1EA5y note ch\u1EE9a board.");
+    if (!(host instanceof import_obsidian13.TFile)) {
+      new import_obsidian13.Notice("Kh\xF4ng t\xECm th\u1EA5y note ch\u1EE9a board.");
       return;
     }
     const embeds = (_b2 = (_a3 = this.app.metadataCache.getFileCache(host)) == null ? void 0 : _a3.embeds) != null ? _b2 : [];
@@ -125394,7 +125412,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       return (dest == null ? void 0 : dest.path) === boardFile.path;
     });
     if (!target) {
-      new import_obsidian12.Notice("Kh\xF4ng t\xECm th\u1EA5y embed c\u1EE7a board trong note n\xE0y.");
+      new import_obsidian13.Notice("Kh\xF4ng t\xECm th\u1EA5y embed c\u1EE7a board trong note n\xE0y.");
       return;
     }
     try {
@@ -125404,10 +125422,10 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       if (content5[after2] === "\n") after2 += 1;
       const next = content5.slice(0, start.offset) + content5.slice(after2);
       await this.app.vault.modify(host, next);
-      new import_obsidian12.Notice("\u0110\xE3 g\u1EE1 board kh\u1ECFi note.");
+      new import_obsidian13.Notice("\u0110\xE3 g\u1EE1 board kh\u1ECFi note.");
     } catch (e5) {
       console.error("[omniboard] removeEmbedFromNote failed", e5);
-      new import_obsidian12.Notice("G\u1EE1 board kh\u1ECFi note th\u1EA5t b\u1EA1i \u2014 xem console.");
+      new import_obsidian13.Notice("G\u1EE1 board kh\u1ECFi note th\u1EA5t b\u1EA1i \u2014 xem console.");
     }
   }
   async loadSettings() {

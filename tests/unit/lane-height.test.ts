@@ -157,7 +157,7 @@ describe("BPMN round-trip keeps lane heights", () => {
     expect(lanesOf(back, "P1").map((l) => l.height)).toEqual([150, 350]);
   });
 
-  it("legacy pool without lane heights keeps the old export layout", async () => {
+  it("legacy pool without lane heights exports its Board rect, lanes split equally", async () => {
     const legacy: CanvasModel = {
       ...model,
       nodes: model.nodes.map((n) => n.id !== "pool_k" ? n : {
@@ -165,9 +165,8 @@ describe("BPMN round-trip keeps lane heights", () => {
       }),
     };
     const xml = await exportBpmn(legacy);
-    // old behaviour: participant hugs member nodes (40px margin), not the Board rect
     const pool = bounds(xml, "pool_k");
-    expect(pool.y).toBe(20 - 40);
-    expect(pool.h).toBe(500 + 80 - 20 + 80);
+    expect([pool.y, pool.h]).toEqual([0, 600]);
+    expect([bounds(xml, "lane_kh").h, bounds(xml, "lane_tp").h, bounds(xml, "lane_sale").h]).toEqual([200, 200, 200]);
   });
 });

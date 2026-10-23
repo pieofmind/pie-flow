@@ -4123,7 +4123,7 @@ export class OmniboardCanvas {
   }
 
   // ── Model load / serialize ───────────────────────────────────────────────
-  loadModel(model: CanvasModel) {
+  loadModel(model: CanvasModel, opts?: { keepView?: boolean }) {
     // Migration: legacy pool defaults hardcoded lane id "l1", so files with
     // ≥2 pools have duplicate lane ids across pools. exportBpmn dồn lanes
     // vào 1 laneSet → invalid BPMN (Canvas._ensureValid: "element already
@@ -4369,7 +4369,7 @@ export class OmniboardCanvas {
       this.refreshMinimap();
       this.refreshBpmnEventLabels();
     }, 80);
-    if (model.nodes.length) this.fitWhenReady();
+    if (model.nodes.length && !opts?.keepView) this.fitWhenReady();
   }
 
   // In Obsidian the view container may have 0 size at load time (layout not

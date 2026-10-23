@@ -73799,6 +73799,19 @@
         clearDropTarget();
         if (ok) g2.classList.add("lk-drop-target");
       }, true);
+      this.graphMount.addEventListener("mousemove", (e2) => {
+        if (!this.root.classList.contains("lk-dragging-edge")) return;
+        const dangling = this.graph.getEdges().find((ed) => !ed.getSourceCellId() !== !ed.getTargetCellId());
+        if (!dangling) return;
+        const otherId = dangling.getSourceCellId() ?? dangling.getTargetCellId() ?? void 0;
+        const otherPt = dangling.getSourceCellId() ? dangling.getSourcePoint() : dangling.getTargetPoint();
+        const hit = otherPt ? this.poolAt(this.graph.clientToLocal(e2.clientX, e2.clientY), otherPt, otherId) : null;
+        const viewOf = (n2) => this.graph.findViewByCell(n2)?.container;
+        for (const n2 of this.graph.getNodes()) {
+          if (this.nodeKind(n2) !== "bpmn-pool") continue;
+          viewOf(n2)?.classList.toggle("lk-drop-target", n2 === hit?.pool);
+        }
+      }, true);
       const addDoc = (type, fn2) => {
         document.addEventListener(type, fn2, true);
         this.docListeners.push({ type, fn: fn2 });
@@ -74005,8 +74018,20 @@
           currentPort: currentPort ?? null
         });
       });
+      const sourceBefore = /* @__PURE__ */ new Map();
+      this.graph.on("edge:change:source", ({ edge, previous, current }) => {
+        const prevCell = previous?.cell;
+        const curCell = current?.cell;
+        if (prevCell && !curCell && !sourceBefore.has(edge.id)) sourceBefore.set(edge.id, previous);
+        if (curCell) sourceBefore.delete(edge.id);
+      });
       this.graphMount.addEventListener("mouseup", () => {
         window.setTimeout(() => {
+          const looseSource = this.graph.getEdges().find((e2) => !e2.getSourceCellId() && !!e2.getTargetCellId());
+          if (looseSource) {
+            this.settleDroppedSource(looseSource, sourceBefore.get(looseSource.id));
+            sourceBefore.delete(looseSource.id);
+          }
           if (this.pendingDrop) return;
           const dangling = this.graph.getEdges().find((e2) => !!e2.getSourceCellId() && !e2.getTargetCellId());
           if (!dangling) return;
@@ -76431,24 +76456,51 @@
       }
       this.showPopup(grid, anchor3);
     }
-    /** End `edge` on the pool under `pt`, straight above / below its source,
-     *  as a message flow (the only flow BPMN allows to a participant). The
-     *  topLeft anchor keeps its offset when the pool moves. */
-    endOnPool(edge, src, pt2) {
-      const other = edge.getSourcePoint() ?? src.getBBox().center;
-      let hit = null;
-      for (const n2 of this.graph.getNodes()) {
-        if (n2.id === src.id || this.nodeKind(n2) !== "bpmn-pool") continue;
-        const b2 = n2.getBBox();
-        const anchor3 = poolDropAnchor({ x: b2.x, y: b2.y, width: b2.width, height: b2.height, blackBox: !!this.nodeExtra(n2).blackBox }, pt2, other);
-        if (anchor3 && (!hit || b2.width * b2.height < hit.area)) hit = { pool: n2, anchor: anchor3, area: b2.width * b2.height };
-      }
+    /** End `edge`'s `end` (target by default) on the pool under `pt`, straight
+     *  above / below the other end, as a message flow (the only flow BPMN
+     *  allows to a participant). The topLeft anchor keeps its offset when the
+     *  pool moves. */
+    endOnPool(edge, other, pt2, end = "target") {
+      const otherPt = (end === "target" ? edge.getSourcePoint() : edge.getTargetPoint()) ?? other.getBBox().center;
+      const hit = this.poolAt(pt2, otherPt, other.id);
       if (!hit) return false;
-      edge.setTarget({ cell: hit.pool.id, anchor: { name: "topLeft", args: hit.anchor }, connectionPoint: { name: "anchor" } });
+      const terminal = { cell: hit.pool.id, anchor: { name: "topLeft", args: hit.anchor }, connectionPoint: { name: "anchor" } };
+      if (end === "target") edge.setTarget(terminal);
+      else edge.setSource(terminal);
       edge.setVertices([]);
       this.applyFlowType(edge, "message");
       this.onChange();
       return true;
+    }
+    /** The (smallest) pool that takes an arrow end dropped at `pt`. */
+    poolAt(pt2, otherPt, excludeId) {
+      let hit = null;
+      for (const n2 of this.graph.getNodes()) {
+        if (n2.id === excludeId || this.nodeKind(n2) !== "bpmn-pool") continue;
+        const b2 = n2.getBBox();
+        const anchor3 = poolDropAnchor({ x: b2.x, y: b2.y, width: b2.width, height: b2.height, blackBox: !!this.nodeExtra(n2).blackBox }, pt2, otherPt);
+        if (anchor3 && (!hit || b2.width * b2.height < hit.area)) hit = { pool: n2, anchor: anchor3, area: b2.width * b2.height };
+      }
+      return hit;
+    }
+    /**
+     * The source end of an existing arrow was dropped where X6 found no port
+     * (it leaves a bare point). On a pool → message flow from the pool's
+     * border; on a node → its nearest port; elsewhere → back where it was.
+     */
+    settleDroppedSource(edge, before2) {
+      const tgtId = edge.getTargetCellId();
+      const tgt = tgtId ? this.graph.getCellById(tgtId) : null;
+      const pt2 = edge.getSourcePoint();
+      if (!tgt || !tgt.isNode() || !pt2) return;
+      if (this.endOnPool(edge, tgt, pt2, "source")) return;
+      const best = pickDropTarget(
+        this.graph.getNodes().filter((n2) => n2.id !== tgt.id && !this.isPortDisabledNode(n2.id)).map((n2) => ({ n: n2, bbox: n2.getBBox() })),
+        pt2
+      )?.n;
+      if (best) edge.setSource(portEndpoint(best.id, nearestFixedPort(best, pt2)));
+      else if (before2) edge.setSource(before2);
+      this.onChange();
     }
     /** Set an edge's BPMN flow type: visual preset + semantic kind / attrs. */
     applyFlowType(edge, key) {

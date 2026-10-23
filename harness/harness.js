@@ -84521,6 +84521,11 @@
         if (ar.$type === "bpmn:Association") associations2.push(ar);
         else if (ar.$type === "bpmn:TextAnnotation" || ar.$type === "bpmn:Group") flowNodes.push(ar);
       }
+      const io = parent.ioSpecification;
+      for (const d2 of [...io?.dataInputs ?? [], ...io?.dataOutputs ?? []]) {
+        flowNodes.push(d2);
+        if (parentSubprocessId && d2.id) flowNodeParentId.set(d2.id, parentSubprocessId);
+      }
     };
     for (const root2 of definitions.rootElements ?? []) {
       collectFlow(root2);
@@ -84605,7 +84610,8 @@
       const extras = bpmnExtras(fn2, tagLc);
       const di = diShapes.get(id);
       const collapsedTask = tagLc === "subProcess" && !extras.kindOverride && di?.isExpanded === false && !fn2.flowElements?.length;
-      const shape = collapsedTask ? "bpmn-task" : extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
+      const collection = tagLc === "dataObjectReference" && fn2.dataObjectRef?.isCollection === true;
+      const shape = collapsedTask ? "bpmn-task" : collection ? "bpmn-data-collection" : extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
       const markers = collapsedTask ? [...extras.markers ?? [], "subprocess"] : extras.markers;
       const bounds = di?.bounds;
       const x3 = bounds?.x ?? 100;
@@ -84639,7 +84645,7 @@
         y: y3,
         width: width2,
         height: height2,
-        label: ((fn2.$type === "bpmn:TextAnnotation" ? fn2.text : fn2.name) ?? "").replace(/&#10;/g, "\n"),
+        label: ((fn2.$type === "bpmn:TextAnnotation" ? fn2.text : fn2.$type === "bpmn:Group" ? fn2.categoryValueRef?.value : fn2.name) ?? "").replace(/&#10;/g, "\n"),
         ...flowNodeParentId.get(id) ? { parentId: flowNodeParentId.get(id) } : {},
         ...flowNodeLaneId.get(id) ? { laneId: flowNodeLaneId.get(id) } : {},
         attrs: {
@@ -84884,6 +84890,68 @@
     }
     return void 0;
   }
+  function processOwner(model, processes, collaboration) {
+    const byId = new Map(processes.map((p4) => [p4.id, p4]));
+    const ofLane = /* @__PURE__ */ new Map();
+    const walk = (lanes, pr) => {
+      for (const ln3 of lanes ?? []) {
+        if (ln3.id) ofLane.set(ln3.id, pr);
+        walk(ln3.childLaneSet?.lanes, pr);
+      }
+    };
+    for (const pr of processes) for (const ls of pr.laneSets ?? []) walk(ls.lanes, pr);
+    const ofPool = /* @__PURE__ */ new Map();
+    for (const part of collaboration?.participants ?? []) {
+      const ref2 = part.processRef;
+      const pr = byId.get(typeof ref2 === "string" ? ref2 : ref2?.id);
+      if (part.id && pr) ofPool.set(part.id, pr);
+    }
+    const pools = model.nodes.filter((n2) => n2.shape === "bpmn-pool" && ofPool.has(n2.id));
+    return (n2) => {
+      const lane = n2.laneId ? ofLane.get(n2.laneId) : void 0;
+      if (lane) return lane;
+      const poolId = n2.attrs?.poolId;
+      if (poolId && ofPool.has(poolId)) return ofPool.get(poolId);
+      const cx = n2.x + n2.width / 2, cy = n2.y + n2.height / 2;
+      const pool = pools.find((p4) => cx >= p4.x && cx <= p4.x + p4.width && cy >= p4.y && cy <= p4.y + p4.height);
+      return pool && ofPool.get(pool.id) || processes[0];
+    };
+  }
+  var isArtifactShape = (shape) => shape === "bpmn-annotation" || shape === "bpmn-group";
+  function addToContainer(m4, defs, container, n2, fe3) {
+    if (isArtifactShape(n2.shape)) {
+      (container.artifacts ??= []).push(fe3);
+      if (n2.shape === "bpmn-group") setGroupLabel(m4, defs, fe3, n2.label ?? "");
+      return;
+    }
+    if (n2.shape === "bpmn-data-input" || n2.shape === "bpmn-data-output") {
+      const c4 = container;
+      const io = c4.ioSpecification ??= m4.create("bpmn:InputOutputSpecification", { id: `${container.id}_io`, dataInputs: [], dataOutputs: [] });
+      if (n2.shape === "bpmn-data-input") (io.dataInputs ??= []).push(fe3);
+      else (io.dataOutputs ??= []).push(fe3);
+      io.inputSets = [m4.create("bpmn:InputSet", { dataInputRefs: io.dataInputs ?? [] })];
+      io.outputSets = [m4.create("bpmn:OutputSet", { dataOutputRefs: io.dataOutputs ?? [] })];
+      return;
+    }
+    if (n2.shape === "bpmn-data-object" || n2.shape === "bpmn-data-collection") {
+      const dataObject = m4.create("bpmn:DataObject", { id: `${n2.id}_object`, ...n2.shape === "bpmn-data-collection" ? { isCollection: true } : {} });
+      fe3.dataObjectRef = dataObject;
+      (container.flowElements ??= []).push(dataObject);
+    }
+    (container.flowElements ??= []).push(fe3);
+  }
+  function setGroupLabel(m4, defs, group, label) {
+    const g2 = group;
+    if (g2.categoryValueRef) {
+      g2.categoryValueRef.value = label;
+      return;
+    }
+    if (!label) return;
+    const cv = m4.create("bpmn:CategoryValue", { id: `${group.id}_value`, value: label });
+    const cat = m4.create("bpmn:Category", { id: `${group.id}_category`, categoryValue: [cv] });
+    (defs.rootElements ??= []).push(cat);
+    g2.categoryValueRef = cv;
+  }
   function placeOnPlanes(defs, mainPlane, model, diShape, diEdge, feById, m4) {
     const byId = new Map(model.nodes.map((n2) => [n2.id, n2]));
     const subPlanes = /* @__PURE__ */ new Map();
@@ -84933,8 +85001,9 @@
   function applyEdgeExtras(m4, fe3, kind, attrs) {
     if (kind === "sequence") {
       if (attrs?.condition) {
-        const ce3 = m4.create("bpmn:FormalExpression", { body: attrs.condition });
-        fe3.conditionExpression = ce3;
+        const ce3 = fe3.conditionExpression;
+        if (ce3) ce3.body = attrs.condition;
+        else fe3.conditionExpression = m4.create("bpmn:FormalExpression", { body: attrs.condition });
       } else {
         delete fe3.conditionExpression;
       }
@@ -84954,29 +85023,29 @@
     return null;
   }
   function applyBpmnExtras(m4, fe3, shape, attrs) {
-    if (attrs.trigger && TRIGGER_TO_EVENT_DEF[attrs.trigger]) {
-      const defName = TRIGGER_TO_EVENT_DEF[attrs.trigger];
-      const defType = "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1);
-      const def = m4.create(defType, {});
-      fe3.eventDefinitions = [def];
+    const el2 = fe3;
+    if (/^bpmn-event-(start|intermediate|end)/.test(shape)) {
+      const defName = attrs.trigger ? TRIGGER_TO_EVENT_DEF[attrs.trigger] : void 0;
+      const defType = defName ? "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1) : void 0;
+      if (!defType) delete el2.eventDefinitions;
+      else if (el2.eventDefinitions?.[0]?.$type !== defType) el2.eventDefinitions = [m4.create(defType, {})];
     }
     const markers = attrs.markers ?? [];
-    if (markers.includes("mi-par") || markers.includes("mi-seq")) {
-      const loop3 = m4.create("bpmn:MultiInstanceLoopCharacteristics", { isSequential: markers.includes("mi-seq") });
-      fe3.loopCharacteristics = loop3;
-    } else if (markers.includes("loop")) {
-      const loop3 = m4.create("bpmn:StandardLoopCharacteristics", {});
-      fe3.loopCharacteristics = loop3;
+    const loopType = markers.includes("mi-par") || markers.includes("mi-seq") ? "bpmn:MultiInstanceLoopCharacteristics" : markers.includes("loop") ? "bpmn:StandardLoopCharacteristics" : void 0;
+    if (!loopType) delete el2.loopCharacteristics;
+    else if (el2.loopCharacteristics?.$type !== loopType) el2.loopCharacteristics = m4.create(loopType, {});
+    if (loopType === "bpmn:MultiInstanceLoopCharacteristics") {
+      if (markers.includes("mi-seq")) el2.loopCharacteristics.isSequential = true;
+      else delete el2.loopCharacteristics.isSequential;
     }
-    if (markers.includes("compensation")) {
-      fe3.isForCompensation = true;
-    }
-    if (attrs.interrupting === false) {
-      if (shape === "bpmn-event-start") {
-        fe3.isInterrupting = false;
-      } else {
-        fe3.cancelActivity = false;
-      }
+    if (markers.includes("compensation")) el2.isForCompensation = true;
+    else delete el2.isForCompensation;
+    if (shape === "bpmn-event-start") {
+      if (attrs.interrupting === false) el2.isInterrupting = false;
+      else delete el2.isInterrupting;
+    } else if (shape === "bpmn-event-intermediate") {
+      if (attrs.interrupting === false && attrs.attachedTo) el2.cancelActivity = false;
+      else delete el2.cancelActivity;
     }
     if (attrs.attachedTo) {
       fe3.attachedToRef = { id: attrs.attachedTo };
@@ -84984,15 +85053,17 @@
     if (shape === "bpmn-event-subprocess") {
       fe3.triggeredByEvent = true;
     }
-    if (shape === "bpmn-data-collection") {
-      fe3.isCollection = true;
+    const dataObject = fe3.dataObjectRef;
+    if (dataObject && typeof dataObject === "object") {
+      if (shape === "bpmn-data-collection") dataObject.isCollection = true;
+      else if (shape === "bpmn-data-object") delete dataObject.isCollection;
     }
-    if (typeof attrs.bpmnDoc === "string" && attrs.bpmnDoc.trim()) {
-      const doc = m4.create("bpmn:Documentation", { text: attrs.bpmnDoc.trim() });
-      fe3.documentation = [doc];
-    } else {
-      delete fe3.documentation;
-    }
+    const docEl = fe3;
+    const rest = (docEl.documentation ?? []).slice(1);
+    const text4 = typeof attrs.bpmnDoc === "string" ? attrs.bpmnDoc.trim() : "";
+    const first = text4 ? [m4.create("bpmn:Documentation", { text: text4 })] : [];
+    if (first.length || rest.length) docEl.documentation = [...first, ...rest];
+    else delete docEl.documentation;
     if (attrs.camunda && Object.keys(attrs.camunda).length) {
       const existing = fe3.extensionElements;
       if (existing?.values) {
@@ -85206,7 +85277,8 @@
         else if (pe3.$type === "bpmndi:BPMNEdge") diEdge.set(refId, pe3);
       }
     }
-    const process2 = (definitions.rootElements ?? []).find((r2) => r2.$type === "bpmn:Process") ?? null;
+    const processes = (definitions.rootElements ?? []).filter((r2) => r2.$type === "bpmn:Process");
+    const process2 = processes[0] ?? null;
     if (!process2) throw new Error("BPMN export: source document has no bpmn:Process.");
     const flowById = /* @__PURE__ */ new Map();
     const containerOf = /* @__PURE__ */ new Map();
@@ -85219,13 +85291,20 @@
         if (fe3.flowElements) collect(fe3);
       }
       for (const ar of parent.artifacts ?? []) {
-        if (ar.id && ar.$type === "bpmn:Association") {
+        if (ar.id && /Association|TextAnnotation|Group/.test(ar.$type)) {
           flowById.set(ar.id, ar);
           containerOf.set(ar.id, parent);
         }
       }
+      const io = parent.ioSpecification;
+      for (const d2 of [...io?.dataInputs ?? [], ...io?.dataOutputs ?? []]) {
+        if (d2.id) {
+          flowById.set(d2.id, d2);
+          containerOf.set(d2.id, parent);
+        }
+      }
     };
-    collect(process2);
+    processes.forEach(collect);
     const collaboration = findCollaboration(definitions);
     if (collaboration) {
       for (const mf of collaboration.messageFlows ?? []) {
@@ -85234,7 +85313,8 @@
     }
     const modelNodeIds = new Set(model.nodes.map((n2) => n2.id));
     const endpointIds = new Set(flowById.keys());
-    for (const ar of process2.artifacts ?? []) if (ar.id) endpointIds.add(ar.id);
+    for (const pr of processes) for (const ar of pr.artifacts ?? []) if (ar.id) endpointIds.add(ar.id);
+    const owningProcess = processOwner(model, processes, collaboration);
     for (const p4 of collaboration?.participants ?? []) if (p4.id) endpointIds.add(p4.id);
     const validModelEdges = model.edges.filter(
       (e2) => (modelNodeIds.has(e2.source) || endpointIds.has(e2.source)) && (modelNodeIds.has(e2.target) || endpointIds.has(e2.target))
@@ -85249,7 +85329,7 @@
       const isPool = n2.shape === "bpmn-pool" || srcKind === "pool";
       const isLane = n2.shape === "bpmn-lane" || srcKind === "lane";
       if (isPool || isLane) continue;
-      const targetContainer = n2.parentId && flowById.get(n2.parentId) || process2;
+      const targetContainer = n2.parentId && flowById.get(n2.parentId) || owningProcess(n2);
       let di = diShape.get(n2.id);
       if (di?.bounds) {
         di.bounds.x = n2.x;
@@ -85276,7 +85356,7 @@
       } else {
         const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), n2.shape === "bpmn-annotation" ? { id: n2.id, text: n2.label ?? "" } : n2.shape === "bpmn-group" ? { id: n2.id } : { id: n2.id, name: n2.label ?? "" });
         applyBpmnExtras(m4, fe3, n2.shape, n2.attrs ?? {});
-        (targetContainer.flowElements ??= []).push(fe3);
+        addToContainer(m4, definitions, targetContainer, n2, fe3);
         flowById.set(n2.id, fe3);
         containerOf.set(n2.id, targetContainer);
         di = m4.create("bpmndi:BPMNShape", {
@@ -85298,7 +85378,7 @@
         flowById.set(n2.id, sub);
         existing = sub;
       }
-      if (existing && curContainer && curContainer !== targetContainer) {
+      if (existing && curContainer && curContainer !== targetContainer && curContainer.flowElements?.includes(existing)) {
         curContainer.flowElements = (curContainer.flowElements ?? []).filter((fe3) => fe3.id !== n2.id);
         (targetContainer.flowElements ??= []).push(existing);
         containerOf.set(n2.id, targetContainer);
@@ -85306,7 +85386,8 @@
       if (existing) {
         if (typeof n2.label === "string") {
           if (n2.shape === "bpmn-annotation") existing.text = n2.label;
-          else if (n2.shape !== "bpmn-group") existing.name = n2.label;
+          else if (n2.shape === "bpmn-group") setGroupLabel(m4, definitions, existing, n2.label);
+          else existing.name = n2.label;
         }
         applyBpmnExtras(m4, existing, n2.shape, n2.attrs ?? {});
       }
@@ -85320,26 +85401,31 @@
       if (src) referenced.add(src);
       if (tgt) referenced.add(tgt);
     };
-    for (const fe3 of process2.flowElements ?? []) {
-      if (fe3.$type === "bpmn:SequenceFlow") collectRefs(fe3);
-    }
-    for (const ar of process2.artifacts ?? []) {
-      if (ar.$type === "bpmn:Association") collectRefs(ar);
+    for (const pr of processes) {
+      for (const fe3 of pr.flowElements ?? []) if (fe3.$type === "bpmn:SequenceFlow") collectRefs(fe3);
+      for (const ar of pr.artifacts ?? []) if (ar.$type === "bpmn:Association") collectRefs(ar);
     }
     if (collaboration) {
       for (const mf of collaboration.messageFlows ?? []) collectRefs(mf);
     }
+    const survives = (fe3) => modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
     const filterFlowElements = (parent) => {
-      parent.flowElements = (parent.flowElements ?? []).filter((fe3) => {
+      const kept = (parent.flowElements ?? []).filter((fe3) => {
         if (fe3.$type === "bpmn:SequenceFlow") return modelSequenceEdgeIds.has(fe3.id);
-        const survives = modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
-        return survives;
+        return fe3.$type === "bpmn:DataObject" || survives(fe3);
       });
+      const used = new Set(kept.map((fe3) => refIdOf(fe3.dataObjectRef)));
+      parent.flowElements = kept.filter((fe3) => fe3.$type !== "bpmn:DataObject" || used.has(fe3.id) || survives(fe3));
+      const io = parent.ioSpecification;
+      if (io) {
+        if (io.dataInputs) io.dataInputs = io.dataInputs.filter(survives);
+        if (io.dataOutputs) io.dataOutputs = io.dataOutputs.filter(survives);
+      }
       for (const fe3 of parent.flowElements) {
         if (fe3.flowElements) filterFlowElements(fe3);
       }
     };
-    filterFlowElements(process2);
+    processes.forEach(filterFlowElements);
     {
       const byLaneId = /* @__PURE__ */ new Map();
       for (const n2 of model.nodes) {
@@ -85349,11 +85435,12 @@
         byLaneId.set(n2.laneId, arr);
       }
       const refsOf = (laneId) => (byLaneId.get(laneId) ?? []).map((id) => flowById.get(id)).filter((fe3) => !!fe3);
-      for (const ls of process2.laneSets ?? []) fillLaneRefs(ls.lanes, refsOf);
+      for (const pr of processes) for (const ls of pr.laneSets ?? []) fillLaneRefs(ls.lanes, refsOf);
     }
-    if (process2.artifacts) {
-      process2.artifacts = process2.artifacts.filter((ar) => {
+    for (const pr of processes.filter((x3) => x3.artifacts)) {
+      pr.artifacts = pr.artifacts.filter((ar) => {
         if (ar.$type === "bpmn:Association") return modelAssociationEdgeIds.has(ar.id);
+        if (ar.$type === "bpmn:TextAnnotation" || ar.$type === "bpmn:Group") return survives(ar);
         return true;
       });
     }
@@ -85373,6 +85460,11 @@
     };
     for (const pl of indexedPlanes) pl.planeElement = (pl.planeElement ?? []).filter(keepDi);
     emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m4);
+    const rootProcessOf = (id) => {
+      let c4 = containerOf.get(id);
+      for (let i3 = 0; c4 && c4.$type !== "bpmn:Process" && i3 < 64; i3++) c4 = containerOf.get(c4.id);
+      return c4 ?? process2;
+    };
     for (const e2 of validModelEdges) {
       const srcNode = model.nodes.find((n2) => n2.id === e2.source);
       const tgtNode = model.nodes.find((n2) => n2.id === e2.target);
@@ -85399,15 +85491,16 @@
         });
         if (kind === "message") {
           if (!collaboration) {
-            (process2.flowElements ??= []).push(sf);
+            (rootProcessOf(e2.source).flowElements ??= []).push(sf);
           } else {
             (collaboration.messageFlows ??= []).push(sf);
           }
         } else if (kind === "association") {
-          (process2.artifacts ??= []).push(sf);
+          (rootProcessOf(e2.source).artifacts ??= []).push(sf);
         } else {
-          (process2.flowElements ??= []).push(sf);
+          (rootProcessOf(e2.source).flowElements ??= []).push(sf);
         }
+        containerOf.set(e2.id, kind === "message" && collaboration ? collaboration : rootProcessOf(e2.source));
         flowById.set(e2.id, sf);
       } else if (typeof e2.label === "string" && kind !== "association") {
         sf.name = e2.label;
@@ -85446,9 +85539,7 @@
       const p4 = parentOf.get(e2.source);
       const home = p4 && p4 === parentOf.get(e2.target) ? flowById.get(p4) : void 0;
       const cur = containerOf.get(e2.id) ?? process2;
-      let up = cur;
-      while (up.$type !== "bpmn:Process" && containerOf.get(up.id)) up = containerOf.get(up.id);
-      const target = home ?? up;
+      const target = home ?? rootProcessOf(e2.source);
       if (target === cur) continue;
       cur.flowElements = (cur.flowElements ?? []).filter((fe3) => fe3 !== sf);
       (target.flowElements ??= []).push(sf);
@@ -85815,8 +85906,7 @@
       if (n2.shape === "bpmn-pool" || n2.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
       const fe3 = feById.get(n2.id);
       const parent = n2.parentId ? feById.get(n2.parentId) : void 0;
-      const container = parent ?? findOwningProcess(n2);
-      (container.flowElements ??= []).push(fe3);
+      addToContainer(m4, defs, parent ?? findOwningProcess(n2), n2, fe3);
     }
     const allProcesses = multiPool ? [...processByPoolId.values()] : [process2];
     for (const proc of allProcesses) {

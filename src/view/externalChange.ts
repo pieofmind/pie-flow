@@ -1,4 +1,4 @@
-import { Modal, type App } from "obsidian";
+import { Modal, type App, type TFile, type Vault } from "obsidian";
 
 /**
  * "File changed from outside while you were editing" — shared by the Board and
@@ -33,4 +33,25 @@ class ExternalChangeModal extends Modal {
     this.contentEl.empty();
     if (!this.answered) this.done("reload");
   }
+}
+
+/**
+ * Write `text` to `file` only if the disk still holds what we expect
+ * (`unchanged(disk)`), as one read-modify-write (vault.process) so an outside
+ * write can't slip in between our check and our write. Returns whether it
+ * wrote.
+ */
+export async function writeIfUnchanged(
+  vault: Vault,
+  file: TFile,
+  unchanged: (disk: string) => boolean,
+  text: string,
+): Promise<boolean> {
+  let wrote = false;
+  await vault.process(file, (disk) => {
+    if (!unchanged(disk)) return disk;
+    wrote = true;
+    return text;
+  });
+  return wrote;
 }

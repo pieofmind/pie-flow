@@ -48,7 +48,7 @@ export type ChangeCallback = () => void;
 type BpmnCanvas = {
   zoom: (value?: number | "fit-viewport", center?: { x: number; y: number } | "auto") => number | void;
   scroll: (delta: { dx: number; dy: number }) => void;
-  viewbox: () => { x: number; y: number; width: number; height: number; scale: number };
+  viewbox: (box?: { x: number; y: number; width: number; height: number }) => { x: number; y: number; width: number; height: number; scale: number };
   resized?: () => void;
 };
 
@@ -70,6 +70,7 @@ export class BpmnNativeController {
     container: HTMLElement,
     xml: string,
     onChanged?: ChangeCallback,
+    opts?: { viewbox?: { x: number; y: number; width: number; height: number } },
   ): Promise<{ warnings: string[] }> {
     this.dispose();
     this.onChanged = onChanged ?? null;
@@ -96,7 +97,9 @@ export class BpmnNativeController {
       // first layout pass on iOS, leaving `clientHeight=0` at this point;
       // calling fit-viewport against a zero bbox produces a fallback scale
       // anchored top-left (the "diagram dán cứng top" symptom).
-      this.scheduleInitialFit(container);
+      // Re-mount of the same file (outside change reloaded): keep the view.
+      if (opts?.viewbox) this.setViewbox(opts.viewbox);
+      else this.scheduleInitialFit(container);
       this.installResizeObserver(container);
 
       return { warnings };
@@ -128,6 +131,22 @@ export class BpmnNativeController {
     if (canvas && typeof canvas.zoom === "function") {
       canvas.zoom(value);
     }
+  }
+
+  /** Current visible area (diagram coordinates). */
+  getViewbox(): { x: number; y: number; width: number; height: number } | null {
+    if (!this.modeler) return null;
+    const canvas = this.modeler.get("canvas") as BpmnCanvas;
+    if (!canvas || typeof canvas.viewbox !== "function") return null;
+    const { x, y, width, height } = canvas.viewbox();
+    return { x, y, width, height };
+  }
+
+  /** Show exactly this area (diagram coordinates). */
+  setViewbox(box: { x: number; y: number; width: number; height: number }): void {
+    if (!this.modeler) return;
+    const canvas = this.modeler.get("canvas") as BpmnCanvas;
+    if (canvas && typeof canvas.viewbox === "function") canvas.viewbox(box);
   }
 
   /** Read current zoom level. */

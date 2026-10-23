@@ -23,7 +23,21 @@ export class FakeVault {
   views: Array<{ onModify(f: unknown): void }> = [];
   /** Runs after a write has landed, before modify() resolves (inject races here). */
   afterWrite: (() => Promise<void>) | null = null;
-  async read(_f: unknown): Promise<string> { return this.text; }
+  /** Runs right after a read returns (inject a write that lands "between
+   *  the check and the write"). */
+  afterRead: (() => void) | null = null;
+  async read(_f: unknown): Promise<string> {
+    const t = this.text;
+    const hook = this.afterRead; this.afterRead = null;
+    if (hook) queueMicrotask(hook);
+    return t;
+  }
+  /** Obsidian's atomic read-modify-write. */
+  async process(f: unknown, fn: (data: string) => string): Promise<string> {
+    const next = fn(this.text);
+    if (next !== this.text) await this.modify(f, next);
+    return next;
+  }
   async modify(f: unknown, t: string): Promise<void> {
     this.text = t; this.writes.push(t);
     for (const v of this.views) v.onModify(f);

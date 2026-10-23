@@ -31,7 +31,7 @@ import { mergeBpmnImport, collectIds } from "../view/mergeBpmnCanvas";
 import type { CanvasModel } from "../canvas/types";
 import type { SourceMeta } from "../io/types";
 import { BOARD_VIEW_TYPE } from "../view/BoardView";
-import { askExternalChange } from "../view/externalChange";
+import { askExternalChange, writeIfUnchanged } from "../view/externalChange";
 // Inline at build time via esbuild `loader: { ".css": "text" }`. Runtime
 // disk read fails on mobile (sync timing + sandboxed adapter).
 import BPMN_NATIVE_CSS from "./bpmn-native.css";
@@ -82,6 +82,8 @@ export class BpmnNativeView extends TextFileView {
   private knownDisk: string | null = null;
   /** Set while asking the user about a conflict; no save may write meanwhile. */
   private conflict: Promise<void> | null = null;
+  /** Viewbox to restore on the next mount (outside change reloaded). */
+  private keepViewbox: { x: number; y: number; width: number; height: number } | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: DiagramsPlugin) {
     super(leaf);
@@ -370,6 +372,7 @@ export class BpmnNativeView extends TextFileView {
         this.bpmnContainer,
         xml,
         () => this.onModelerChanged(),
+        this.keepViewbox ? { viewbox: this.keepViewbox } : undefined,
       );
 
       this.createNavigationWidget();
@@ -447,9 +450,7 @@ export class BpmnNativeView extends TextFileView {
         console.warn("[BpmnNative] File changed during persistXml; aborting save");
         return;
       }
-      if (!(await this.safeToWrite())) return;
-      await super.save();
-      this.dirty = false;
+      if (await this.writeNative()) this.dirty = false;
     } catch (err: unknown) {
       console.error("[BpmnNative] Save failed:", err);
     }
@@ -466,18 +467,39 @@ export class BpmnNativeView extends TextFileView {
       console.warn("[BpmnNative] File changed during save(); aborting");
       return;
     }
-    if (!(await this.safeToWrite())) return;
-    await super.save(clear);
-    this.dirty = false;
+    if (await this.writeNative()) this.dirty = false;
   }
 
-  /** Last check before writing `this.data`: the disk must still hold what we
-   *  loaded / last wrote. If not, load it or ask instead of writing. */
-  private async safeToWrite(): Promise<boolean> {
-    if (this.conflict) return false;
-    if (!(await this.checkDisk())) return false;
-    this.knownDisk = this.data;   // our own write's `modify` must not look external
-    return true;
+  /**
+   * Write `this.data` only if the disk still holds what we loaded / last
+   * wrote — checked inside the same vault.process, so an outside write can't
+   * slip in between check and write. Otherwise nothing is written and the
+   * outside change is loaded or asked about. Returns whether the file now
+   * holds `this.data`.
+   */
+  private async writeNative(): Promise<boolean> {
+    const base = this as unknown as { lastSavedData: string | null };
+    const file = this.file;
+    if (!file || this.conflict || base.lastSavedData === null) return false;
+    const text = this.data;
+    if (text === base.lastSavedData && text === this.knownDisk) return true;
+    const expected = this.knownDisk;
+    this.knownDisk = text;          // our own write's `modify` must not look external
+    try {
+      const wrote = await writeIfUnchanged(this.app.vault, file, (disk) => disk === expected, text);
+      if (!wrote) {
+        this.knownDisk = expected;
+        await this.checkDisk();
+        return false;
+      }
+      base.lastSavedData = text;
+      return true;
+    } catch (err) {
+      this.knownDisk = expected;
+      console.error("[BpmnNative] Save failed:", err);
+      new Notice(`Lưu BPMN lỗi: ${(err as Error).message}`, 6000);
+      return false;
+    }
   }
 
   /** Obsidian calls this when the file changes on disk. Unlike the base
@@ -500,7 +522,10 @@ export class BpmnNativeView extends TextFileView {
 
   private async applyDisk(disk: string): Promise<void> {
     (this as unknown as { lastSavedData: string | null }).lastSavedData = disk;
-    await this.setViewData(disk, false);
+    // Reloading the same file: keep where the user was looking.
+    this.keepViewbox = this.controller.isMounted ? this.controller.getViewbox() : null;
+    try { await this.setViewData(disk, false); }
+    finally { this.keepViewbox = null; }
   }
 
   private resolveConflict(): Promise<void> {

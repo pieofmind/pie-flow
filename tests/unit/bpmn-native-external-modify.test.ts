@@ -21,8 +21,9 @@ vi.mock("../../src/canvas/OmniboardCanvas", () => ({ OmniboardCanvas: class {} }
 vi.mock("../../src/bpmn-native/bpmn-native.css", () => ({ default: "" }));
 vi.mock("../../src/bpmn-native/BpmnNativeController", () => ({
   BpmnNativeController: class {
-    xml = ""; mounted = false;
-    async mount(_c: unknown, xml: string) { this.xml = xml; this.mounted = true; return { warnings: [] }; }
+    xml = ""; mounted = false; mountOpts: unknown[] = [];
+    async mount(_c: unknown, xml: string, _cb?: unknown, opts?: unknown) { this.xml = xml; this.mounted = true; this.mountOpts.push(opts); return { warnings: [] }; }
+    getViewbox() { return { x: 120, y: 40, width: 900, height: 600 }; }
     async saveXml() { return this.xml; }
     dispose() { this.mounted = false; }
     get isMounted() { return this.mounted; }
@@ -46,7 +47,7 @@ type View = {
   loadFileInternal(f: unknown, c: boolean): Promise<void>;
   save(): Promise<void>;
   askExternalConflict(): Promise<"reload" | "keep">;
-  getController(): { xml: string };
+  getController(): { xml: string; mountOpts: unknown[] };
 };
 
 async function openNative(initial: CanvasModel) {
@@ -91,6 +92,15 @@ describe("BPMN native view vs. file changed from outside", () => {
     expect(poolIds(disk())).toEqual(["pool_0", "pool_1"]);
   });
 
+  it("reloading an outside change keeps the modeler's view (zoom / pan)", async () => {
+    const { view, vault, file, wrapper } = await openNative(POOLS(1));
+    vault.external(file, await wrapper(POOLS(2)));
+    await tick(); await tick();
+    const opts = view.getController().mountOpts;
+    expect(opts[0]).toBeUndefined();                                  // first open: fit to the diagram
+    expect(opts[opts.length - 1]).toEqual({ viewbox: { x: 120, y: 40, width: 900, height: 600 } });
+  });
+
   it("with modeler edits, an outside change asks and nothing is written over it", async () => {
     const { view, vault, file, wrapper, edit, disk } = await openNative(POOLS(1));
     const ask = vi.fn(async () => "reload" as const);
@@ -109,6 +119,17 @@ describe("BPMN native view vs. file changed from outside", () => {
     vault.external(file, await wrapper(POOLS(2)), true);
     edit("Chào khách mới");
     await view.save();
+    expect(poolIds(disk())).toEqual(["pool_0", "pool_1"]);
+  });
+
+  it("an outside write landing between the save's disk check and its write is not overwritten", async () => {
+    const { view, vault, file, wrapper, edit, disk } = await openNative(POOLS(1));
+    view.askExternalConflict = async () => "reload";
+    edit("Chào khách mới");
+    const two = await wrapper(POOLS(2));
+    vault.afterRead = () => vault.external(file, two, true);
+    await view.save();
+    await tick();
     expect(poolIds(disk())).toEqual(["pool_0", "pool_1"]);
   });
 

@@ -88317,6 +88317,15 @@ var ExternalChangeModal = class extends import_obsidian5.Modal {
     if (!this.answered) this.done("reload");
   }
 };
+async function writeIfUnchanged(vault, file, unchanged, text4) {
+  let wrote = false;
+  await vault.process(file, (disk) => {
+    if (!unchanged(disk)) return disk;
+    wrote = true;
+    return text4;
+  });
+  return wrote;
+}
 
 // src/view/BoardView.ts
 registerAllShapes();
@@ -88477,6 +88486,9 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
     this.conflict = null;
     /** True only inside our own save(), so getViewData knows it is being written. */
     this.writing = false;
+    /** A write is in flight; another save request waits for it. */
+    this.saving = false;
+    this.saveAgain = false;
     this.pendingSourceMeta = null;
     this.plugin = plugin;
   }
@@ -88782,12 +88794,64 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
       }
     }
     if (this.conflict) return;
-    if (!await this.checkDisk()) return;
+    if (this.invalidFormat || !this.file) return super.save(clear3);
+    await this.writeBoard(clear3);
+  }
+  /**
+   * The base TextFileView.save, but the write is conditional and atomic: it
+   * only lands if the disk still holds the board we loaded / last wrote,
+   * checked inside the same vault.process (no window for an outside write
+   * between check and write). Otherwise nothing is written and the outside
+   * change is loaded or asked about.
+   */
+  async writeBoard(clear3) {
+    const base = this;
+    const file = this.file;
+    if (!file || base.lastSavedData === null) return;
+    if (this.saving) {
+      this.saveAgain = true;
+      return;
+    }
+    const expected = this.diskModel;
     this.writing = true;
+    let text4;
     try {
-      return await super.save(clear3);
+      text4 = this.getViewData();
     } finally {
       this.writing = false;
+    }
+    base.dirty = false;
+    if (text4 === base.lastSavedData) return;
+    this.saving = true;
+    try {
+      const wrote = await writeIfUnchanged(this.app.vault, file, (disk) => {
+        const fp = _BoardView.fingerprint(disk);
+        return fp === null || fp === expected;
+      }, text4);
+      if (!wrote) {
+        this.diskModel = expected;
+        this.localEdits = true;
+        await this.checkDisk();
+        return;
+      }
+      base.data = text4;
+      base.lastSavedData = text4;
+      if (clear3) {
+        base.data = null;
+        base.lastSavedData = null;
+        this.clear();
+      }
+    } catch (err2) {
+      this.diskModel = expected;
+      this.localEdits = true;
+      console.error("[omniboard] save failed", err2);
+      notify("error", `L\u01B0u board l\u1ED7i: ${err2.message}`);
+    } finally {
+      this.saving = false;
+      if (this.saveAgain) {
+        this.saveAgain = false;
+        void this.save();
+      }
     }
   }
   clear() {
@@ -120428,7 +120492,7 @@ var BpmnNativeController = class {
    * @param xml — BPMN XML string (uses minimal template if empty)
    * @param onChanged — called on every commandStack change (caller should debounce)
    */
-  async mount(container, xml3, onChanged) {
+  async mount(container, xml3, onChanged, opts) {
     var _a3;
     this.dispose();
     this.onChanged = onChanged != null ? onChanged : null;
@@ -120443,7 +120507,8 @@ var BpmnNativeController = class {
       this.modeler.on("selection.changed", () => {
         window.dispatchEvent(new CustomEvent("bpmn-native-selection-change"));
       });
-      this.scheduleInitialFit(container);
+      if (opts == null ? void 0 : opts.viewbox) this.setViewbox(opts.viewbox);
+      else this.scheduleInitialFit(container);
       this.installResizeObserver(container);
       return { warnings };
     } catch (err2) {
@@ -120472,6 +120537,20 @@ var BpmnNativeController = class {
     if (canvas && typeof canvas.zoom === "function") {
       canvas.zoom(value);
     }
+  }
+  /** Current visible area (diagram coordinates). */
+  getViewbox() {
+    if (!this.modeler) return null;
+    const canvas = this.modeler.get("canvas");
+    if (!canvas || typeof canvas.viewbox !== "function") return null;
+    const { x: x5, y: y5, width: width2, height: height2 } = canvas.viewbox();
+    return { x: x5, y: y5, width: width2, height: height2 };
+  }
+  /** Show exactly this area (diagram coordinates). */
+  setViewbox(box) {
+    if (!this.modeler) return;
+    const canvas = this.modeler.get("canvas");
+    if (canvas && typeof canvas.viewbox === "function") canvas.viewbox(box);
   }
   /** Read current zoom level. */
   getZoom() {
@@ -122207,6 +122286,8 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
     this.knownDisk = null;
     /** Set while asking the user about a conflict; no save may write meanwhile. */
     this.conflict = null;
+    /** Viewbox to restore on the next mount (outside change reloaded). */
+    this.keepViewbox = null;
     this.plugin = plugin;
     this.controller = new BpmnNativeController();
   }
@@ -122402,7 +122483,8 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
       const { warnings } = await this.controller.mount(
         this.bpmnContainer,
         xml3,
-        () => this.onModelerChanged()
+        () => this.onModelerChanged(),
+        this.keepViewbox ? { viewbox: this.keepViewbox } : void 0
       );
       this.createNavigationWidget();
       this.injectPaletteMoreButton();
@@ -122462,9 +122544,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
         console.warn("[BpmnNative] File changed during persistXml; aborting save");
         return;
       }
-      if (!await this.safeToWrite()) return;
-      await super.save();
-      this.dirty = false;
+      if (await this.writeNative()) this.dirty = false;
     } catch (err2) {
       console.error("[BpmnNative] Save failed:", err2);
     }
@@ -122479,17 +122559,38 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
       console.warn("[BpmnNative] File changed during save(); aborting");
       return;
     }
-    if (!await this.safeToWrite()) return;
-    await super.save(clear3);
-    this.dirty = false;
+    if (await this.writeNative()) this.dirty = false;
   }
-  /** Last check before writing `this.data`: the disk must still hold what we
-   *  loaded / last wrote. If not, load it or ask instead of writing. */
-  async safeToWrite() {
-    if (this.conflict) return false;
-    if (!await this.checkDisk()) return false;
-    this.knownDisk = this.data;
-    return true;
+  /**
+   * Write `this.data` only if the disk still holds what we loaded / last
+   * wrote — checked inside the same vault.process, so an outside write can't
+   * slip in between check and write. Otherwise nothing is written and the
+   * outside change is loaded or asked about. Returns whether the file now
+   * holds `this.data`.
+   */
+  async writeNative() {
+    const base = this;
+    const file = this.file;
+    if (!file || this.conflict || base.lastSavedData === null) return false;
+    const text4 = this.data;
+    if (text4 === base.lastSavedData && text4 === this.knownDisk) return true;
+    const expected = this.knownDisk;
+    this.knownDisk = text4;
+    try {
+      const wrote = await writeIfUnchanged(this.app.vault, file, (disk) => disk === expected, text4);
+      if (!wrote) {
+        this.knownDisk = expected;
+        await this.checkDisk();
+        return false;
+      }
+      base.lastSavedData = text4;
+      return true;
+    } catch (err2) {
+      this.knownDisk = expected;
+      console.error("[BpmnNative] Save failed:", err2);
+      new import_obsidian8.Notice(`L\u01B0u BPMN l\u1ED7i: ${err2.message}`, 6e3);
+      return false;
+    }
   }
   /** Obsidian calls this when the file changes on disk. Unlike the base
    *  class we also look while a save is in flight. */
@@ -122509,7 +122610,12 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
   }
   async applyDisk(disk) {
     this.lastSavedData = disk;
-    await this.setViewData(disk, false);
+    this.keepViewbox = this.controller.isMounted ? this.controller.getViewbox() : null;
+    try {
+      await this.setViewData(disk, false);
+    } finally {
+      this.keepViewbox = null;
+    }
   }
   resolveConflict() {
     var _a3;

@@ -16,7 +16,7 @@ import { BoardEditor, type BoardEditorProps } from "../ui/BoardEditor";
 import { readObsidianTheme } from "../core/theme";
 import type { DiagramAdapter } from "../core/adapter";
 import { buildBoardTopbar } from "../ui/boardTopbar";
-import { askExternalChange } from "./externalChange";
+import { askExternalChange, writeIfUnchanged } from "./externalChange";
 
 registerAllShapes();
 
@@ -222,6 +222,9 @@ export class BoardView extends TextFileView {
   private conflict: Promise<void> | null = null;
   /** True only inside our own save(), so getViewData knows it is being written. */
   private writing = false;
+  /** A write is in flight; another save request waits for it. */
+  private saving = false;
+  private saveAgain = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: DiagramsPlugin) {
     super(leaf);
@@ -556,10 +559,53 @@ export class BoardView extends TextFileView {
     }
     // Never write over a disk change we haven't seen: load it or ask first.
     if (this.conflict) return;
-    if (!(await this.checkDisk())) return;
+    if (this.invalidFormat || !this.file) return super.save(clear);
+    await this.writeBoard(clear);
+  }
+
+  /**
+   * The base TextFileView.save, but the write is conditional and atomic: it
+   * only lands if the disk still holds the board we loaded / last wrote,
+   * checked inside the same vault.process (no window for an outside write
+   * between check and write). Otherwise nothing is written and the outside
+   * change is loaded or asked about.
+   */
+  private async writeBoard(clear?: boolean): Promise<void> {
+    const base = this as unknown as { data: string | null; lastSavedData: string | null; dirty: boolean };
+    const file = this.file;
+    if (!file || base.lastSavedData === null) return;      // not loaded yet
+    if (this.saving) { this.saveAgain = true; return; }
+    const expected = this.diskModel;
     this.writing = true;
-    try { return await super.save(clear); }
+    let text: string;
+    try { text = this.getViewData(); }                     // also marks it as what's on disk
     finally { this.writing = false; }
+    base.dirty = false;
+    if (text === base.lastSavedData) return;
+    this.saving = true;
+    try {
+      const wrote = await writeIfUnchanged(this.app.vault, file, (disk) => {
+        const fp = BoardView.fingerprint(disk);
+        return fp === null || fp === expected;
+      }, text);
+      if (!wrote) {
+        this.diskModel = expected;
+        this.localEdits = true;
+        await this.checkDisk();
+        return;
+      }
+      base.data = text;
+      base.lastSavedData = text;
+      if (clear) { base.data = null; base.lastSavedData = null; this.clear(); }
+    } catch (err) {
+      this.diskModel = expected;
+      this.localEdits = true;
+      console.error("[omniboard] save failed", err);
+      notify("error", `Lưu board lỗi: ${(err as Error).message}`);
+    } finally {
+      this.saving = false;
+      if (this.saveAgain) { this.saveAgain = false; void this.save(); }
+    }
   }
 
   clear(): void { this.model = EMPTY_MODEL; }

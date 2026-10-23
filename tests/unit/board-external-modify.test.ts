@@ -117,6 +117,17 @@ describe("Board tab vs. file changed from outside", () => {
     expect(poolIds(canvas.getModel())).toEqual(["pool_0", "pool_1"]);
   });
 
+  it("an outside write landing between the save's disk check and its write is not overwritten", async () => {
+    const { view, vault, file, canvas } = await openBoard(POOLS(1));
+    view.askExternalConflict = async () => "reload";
+    canvas.edit((m) => { m.nodes[0].x = 40; });
+    // the script writes right after the save has looked at the disk
+    vault.afterRead = () => vault.external(file, serializeBoard(POOLS(2), "", undefined, {}), true);
+    await view.save();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(poolIds(diskModel(vault))).toEqual(["pool_0", "pool_1"]);
+  });
+
   it("its own writes don't look like outside changes", async () => {
     const { view, vault, canvas } = await openBoard(POOLS(1));
     const ask = vi.fn(async () => "reload" as const);

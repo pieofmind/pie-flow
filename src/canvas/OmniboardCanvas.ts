@@ -11,9 +11,10 @@ import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type 
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
-import { addChildLane, asStackLanes, fromStackLanes, laneHeights, leafLaneAt, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, splitLane } from "./laneLayout";
+import { addChildLane, allLaneIds, asStackLanes, fromStackLanes, laneHeights, leafLaneAt, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, splitLane } from "./laneLayout";
 import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
+import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import {
   alignLeft, alignCenterH, alignRight,
@@ -4964,6 +4965,98 @@ export class OmniboardCanvas {
       this.applyEdgeStyle(e);
     }
 
+    this.onChange();
+    setTimeout(() => {
+      this.graph.zoomToFit({ padding: 40, maxScale: 1.2 });
+      this.updateZoom();
+      this.refreshMinimap();
+      this.refreshBpmnEventLabels();
+    }, 30);
+  }
+
+  /**
+   * "Tự sắp xếp". A board with horizontal BPMN pools is arranged lane-aware
+   * (laneAwareLayout): left→right flow, every shape stays in its lane, lanes
+   * grow to fit, pools keep their order. Other boards: autoLayout. One undo
+   * step.
+   */
+  autoArrange(): void {
+    const poolNodes = this.graph.getNodes().filter((n) => this.nodeKind(n) === "bpmn-pool" && this.nodeExtra(n).poolHorizontal !== false);
+    if (!poolNodes.length) { this.autoLayout("LR"); return; }
+    const model = this.getModel();     // fresh leaf laneIds from positions
+    const pools: LayoutPool[] = poolNodes.map((p) => ({
+      ...p.getPosition(), ...p.getSize(), id: p.id, lanes: this.nodeExtra(p).lanes ?? [], blackBox: !!this.nodeExtra(p).blackBox,
+    }));
+    const laneOwner = new Map<string, string>();
+    for (const p of pools) for (const id of allLaneIds(p.lanes)) laneOwner.set(id, p.id);
+    const inPoolWithoutLanes = (n: CanvasModel["nodes"][number]) => pools.find((p) => !p.lanes.length
+      && n.x + n.width / 2 >= p.x && n.x + n.width / 2 <= p.x + p.width && n.y + n.height / 2 >= p.y && n.y + n.height / 2 <= p.y + p.height)?.id;
+    // Annotations / data shapes hang off a task (association): dagre would push
+    // them to the last column, so they follow their task (its column, the row
+    // after it, in their own lane).
+    const isArtifact = (shape: string) => shape === "bpmn-annotation" || shape.startsWith("bpmn-data-");
+    const toLayout = (n: CanvasModel["nodes"][number]): LayoutNode => ({
+      id: n.id, x: n.x, y: n.y, width: n.width, height: n.height, laneId: n.laneId,
+      poolId: (n.laneId && laneOwner.get(n.laneId)) || inPoolWithoutLanes(n),
+    });
+    const flowNodes = model.nodes
+      .filter((n) => !CONTAINER_KINDS.has(n.shape) && !n.attrs?.attachedTo && !isArtifact(n.shape))
+      .map(toLayout)
+      .filter((n) => !!n.poolId);
+    const flowIds = new Set(flowNodes.map((n) => n.id));
+    const followers = model.nodes
+      .filter((n) => isArtifact(n.shape))
+      .map((n) => ({ ...toLayout(n), follow: model.edges
+        .map((e) => (e.source === n.id ? e.target : e.target === n.id ? e.source : null))
+        .find((id): id is string => !!id && flowIds.has(id)) }))
+      // no arrow to a task: a free note — keeps its x, after the lane's rows
+      .map((n) => (n.follow ? n : { ...n, keepX: true }))
+      .filter((n) => !!n.poolId && (!!n.follow || !!n.laneId));
+    const layoutNodes: LayoutNode[] = [...flowNodes, ...followers];
+    if (!layoutNodes.length) return;
+    const result = layoutInLanes(pools, layoutNodes, model.edges.map((e) => ({ source: e.source, target: e.target })));
+    const moved = new Set(result.nodes.keys());
+    this.graph.startBatch("auto-layout");
+    try {
+      for (const [id, p] of result.pools) {
+        const pool = this.graph.getCellById(id) as Node;
+        pool.setPosition(p.x, p.y);
+        pool.resize(p.width, p.height);
+        pool.setData({ ...pool.getData(), lanes: p.lanes }, { deep: false });
+        this.rerender(pool);
+      }
+      // Shapes outside the lanes (annotations, data objects…) tied to an
+      // arranged shape by an arrow move with it, keeping their offset.
+      for (const n of model.nodes) {
+        if (moved.has(n.id) || n.shape === "bpmn-pool" || CONTAINER_KINDS.has(n.shape) || n.attrs?.attachedTo) continue;
+        const partner = model.edges
+          .map((e) => (e.source === n.id ? e.target : e.target === n.id ? e.source : null))
+          .find((id): id is string => !!id && moved.has(id));
+        const before = partner ? model.nodes.find((x) => x.id === partner) : undefined;
+        const after = partner ? result.nodes.get(partner) : undefined;
+        if (before && after) (this.graph.getCellById(n.id) as Node).setPosition(n.x + after.x - before.x, n.y + after.y - before.y);
+      }
+      for (const [id, p] of result.nodes) (this.graph.getCellById(id) as Node).setPosition(p.x, p.y);
+      // Re-wire arrows between arranged shapes: sequence flows right → left;
+      // message flows (between pools) bottom → top or top → bottom, so they
+      // run vertically between the pools; both route around shapes.
+      // Associations and arrows anchored on a pool keep their ends.
+      for (const e of this.graph.getEdges()) {
+        const sId = e.getSourceCellId(), tId = e.getTargetCellId();
+        if (!sId || !tId || !moved.has(sId) || !moved.has(tId)) continue;
+        e.setVertices([]);
+        const kind = (e.getData() as { bpmnKind?: string } | undefined)?.bpmnKind;
+        if (kind === "association") continue;
+        let [sp, tp] = ["right", "left"];
+        if (kind === "message") {
+          const down = (result.nodes.get(sId)?.y ?? 0) < (result.nodes.get(tId)?.y ?? 0);
+          [sp, tp] = down ? ["bottom", "top"] : ["top", "bottom"];
+        }
+        e.setSource(portEndpoint(sId, sp) as never);
+        e.setTarget(portEndpoint(tId, tp) as never);
+        e.setRouter(SMART_ROUTER as never);
+      }
+    } finally { this.graph.stopBatch("auto-layout"); }
     this.onChange();
     setTimeout(() => {
       this.graph.zoomToFit({ padding: 40, maxScale: 1.2 });

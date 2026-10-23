@@ -75,7 +75,7 @@ export function buildBoardTopbar(
   iconBtn("redo-2", "Làm lại", () => opts.getCanvas()?.redo());
   iconBtn("copy", "Nhân bản", () => opts.getCanvas()?.duplicate());
   iconBtn("trash-2", "Xóa", () => opts.getCanvas()?.deleteSelection());
-  iconBtn("layout-dashboard", "Tự sắp xếp", () => opts.getCanvas()?.autoLayout("LR"));
+  iconBtn("layout-dashboard", "Tự sắp xếp", () => opts.getCanvas()?.autoArrange());
   iconBtn("maximize", "Vừa khung", () => opts.getCanvas()?.fit());
 
   if (opts.extraButtons?.length) {

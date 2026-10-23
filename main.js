@@ -82904,6 +82904,98 @@ function registerAvoidRouter() {
   }, true);
 }
 
+// src/canvas/laneAwareLayout.ts
+var POOL_HEAD = 44 + 24;
+var PAD_X = 40;
+var PAD_Y = 30;
+var ROW_GAP = 30;
+var COL_GAP = 30;
+var POOL_GAP = 60;
+var MIN_LANE = 120;
+function layoutInLanes(pools, nodes, edges) {
+  const g4 = new z2.Graph({ directed: true });
+  g4.setGraph({ rankdir: "LR", nodesep: 40, ranksep: 90, ranker: "longest-path" });
+  g4.setDefaultEdgeLabel(() => ({}));
+  const byId = new Map(nodes.map((nd) => [nd.id, nd]));
+  const leader = (nd) => nd.follow ? byId.get(nd.follow) : void 0;
+  const ranked = nodes.filter((nd) => !leader(nd) && !nd.keepX);
+  for (const nd of ranked) g4.setNode(nd.id, { width: nd.width, height: nd.height });
+  const ids3 = new Set(ranked.map((nd) => nd.id));
+  for (const e5 of edges) if (e5.source !== e5.target && ids3.has(e5.source) && ids3.has(e5.target)) g4.setEdge(e5.source, e5.target);
+  he(g4);
+  const placedRaw = (id) => g4.node(id);
+  const orderY = (nd) => {
+    if (nd.keepX) return Number.MAX_SAFE_INTEGER;
+    const l5 = leader(nd);
+    return l5 ? placedRaw(l5.id).y + 0.5 : placedRaw(nd.id).y;
+  };
+  const minLeft = Math.min(...ranked.map((nd) => placedRaw(nd.id).x - nd.width / 2));
+  const left4 = Math.min(...pools.map((p6) => p6.x));
+  const colX = (nd) => {
+    if (nd.keepX) return Math.max(nd.x, left4 + POOL_HEAD + PAD_X);
+    const l5 = leader(nd);
+    if (l5) return colX(l5);
+    return left4 + POOL_HEAD + PAD_X + (placedRaw(nd.id).x - nd.width / 2 - minLeft);
+  };
+  const right4 = Math.max(...nodes.map((nd) => colX(nd) + nd.width), ...pools.map((p6) => p6.x + p6.width)) + PAD_X;
+  const out = { nodes: /* @__PURE__ */ new Map(), pools: /* @__PURE__ */ new Map() };
+  const placeLane = (members, top4) => {
+    const rows = [];
+    for (const nd of [...members].sort((a5, b4) => orderY(a5) - orderY(b4))) {
+      const span = [colX(nd) - COL_GAP / 2, colX(nd) + nd.width + COL_GAP / 2];
+      let row = rows.find((r5) => r5.spans.every(([a5, b4]) => span[1] <= a5 || span[0] >= b4));
+      if (!row) {
+        row = { spans: [], height: 0, items: [] };
+        rows.push(row);
+      }
+      row.spans.push(span);
+      row.height = Math.max(row.height, nd.height);
+      row.items.push(nd);
+    }
+    let y6 = top4 + PAD_Y;
+    for (const r5 of rows) {
+      for (const nd of r5.items) out.nodes.set(nd.id, { x: colX(nd), y: y6 + (r5.height - nd.height) / 2 });
+      y6 += r5.height + ROW_GAP;
+    }
+    const used = rows.length ? y6 - ROW_GAP + PAD_Y - top4 : 0;
+    return Math.max(MIN_LANE, used);
+  };
+  let y5 = Math.min(...pools.map((p6) => p6.y));
+  for (const pool of [...pools].sort((a5, b4) => a5.y - b4.y)) {
+    const laneIds = new Set(allLaneIds(pool.lanes));
+    const inPool = nodes.filter((nd) => nd.poolId === pool.id || !!nd.laneId && laneIds.has(nd.laneId));
+    let height2;
+    let lanes = pool.lanes;
+    if (pool.blackBox || !inPool.length) {
+      height2 = pool.height;
+    } else if (!lanes.length) {
+      height2 = placeLane(inPool, y5);
+    } else {
+      let at3 = y5;
+      const ofLane = (id) => inPool.filter((nd) => nd.laneId === id);
+      lanes = lanes.map((ln3) => {
+        var _a3;
+        if (!((_a3 = ln3.lanes) == null ? void 0 : _a3.length)) {
+          const h5 = placeLane(ofLane(ln3.id), at3);
+          at3 += h5;
+          return { ...ln3, height: h5 };
+        }
+        const start = at3;
+        const children2 = ln3.lanes.map((c6) => {
+          const h5 = placeLane([...ofLane(c6.id), ...c6 === ln3.lanes[0] ? ofLane(ln3.id) : []], at3);
+          at3 += h5;
+          return { ...c6, height: h5 };
+        });
+        return { ...ln3, height: at3 - start, lanes: children2 };
+      });
+      height2 = at3 - y5;
+    }
+    out.pools.set(pool.id, { x: left4, y: y5, width: right4 - left4, height: height2, lanes });
+    y5 += height2 + POOL_GAP;
+  }
+  return out;
+}
+
 // src/canvas/OmniboardCanvas.ts
 init_labelGeometry();
 
@@ -84122,7 +84214,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    * `lanes[i].height` as one undo step.
    */
   enableLaneResize() {
-    const MIN_LANE = 60;
+    const MIN_LANE2 = 60;
     this.root.addEventListener("pointerdown", (e5) => {
       var _a3, _b2, _c, _d, _e3, _f, _g;
       const handle = (_b2 = (_a3 = e5.target) == null ? void 0 : _a3.closest) == null ? void 0 : _b2.call(_a3, ".bp-pool-lane-divider");
@@ -84148,7 +84240,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const at3 = (ev) => horizontal ? ev.clientY : ev.clientX;
       const start = at3(e5);
       const scale2 = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
-      const resized = (ev) => resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE / (parent >= 0 ? 2 : 1));
+      const resized = (ev) => resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE2 / (parent >= 0 ? 2 : 1));
       const mv = (ev) => {
         resized(ev).forEach((ln3, i6) => {
           if (laneEls[i6]) laneEls[i6].style.flex = `${ln3.height} 1 0px`;
@@ -88112,6 +88204,99 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.refreshBpmnEventLabels();
     }, 30);
   }
+  /**
+   * "Tự sắp xếp". A board with horizontal BPMN pools is arranged lane-aware
+   * (laneAwareLayout): left→right flow, every shape stays in its lane, lanes
+   * grow to fit, pools keep their order. Other boards: autoLayout. One undo
+   * step.
+   */
+  autoArrange() {
+    var _a3, _b2, _c, _d, _e3, _f;
+    const poolNodes = this.graph.getNodes().filter((n4) => this.nodeKind(n4) === "bpmn-pool" && this.nodeExtra(n4).poolHorizontal !== false);
+    if (!poolNodes.length) {
+      this.autoLayout("LR");
+      return;
+    }
+    const model = this.getModel();
+    const pools = poolNodes.map((p6) => {
+      var _a4;
+      return {
+        ...p6.getPosition(),
+        ...p6.getSize(),
+        id: p6.id,
+        lanes: (_a4 = this.nodeExtra(p6).lanes) != null ? _a4 : [],
+        blackBox: !!this.nodeExtra(p6).blackBox
+      };
+    });
+    const laneOwner = /* @__PURE__ */ new Map();
+    for (const p6 of pools) for (const id of allLaneIds(p6.lanes)) laneOwner.set(id, p6.id);
+    const inPoolWithoutLanes = (n4) => {
+      var _a4;
+      return (_a4 = pools.find((p6) => !p6.lanes.length && n4.x + n4.width / 2 >= p6.x && n4.x + n4.width / 2 <= p6.x + p6.width && n4.y + n4.height / 2 >= p6.y && n4.y + n4.height / 2 <= p6.y + p6.height)) == null ? void 0 : _a4.id;
+    };
+    const isArtifact = (shape) => shape === "bpmn-annotation" || shape.startsWith("bpmn-data-");
+    const toLayout = (n4) => ({
+      id: n4.id,
+      x: n4.x,
+      y: n4.y,
+      width: n4.width,
+      height: n4.height,
+      laneId: n4.laneId,
+      poolId: n4.laneId && laneOwner.get(n4.laneId) || inPoolWithoutLanes(n4)
+    });
+    const flowNodes = model.nodes.filter((n4) => {
+      var _a4;
+      return !CONTAINER_KINDS2.has(n4.shape) && !((_a4 = n4.attrs) == null ? void 0 : _a4.attachedTo) && !isArtifact(n4.shape);
+    }).map(toLayout).filter((n4) => !!n4.poolId);
+    const flowIds = new Set(flowNodes.map((n4) => n4.id));
+    const followers = model.nodes.filter((n4) => isArtifact(n4.shape)).map((n4) => ({ ...toLayout(n4), follow: model.edges.map((e5) => e5.source === n4.id ? e5.target : e5.target === n4.id ? e5.source : null).find((id) => !!id && flowIds.has(id)) })).map((n4) => n4.follow ? n4 : { ...n4, keepX: true }).filter((n4) => !!n4.poolId && (!!n4.follow || !!n4.laneId));
+    const layoutNodes = [...flowNodes, ...followers];
+    if (!layoutNodes.length) return;
+    const result = layoutInLanes(pools, layoutNodes, model.edges.map((e5) => ({ source: e5.source, target: e5.target })));
+    const moved = new Set(result.nodes.keys());
+    this.graph.startBatch("auto-layout");
+    try {
+      for (const [id, p6] of result.pools) {
+        const pool = this.graph.getCellById(id);
+        pool.setPosition(p6.x, p6.y);
+        pool.resize(p6.width, p6.height);
+        pool.setData({ ...pool.getData(), lanes: p6.lanes }, { deep: false });
+        this.rerender(pool);
+      }
+      for (const n4 of model.nodes) {
+        if (moved.has(n4.id) || n4.shape === "bpmn-pool" || CONTAINER_KINDS2.has(n4.shape) || ((_a3 = n4.attrs) == null ? void 0 : _a3.attachedTo)) continue;
+        const partner = model.edges.map((e5) => e5.source === n4.id ? e5.target : e5.target === n4.id ? e5.source : null).find((id) => !!id && moved.has(id));
+        const before2 = partner ? model.nodes.find((x5) => x5.id === partner) : void 0;
+        const after2 = partner ? result.nodes.get(partner) : void 0;
+        if (before2 && after2) this.graph.getCellById(n4.id).setPosition(n4.x + after2.x - before2.x, n4.y + after2.y - before2.y);
+      }
+      for (const [id, p6] of result.nodes) this.graph.getCellById(id).setPosition(p6.x, p6.y);
+      for (const e5 of this.graph.getEdges()) {
+        const sId = e5.getSourceCellId(), tId = e5.getTargetCellId();
+        if (!sId || !tId || !moved.has(sId) || !moved.has(tId)) continue;
+        e5.setVertices([]);
+        const kind = (_b2 = e5.getData()) == null ? void 0 : _b2.bpmnKind;
+        if (kind === "association") continue;
+        let [sp, tp] = ["right", "left"];
+        if (kind === "message") {
+          const down = ((_d = (_c = result.nodes.get(sId)) == null ? void 0 : _c.y) != null ? _d : 0) < ((_f = (_e3 = result.nodes.get(tId)) == null ? void 0 : _e3.y) != null ? _f : 0);
+          [sp, tp] = down ? ["bottom", "top"] : ["top", "bottom"];
+        }
+        e5.setSource(portEndpoint(sId, sp));
+        e5.setTarget(portEndpoint(tId, tp));
+        e5.setRouter(SMART_ROUTER);
+      }
+    } finally {
+      this.graph.stopBatch("auto-layout");
+    }
+    this.onChange();
+    setTimeout(() => {
+      this.graph.zoomToFit({ padding: 40, maxScale: 1.2 });
+      this.updateZoom();
+      this.refreshMinimap();
+      this.refreshBpmnEventLabels();
+    }, 30);
+  }
   selectNode(id) {
     const cell = this.graph.getCellById(id);
     if (cell) this.graph.select(cell);
@@ -88549,7 +88734,7 @@ function buildBoardTopbar(bar, opts) {
   });
   iconBtn("layout-dashboard", "T\u1EF1 s\u1EAFp x\u1EBFp", () => {
     var _a4;
-    return (_a4 = opts.getCanvas()) == null ? void 0 : _a4.autoLayout("LR");
+    return (_a4 = opts.getCanvas()) == null ? void 0 : _a4.autoArrange();
   });
   iconBtn("maximize", "V\u1EEBa khung", () => {
     var _a4;
@@ -124765,7 +124950,7 @@ var LIFELINE_H_BASE = 120;
 var MSG_STEP = 48;
 var MSG_TOP = 88;
 var COL_W = 130;
-var COL_GAP = 70;
+var COL_GAP2 = 70;
 function parseSequenceToCanvas(source) {
   const lifelines = [];
   const order = /* @__PURE__ */ new Map();
@@ -124801,7 +124986,7 @@ function parseSequenceToCanvas(source) {
     model.nodes.push({
       id: ll.seqId,
       shape: ll.kind,
-      x: i6 * (COL_W + COL_GAP) + 20,
+      x: i6 * (COL_W + COL_GAP2) + 20,
       y: 0,
       width: COL_W,
       height: lifelineH,

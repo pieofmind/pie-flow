@@ -70774,91 +70774,6 @@
     }, true);
   }
 
-  // src/io/bpmn/labelGeometry.ts
-  var isEvent = (shape) => shape.includes("event") || shape.includes("bpmn-start") || shape.includes("bpmn-intermediate") || shape.includes("bpmn-end");
-  var isGateway = (shape) => shape.includes("gateway");
-  var isData = (shape) => shape.startsWith("bpmn-data-");
-  function hasExternalLabel(shape) {
-    return isEvent(shape) || isGateway(shape) || isData(shape);
-  }
-  function defaultLabelDy(shape, height2) {
-    if (isGateway(shape)) return 37;
-    if (isData(shape)) return height2 / 2 + 16;
-    return 36;
-  }
-
-  // src/canvas/bulkAlign.ts
-  function reposition(cells, mut) {
-    return cells.map((c4) => {
-      const next = mut(c4);
-      return { id: c4.id, x: next.x, y: next.y };
-    });
-  }
-  function alignLeft(cells) {
-    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
-    const minX = Math.min(...cells.map((c4) => c4.x));
-    return reposition(cells, (c4) => ({ x: minX, y: c4.y }));
-  }
-  function alignCenterH(cells) {
-    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
-    const centers = cells.map((c4) => c4.x + c4.width / 2);
-    const avg = centers.reduce((a3, b2) => a3 + b2, 0) / centers.length;
-    return reposition(cells, (c4) => ({ x: Math.round(avg - c4.width / 2), y: c4.y }));
-  }
-  function alignRight(cells) {
-    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
-    const maxR = Math.max(...cells.map((c4) => c4.x + c4.width));
-    return reposition(cells, (c4) => ({ x: maxR - c4.width, y: c4.y }));
-  }
-  function alignTop(cells) {
-    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
-    const minY = Math.min(...cells.map((c4) => c4.y));
-    return reposition(cells, (c4) => ({ x: c4.x, y: minY }));
-  }
-  function alignMiddleV(cells) {
-    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
-    const middles = cells.map((c4) => c4.y + c4.height / 2);
-    const avg = middles.reduce((a3, b2) => a3 + b2, 0) / middles.length;
-    return reposition(cells, (c4) => ({ x: c4.x, y: Math.round(avg - c4.height / 2) }));
-  }
-  function alignBottom(cells) {
-    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
-    const maxB = Math.max(...cells.map((c4) => c4.y + c4.height));
-    return reposition(cells, (c4) => ({ x: c4.x, y: maxB - c4.height }));
-  }
-  function distributeH(cells) {
-    if (cells.length < 3) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
-    const sorted = [...cells].sort((a3, b2) => a3.x - b2.x);
-    const first = sorted[0];
-    const last = sorted[sorted.length - 1];
-    const totalWidth = sorted.reduce((sum, c4) => sum + c4.width, 0);
-    const span = last.x + last.width - first.x;
-    const gap = Math.max(0, (span - totalWidth) / (sorted.length - 1));
-    let cursor = first.x;
-    const map = /* @__PURE__ */ new Map();
-    for (const c4 of sorted) {
-      map.set(c4.id, { x: Math.round(cursor), y: c4.y });
-      cursor += c4.width + gap;
-    }
-    return cells.map((c4) => ({ id: c4.id, ...map.get(c4.id) }));
-  }
-  function distributeV(cells) {
-    if (cells.length < 3) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
-    const sorted = [...cells].sort((a3, b2) => a3.y - b2.y);
-    const first = sorted[0];
-    const last = sorted[sorted.length - 1];
-    const totalHeight = sorted.reduce((sum, c4) => sum + c4.height, 0);
-    const span = last.y + last.height - first.y;
-    const gap = Math.max(0, (span - totalHeight) / (sorted.length - 1));
-    let cursor = first.y;
-    const map = /* @__PURE__ */ new Map();
-    for (const c4 of sorted) {
-      map.set(c4.id, { x: c4.x, y: Math.round(cursor) });
-      cursor += c4.height + gap;
-    }
-    return cells.map((c4) => ({ id: c4.id, ...map.get(c4.id) }));
-  }
-
   // node_modules/@dagrejs/dagre/dist/dagre.esm.js
   var ge = Object.defineProperty;
   var hn = (e2, n2, t3) => n2 in e2 ? ge(e2, n2, { enumerable: true, configurable: true, writable: true, value: t3 }) : e2[n2] = t3;
@@ -72510,6 +72425,182 @@
   var sr = { graphlib: z, version: U, layout: he, debug: fe, util: { time: P, notime: M } };
   var To = sr;
 
+  // src/canvas/laneAwareLayout.ts
+  var POOL_HEAD = 44 + 24;
+  var PAD_X = 40;
+  var PAD_Y = 30;
+  var ROW_GAP = 30;
+  var COL_GAP = 30;
+  var POOL_GAP = 60;
+  var MIN_LANE = 120;
+  function layoutInLanes(pools, nodes, edges) {
+    const g2 = new z.Graph({ directed: true });
+    g2.setGraph({ rankdir: "LR", nodesep: 40, ranksep: 90, ranker: "longest-path" });
+    g2.setDefaultEdgeLabel(() => ({}));
+    const byId = new Map(nodes.map((nd) => [nd.id, nd]));
+    const leader = (nd) => nd.follow ? byId.get(nd.follow) : void 0;
+    const ranked = nodes.filter((nd) => !leader(nd) && !nd.keepX);
+    for (const nd of ranked) g2.setNode(nd.id, { width: nd.width, height: nd.height });
+    const ids = new Set(ranked.map((nd) => nd.id));
+    for (const e2 of edges) if (e2.source !== e2.target && ids.has(e2.source) && ids.has(e2.target)) g2.setEdge(e2.source, e2.target);
+    he(g2);
+    const placedRaw = (id) => g2.node(id);
+    const orderY = (nd) => {
+      if (nd.keepX) return Number.MAX_SAFE_INTEGER;
+      const l3 = leader(nd);
+      return l3 ? placedRaw(l3.id).y + 0.5 : placedRaw(nd.id).y;
+    };
+    const minLeft = Math.min(...ranked.map((nd) => placedRaw(nd.id).x - nd.width / 2));
+    const left4 = Math.min(...pools.map((p4) => p4.x));
+    const colX = (nd) => {
+      if (nd.keepX) return Math.max(nd.x, left4 + POOL_HEAD + PAD_X);
+      const l3 = leader(nd);
+      if (l3) return colX(l3);
+      return left4 + POOL_HEAD + PAD_X + (placedRaw(nd.id).x - nd.width / 2 - minLeft);
+    };
+    const right4 = Math.max(...nodes.map((nd) => colX(nd) + nd.width), ...pools.map((p4) => p4.x + p4.width)) + PAD_X;
+    const out = { nodes: /* @__PURE__ */ new Map(), pools: /* @__PURE__ */ new Map() };
+    const placeLane = (members, top4) => {
+      const rows = [];
+      for (const nd of [...members].sort((a3, b2) => orderY(a3) - orderY(b2))) {
+        const span = [colX(nd) - COL_GAP / 2, colX(nd) + nd.width + COL_GAP / 2];
+        let row = rows.find((r2) => r2.spans.every(([a3, b2]) => span[1] <= a3 || span[0] >= b2));
+        if (!row) {
+          row = { spans: [], height: 0, items: [] };
+          rows.push(row);
+        }
+        row.spans.push(span);
+        row.height = Math.max(row.height, nd.height);
+        row.items.push(nd);
+      }
+      let y4 = top4 + PAD_Y;
+      for (const r2 of rows) {
+        for (const nd of r2.items) out.nodes.set(nd.id, { x: colX(nd), y: y4 + (r2.height - nd.height) / 2 });
+        y4 += r2.height + ROW_GAP;
+      }
+      const used = rows.length ? y4 - ROW_GAP + PAD_Y - top4 : 0;
+      return Math.max(MIN_LANE, used);
+    };
+    let y3 = Math.min(...pools.map((p4) => p4.y));
+    for (const pool of [...pools].sort((a3, b2) => a3.y - b2.y)) {
+      const laneIds = new Set(allLaneIds(pool.lanes));
+      const inPool = nodes.filter((nd) => nd.poolId === pool.id || !!nd.laneId && laneIds.has(nd.laneId));
+      let height2;
+      let lanes = pool.lanes;
+      if (pool.blackBox || !inPool.length) {
+        height2 = pool.height;
+      } else if (!lanes.length) {
+        height2 = placeLane(inPool, y3);
+      } else {
+        let at3 = y3;
+        const ofLane = (id) => inPool.filter((nd) => nd.laneId === id);
+        lanes = lanes.map((ln3) => {
+          if (!ln3.lanes?.length) {
+            const h3 = placeLane(ofLane(ln3.id), at3);
+            at3 += h3;
+            return { ...ln3, height: h3 };
+          }
+          const start = at3;
+          const children2 = ln3.lanes.map((c4) => {
+            const h3 = placeLane([...ofLane(c4.id), ...c4 === ln3.lanes[0] ? ofLane(ln3.id) : []], at3);
+            at3 += h3;
+            return { ...c4, height: h3 };
+          });
+          return { ...ln3, height: at3 - start, lanes: children2 };
+        });
+        height2 = at3 - y3;
+      }
+      out.pools.set(pool.id, { x: left4, y: y3, width: right4 - left4, height: height2, lanes });
+      y3 += height2 + POOL_GAP;
+    }
+    return out;
+  }
+
+  // src/io/bpmn/labelGeometry.ts
+  var isEvent = (shape) => shape.includes("event") || shape.includes("bpmn-start") || shape.includes("bpmn-intermediate") || shape.includes("bpmn-end");
+  var isGateway = (shape) => shape.includes("gateway");
+  var isData = (shape) => shape.startsWith("bpmn-data-");
+  function hasExternalLabel(shape) {
+    return isEvent(shape) || isGateway(shape) || isData(shape);
+  }
+  function defaultLabelDy(shape, height2) {
+    if (isGateway(shape)) return 37;
+    if (isData(shape)) return height2 / 2 + 16;
+    return 36;
+  }
+
+  // src/canvas/bulkAlign.ts
+  function reposition(cells, mut) {
+    return cells.map((c4) => {
+      const next = mut(c4);
+      return { id: c4.id, x: next.x, y: next.y };
+    });
+  }
+  function alignLeft(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const minX = Math.min(...cells.map((c4) => c4.x));
+    return reposition(cells, (c4) => ({ x: minX, y: c4.y }));
+  }
+  function alignCenterH(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const centers = cells.map((c4) => c4.x + c4.width / 2);
+    const avg = centers.reduce((a3, b2) => a3 + b2, 0) / centers.length;
+    return reposition(cells, (c4) => ({ x: Math.round(avg - c4.width / 2), y: c4.y }));
+  }
+  function alignRight(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const maxR = Math.max(...cells.map((c4) => c4.x + c4.width));
+    return reposition(cells, (c4) => ({ x: maxR - c4.width, y: c4.y }));
+  }
+  function alignTop(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const minY = Math.min(...cells.map((c4) => c4.y));
+    return reposition(cells, (c4) => ({ x: c4.x, y: minY }));
+  }
+  function alignMiddleV(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const middles = cells.map((c4) => c4.y + c4.height / 2);
+    const avg = middles.reduce((a3, b2) => a3 + b2, 0) / middles.length;
+    return reposition(cells, (c4) => ({ x: c4.x, y: Math.round(avg - c4.height / 2) }));
+  }
+  function alignBottom(cells) {
+    if (cells.length < 2) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const maxB = Math.max(...cells.map((c4) => c4.y + c4.height));
+    return reposition(cells, (c4) => ({ x: c4.x, y: maxB - c4.height }));
+  }
+  function distributeH(cells) {
+    if (cells.length < 3) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const sorted = [...cells].sort((a3, b2) => a3.x - b2.x);
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    const totalWidth = sorted.reduce((sum, c4) => sum + c4.width, 0);
+    const span = last.x + last.width - first.x;
+    const gap = Math.max(0, (span - totalWidth) / (sorted.length - 1));
+    let cursor = first.x;
+    const map = /* @__PURE__ */ new Map();
+    for (const c4 of sorted) {
+      map.set(c4.id, { x: Math.round(cursor), y: c4.y });
+      cursor += c4.width + gap;
+    }
+    return cells.map((c4) => ({ id: c4.id, ...map.get(c4.id) }));
+  }
+  function distributeV(cells) {
+    if (cells.length < 3) return cells.map((c4) => ({ id: c4.id, x: c4.x, y: c4.y }));
+    const sorted = [...cells].sort((a3, b2) => a3.y - b2.y);
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    const totalHeight = sorted.reduce((sum, c4) => sum + c4.height, 0);
+    const span = last.y + last.height - first.y;
+    const gap = Math.max(0, (span - totalHeight) / (sorted.length - 1));
+    let cursor = first.y;
+    const map = /* @__PURE__ */ new Map();
+    for (const c4 of sorted) {
+      map.set(c4.id, { x: c4.x, y: Math.round(cursor) });
+      cursor += c4.height + gap;
+    }
+    return cells.map((c4) => ({ id: c4.id, ...map.get(c4.id) }));
+  }
+
   // src/canvas/OmniboardCanvas.ts
   var FILL_SWATCHES = [
     "transparent",
@@ -73642,7 +73733,7 @@
      * `lanes[i].height` as one undo step.
      */
     enableLaneResize() {
-      const MIN_LANE = 60;
+      const MIN_LANE2 = 60;
       this.root.addEventListener("pointerdown", (e2) => {
         const handle = e2.target?.closest?.(".bp-pool-lane-divider");
         if (!handle) return;
@@ -73667,7 +73758,7 @@
         const at3 = (ev) => horizontal ? ev.clientY : ev.clientX;
         const start = at3(e2);
         const scale2 = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
-        const resized = (ev) => resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE / (parent >= 0 ? 2 : 1));
+        const resized = (ev) => resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE2 / (parent >= 0 ? 2 : 1));
         const mv = (ev) => {
           resized(ev).forEach((ln3, i3) => {
             if (laneEls[i3]) laneEls[i3].style.flex = `${ln3.height} 1 0px`;
@@ -77523,6 +77614,89 @@
         e2.setRouter(SMART_ROUTER);
         e2.setConnector(CONNECTOR);
         this.applyEdgeStyle(e2);
+      }
+      this.onChange();
+      setTimeout(() => {
+        this.graph.zoomToFit({ padding: 40, maxScale: 1.2 });
+        this.updateZoom();
+        this.refreshMinimap();
+        this.refreshBpmnEventLabels();
+      }, 30);
+    }
+    /**
+     * "Tự sắp xếp". A board with horizontal BPMN pools is arranged lane-aware
+     * (laneAwareLayout): left→right flow, every shape stays in its lane, lanes
+     * grow to fit, pools keep their order. Other boards: autoLayout. One undo
+     * step.
+     */
+    autoArrange() {
+      const poolNodes = this.graph.getNodes().filter((n2) => this.nodeKind(n2) === "bpmn-pool" && this.nodeExtra(n2).poolHorizontal !== false);
+      if (!poolNodes.length) {
+        this.autoLayout("LR");
+        return;
+      }
+      const model = this.getModel();
+      const pools = poolNodes.map((p4) => ({
+        ...p4.getPosition(),
+        ...p4.getSize(),
+        id: p4.id,
+        lanes: this.nodeExtra(p4).lanes ?? [],
+        blackBox: !!this.nodeExtra(p4).blackBox
+      }));
+      const laneOwner = /* @__PURE__ */ new Map();
+      for (const p4 of pools) for (const id of allLaneIds(p4.lanes)) laneOwner.set(id, p4.id);
+      const inPoolWithoutLanes = (n2) => pools.find((p4) => !p4.lanes.length && n2.x + n2.width / 2 >= p4.x && n2.x + n2.width / 2 <= p4.x + p4.width && n2.y + n2.height / 2 >= p4.y && n2.y + n2.height / 2 <= p4.y + p4.height)?.id;
+      const isArtifact = (shape) => shape === "bpmn-annotation" || shape.startsWith("bpmn-data-");
+      const toLayout = (n2) => ({
+        id: n2.id,
+        x: n2.x,
+        y: n2.y,
+        width: n2.width,
+        height: n2.height,
+        laneId: n2.laneId,
+        poolId: n2.laneId && laneOwner.get(n2.laneId) || inPoolWithoutLanes(n2)
+      });
+      const flowNodes = model.nodes.filter((n2) => !CONTAINER_KINDS2.has(n2.shape) && !n2.attrs?.attachedTo && !isArtifact(n2.shape)).map(toLayout).filter((n2) => !!n2.poolId);
+      const flowIds = new Set(flowNodes.map((n2) => n2.id));
+      const followers = model.nodes.filter((n2) => isArtifact(n2.shape)).map((n2) => ({ ...toLayout(n2), follow: model.edges.map((e2) => e2.source === n2.id ? e2.target : e2.target === n2.id ? e2.source : null).find((id) => !!id && flowIds.has(id)) })).map((n2) => n2.follow ? n2 : { ...n2, keepX: true }).filter((n2) => !!n2.poolId && (!!n2.follow || !!n2.laneId));
+      const layoutNodes = [...flowNodes, ...followers];
+      if (!layoutNodes.length) return;
+      const result = layoutInLanes(pools, layoutNodes, model.edges.map((e2) => ({ source: e2.source, target: e2.target })));
+      const moved = new Set(result.nodes.keys());
+      this.graph.startBatch("auto-layout");
+      try {
+        for (const [id, p4] of result.pools) {
+          const pool = this.graph.getCellById(id);
+          pool.setPosition(p4.x, p4.y);
+          pool.resize(p4.width, p4.height);
+          pool.setData({ ...pool.getData(), lanes: p4.lanes }, { deep: false });
+          this.rerender(pool);
+        }
+        for (const n2 of model.nodes) {
+          if (moved.has(n2.id) || n2.shape === "bpmn-pool" || CONTAINER_KINDS2.has(n2.shape) || n2.attrs?.attachedTo) continue;
+          const partner = model.edges.map((e2) => e2.source === n2.id ? e2.target : e2.target === n2.id ? e2.source : null).find((id) => !!id && moved.has(id));
+          const before2 = partner ? model.nodes.find((x3) => x3.id === partner) : void 0;
+          const after2 = partner ? result.nodes.get(partner) : void 0;
+          if (before2 && after2) this.graph.getCellById(n2.id).setPosition(n2.x + after2.x - before2.x, n2.y + after2.y - before2.y);
+        }
+        for (const [id, p4] of result.nodes) this.graph.getCellById(id).setPosition(p4.x, p4.y);
+        for (const e2 of this.graph.getEdges()) {
+          const sId = e2.getSourceCellId(), tId = e2.getTargetCellId();
+          if (!sId || !tId || !moved.has(sId) || !moved.has(tId)) continue;
+          e2.setVertices([]);
+          const kind = e2.getData()?.bpmnKind;
+          if (kind === "association") continue;
+          let [sp, tp] = ["right", "left"];
+          if (kind === "message") {
+            const down = (result.nodes.get(sId)?.y ?? 0) < (result.nodes.get(tId)?.y ?? 0);
+            [sp, tp] = down ? ["bottom", "top"] : ["top", "bottom"];
+          }
+          e2.setSource(portEndpoint(sId, sp));
+          e2.setTarget(portEndpoint(tId, tp));
+          e2.setRouter(SMART_ROUTER);
+        }
+      } finally {
+        this.graph.stopBatch("auto-layout");
       }
       this.onChange();
       setTimeout(() => {

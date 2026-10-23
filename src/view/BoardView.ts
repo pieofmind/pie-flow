@@ -152,6 +152,33 @@ async function saveToLocal(
   return suggestedName;
 }
 
+/** "File changed from outside while you were editing" — reload or keep mine. */
+class ExternalChangeModal extends Modal {
+  private answered = false;
+  constructor(view: BoardView, private readonly done: (c: "reload" | "keep") => void) {
+    super(view.app);
+  }
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "File đã đổi bên ngoài" });
+    contentEl.createEl("p", { text: "File board này vừa bị sửa ngoài tab (script / plugin khác) trong lúc bạn đang có thay đổi chưa lưu." });
+    const actions = contentEl.createDiv({ cls: "lk-prow2" });
+    const btn = (text: string, choice: "reload" | "keep", cta = false) => {
+      const b = actions.createEl("button", { text });
+      if (cta) b.addClass("mod-cta");
+      b.onclick = () => { this.answered = true; this.done(choice); this.close(); };
+    };
+    btn("Nạp lại từ file", "reload", true);
+    btn("Giữ bản đang sửa (ghi đè file)", "keep");
+  }
+  onClose(): void {
+    this.contentEl.empty();
+    // Closed without choosing (Esc) → the safe option: take the file's version.
+    if (!this.answered) this.done("reload");
+  }
+}
+
 export const BOARD_VIEW_TYPE = "omniboard-board";
 export const BOARD_EXTENSION = "omniboard.md";
 
@@ -205,6 +232,22 @@ export class BoardView extends TextFileView {
    *                   model is still written, BPMN view will lazy-regenerate).
    */
   private cachedBpmnXml: string | undefined = undefined;
+  /**
+   * Guard against writing over a file changed from outside (another tool
+   * regenerating the board while this tab is open). `diskModel` is the board
+   * model we know to be on disk: set when we load it and when we write it.
+   * Obsidian's TextFileView ignores `modify` while a save is in flight, so we
+   * check the disk ourselves (onModify override + before every save).
+   */
+  private diskModel: string | null = null;
+  /** Canvas edits not yet written to disk. */
+  private localEdits = false;
+  /** True while we load disk content into the canvas (its change events are not edits). */
+  private applyingDisk = false;
+  /** Set while asking the user about a conflict; no save may write meanwhile. */
+  private conflict: Promise<void> | null = null;
+  /** True only inside our own save(), so getViewData knows it is being written. */
+  private writing = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: DiagramsPlugin) {
     super(leaf);
@@ -244,19 +287,16 @@ export class BoardView extends TextFileView {
       onClose: () => {},
       shapeCategories: SHAPE_CATEGORIES,
       canvasModel: this.model,
-      onCanvasChange: () => {
-        // BoardView keeps `this.model` in sync via canvas.getModel() at
-        // save time (see getViewData / save). Here we just trigger the
-        // existing change pipeline.
-        this.requestSave();
-        emitBpmnIssuesRefresh();
-      },
+      onCanvasChange: () => this.handleCanvasChange(),
       onCanvasReady: (canvas) => {
         this.canvas = canvas;
         // Resync to the latest `this.model` in case setViewData fired
         // between mount and useEffect drain (the model passed at render
         // time may already be stale by the time the effect runs).
-        canvas.loadModel(this.model);
+        // It is the disk content, not a user edit.
+        this.applyingDisk = true;
+        try { canvas.loadModel(this.model); }
+        finally { this.applyingDisk = false; }
         canvas.setSelectionChangeHandler(emitOmniboardSelectionChange);
         emitBpmnIssuesRefresh();
       },
@@ -295,6 +335,74 @@ export class BoardView extends TextFileView {
     });
     // Rename handler (onLoadFile) updates the title via this thin adapter.
     this.boardTitleEl = { setText: (t: string) => setTitle(t) };
+  }
+
+  /** A change on the canvas. BoardView keeps `this.model` in sync via
+   *  canvas.getModel() at save time (see getViewData / save); here we just
+   *  trigger the change pipeline. */
+  private handleCanvasChange(): void {
+    if (this.applyingDisk) return;
+    this.localEdits = true;
+    this.requestSave();
+    emitBpmnIssuesRefresh();
+  }
+
+  /** Board model of a file's text, as a comparable string (null = unparseable). */
+  private static fingerprint(text: string): string | null {
+    const m = deserializeBoard(text);
+    return m ? JSON.stringify(m) : null;
+  }
+
+  /** Obsidian calls this when the file changes on disk. Unlike the base
+   *  class we also look while a save is in flight — that is exactly when a
+   *  regenerating script's write used to get lost. */
+  onModify(file: unknown): void {
+    if (file !== this.file) return;
+    void this.checkDisk();
+  }
+
+  /** Compare the disk with what we last loaded / wrote. Returns true when the
+   *  disk holds what we expect (safe to write). */
+  private async checkDisk(): Promise<boolean> {
+    if (!this.file || this.invalidFormat) return true;
+    const disk = await this.app.vault.read(this.file);
+    const fp = BoardView.fingerprint(disk);
+    if (fp === null || fp === this.diskModel) return true;
+    if (!this.localEdits) this.applyDisk(disk);
+    else await this.resolveConflict();
+    return false;
+  }
+
+  /** Load disk content into the canvas, keeping zoom / pan. */
+  private applyDisk(disk: string): void {
+    const base = this as unknown as { data: string; lastSavedData: string | null; dirty: boolean };
+    base.data = disk;
+    base.lastSavedData = disk;
+    this.applyingDisk = true;
+    try { this.setViewData(disk, false); }
+    finally { this.applyingDisk = false; }
+    this.localEdits = false;
+    base.dirty = false;
+  }
+
+  private resolveConflict(): Promise<void> {
+    this.conflict ??= (async () => {
+      try {
+        const choice = await this.askExternalConflict();
+        if (!this.file) return;
+        const disk = await this.app.vault.read(this.file);
+        if (choice === "reload") { this.applyDisk(disk); return; }
+        // Keep mine: accept writing over what is on disk now.
+        this.diskModel = BoardView.fingerprint(disk);
+        this.requestSave();
+      } finally { this.conflict = null; }
+    })();
+    return this.conflict;
+  }
+
+  /** Ask whether to reload the file changed from outside or keep this tab's edits. */
+  protected askExternalConflict(): Promise<"reload" | "keep"> {
+    return new Promise((resolve) => new ExternalChangeModal(this, resolve).open());
   }
 
   getCanvas(): OmniboardCanvas | null {
@@ -422,12 +530,15 @@ export class BoardView extends TextFileView {
     }
     this.invalidFormat = false;
     this.model = parsed;
+    this.diskModel = JSON.stringify(parsed);
+    this.localEdits = false;
     if (this.canvas) {
       // Echo-skip: compare models semantically (the serialized markdown is not
       // stable byte-wise because the text mirror depends on label order).
       const current = JSON.stringify(this.canvas.getModel());
       if (JSON.stringify(parsed) === current) return;
-      this.canvas.loadModel(this.model);
+      // A reload of the same file (outside change) keeps the user's zoom / pan.
+      this.canvas.loadModel(this.model, { keepView: this.applyingDisk });
       emitBpmnIssuesRefresh();
     }
   }
@@ -436,6 +547,11 @@ export class BoardView extends TextFileView {
   getViewData(): string {
     if (this.invalidFormat) return this.rawData; // never clobber an unparseable file
     if (this.canvas) this.model = this.canvas.getModel();
+    if (this.writing) {
+      // The base save() writes exactly this: from now on it is what's on disk.
+      this.diskModel = JSON.stringify(this.model);
+      this.localEdits = false;
+    }
     return serializeBoard(this.model, this.rawData, this.pendingSourceMeta ?? undefined, {
       compressDrawingData: this.plugin.settings.compressDrawingData,
       bpmnXml: this.cachedBpmnXml,
@@ -464,7 +580,12 @@ export class BoardView extends TextFileView {
         console.warn(`[omniboard] BPMN regen took ${elapsed.toFixed(1)}ms`);
       }
     }
-    return super.save(clear);
+    // Never write over a disk change we haven't seen: load it or ask first.
+    if (this.conflict) return;
+    if (!(await this.checkDisk())) return;
+    this.writing = true;
+    try { return await super.save(clear); }
+    finally { this.writing = false; }
   }
 
   clear(): void { this.model = EMPTY_MODEL; }

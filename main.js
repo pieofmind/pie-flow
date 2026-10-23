@@ -87239,7 +87239,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     edge.setConnector("mm-edge");
   }
   // ── Model load / serialize ───────────────────────────────────────────────
-  loadModel(model) {
+  loadModel(model, opts) {
     var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l;
     model = this.dedupeLaneIdsAcrossPools(model);
     this.graph.clearCells();
@@ -87409,7 +87409,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.refreshMinimap();
       this.refreshBpmnEventLabels();
     }, 80);
-    if (model.nodes.length) this.fitWhenReady();
+    if (model.nodes.length && !(opts == null ? void 0 : opts.keepView)) this.fitWhenReady();
   }
   // In Obsidian the view container may have 0 size at load time (layout not
   // measured yet) — zoomToFit then computes scale ≈ 0 and content vanishes.
@@ -88334,6 +88334,35 @@ async function saveToLocal(data2, suggestedName, mimeType) {
   setTimeout(() => URL.revokeObjectURL(url), 1e3);
   return suggestedName;
 }
+var ExternalChangeModal = class extends import_obsidian5.Modal {
+  constructor(view, done) {
+    super(view.app);
+    this.done = done;
+    this.answered = false;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h3", { text: "File \u0111\xE3 \u0111\u1ED5i b\xEAn ngo\xE0i" });
+    contentEl.createEl("p", { text: "File board n\xE0y v\u1EEBa b\u1ECB s\u1EEDa ngo\xE0i tab (script / plugin kh\xE1c) trong l\xFAc b\u1EA1n \u0111ang c\xF3 thay \u0111\u1ED5i ch\u01B0a l\u01B0u." });
+    const actions = contentEl.createDiv({ cls: "lk-prow2" });
+    const btn = (text4, choice, cta = false) => {
+      const b4 = actions.createEl("button", { text: text4 });
+      if (cta) b4.addClass("mod-cta");
+      b4.onclick = () => {
+        this.answered = true;
+        this.done(choice);
+        this.close();
+      };
+    };
+    btn("N\u1EA1p l\u1EA1i t\u1EEB file", "reload", true);
+    btn("Gi\u1EEF b\u1EA3n \u0111ang s\u1EEDa (ghi \u0111\xE8 file)", "keep");
+  }
+  onClose() {
+    this.contentEl.empty();
+    if (!this.answered) this.done("reload");
+  }
+};
 var BOARD_VIEW_TYPE3 = "omniboard-board";
 var EMPTY_MODEL = { nodes: [], edges: [] };
 var BOARD_TAB_STUB_ADAPTER = {
@@ -88353,7 +88382,7 @@ var BOARD_TAB_STUB_ADAPTER = {
   exportFormats: ["svg", "png", "pdf"],
   validate: () => ({ ok: true, errors: [] })
 };
-var BoardView = class extends import_obsidian5.TextFileView {
+var BoardView = class _BoardView extends import_obsidian5.TextFileView {
   constructor(leaf, plugin) {
     super(leaf);
     this.canvas = null;
@@ -88370,6 +88399,22 @@ var BoardView = class extends import_obsidian5.TextFileView {
      *                   model is still written, BPMN view will lazy-regenerate).
      */
     this.cachedBpmnXml = void 0;
+    /**
+     * Guard against writing over a file changed from outside (another tool
+     * regenerating the board while this tab is open). `diskModel` is the board
+     * model we know to be on disk: set when we load it and when we write it.
+     * Obsidian's TextFileView ignores `modify` while a save is in flight, so we
+     * check the disk ourselves (onModify override + before every save).
+     */
+    this.diskModel = null;
+    /** Canvas edits not yet written to disk. */
+    this.localEdits = false;
+    /** True while we load disk content into the canvas (its change events are not edits). */
+    this.applyingDisk = false;
+    /** Set while asking the user about a conflict; no save may write meanwhile. */
+    this.conflict = null;
+    /** True only inside our own save(), so getViewData knows it is being written. */
+    this.writing = false;
     this.pendingSourceMeta = null;
     this.plugin = plugin;
   }
@@ -88403,13 +88448,15 @@ var BoardView = class extends import_obsidian5.TextFileView {
       },
       shapeCategories: SHAPE_CATEGORIES,
       canvasModel: this.model,
-      onCanvasChange: () => {
-        this.requestSave();
-        emitBpmnIssuesRefresh();
-      },
+      onCanvasChange: () => this.handleCanvasChange(),
       onCanvasReady: (canvas) => {
         this.canvas = canvas;
-        canvas.loadModel(this.model);
+        this.applyingDisk = true;
+        try {
+          canvas.loadModel(this.model);
+        } finally {
+          this.applyingDisk = false;
+        }
         canvas.setSelectionChangeHandler(emitOmniboardSelectionChange);
         emitBpmnIssuesRefresh();
       }
@@ -88442,6 +88489,75 @@ var BoardView = class extends import_obsidian5.TextFileView {
       ]
     });
     this.boardTitleEl = { setText: (t6) => setTitle(t6) };
+  }
+  /** A change on the canvas. BoardView keeps `this.model` in sync via
+   *  canvas.getModel() at save time (see getViewData / save); here we just
+   *  trigger the change pipeline. */
+  handleCanvasChange() {
+    if (this.applyingDisk) return;
+    this.localEdits = true;
+    this.requestSave();
+    emitBpmnIssuesRefresh();
+  }
+  /** Board model of a file's text, as a comparable string (null = unparseable). */
+  static fingerprint(text4) {
+    const m7 = deserializeBoard(text4);
+    return m7 ? JSON.stringify(m7) : null;
+  }
+  /** Obsidian calls this when the file changes on disk. Unlike the base
+   *  class we also look while a save is in flight — that is exactly when a
+   *  regenerating script's write used to get lost. */
+  onModify(file) {
+    if (file !== this.file) return;
+    void this.checkDisk();
+  }
+  /** Compare the disk with what we last loaded / wrote. Returns true when the
+   *  disk holds what we expect (safe to write). */
+  async checkDisk() {
+    if (!this.file || this.invalidFormat) return true;
+    const disk = await this.app.vault.read(this.file);
+    const fp = _BoardView.fingerprint(disk);
+    if (fp === null || fp === this.diskModel) return true;
+    if (!this.localEdits) this.applyDisk(disk);
+    else await this.resolveConflict();
+    return false;
+  }
+  /** Load disk content into the canvas, keeping zoom / pan. */
+  applyDisk(disk) {
+    const base = this;
+    base.data = disk;
+    base.lastSavedData = disk;
+    this.applyingDisk = true;
+    try {
+      this.setViewData(disk, false);
+    } finally {
+      this.applyingDisk = false;
+    }
+    this.localEdits = false;
+    base.dirty = false;
+  }
+  resolveConflict() {
+    var _a3;
+    (_a3 = this.conflict) != null ? _a3 : this.conflict = (async () => {
+      try {
+        const choice = await this.askExternalConflict();
+        if (!this.file) return;
+        const disk = await this.app.vault.read(this.file);
+        if (choice === "reload") {
+          this.applyDisk(disk);
+          return;
+        }
+        this.diskModel = _BoardView.fingerprint(disk);
+        this.requestSave();
+      } finally {
+        this.conflict = null;
+      }
+    })();
+    return this.conflict;
+  }
+  /** Ask whether to reload the file changed from outside or keep this tab's edits. */
+  askExternalConflict() {
+    return new Promise((resolve3) => new ExternalChangeModal(this, resolve3).open());
   }
   getCanvas() {
     return this.canvas;
@@ -88557,10 +88673,12 @@ var BoardView = class extends import_obsidian5.TextFileView {
     }
     this.invalidFormat = false;
     this.model = parsed;
+    this.diskModel = JSON.stringify(parsed);
+    this.localEdits = false;
     if (this.canvas) {
       const current = JSON.stringify(this.canvas.getModel());
       if (JSON.stringify(parsed) === current) return;
-      this.canvas.loadModel(this.model);
+      this.canvas.loadModel(this.model, { keepView: this.applyingDisk });
       emitBpmnIssuesRefresh();
     }
   }
@@ -88569,6 +88687,10 @@ var BoardView = class extends import_obsidian5.TextFileView {
     var _a3;
     if (this.invalidFormat) return this.rawData;
     if (this.canvas) this.model = this.canvas.getModel();
+    if (this.writing) {
+      this.diskModel = JSON.stringify(this.model);
+      this.localEdits = false;
+    }
     return serializeBoard(this.model, this.rawData, (_a3 = this.pendingSourceMeta) != null ? _a3 : void 0, {
       compressDrawingData: this.plugin.settings.compressDrawingData,
       bpmnXml: this.cachedBpmnXml
@@ -88597,7 +88719,14 @@ var BoardView = class extends import_obsidian5.TextFileView {
         console.warn(`[omniboard] BPMN regen took ${elapsed.toFixed(1)}ms`);
       }
     }
-    return super.save(clear3);
+    if (this.conflict) return;
+    if (!await this.checkDisk()) return;
+    this.writing = true;
+    try {
+      return await super.save(clear3);
+    } finally {
+      this.writing = false;
+    }
   }
   clear() {
     this.model = EMPTY_MODEL;

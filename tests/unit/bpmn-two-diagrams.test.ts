@@ -70,3 +70,29 @@ describe("switching diagrams on the Board", () => {
     expect(diagrams.map((d) => d.subProcess)).toEqual([false, false]);
   });
 });
+
+const pshape = (id: string, x: number, h = 200) => `<bpmndi:BPMNShape id="${id}_di" bpmnElement="${id}" isHorizontal="true"><dc:Bounds x="${x}" y="40" width="500" height="${h}"/></bpmndi:BPMNShape>`;
+const COLLAB = `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions ${NS} id="D" targetNamespace="urn:t">
+  <bpmn:collaboration id="C1"><bpmn:participant id="P1" name="Khach" processRef="PR1"/></bpmn:collaboration>
+  <bpmn:collaboration id="C2"><bpmn:participant id="P2" name="Sale" processRef="PR2"/></bpmn:collaboration>
+  <bpmn:process id="PR1" isExecutable="false"><bpmn:laneSet id="LS1"><bpmn:lane id="L1" name="L1"><bpmn:flowNodeRef>t1</bpmn:flowNodeRef></bpmn:lane></bpmn:laneSet><bpmn:task id="t1" name="T1"/></bpmn:process>
+  <bpmn:process id="PR2" isExecutable="false"><bpmn:laneSet id="LS2"><bpmn:lane id="L2" name="L2"><bpmn:flowNodeRef>t2</bpmn:flowNodeRef></bpmn:lane></bpmn:laneSet><bpmn:task id="t2" name="T2"/></bpmn:process>
+  <bpmndi:BPMNDiagram id="DiagC1"><bpmndi:BPMNPlane id="PlC1" bpmnElement="C1">${pshape("P1", 40)}${pshape("L1", 70, 200)}${shape("t1", 120)}</bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="DiagC2"><bpmndi:BPMNPlane id="PlC2" bpmnElement="C2">${pshape("P2", 40)}${pshape("L2", 70, 200)}${shape("t2", 120)}</bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</bpmn:definitions>`;
+
+describe("a file whose two diagrams are collaborations", () => {
+  it("shows one collaboration's pool and steps, saves without touching the other", async () => {
+    const r = await importBpmn(COLLAB, { diagramIndex: 1 });
+    expect(ids(r.model)).toEqual(expect.arrayContaining(["P2", "t2"]));
+    expect(ids(r.model)).not.toContain("t1");
+    expect(ids(r.model)).not.toContain("P1");
+    const xml = await exportBpmn({ ...r.model, nodes: r.model.nodes.map((n) => (n.id === "t2" ? { ...n, label: "Doi" } : n)) }, r.sourceMeta);
+    expect(xml).toMatch(/id="t2" name="Doi"/);
+    expect(xml).toMatch(/<bpmn:participant id="P1"[^>]*processRef="PR1"/);
+    expect(xml).toMatch(/<bpmn:lane id="L1"[^>]*>\s*<bpmn:flowNodeRef>t1<\/bpmn:flowNodeRef>/);
+    expect(planeOf(xml, "DiagC1")).toMatch(/bpmnElement="t1"/);
+    expect(planeOf(xml, "DiagC2")).not.toMatch(/bpmnElement="t1"/);
+  });
+});

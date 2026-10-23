@@ -1,5 +1,6 @@
 import { nodeHtml, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import type { CanvasModel } from "./types";
+import { hostSide } from "./boundaryLayout";
 
 const SVGNS = "http://www.w3.org/2000/svg";
 const XHTMLNS = "http://www.w3.org/1999/xhtml";
@@ -109,8 +110,9 @@ function edgesMarkup(edges: CanvasModel["edges"], byId: Map<string, ModelNode>):
  *  OmniboardCanvas.nodeExtra() so static renders emit the SAME BPMN glyphs /
  *  activity markers / lanes as the live canvas (otherwise events render as empty
  *  rings and pools lose their lane bands). */
-function nodeInnerHtml(n: ModelNode): string {
+function nodeInnerHtml(n: ModelNode, byId: Map<string, ModelNode>): string {
   const a = (n.attrs ?? {}) as Record<string, unknown>;
+  const host = typeof a.attachedTo === "string" ? byId.get(a.attachedTo) : undefined;
   const style = (a.style as NodeStyle) ?? {};
   const extra: NodeExtra = {
     cols: a.cols as ErdCol[] | undefined,
@@ -127,8 +129,17 @@ function nodeInnerHtml(n: ModelNode): string {
     attachedTo: a.attachedTo as NodeExtra["attachedTo"],
     markers: a.markers as NodeExtra["markers"],
     collapsed: a.collapsed as NodeExtra["collapsed"],
+    // Boundary event: label outside its host, like the live canvas.
+    ...(host ? { labelSide: hostSide(n, host) } : {}),
   };
   return nodeHtml(n.shape, n.label, style, extra);
+}
+
+/** Boundary events (attachedTo) paint after every other node so their host
+ *  never covers them, whatever order the model lists them in. */
+function paintOrder(nodes: ModelNode[]): ModelNode[] {
+  const isBoundary = (n: ModelNode) => typeof (n.attrs as Record<string, unknown> | undefined)?.attachedTo === "string";
+  return [...nodes.filter((n) => !isBoundary(n)), ...nodes.filter(isBoundary)];
 }
 
 const ARROW_DEF = `<marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker>`;
@@ -144,8 +155,8 @@ export function renderModelToSvg(model: CanvasModel, css: string, pad = 24, bg =
   const { x, y, w, h } = computeBounds(nodes, pad);
 
   const edgeSvg = edgesMarkup(model.edges, byId);
-  const nodeSvg = nodes.map((n) => {
-    const inner = nodeInnerHtml(n);
+  const nodeSvg = paintOrder(nodes).map((n) => {
+    const inner = nodeInnerHtml(n, byId);
     return `<foreignObject x="${num(n.x)}" y="${num(n.y)}" width="${num(n.width)}" height="${num(n.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
   }).join("");
 
@@ -183,8 +194,8 @@ export function renderModelToCard(model: CanvasModel, pad = 16, bg = "transparen
     + `style="position:absolute;left:0;top:0;width:${w}px;height:${h}px;overflow:visible;pointer-events:none">`
     + `<defs>${ARROW_DEF}</defs>${edgesMarkup(model.edges, byId)}</svg>`;
 
-  const nodeDivs = nodes.map((n) => {
-    const inner = nodeInnerHtml(n);
+  const nodeDivs = paintOrder(nodes).map((n) => {
+    const inner = nodeInnerHtml(n, byId);
     // Offset into stage-local coordinates (stage origin = bounds top-left).
     const left = num(n.x) - x, top = num(n.y) - y;
     return `<div class="hn" style="position:absolute;left:${left}px;top:${top}px;width:${num(n.width)}px;height:${num(n.height)}px">${inner}</div>`;

@@ -1,0 +1,102 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>BPMN boundary events</title>
+<style>
+:root{--font-interface:system-ui;}
+body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
+#host{width:1200px;height:520px;border:1px solid #ccc;}
+#log{padding:8px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;background:#fff;border-top:1px solid #ccc;max-height:300px;overflow:auto}
+.pass{color:#0a0}.fail{color:#c00;font-weight:600}
+</style>
+<link rel="stylesheet" href="../styles.css"/>
+</head><body>
+<div id="host" class="da-board-view"></div>
+<div id="log"></div>
+<script src="../harness/harness.js?v=boundary1"></script>
+<script>
+// Boundary events on the Board: bám mép host, nhãn ngoài host, viền đứt khi non-interrupting.
+// Serve the repo root (python3 -m http.server) and open tests/e2e-bpmn-boundary.html.
+const log = document.getElementById('log');
+const w = (s, cls='') => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = s; log.appendChild(d); };
+const results = [];
+async function run(name, fn) {
+  try { const out = await fn(); results.push({name, ok:true, info: out||''}); w(`✅ ${name}  ${out||''}`, 'pass'); }
+  catch(e) { results.push({name, ok:false, err: String(e?.message||e)}); w(`❌ ${name}  ${e?.message||e}`, 'fail'); console.error(name, e); }
+}
+function assert(cond, msg) { if (!cond) throw new Error('assert: '+msg); }
+const tick = (ms = 120) => new Promise(r => setTimeout(r, ms));
+
+// Case: task + boundary timer (non-interrupting) on its BOTTOM edge;
+//       sub-process + boundary message on its TOP edge (listed before its host).
+const MODEL = { nodes: [
+  { id: 'evt_msg', shape: 'bpmn-event-intermediate', x: 462, y: 142, width: 36, height: 36, label: 'Khách nhắn khi đang nhắc',
+    attrs: { trigger: 'message', attachedTo: 'sub', interrupting: true } },
+  { id: 'task', shape: 'bpmn-task-user', x: 120, y: 160, width: 120, height: 80, label: 'Chờ khách trả lời' },
+  { id: 'sub', shape: 'bpmn-task', x: 420, y: 160, width: 120, height: 80, label: 'Nhắc 2h · 8h · 20h theo thẻ',
+    attrs: { markers: ['subprocess'], collapsed: true } },
+  { id: 'evt_timer', shape: 'bpmn-event-intermediate', x: 192, y: 222, width: 36, height: 36, label: 'Im 2h',
+    attrs: { trigger: 'timer', attachedTo: 'task', interrupting: false } },
+], edges: [] };
+
+const g = () => window.__ob.graph;
+const cell = (id) => g().getCellById(id);
+const box = (id) => ({ ...cell(id).getPosition(), ...cell(id).getSize() });
+const centre = (b) => ({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
+const rect = (sel) => document.querySelector(sel).getBoundingClientRect();
+const overlaps = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+(async () => {
+  window.__ob.loadModel(MODEL);
+  g().zoomTo(1); g().translate(0, 0);
+  await tick(300);
+
+  await run('event paints above its host', () => {
+    assert(cell('evt_msg').getZIndex() > cell('sub').getZIndex(), 'evt_msg z above sub');
+    assert(cell('evt_timer').getZIndex() > cell('task').getZIndex(), 'evt_timer z above task');
+  });
+
+  await run('labels sit outside the host', () => {
+    const top = rect('[data-cell-id="evt_msg"] .bp-elabel'), sub = rect('[data-cell-id="sub"] .bp-task');
+    const bot = rect('[data-cell-id="evt_timer"] .bp-elabel'), task = rect('[data-cell-id="task"] .bp-task');
+    assert(!overlaps(top, sub), 'top-edge label overlaps the sub-process');
+    assert(top.bottom <= sub.top, 'top-edge label above the host');
+    assert(!overlaps(bot, task), 'bottom-edge label overlaps the task');
+    return `msg label ${Math.round(top.top)}–${Math.round(top.bottom)} vs host top ${Math.round(sub.top)}`;
+  });
+
+  await run('non-interrupting draws both rings dashed', () => {
+    const el = document.querySelector('[data-cell-id="evt_timer"] .bp-event');
+    assert(getComputedStyle(el).borderTopStyle === 'dashed', 'outer ring dashed');
+    assert(getComputedStyle(el, '::after').borderTopStyle === 'dashed', 'inner ring dashed');
+    const solid = document.querySelector('[data-cell-id="evt_msg"] .bp-event');
+    assert(getComputedStyle(solid).borderTopStyle === 'solid', 'interrupting stays solid');
+  });
+
+  await run('moving the host takes the event along', async () => {
+    cell('task').setPosition(160, 300, { ui: true, translateBy: 'task' });
+    await tick();
+    const c = centre(box('evt_timer'));
+    assert(c.x === 160 + 90 && c.y === 300 + 80, `timer centre ${c.x},${c.y}`);
+  });
+
+  await run('resizing the host keeps the spot on its border', async () => {
+    cell('task').resize(240, 120);
+    await tick();
+    const c = centre(box('evt_timer'));
+    // bottom edge, 3/4 along → 160 + 0.75*240 = 340, y = 300 + 120
+    assert(c.x === 340 && c.y === 420, `timer centre ${c.x},${c.y}`);
+  });
+
+  await run('dragging the event slides it along the host border', async () => {
+    const ev = cell('evt_msg');
+    ev.setPosition(700, 100, { ui: true, translateBy: 'evt_msg' });   // far to the top-right
+    await tick();
+    const c = centre(box('evt_msg')), s = box('sub');
+    assert(c.x === s.x + s.width && c.y === s.y, `msg centre ${c.x},${c.y} not at the host's top-right corner`);
+  });
+
+  const failed = results.filter(r => !r.ok).length;
+  w(failed ? `${failed} FAILED` : 'ALL PASS', failed ? 'fail' : 'pass');
+  window.__results = results;
+})();
+</script>
+</body></html>

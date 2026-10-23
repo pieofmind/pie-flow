@@ -780,6 +780,11 @@
 }
 /* Auto-flip label to the opposite side of the incoming/outgoing edge (bpmn.io behaviour). */
 .lk-root .bp-event.label-top .bp-elabel { top: auto; bottom: calc(100% + 6px); }
+/* Boundary event on a host's left / right edge: label outside the host, beside the event. */
+.lk-root .bp-event.label-left .bp-elabel,
+.lk-root .bp-event.label-right .bp-elabel { top: 50%; transform: translateY(-50%); text-align: left; }
+.lk-root .bp-event.label-left .bp-elabel { left: auto; right: calc(100% + 6px); text-align: right; }
+.lk-root .bp-event.label-right .bp-elabel { left: calc(100% + 6px); }
 /* Allow user to drag node labels (BPMN event/gateway) when auto-flip isn't enough. */
 .lk-root .bp-elabel { cursor: move; pointer-events: auto; user-select: none; }
 .lk-root .bp-elabel.is-dragging { color: var(--pg-accent); }
@@ -909,6 +914,12 @@
 .lk-root .bp-task.is-call { border-width: 3px; }
 /* Đợt A — Event interrupting flag (boundary / event-subprocess start) */
 .lk-root .bp-event.is-non-interrupting { border-style: dashed !important; }
+/* Intermediate (boundary) event draws its inner ring with box-shadow, which
+   can't be dashed: swap it for a dashed ::after ring so both circles are
+   dashed, as in bpmn-js. */
+.lk-root .bp-event.inter.is-non-interrupting { box-shadow: var(--sh-sm); }
+.lk-root .bp-event.inter.is-non-interrupting::after { content: ""; position: absolute; inset: 2.5px;
+  border: 2px dashed #C99A2E; border-radius: 50%; pointer-events: none; }
 /* Đợt A — Activity markers row (icons stacked at the bottom of a task/sub-process) */
 .lk-root .bp-markers { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: none; }
 .lk-root .bp-markers .bp-mk-ic svg { width: 12px; height: 12px; color: var(--pg-text-muted); display: block; }

@@ -77,6 +77,9 @@ export interface NodeExtra {
   interrupting?: boolean;
   /** Boundary event: id of the activity this event is attached to. */
   attachedTo?: string;
+  /** Side of an event its label goes (static render of boundary events; the
+   *  live canvas toggles the same classes in refreshBpmnEventLabels). */
+  labelSide?: "top" | "right" | "bottom" | "left";
   /** Activity markers stacked at the bottom of a task/sub-process (multi-select):
    *  "loop" | "mi-par" | "mi-seq" | "adhoc" | "compensation" | "subprocess". */
   markers?: BpmnMarker[];
@@ -396,7 +399,8 @@ function bpEvent(kind: string, label: string, icon?: string, extra?: NodeExtra):
   const trigIc = extra?.trigger ? trigIcon(extra.trigger, filledByPos) : null;
   const inner = trigIc ?? icon ?? (pos === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`));
   const interrupt = extra?.interrupting === false ? " is-non-interrupting" : "";
-  return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
+  const lblSide = extra?.labelSide && extra.labelSide !== "bottom" ? ` label-${extra.labelSide}` : "";
+  return `<div class="bp-event ${kind}${lblSide}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
 }
 // Data object / store: the palette's icon, cropped to the shape so it fills
 // the node box (like bpmn-js, node box = shape) and ports / arrows meet it;

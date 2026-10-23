@@ -16,6 +16,7 @@ import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
+import { eventLabelSide, followHost, hostSide, snapToHostBorder, type Box } from "./boundaryLayout";
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignMiddleV, alignBottom,
@@ -1456,10 +1457,9 @@ export class OmniboardCanvas {
       // per-edge fixup needed.
       this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad();
     });
-    // Đợt E — Boundary event follow-on-move. When an activity moves, drag any
-    // event nodes whose extra.attachedTo points at it by the same (dx, dy).
-    // We hook the granular position-change event (fires per drag tick) and use
-    // X6's `previous` arg to read the delta exactly once per change.
+    // Boundary events stay on their host's border (boundaryLayout): the host
+    // moving takes them along, dragging the event itself slides it along the
+    // border. Hooked on the per-tick position change.
     this.graph.on("node:change:position", ({ node, current, previous, options }) => {
       // Skip our own re-positioning calls (re-entry guards) and X6's silent moves.
       if (options?.["__boundary_follow"]) return;
@@ -1468,21 +1468,10 @@ export class OmniboardCanvas {
       const dx = current.x - previous.x;
       const dy = current.y - previous.y;
       if (dx === 0 && dy === 0) return;
-      const movedId = node.id;
-      // Boundary events: fan out to any node whose extra.attachedTo points at this.
-      // Multi-select drags are moved by the X6 Selection plugin itself (it
-      // translates every selected node with the dragged one), so a selected
-      // boundary event is already moving — don't move it twice.
-      const groupMove = !!(options?.["ui"] || options?.["selection"]);
-      for (const child of this.graph.getNodes()) {
-        if (child.id === movedId) continue;
-        if (child.getData()?.attachedTo !== movedId) continue;
-        if (groupMove && this.graph.isSelected(child)) continue;
-        const p = child.getPosition();
-        child.setPosition(p.x + dx, p.y + dy, { "__boundary_follow": true } as Record<string, unknown>);
-      }
+      this.followBoundaryEvents(node, { ...previous, ...node.getSize() }, options);
+      this.snapBoundaryEvent(node, options);
     });
-    this.graph.on("node:resized", () => { this.refreshContextBar(); this.refreshContextPad(); });
+    this.graph.on("node:resized", () => { this.refreshContextBar(); this.refreshContextPad(); this.refreshBpmnEventLabels(); });
     // Resizing a pool by its top / bottom edge changes only the lane on that
     // edge (like bpmn-js); the other lanes and their shapes stay put. X6's
     // Transform passes the dragged handle as options.direction.
@@ -1500,6 +1489,11 @@ export class OmniboardCanvas {
       const sized = resizePoolLanes(asStackLanes(lanes, horizontal), before, after, edge);
       node.setData({ ...node.getData(), lanes: fromStackLanes(lanes, sized, horizontal) }, { deep: false });
       this.rerender(node);
+    });
+    // Resizing a host keeps its boundary events at the same spot on its border.
+    this.graph.on("node:change:size", ({ node, previous, options }) => {
+      if (!previous || options?.["__boundary_follow"]) return;
+      this.followBoundaryEvents(node, { ...node.getPosition(), ...previous }, options);
     });
     // Sequence activation bar is a thin vertical lifeline overlay: pin its width
     // so resize only changes height (X6 minWidth would otherwise fatten it).
@@ -3497,12 +3491,13 @@ export class OmniboardCanvas {
       // Too far / no candidate — user feedback via title only (no toast infra here)
       return;
     }
-    // Snap event onto the bottom-right of the parent (overlapping the edge per OMG)
-    const snapX = bestParent.x + bestParent.w - s.width / 2;
-    const snapY = bestParent.y + bestParent.h - s.height / 2;
-    node.setPosition(snapX, snapY);
+    // Snap the event onto the nearest edge of the parent (centre on the border per OMG)
+    const snap = snapToHostBorder(this.boxOf(node), { x: bestParent.x, y: bestParent.y, width: bestParent.w, height: bestParent.h });
+    node.setPosition(snap.x, snap.y);
     node.setData({ ...data, attachedTo: bestId });
+    this.raiseBoundaryEvents();
     this.rerender(node);
+    this.refreshBpmnEventLabels();
     this.onChange();
     this.refreshContextBar();
   }
@@ -4195,6 +4190,48 @@ export class OmniboardCanvas {
     edge.setData({ ...(edge.getData() ?? {}), y: lowest + 30 });
   }
 
+  private boxOf(n: Node): Box { return { ...n.getPosition(), ...n.getSize() }; }
+
+  /** Re-seat every boundary event of `host` after it went from `before` to
+   *  its current box. Placement is absolute (same edge, same fraction along
+   *  it), so applying it twice is harmless. Events the X6 Selection is
+   *  already translating together with the host are left to it. */
+  private followBoundaryEvents(host: Node, before: Box, options?: Record<string, unknown>): void {
+    const groupMove = !!(options?.["ui"] || options?.["selection"]);
+    for (const child of this.graph.getNodes()) {
+      if (child.id === host.id || child.getData()?.attachedTo !== host.id) continue;
+      if (groupMove && this.graph.isSelected(child)) continue;
+      const p = followHost(this.boxOf(child), before, this.boxOf(host));
+      child.setPosition(p.x, p.y, { "__boundary_follow": true } as Record<string, unknown>);
+    }
+  }
+
+  /** While the user drags a boundary event, keep it on its host's border —
+   *  also after Snapline nudges it (`snapped`). Moves the X6 Selection makes
+   *  alongside the host (`selection`) are left alone. */
+  private snapBoundaryEvent(node: Node, options?: Record<string, unknown>): void {
+    if (options?.["selection"]) return;
+    const direct = options?.["ui"] && options?.["translateBy"] === node.id;
+    if (!direct && !options?.["snapped"]) return;
+    const hostId = node.getData()?.attachedTo as string | undefined;
+    const host = hostId ? this.graph.getCellById(hostId) : null;
+    if (!host || !host.isNode()) return;
+    const p = snapToHostBorder(this.boxOf(node), this.boxOf(host));
+    const cur = node.getPosition();
+    if (p.x !== cur.x || p.y !== cur.y) node.setPosition(p.x, p.y, { "__boundary_follow": true } as Record<string, unknown>);
+  }
+
+  /** Boundary events must paint above their host, or the host hides them. */
+  private raiseBoundaryEvents(): void {
+    for (const ev of this.graph.getNodes()) {
+      const hostId = ev.getData()?.attachedTo as string | undefined;
+      const host = hostId ? this.graph.getCellById(hostId) : null;
+      if (!host || !host.isNode()) continue;
+      const hz = host.getZIndex() ?? 0;
+      if ((ev.getZIndex() ?? 0) <= hz) ev.setZIndex(hz + 1);
+    }
+  }
+
   /**
    * Auto-flip BPMN event labels to the opposite side of any connected edge
    * (mimics bpmn.io). If an edge enters/exits below the node centre, label moves
@@ -4207,6 +4244,8 @@ export class OmniboardCanvas {
       const isGw = k.startsWith("bpmn-gateway");
       const isData = k.startsWith("bpmn-data-");
       if (!isEvent && !isGw && !isData) continue;
+      const hostId = isEvent ? n.getData()?.attachedTo as string | undefined : undefined;
+      const host = hostId ? this.graph.getCellById(hostId) : null;
       const cy = n.getPosition().y + n.getSize().height / 2;
       let bottom = false, top = false;
       for (const e of this.graph.getEdges()) {
@@ -4221,11 +4260,19 @@ export class OmniboardCanvas {
         if (oc > cy + 4) bottom = true;
         else if (oc < cy - 4) top = true;
       }
-      // Flip up only when bottom is busy and top is free.
-      const flipUp = bottom && !top;
+      // Boundary event → label outside its host; else flip up only when
+      // bottom is busy and top is free.
+      const side = eventLabelSide({
+        boundary: host && host.isNode() ? hostSide(this.boxOf(n), this.boxOf(host as Node)) : undefined,
+        edgeBelow: bottom, edgeAbove: top,
+      });
       const view = this.graph.findViewByCell(n) as { container?: Element } | null;
       const el = view?.container?.querySelector?.(isGw ? ".bp-gw" : isData ? ".bp-dataobj, .bp-datastore" : ".bp-event") as HTMLElement | null;
-      if (el) el.classList.toggle("label-top", flipUp);
+      if (el) {
+        el.classList.toggle("label-top", side === "top");
+        el.classList.toggle("label-left", side === "left");
+        el.classList.toggle("label-right", side === "right");
+      }
     }
   }
 
@@ -4598,6 +4645,7 @@ export class OmniboardCanvas {
       if (!cell || !cell.isNode()) continue;
       cell.setZIndex(frameZ(n.shape, depthOf(n.id)));
     }
+    this.raiseBoundaryEvents();
     this.graph.stopBatch("load");
     this.resyncHtmlNodes();   // rebuild the mobile overlay from the freshly loaded nodes
     // Auto-grow every mindmap node once the foreignObject DOM is mounted &

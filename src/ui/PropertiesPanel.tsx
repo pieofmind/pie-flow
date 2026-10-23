@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import type { OmniboardCanvas, SelectedNodeSnapshot } from "../canvas/OmniboardCanvas";
+import { triggerChoices } from "../io/bpmn/eventTriggers";
 
 export const OMNIBOARD_PROPERTIES_VIEW_TYPE = "omniboard-properties";
 const BOARD_VIEW_TYPE = "omniboard-board";
@@ -220,6 +221,21 @@ export class OmniboardPropertiesView extends ItemView {
       return;
     }
 
+    const idInput = el("input", "lk-pinput") as HTMLInputElement;
+    idInput.value = snap.id;
+    idInput.onchange = () => {
+      if (canvas.renameNode(snap.id, idInput.value.trim())) return;
+      idInput.setCustomValidity(`ID "${idInput.value.trim()}" không hợp lệ hoặc đã có.`);
+      idInput.reportValidity();
+      idInput.setCustomValidity("");
+      idInput.value = snap.id;
+    };
+    field(content, "ID", idInput);
+    if (snap.kind === "bpmn-call-activity") {
+      field(content, "calledElement", textInput(String(snap.attrs.calledElement ?? ""), "ID process được gọi",
+        (value) => saveAttrs({ calledElement: value.trim() || undefined })));
+    }
+
     const color = section("BPMN DI Color");
     const colorRow = (key: "bpmnFill" | "bpmnStroke", label: string) => {
       const row = el("div", "lk-prow2");
@@ -240,7 +256,7 @@ export class OmniboardPropertiesView extends ItemView {
     if (snap.kind === "bpmn-event-start" || snap.kind === "bpmn-event-intermediate" || snap.kind === "bpmn-event-end") {
       const event = section("Event");
       const select = el("select", "lk-pinput") as HTMLSelectElement;
-      const triggers = ["", "message", "timer", "signal", "error", "escalation", "compensation", "conditional", "link", "cancel", "terminate", "multiple", "parallel-multiple"];
+      const triggers = triggerChoices(snap.kind, snap.attrs).map((t) => (t === "none" ? "" : t));
       for (const trigger of triggers) {
         const option = document.createElement("option");
         option.value = trigger;

@@ -11,7 +11,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
 </head><body>
 <div id="host" class="da-board-view"></div>
 <div id="log"></div>
-<script src="../harness/harness.js?v=interaction1"></script>
+<script src="../harness/harness.js?v=merge30b"></script>
 <script>
 // Multi-select drag moves each node once per tick; ports are easy to grab.
 // Serve the repo root (python3 -m http.server) and open tests/e2e-canvas-interaction.html.
@@ -219,6 +219,39 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(lane === 'n_sale', 'leaf lane: ' + lane);    // centre y 395 → 40+100+200 .. 440
   });
 
+  await run('lanes nested 3 deep: drawn, divider drag at depth 3, menu splits a child lane', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'dpool', shape: 'bpmn-pool', x: 40, y: 40, width: 700, height: 400, label: 'Fanpage',
+        attrs: { lanes: [{ id: 'd_kh', label: 'Khách', height: 100 },
+                         { id: 'd_kalix', label: 'KALIX', height: 300, lanes: [
+                           { id: 'd_vh', label: 'Vận hành', height: 200, lanes: [{ id: 'd_a', label: 'A', height: 120 }, { id: 'd_b', label: 'B', height: 80 }] },
+                           { id: 'd_kt', label: 'Kỹ thuật', height: 100 }] }] } },
+      { id: 'dt', shape: 'bpmn-task-user', x: 300, y: 215, width: 100, height: 50, label: 'x' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    const h = (id) => Math.round(document.querySelector(`[data-cell-id="dpool"] [data-lane-id="${id}"]`).getBoundingClientRect().height);
+    assert(Math.abs(h('d_a') - 120) <= 2 && Math.abs(h('d_b') - 80) <= 2, 'depth-3 heights: ' + [h('d_a'), h('d_b')]);
+    assert(window.__ob.getModel().nodes.find((n) => n.id === 'dt').laneId === 'd_a', 'leaf lane at depth 3');
+    const handle = document.querySelector('[data-cell-id="dpool"] [data-lane-path="1/0/0"]');
+    assert(handle, 'divider between the depth-3 lanes');
+    const r = handle.getBoundingClientRect();
+    const ev = (type, y) => new PointerEvent(type, { bubbles: true, clientX: r.x + r.width / 2, clientY: y, pointerId: 1, pointerType: 'mouse' });
+    handle.dispatchEvent(ev('pointerdown', r.y + r.height / 2));
+    document.dispatchEvent(ev('pointermove', r.y + r.height / 2 + 30));
+    document.dispatchEvent(ev('pointerup', r.y + r.height / 2 + 30));
+    await tick(300);
+    assert(Math.abs(h('d_a') - 150) <= 3 && Math.abs(h('d_b') - 50) <= 3, 'after drag: ' + [h('d_a'), h('d_b')]);
+    assert(h('d_vh') >= 198 && h('d_vh') <= 202, 'parent band unchanged: ' + h('d_vh'));
+    window.__ob.showLaneMenu(cell('dpool'), 'd_b', 10, 10);
+    const items = [...window.__ob.popupLayer.querySelectorAll('.lk-menu-item')];
+    assert(items.some((i) => /Chia/.test(i.textContent)) && items.some((i) => /Xoá lane con/.test(i.textContent)), 'menu: ' + items.map((i) => i.textContent));
+    items.find((i) => /Chia/.test(i.textContent)).click();
+    await tick(300);
+    const deep = window.__ob.getModel().nodes.find((n) => n.id === 'dpool').attrs.lanes[1].lanes[0].lanes[1];
+    assert(deep.lanes?.length === 2, 'd_b split into two: ' + JSON.stringify(deep));
+  });
+
   await run('a sub-process inside a pool is on top of it: a click selects the sub-process', async () => {
     // Pools and sub-processes were both sent to z -1000, so the pool (drawn
     // later) covered the sub-process: clicks and drags went to the pool.
@@ -264,6 +297,400 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     const bb = document.getElementById(id).querySelector('path').getBBox();
     // marker drawn rotate(180): tip = -bb.x must not pass the line end (x ≤ 0 + stroke)
     assert(Math.abs(bb.x) <= 0.5, 'arrowhead offset from line end: ' + bb.x);
+  });
+
+  // ── Sub-process open / close in place (⊞ / −) ──
+  const clickToggle = (id) => {
+    const el = document.querySelector(`[data-cell-id="${id}"] [data-sub-toggle]`);
+    if (!el) throw new Error('no toggle on ' + id);
+    const r = el.getBoundingClientRect();
+    const o = { bubbles: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, button: 0 };
+    el.dispatchEvent(new MouseEvent('mousedown', o));
+    el.dispatchEvent(new MouseEvent('mouseup', o));
+    el.dispatchEvent(new MouseEvent('click', o));
+  };
+  const mnode = (id) => window.__ob.getModel().nodes.find((n) => n.id === id);
+
+  await run('⊞ on a task opens it as an empty sub-process; − on it closes it back to the task', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'st', shape: 'bpmn-task', x: 100, y: 100, width: 120, height: 80, label: 'Chăm sóc', attrs: { markers: ['subprocess'], collapsed: true } },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    clickToggle('st');
+    await tick(200);
+    let n = mnode('st');
+    assert(n.shape === 'bpmn-subprocess' && !n.attrs?.collapsed && !(n.attrs?.markers ?? []).includes('subprocess'), 'opened: ' + JSON.stringify(n));
+    assert(n.width >= 280 && n.height >= 180 && n.x === 100 && n.y === 100, 'open size: ' + [n.x, n.y, n.width, n.height]);
+    clickToggle('st');
+    await tick(200);
+    n = mnode('st');
+    assert(n.shape === 'bpmn-task' && n.attrs?.collapsed === true && n.attrs?.markers?.includes('subprocess'), 'closed: ' + JSON.stringify(n));
+    assert(n.width === 120 && n.height === 80, 'closed size: ' + [n.width, n.height]);
+  });
+
+  await run('a shape dropped inside an open sub-process becomes its step; closing hides it, opening shows it', async () => {
+    clickToggle('st');
+    await tick(200);
+    window.__ob.addHtmlNode('bpmn-task', 150, 160, 100, 60, 'Gọi', undefined, 'kid');
+    await tick(100);
+    assert(mnode('kid').parentId === 'st', 'kid parent: ' + mnode('kid').parentId);
+    clickToggle('st');
+    await tick(200);
+    const sub = mnode('st');
+    assert(sub.shape === 'bpmn-subprocess' && sub.attrs?.collapsed === true && sub.width === 120, 'closed with a step stays a sub-process: ' + JSON.stringify(sub));
+    assert(!cell('kid').isVisible(), 'step still visible');
+    assert(mnode('kid').parentId === 'st', 'step lost its parent');
+    clickToggle('st');
+    await tick(200);
+    assert(cell('kid').isVisible(), 'step not shown again');
+    const k = mnode('kid'), f = mnode('st');
+    assert(k.x > f.x && k.y > f.y && k.x + k.width < f.x + f.width && k.y + k.height < f.y + f.height, 'step not inside the frame');
+  });
+
+  await run('dragging a step out of the sub-process releases it', async () => {
+    cell('kid').position(700, 380);
+    g().trigger('node:moved', { node: cell('kid') });
+    await tick(100);
+    assert(!mnode('kid').parentId, 'still parented: ' + mnode('kid').parentId);
+  });
+
+  await run('a closed sub-process loaded with steps hides them and their arrows; ⊞ brings them inside the frame', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'cs', shape: 'bpmn-subprocess', x: 300, y: 300, width: 120, height: 80, label: 'Khung', attrs: { collapsed: true } },
+      { id: 'ca', shape: 'bpmn-task', x: 10, y: 10, width: 100, height: 80, label: 'A', parentId: 'cs' },
+      { id: 'cb', shape: 'bpmn-task', x: 200, y: 10, width: 100, height: 80, label: 'B', parentId: 'cs' },
+    ], edges: [{ id: 'cab', source: 'ca', target: 'cb' }] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    assert(!cell('ca').isVisible() && !cell('cab').isVisible(), 'steps or arrow visible while closed');
+    assert(document.querySelector('[data-cell-id="cs"] .bp-sub-closed'), 'closed sub-process not drawn as a task');
+    clickToggle('cs');
+    await tick(200);
+    assert(cell('ca').isVisible() && cell('cab').isVisible(), 'not shown after opening');
+    const a = mnode('ca'), b = mnode('cb'), f = mnode('cs');
+    assert(a.x === 330 && a.y === 340 && b.x - a.x === 190, 'steps placed: ' + [a.x, a.y, b.x]);
+    assert(f.x === 300 && f.y === 300 && f.x + f.width >= b.x + b.width, 'frame: ' + [f.x, f.y, f.width]);
+    // the arrow was laid out while hidden: it must start at A's right side, not its centre
+    await tick(200);
+    const d0 = document.querySelector('[data-cell-id="cab"] path').getAttribute('d');
+    const x0 = +d0.match(/^M\s*([\d.]+)/)[1];
+    assert(Math.abs(x0 - (a.x + a.width)) <= 1, 'arrow starts at ' + x0 + ', A right side ' + (a.x + a.width));
+    g().undo();
+    await tick(200);
+    assert(mnode('cs').attrs?.collapsed === true && !cell('ca').isVisible(), 'undo did not close it again');
+  });
+
+  await run('reopening a sub-process whose steps are already in place redraws their arrows', async () => {
+    // closed by hand, board reloaded: steps sit inside the frame, so opening moves nothing
+    window.__ob.loadModel({ nodes: [
+      { id: 'rs', shape: 'bpmn-subprocess', x: 300, y: 300, width: 120, height: 80, label: 'Khung', attrs: { collapsed: true } },
+      { id: 'ra', shape: 'bpmn-task', x: 330, y: 340, width: 100, height: 80, label: 'A', parentId: 'rs' },
+      { id: 'rb', shape: 'bpmn-task', x: 520, y: 340, width: 100, height: 80, label: 'B', parentId: 'rs' },
+    ], edges: [{ id: 'rab', source: 'ra', sourcePort: 'right', target: 'rb', targetPort: 'left' }] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    clickToggle('rs');
+    await tick(300);
+    assert(mnode('ra').x === 330, 'step moved: ' + mnode('ra').x);
+    const d0 = document.querySelector('[data-cell-id="rab"] path').getAttribute('d');
+    const x0 = +d0.match(/^M\s*([\d.]+)/)[1];
+    assert(Math.abs(x0 - 430) <= 1, 'arrow starts at ' + x0 + ', expected 430');
+  });
+
+  // ── Sub-process on its own page (drill-down + breadcrumb) ──
+  const drillBtn = () => [...document.querySelectorAll('.lk-cb-btn')].find((b) => b.title === 'Mở trang riêng');
+
+  await run('"Mở trang riêng" shows only the sub-process steps, with a breadcrumb back', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'ds', shape: 'bpmn-event-start', x: 40, y: 330, width: 36, height: 36 },
+      { id: 'dsub', shape: 'bpmn-subprocess', x: 300, y: 300, width: 120, height: 80, label: 'Chăm sóc', attrs: { collapsed: true } },
+      { id: 'da', shape: 'bpmn-task', x: 330, y: 340, width: 100, height: 80, label: 'A', parentId: 'dsub' },
+      { id: 'db', shape: 'bpmn-task', x: 520, y: 340, width: 100, height: 80, label: 'B', parentId: 'dsub' },
+    ], edges: [{ id: 'dab', source: 'da', target: 'db' }, { id: 'dsf', source: 'ds', target: 'dsub' }] });
+    g().resetSelection([cell('dsub')]);
+    await tick(150);
+    assert(drillBtn(), 'no "Mở trang riêng" button');
+    drillBtn().click();
+    await tick(200);
+    assert(cell('da').isVisible() && cell('db').isVisible() && cell('dab').isVisible(), 'steps hidden on their page');
+    assert(!cell('ds').isVisible() && !cell('dsub').isVisible() && !cell('dsf').isVisible(), 'outside shapes still shown');
+    const crumbs = [...document.querySelectorAll('.lk-crumbs .lk-crumb')].map((b) => b.textContent);
+    assert(crumbs.join('|') === 'Process|Chăm sóc', 'crumbs: ' + crumbs);
+    // a shape added on this page is one of its steps, wherever it lands
+    window.__ob.addHtmlNode('bpmn-task', 700, 340, 100, 80, 'C', undefined, 'dc');
+    await tick(100);
+    assert(mnode('dc').parentId === 'dsub', 'new shape parent: ' + mnode('dc').parentId);
+    document.querySelector('.lk-crumbs .lk-crumb').click();
+    await tick(200);
+    assert(!document.querySelector('.lk-crumbs'), 'breadcrumb still shown');
+    assert(cell('ds').isVisible() && cell('dsub').isVisible() && !cell('da').isVisible() && !cell('dc').isVisible(), 'back: wrong visibility');
+    assert(mnode('dsub').attrs?.collapsed === true, 'collapsed state changed');
+  });
+
+  await run('a ⊞ task opened on its own page with nothing added goes back to the ⊞ task', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'dt', shape: 'bpmn-task', x: 300, y: 300, width: 120, height: 80, label: 'T', attrs: { markers: ['subprocess'], collapsed: true } },
+    ], edges: [] });
+    g().resetSelection([cell('dt')]);
+    await tick(150);
+    drillBtn().click();
+    await tick(150);
+    assert(mnode('dt').shape === 'bpmn-subprocess', 'not a sub-process on its page');
+    document.querySelector('.lk-crumbs .lk-crumb').click();
+    await tick(150);
+    const n = mnode('dt');
+    assert(n.shape === 'bpmn-task' && n.attrs?.markers?.includes('subprocess') && n.attrs?.collapsed === true, 'not back to ⊞ task: ' + JSON.stringify(n));
+  });
+
+  // ── Properties that must reach the file (trigger by position, condition, ID, calledElement) ──
+  const props = () => document.querySelector('.lk-props-body');
+  const propField = (label) => [...props().querySelectorAll('.lk-pfield')]
+    .find((f) => f.querySelector('label')?.textContent === label)?.querySelector('input,select,textarea');
+
+  await run('the trigger picker offers only triggers allowed where the event is', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'ts', shape: 'bpmn-event-start', x: 100, y: 100, width: 36, height: 36 },
+      { id: 'te', shape: 'bpmn-event-end', x: 300, y: 100, width: 36, height: 36 },
+    ], edges: [] });
+    await tick(150);
+    const rows = async (id) => {
+      g().resetSelection([cell(id)]);
+      await tick(150);
+      [...document.querySelectorAll('.lk-cb-btn')].find((b) => b.title === 'Trigger sự kiện').click();
+      await tick(100);
+      const out = [...document.querySelectorAll('.lk-line-list .lk-line-row')].map((r) => r.textContent);
+      document.body.click();
+      return out;
+    };
+    const start = await rows('ts');
+    assert(start.includes('Timer') && !start.includes('Terminate') && !start.includes('Cancel'), 'start: ' + start);
+    const end = await rows('te');
+    assert(end.includes('Terminate') && !end.includes('Timer'), 'end: ' + end);
+    g().resetSelection([cell('ts')]);
+    await tick(150);
+    const opts = [...propField('Trigger').options].map((o) => o.value);
+    assert(opts.includes('timer') && !opts.includes('terminate'), 'panel start: ' + opts);
+  });
+
+  await run('a sequence flow takes a condition that lands in the model', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'cg', shape: 'bpmn-gateway-xor', x: 100, y: 100, width: 50, height: 50 },
+      { id: 'ct', shape: 'bpmn-task', x: 300, y: 85, width: 100, height: 80, label: 'T' },
+    ], edges: [{ id: 'cf', source: 'cg', target: 'ct' }] });
+    await tick(150);
+    g().resetSelection([cell('cf')]);
+    await tick(150);
+    const ta = propField('Điều kiện');
+    assert(ta, 'no condition field for a sequence flow');
+    ta.value = '${tien > 80}';
+    ta.dispatchEvent(new Event('input'));
+    const e = window.__ob.getModel().edges.find((x) => x.id === 'cf');
+    assert(e.attrs?.condition === '${tien > 80}', 'condition: ' + JSON.stringify(e.attrs));
+  });
+
+  await run('renaming an ID re-points arrows, steps and boundary events', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'rs0', shape: 'bpmn-event-start', x: 40, y: 130, width: 36, height: 36 },
+      { id: 'rsub', shape: 'bpmn-subprocess', x: 200, y: 60, width: 300, height: 200, label: 'S' },
+      { id: 'rin', shape: 'bpmn-task', x: 240, y: 120, width: 100, height: 80, label: 'In', parentId: 'rsub' },
+      { id: 'rbe', shape: 'bpmn-event-intermediate', x: 482, y: 240, width: 36, height: 36, attrs: { trigger: 'timer', attachedTo: 'rsub' } },
+    ], edges: [{ id: 'rf', source: 'rs0', target: 'rsub' }] });
+    await tick(150);
+    g().resetSelection([cell('rsub')]);
+    await tick(150);
+    const inp = propField('ID');
+    inp.value = 'Sub_ChamSoc';
+    inp.dispatchEvent(new Event('change'));
+    await tick(150);
+    const m = window.__ob.getModel();
+    assert(!m.nodes.some((n) => n.id === 'rsub'), 'old id still there');
+    assert(m.edges.find((e) => e.id === 'rf').target === 'Sub_ChamSoc', 'arrow not re-pointed');
+    assert(m.nodes.find((n) => n.id === 'rin').parentId === 'Sub_ChamSoc', 'step not re-pointed');
+    assert(m.nodes.find((n) => n.id === 'rbe').attrs?.attachedTo === 'Sub_ChamSoc', 'boundary event not re-pointed');
+    // a taken or invalid id is refused
+    g().resetSelection([cell('rin')]);
+    await tick(150);
+    propField('ID').value = 'rs0';
+    propField('ID').dispatchEvent(new Event('change'));
+    await tick(100);
+    assert(window.__ob.getModel().nodes.some((n) => n.id === 'rin'), 'taken id accepted');
+    // one undo gives the old id back, with the rest of the board intact
+    g().undo();
+    await tick(150);
+    const u = window.__ob.getModel();
+    assert(u.nodes.map((n) => n.id).sort().join() === 'rbe,rin,rs0,rsub', 'after undo: ' + u.nodes.map((n) => n.id));
+    assert(u.edges.find((e) => e.id === 'rf')?.target === 'rsub', 'arrow after undo');
+  });
+
+  await run('a call activity carries its called process', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'ca1', shape: 'bpmn-call-activity', x: 100, y: 100, width: 100, height: 80, label: 'Gọi' },
+    ], edges: [] });
+    await tick(150);
+    g().resetSelection([cell('ca1')]);
+    await tick(150);
+    const inp = propField('calledElement');
+    assert(inp, 'no calledElement field');
+    inp.value = 'Process_BaoGia';
+    inp.dispatchEvent(new Event('input'));
+    assert(mnode('ca1').attrs?.calledElement === 'Process_BaoGia', 'calledElement: ' + JSON.stringify(mnode('ca1').attrs));
+  });
+
+  await run('leaving a sub-process page puts back the view of the level you return to', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'vo', shape: 'bpmn-subprocess', x: 300, y: 300, width: 120, height: 80, label: 'Ngoài', attrs: { collapsed: true } },
+      { id: 'vi', shape: 'bpmn-subprocess', x: 330, y: 340, width: 120, height: 80, label: 'Trong', parentId: 'vo', attrs: { collapsed: true } },
+      { id: 'vt', shape: 'bpmn-task', x: 360, y: 380, width: 100, height: 80, label: 'T', parentId: 'vi' },
+    ], edges: [] });
+    await tick(150);
+    const view = () => { const s = g().scale().sx, t = g().translate(); return [+s.toFixed(3), Math.round(t.tx), Math.round(t.ty)].join(','); };
+    g().zoomTo(0.7); g().translate(-40, 25);
+    const top = view();
+    g().resetSelection([cell('vo')]); await tick(150);
+    drillBtn().click(); await tick(150);
+    g().translate(-120, -60);                 // look around on the page of "Ngoài"
+    const outer = view();
+    g().resetSelection([cell('vi')]); await tick(150);
+    drillBtn().click(); await tick(150);
+    assert(view() !== outer, 'inner page did not move the view');
+    document.querySelectorAll('.lk-crumbs .lk-crumb')[1].click(); await tick(150);
+    assert(view() === outer, 'back to Ngoài: ' + view() + ' expected ' + outer);
+    document.querySelector('.lk-crumbs .lk-crumb').click(); await tick(150);
+    assert(view() === top, 'back to Process: ' + view() + ' expected ' + top);
+  });
+
+  // ── Space tool and find ──
+  const mount = () => document.querySelector('.lk-graph-mount');
+  const ptr = (type, local, id = 1) => {
+    const c = g().localToClient(local.x, local.y);
+    mount().dispatchEvent(new PointerEvent(type, { clientX: c.x, clientY: c.y, pointerId: id, button: 0, bubbles: true, cancelable: true }));
+  };
+  const drag = async (from, to) => { ptr('pointerdown', from); await tick(30); ptr('pointermove', { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 }); ptr('pointermove', to); await tick(30); ptr('pointerup', to); await tick(60); };
+  const pos = (id) => { const p = cell(id).getPosition(); return [p.x, p.y]; };
+
+  await run('space tool: dragging right opens room — shapes past the line move, a crossed frame grows, bends follow', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'sa', shape: 'bpmn-task', x: 100, y: 100, width: 100, height: 60, label: 'A' },
+      { id: 'sb', shape: 'bpmn-task', x: 400, y: 100, width: 100, height: 60, label: 'B' },
+      { id: 'spool', shape: 'bpmn-pool', x: 50, y: 40, width: 600, height: 200, label: 'P' },
+    ], edges: [{ id: 'sab', source: 'sa', target: 'sb', vertices: [{ x: 300, y: 250 }, { x: 450, y: 250 }] }] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    window.__ob.setTool('space');
+    await drag({ x: 300, y: 300 }, { x: 380, y: 305 });   // mostly horizontal: +80 on x
+    assert(pos('sa')[0] === 100, 'A moved: ' + pos('sa'));
+    assert(pos('sb')[0] === 480 && pos('sb')[1] === 100, 'B at ' + pos('sb'));
+    assert(cell('spool').getSize().width === 680, 'pool width ' + cell('spool').getSize().width);
+    assert(cell('sab').getVertices().map((v) => v.x).join() === '380,530', 'bends ' + JSON.stringify(cell('sab').getVertices()));
+    g().undo(); await tick(100);
+    assert(pos('sb')[0] === 400 && cell('spool').getSize().width === 600, 'one undo did not restore: ' + pos('sb') + ' ' + cell('spool').getSize().width);
+    window.__ob.setTool('select');
+  });
+
+  await run('space tool: a mostly vertical drag works on y, and a plain click changes nothing', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'va', shape: 'bpmn-task', x: 100, y: 50, width: 100, height: 60, label: 'A' },
+      { id: 'vb', shape: 'bpmn-task', x: 100, y: 300, width: 100, height: 60, label: 'B' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    window.__ob.setTool('space');
+    await drag({ x: 400, y: 200 }, { x: 405, y: 260 });
+    assert(pos('va')[1] === 50 && pos('vb')[1] === 360, 'y: ' + pos('va') + ' ' + pos('vb'));
+    await drag({ x: 400, y: 200 }, { x: 400, y: 200 });
+    assert(pos('vb')[1] === 360, 'click moved something');
+    window.__ob.setTool('select');
+  });
+
+  await run('space tool on a pool with lanes: the crossed lane takes the room, the others keep their size; undo restores', async () => {
+    const lanesOf = () => cell('lpool').getData().lanes.map((l) => l.height);
+    window.__ob.loadModel({ nodes: [
+      { id: 'lpool', shape: 'bpmn-pool', x: 50, y: 40, width: 700, height: 300, label: 'P',
+        attrs: { lanes: [{ id: 'la', label: 'A', height: 100 }, { id: 'lb', label: 'B', height: 200 }] } },
+      { id: 'lt1', shape: 'bpmn-task', x: 100, y: 70, width: 100, height: 40, label: 'a' },
+      { id: 'lt2', shape: 'bpmn-task', x: 100, y: 280, width: 100, height: 40, label: 'b' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    window.__ob.setTool('space');
+    await drag({ x: 400, y: 190 }, { x: 405, y: 250 });   // line inside lane B, +60 on y
+    assert(cell('lpool').getSize().height === 360, 'pool height ' + cell('lpool').getSize().height);
+    assert(lanesOf().join() === '100,260', 'lane heights ' + lanesOf());
+    assert(pos('lt1')[1] === 70 && pos('lt2')[1] === 340, 'shapes ' + pos('lt1') + ' ' + pos('lt2'));
+    assert(window.__ob.getModel().nodes.find((n) => n.id === 'lt2').laneId === 'lb', 'lt2 left its lane');
+    g().undo(); await tick(100);
+    assert(cell('lpool').getSize().height === 300 && lanesOf().join() === '100,200', 'undo: ' + cell('lpool').getSize().height + ' ' + lanesOf());
+    await drag({ x: 400, y: 190 }, { x: 405, y: 120 });   // closing 70 would leave B at 130: fine; closing past 170 is clamped
+    assert(lanesOf().join() === '100,130', 'closed: ' + lanesOf());
+    await drag({ x: 400, y: 150 }, { x: 405, y: -200 });
+    assert(lanesOf()[1] >= 30, 'lane squeezed to ' + lanesOf());
+    window.__ob.setTool('select');
+  });
+
+  await run('find: Ctrl+F opens the box; typing selects the first match, Enter goes to the next, Esc closes', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'fa', shape: 'bpmn-task', x: 100, y: 100, width: 100, height: 60, label: 'Gọi khách hàng' },
+      { id: 'fb', shape: 'bpmn-task', x: 400, y: 100, width: 100, height: 60, label: 'Báo giá' },
+      { id: 'fc', shape: 'bpmn-task', x: 100, y: 300, width: 100, height: 60, label: 'Khách xác nhận' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    g().container.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', code: 'KeyF', keyCode: 70, ctrlKey: true, bubbles: true, cancelable: true }));
+    await tick(100);
+    const box = document.querySelector('.lk-search');
+    assert(box, 'no search box after Ctrl+F');
+    const inp = box.querySelector('input');
+    inp.value = 'khach';
+    inp.dispatchEvent(new Event('input'));
+    await tick(100);
+    const sel = () => g().getSelectedCells().map((c) => c.id).join();
+    assert(sel() === 'fa', 'first match: ' + sel());
+    assert(box.textContent.includes('1/2'), 'counter: ' + box.textContent);
+    inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await tick(100);
+    assert(sel() === 'fc', 'next match: ' + sel());
+    inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true }));
+    await tick(100);
+    assert(sel() === 'fa', 'previous match: ' + sel());
+    inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await tick(100);
+    assert(!document.querySelector('.lk-search'), 'box still open after Esc');
+  });
+
+  // ── Loading a board is not an edit: undo never goes back past it ──
+  const boardA = () => ({ nodes: [t('ua', 100, 100), t('ub', 300, 100)], edges: [{ id: 'uab', source: 'ua', target: 'ub' }] });
+  const boardB = () => ({ nodes: [t('uc', 100, 300)], edges: [] });
+  const ids = () => window.__ob.getModel().nodes.map((n) => n.id).sort().join();
+  const undoAll = async () => { for (let i = 0; i < 20 && g().canUndo(); i++) { window.__ob.undo(); await tick(20); } };
+
+  await run('opening a board leaves nothing to undo', async () => {
+    window.__ob.loadModel(boardA());
+    await tick(400);                         // past the deferred auto-grow after load
+    assert(!g().canUndo(), 'undo available right after opening');
+    await undoAll();
+    assert(ids() === 'ua,ub', 'board after undo: [' + ids() + ']');
+  });
+
+  await run('undo after an edit stops at the board as it was opened', async () => {
+    window.__ob.loadModel(boardA());
+    await tick(400);
+    cell('ua').setPosition(150, 180);
+    await undoAll();
+    assert(ids() === 'ua,ub', 'board after undo: [' + ids() + ']');
+    const p = cell('ua').getPosition();
+    assert(p.x === 100 && p.y === 100, 'node not back where it was opened: ' + JSON.stringify(p));
+  });
+
+  await run('loading another board over an edited one: undo does not bring the old one back or empty it', async () => {
+    window.__ob.loadModel(boardA());
+    await tick(400);
+    cell('ua').setPosition(150, 180);
+    window.__ob.loadModel(boardB());         // Board ⇄ native, another diagram, reload from disk
+    await tick(400);
+    assert(!g().canUndo(), 'undo available after loading another board');
+    await undoAll();
+    assert(ids() === 'uc', 'board after undo: [' + ids() + ']');
   });
 
   const failed = results.filter(r => !r.ok).length;

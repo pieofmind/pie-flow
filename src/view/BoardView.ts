@@ -678,6 +678,36 @@ export class BoardView extends TextFileView {
 
   private pendingSourceMeta: SourceMeta | null = null;
 
+  /** Open the find box (the Command Palette way, when Obsidian takes Ctrl+F first). */
+  findOnBoard(): void { this.canvas?.openSearch(); }
+
+  /** Show another diagram of the BPMN file this board came from; the edits so far go into the file first. */
+  async switchDiagram(): Promise<void> {
+    if (!this.canvas) return;
+    const meta = this.pendingSourceMeta ?? ((await import("./boardSerde")).deserializeSourceMeta(this.rawData) as SourceMeta | null);
+    const raw = meta?.format === "bpmn" ? String((meta.payload as { raw?: string } | undefined)?.raw ?? "") : "";
+    if (!raw) { notify("warn", "Board này không đến từ một file BPMN."); return; }
+    try {
+      const { inspectBpmnDiagrams } = await import("../io/bpmn/import");
+      const shown = Number((meta!.payload as { diagramIndex?: number }).diagramIndex ?? 0);
+      const others = (await inspectBpmnDiagrams(raw)).diagrams.filter((d) => !d.subProcess && d.index !== shown);
+      if (!others.length) { notify("info", "File BPMN chỉ có một sơ đồ."); return; }
+      const index = await new Promise<number | null>((resolve) => {
+        new DiagramPickerModal(this, others, (i) => resolve(i), () => resolve(null)).open();
+      });
+      if (index === null) return;
+      const { switchBpmnDiagram } = await import("../io/bpmn/switchDiagram");
+      const next = await switchBpmnDiagram(this.canvas.getModel(), meta!, index);
+      this.pendingSourceMeta = next.sourceMeta;
+      this.model = next.model;
+      this.canvas.loadModel(next.model);   // a new document: undo does not cross it
+      this.requestSave();
+      notify("success", `Đang xem sơ đồ #${index + 1} của file BPMN`);
+    } catch (err) {
+      notify("error", `Không chuyển được sơ đồ: ${(err as Error).message}`, 8000);
+    }
+  }
+
   private async handleExportFormat(formatId: string): Promise<void> {
     if (!this.canvas || !this.file) return;
     const fmt = findById(formatId as never);

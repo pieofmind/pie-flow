@@ -26,9 +26,11 @@ describe("task with the subprocess marker", () => {
     const xml = await exportBpmn(model({ markers: ["subprocess"], collapsed: true }));
     expect(xml).toMatch(/<bpmn:subProcess id="sub" name="Xử lý khiếu nại"/);
     expect(xml).toMatch(/bpmnElement="sub" isExpanded="false"/);
+    // …and the round trip gives the same task back (drawn as a task, not a frame)
     const n = await back(xml);
-    expect(n.shape).toBe("bpmn-subprocess");
-    expect((n.attrs as { collapsed?: boolean }).collapsed).toBe(true);
+    expect(n.shape).toBe("bpmn-task");
+    expect(n.attrs).toMatchObject({ markers: ["subprocess"], collapsed: true });
+    expect(await exportBpmn((await importBpmn(xml)).model)).toMatch(/<bpmn:subProcess id="sub"/);
   });
 
   it("the patch path (file opened from .bpmn with a bpmn:Task) turns it into a sub-process too", async () => {
@@ -43,6 +45,24 @@ describe("task with the subprocess marker", () => {
     expect(xml).not.toMatch(/<bpmn:task id="sub"/);
     expect(xml).toMatch(/<bpmn:subProcess id="sub"/);
     expect(xml).toMatch(/<bpmn:sequenceFlow id="f"[^>]*sourceRef="s" targetRef="sub"/);
-    expect((await back(xml)).attrs).toMatchObject({ collapsed: true });
+    expect(await back(xml)).toMatchObject({ shape: "bpmn-task", attrs: { markers: ["subprocess"], collapsed: true } });
+  });
+});
+
+describe("sub-processes that are not a collapsed task stay frames", () => {
+  const frame = (expanded: boolean, child: string) => `<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" id="D" targetNamespace="x">
+  <bpmn:process id="P"><bpmn:subProcess id="sp" name="Khung">${child}</bpmn:subProcess></bpmn:process>
+  <bpmndi:BPMNDiagram id="Dg"><bpmndi:BPMNPlane id="Pl" bpmnElement="P">
+    <bpmndi:BPMNShape id="sp_di" bpmnElement="sp" isExpanded="${expanded}"><dc:Bounds x="0" y="0" width="300" height="200"/></bpmndi:BPMNShape>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</bpmn:definitions>`;
+  const shapeOf = async (xml: string) => (await importBpmn(xml)).model.nodes.find((n) => n.id === "sp")!.shape;
+
+  it("expanded → bpmn-subprocess", async () => {
+    expect(await shapeOf(frame(true, ""))).toBe("bpmn-subprocess");
+  });
+  it("collapsed but with child elements → bpmn-subprocess", async () => {
+    expect(await shapeOf(frame(false, '<bpmn:task id="inner"/>'))).toBe("bpmn-subprocess");
   });
 });

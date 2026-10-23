@@ -37,7 +37,8 @@ export function registerAvoidRouter(): void {
     const padding = (args as { padding?: number }).padding ?? 20;
     if (vertices.length) return presets.orth.call(this as never, vertices, { padding }, view);
     const graph = view.graph;
-    const excludeNodes = graph.getNodes().filter((n: Node) => !isRouteObstacle(String(n.getData()?.kind ?? ""), n.getData()));
+    // Steps hidden inside a closed sub-process are not in the way either.
+    const excludeNodes = graph.getNodes().filter((n: Node) => !n.isVisible() || !isRouteObstacle(String(n.getData()?.kind ?? ""), n.getData()));
     const src = portSide((view.cell.getSource() as { port?: string }).port);
     const tgt = portSide((view.cell.getTarget() as { port?: string }).port);
     return presets.manhattan.call(this as never, vertices, {

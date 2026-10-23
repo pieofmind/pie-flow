@@ -1,3 +1,4 @@
+import { addForeignFlows, foreignIds } from "./diagramScope";
 import { BpmnModdle } from "bpmn-moddle";
 import { getOrientation } from "diagram-js/lib/layout/LayoutUtil";
 import { defaultLabelDy } from "./labelGeometry";
@@ -42,6 +43,8 @@ function bpmnExtras(fn: BpmnElementShape, tagLc: string): {
   const defRaw = fn.eventDefinitions?.[0]?.$type?.replace(/^bpmn:/, "");
   const defLc = defRaw ? defRaw.charAt(0).toLowerCase() + defRaw.slice(1) : undefined;
   if (defLc && EVENT_DEF_TO_TRIGGER[defLc]) out.trigger = EVENT_DEF_TO_TRIGGER[defLc];
+  // More than one definition = multiple (all of them) or parallel multiple.
+  if ((fn.eventDefinitions?.length ?? 0) > 1) out.trigger = (fn as { parallelMultiple?: boolean }).parallelMultiple ? "parallel-multiple" : "multiple";
   // Throwing: only intermediate-throw + end events fire the icon as filled.
   if (tagLc === "intermediateThrowEvent" || tagLc === "endEvent") out.throwing = true;
   // Interrupting flag (boundary + event-subprocess start). Default true per OMG.
@@ -237,13 +240,14 @@ function parseCamundaExt(ext: BpmnElementShape["extensionElements"], nodeAttrs?:
  *  (enterprise files we've seen top out around 1 MB). */
 const MAX_BPMN_BYTES = 4 * 1024 * 1024;
 
-export async function inspectBpmnDiagrams(raw: string): Promise<{ diagramCount: number; diagrams: Array<{ index: number; id: string; planeRef?: string; elementCount: number }> }> {
+export async function inspectBpmnDiagrams(raw: string): Promise<{ diagramCount: number; diagrams: Array<{ index: number; id: string; planeRef?: string; elementCount: number; subProcess: boolean }> }> {
   const { rootElement: definitions } = await moddle().fromXML(raw, "bpmn:Definitions");
   const diagrams = ((definitions as ModdleElement).diagrams ?? []).map((d, index) => ({
     index,
     id: (d as unknown as { id?: string }).id ?? `Diagram_${index + 1}`,
     planeRef: d.plane?.bpmnElement?.id,
     elementCount: d.plane?.planeElement?.length ?? 0,
+    subProcess: /SubProcess|Transaction/.test(d.plane?.bpmnElement?.$type ?? ""),
   }));
   return { diagramCount: diagrams.length, diagrams };
 }
@@ -292,6 +296,12 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       if (ar.$type === "bpmn:Association") associations.push(ar);
       else if (ar.$type === "bpmn:TextAnnotation" || ar.$type === "bpmn:Group") flowNodes.push(ar);
     }
+    // Data input / output of a process (or sub-process) sit in its ioSpecification.
+    const io = (parent as { ioSpecification?: { dataInputs?: ModdleElement[]; dataOutputs?: ModdleElement[] } }).ioSpecification;
+    for (const d of [...(io?.dataInputs ?? []), ...(io?.dataOutputs ?? [])]) {
+      flowNodes.push(d);
+      if (parentSubprocessId && d.id) flowNodeParentId.set(d.id, parentSubprocessId);
+    }
   };
   for (const root of (definitions as ModdleElement).rootElements ?? []) {
     collectFlow(root);
@@ -333,11 +343,18 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
   }
   for (const root of (definitions as ModdleElement).rootElements ?? []) {
     if (root.$type !== "bpmn:Process") continue;
-    for (const ls of root.laneSets ?? []) {
-      for (const ln of ls.lanes ?? []) if (ln.id) candidateIds.add(ln.id);
-    }
+    const addLanes = (lanes: ModdleElement[] | undefined): void => {
+      for (const ln of lanes ?? []) {
+        if (ln.id) candidateIds.add(ln.id);
+        addLanes((ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes);
+      }
+    };
+    for (const ls of root.laneSets ?? []) addLanes(ls.lanes);
   }
   const diagrams = (definitions as ModdleElement).diagrams ?? [];
+  // A plane drawn for one collapsed sub-process (bpmn-js drill-down) holds that
+  // sub-process's children; it is read together with the main plane, never chosen.
+  const isSubPlane = (dia: ModdleDiagram): boolean => /SubProcess|Transaction/.test(dia.plane?.bpmnElement?.$type ?? "");
   let chosenDiagramIndex = 0;
   const requested = options?.diagramIndex;
   if (typeof requested === "number" && requested >= 0 && requested < diagrams.length) {
@@ -345,6 +362,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
   } else {
     let bestScore = -1;
     diagrams.forEach((dia, idx) => {
+      if (isSubPlane(dia)) return;
       let score = 0;
       for (const pe of dia.plane.planeElement ?? []) {
         const id = pe.bpmnElement?.id;
@@ -353,15 +371,24 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       if (score > bestScore) { bestScore = score; chosenDiagramIndex = idx; }
     });
   }
-  if (diagrams.length > 1) {
+  if (diagrams.filter((d) => !isSubPlane(d)).length > 1) {
     warnings.push(`BPMN có ${diagrams.length} diagrams; đang import plane #${chosenDiagramIndex + 1} (nhiều phần tử nhất).`);
   }
   const chosenPlane = diagrams[chosenDiagramIndex]?.plane;
+  // What only the other top-level diagrams draw stays in the file, not on the Board.
+  const foreign = foreignIds(diagrams.filter((d) => !isSubPlane(d)).map((d) => d.plane), [chosenPlane, ...diagrams.filter(isSubPlane).map((d) => d.plane)].filter(Boolean) as ModdleDiagram["plane"][]);
+  addForeignFlows(foreign, [...sequenceFlows, ...associations, ...messageFlows]);
+  if (foreign.size) {
+    for (const list of [flowNodes, sequenceFlows, associations, messageFlows]) {
+      list.splice(0, list.length, ...list.filter((e) => !e.id || !foreign.has(e.id)));
+    }
+  }
 
   // Map BPMN element id → DI shape / edge so we can pull bounds + waypoints.
   const diShapes = new Map<string, ModdleDiElement>();
   const diEdges = new Map<string, ModdleDiElement>();
-  for (const pe of chosenPlane?.planeElement ?? []) {
+  const readPlanes = [...diagrams.filter(isSubPlane).map((d) => d.plane), ...(chosenPlane ? [chosenPlane] : [])];
+  for (const pe of readPlanes.flatMap((pl) => pl.planeElement ?? [])) {
       const refId = pe.bpmnElement?.id;
       if (!refId) continue;
       if (pe.$type === "bpmndi:BPMNShape") diShapes.set(refId, pe);
@@ -376,8 +403,15 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     const tag = fn.$type.replace(/^bpmn:/, "");
     const tagLc = tag.charAt(0).toLowerCase() + tag.slice(1);
     const extras = bpmnExtras(fn as unknown as BpmnElementShape, tagLc);
-    const shape = extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
     const di = diShapes.get(id);
+    // A collapsed, empty sub-process is a task with the ⊞ marker on the Board —
+    // the mirror of export (shapeToBpmnType), so it keeps the task look.
+    const collapsedTask = tagLc === "subProcess" && !extras.kindOverride && di?.isExpanded === false
+      && !(fn as { flowElements?: unknown[] }).flowElements?.length;
+    // isCollection lives on the DataObject a reference points at.
+    const collection = tagLc === "dataObjectReference" && (fn as { dataObjectRef?: { isCollection?: boolean } }).dataObjectRef?.isCollection === true;
+    const shape = collapsedTask ? "bpmn-task" : collection ? "bpmn-data-collection" : extras.kindOverride ?? BPMN_TO_SHAPE[tagLc] ?? "bpmn-task";
+    const markers = collapsedTask ? [...(extras.markers ?? []), "subprocess"] : extras.markers;
     const bounds = di?.bounds;
     const x = bounds?.x ?? 100;
     const y = bounds?.y ?? 100;
@@ -408,7 +442,9 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       id,
       shape,
       x, y, width, height,
-      label: ((fn.$type === "bpmn:TextAnnotation" ? (fn as { text?: string }).text : fn.name) ?? "").replace(/&#10;/g, "\n"),
+      label: ((fn.$type === "bpmn:TextAnnotation" ? (fn as { text?: string }).text
+        : fn.$type === "bpmn:Group" ? (fn as { categoryValueRef?: { value?: string } }).categoryValueRef?.value
+        : fn.name) ?? "").replace(/&#10;/g, "\n"),
       ...(flowNodeParentId.get(id) ? { parentId: flowNodeParentId.get(id) } : {}),
       ...(flowNodeLaneId.get(id) ? { laneId: flowNodeLaneId.get(id) } : {}),
       attrs: {
@@ -431,8 +467,9 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
         ...(extras.throwing !== undefined ? { throwing: extras.throwing } : {}),
         ...(extras.interrupting !== undefined ? { interrupting: extras.interrupting } : {}),
         ...(extras.attachedTo ? { attachedTo: extras.attachedTo } : {}),
-        ...(extras.markers ? { markers: extras.markers } : {}),
+        ...(markers ? { markers } : {}),
         ...(nodeLabelOffset ? { labelOffset: nodeLabelOffset } : {}),
+        ...((fn as { calledElement?: string }).calledElement ? { calledElement: (fn as { calledElement?: string }).calledElement } : {}),
       },
     });
     if (!di) warnings.push(`BPMN flow node "${id}" thiếu BPMNShape DI — đặt vị trí mặc định.`);
@@ -592,6 +629,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
   for (const root of defs.rootElements ?? []) {
     if (root.$type !== "bpmn:Collaboration") continue;
     for (const part of root.participants ?? []) {
+      if (part.id && foreign.has(part.id)) continue;   // another diagram's pool
       const processRefId = part.processRef?.id;
       const proc = processRefId ? processById.get(processRefId) : undefined;
       const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
@@ -599,20 +637,20 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       // draws the same bands: height of a row in a horizontal pool, width of
       // a column in a vertical one.
       const poolIsHorizontal = part.id ? ((diShapes.get(part.id) as { isHorizontal?: boolean } | undefined)?.isHorizontal !== false) : true;
-      // One level of nested lanes: a lane's childLaneSet becomes its `lanes`.
+      // Nested lanes at any depth: a lane's childLaneSet becomes its `lanes`.
       type LaneAttr = { id: string; label: string; height?: number; width?: number; lanes?: LaneAttr[] };
-      const toLaneAttr = (ln: ModdleElement, depth: number): LaneAttr => {
+      const toLaneAttr = (ln: ModdleElement): LaneAttr => {
         const b = ln.id ? diShapes.get(ln.id)?.bounds : undefined;
         const size = poolIsHorizontal ? b?.height : b?.width;
         const key = poolIsHorizontal ? "height" : "width";
-        const children = depth === 0 ? (ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes ?? [] : [];
+        const children = (ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes ?? [];
         return {
           id: ln.id ?? "", label: ln.name ?? "",
           ...(size && size > 0 ? { [key]: size } : {}),
-          ...(children.length ? { lanes: children.map((c) => toLaneAttr(c, 1)) } : {}),
+          ...(children.length ? { lanes: children.map(toLaneAttr) } : {}),
         };
       };
-      const laneAttrs = lanes.map((ln) => toLaneAttr(ln, 0));
+      const laneAttrs = lanes.map(toLaneAttr);
 
       // Determine bounds: prefer the participant's own DI shape.
       let px: number, py: number, pw: number, ph: number;

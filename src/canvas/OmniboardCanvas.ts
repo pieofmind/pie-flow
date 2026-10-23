@@ -1,4 +1,4 @@
-import { Graph, Node, Edge, Path } from "@antv/x6";
+import { Graph, Node, Edge, Path, type Cell, type EdgeView } from "@antv/x6";
 import { Selection } from "@antv/x6-plugin-selection";
 import { Clipboard } from "@antv/x6-plugin-clipboard";
 import { History } from "@antv/x6-plugin-history";
@@ -11,11 +11,15 @@ import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type 
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
-import { addChildLane, allLaneIds, asStackLanes, fromStackLanes, laneHeights, leafLaneAt, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, splitLane } from "./laneLayout";
+import { addChildLane, allLaneIds, asStackLanes, fromStackLanes, fromStackLanesDeep, growLaneAt, laneBandOf, laneHeights, leafLaneAt, leafLaneSize, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, setSiblings, splitLane } from "./laneLayout";
 import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
+import { SUBPROCESS_KINDS, SUB_CLOSED, openLayout } from "./subprocessLayout";
+import { triggerChoices } from "../io/bpmn/eventTriggers";
+import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
+import { findMatches, stepIndex } from "./search";
 import { ATTACH_DISTANCE, distanceToBorder, eventLabelSide, followHost, hostSide, pickHost, snapToHostBorder, type Box } from "./boundaryLayout";
 import {
   alignLeft, alignCenterH, alignRight,
@@ -142,6 +146,7 @@ function ensureMindmapConnector(): void {
 const ACCENT = "#5E8FB9";
 const EDGE_STROKE = "#9c8b7e"; // warm muted brown-grey
 const CURSOR_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l7 16 2-6 6-2z"/></svg>`;
+const SPACE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 8 22 12 18 16"/><polyline points="6 8 2 12 6 16"/><line x1="2" x2="22" y1="12" y2="12"/></svg>`;
 const HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6.5a1.5 1.5 0 0 0-3 0M15 10.5V5a1.5 1.5 0 0 0-3 0v5M12 10V6.5a1.5 1.5 0 0 0-3 0V11M9 11V8a1.5 1.5 0 0 0-3 0v6a6 6 0 0 0 6 6h1.5a5 5 0 0 0 5-5v-3"/></svg>`;
 const ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 const EDGE_ATTRS = { line: { stroke: EDGE_STROKE, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
@@ -206,10 +211,6 @@ const CONTAINER_KINDS = new Set<string>([
 ]);
 
 // BPMN Đợt D — context-bar pickers
-const BPMN_TRIGGERS = [
-  "none", "message", "timer", "signal", "error", "escalation", "compensation",
-  "conditional", "link", "cancel", "terminate", "multiple", "parallel-multiple",
-] as const;
 const BPMN_TRIGGER_LABEL: Record<string, string> = {
   none: "Không", message: "Message", timer: "Timer", signal: "Signal", error: "Error",
   escalation: "Escalation", compensation: "Compensation", conditional: "Conditional",
@@ -361,6 +362,16 @@ type ConnectedEndpointEvent = {
   currentPort?: string | null;
 };
 
+/** The lane `id` at any nesting depth. */
+function findLaneDeep<T extends { id: string; lanes?: T[] }>(lanes: readonly T[], id: string): T | undefined {
+  for (const ln of lanes) {
+    if (ln.id === id) return ln;
+    const hit = ln.lanes ? findLaneDeep(ln.lanes, id) : undefined;
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
 export class OmniboardCanvas {
   private graph: Graph;
   private root: HTMLElement;
@@ -381,7 +392,8 @@ export class OmniboardCanvas {
   private minimapSvg: SVGSVGElement | null = null;
   private minimapVp: HTMLElement | null = null;
   private mm = { scale: 1, ox: 0, oy: 0, bx: 0, by: 0 }; // minimap↔graph mapping
-  private tool: "select" | "pan" = "select";
+  private tool: "select" | "pan" | "space" = "select";
+  private railSpace: HTMLElement | null = null;
   private railSelect: HTMLElement | null = null;
   private railHand: HTMLElement | null = null;
   private panStart: { px: number; py: number; tx: number; ty: number; id: number } | null = null;
@@ -594,6 +606,8 @@ export class OmniboardCanvas {
     // Tool shortcuts (ignored while typing in an inline editor — keyboard plugin guards inputs).
     graph.bindKey("v", () => { this.setTool("select"); });
     graph.bindKey("h", () => { this.setTool("pan"); });
+    graph.bindKey("s", () => { this.setTool(this.tool === "space" ? "select" : "space"); });
+    graph.bindKey(["ctrl+f", "cmd+f"], () => { this.openSearch(); return false; });
 
     // Mindmap quick-add via keyboard — only when a mindmap node is selected.
     graph.bindKey("tab", () => {
@@ -1060,26 +1074,31 @@ export class OmniboardCanvas {
       // Rows in a horizontal pool (drag along y), columns in a vertical one (x).
       const horizontal = this.nodeExtra(node).poolHorizontal !== false;
       const poolExtent = horizontal ? node.getSize().height : node.getSize().width;
-      // Top-level divider (data-lane-idx="i") or between the child lanes of
-      // lane p (data-lane-path="p/j"): resize two siblings within their band.
+      // Top-level divider (data-lane-idx="i") or, at any depth, a divider
+      // between sibling lanes (data-lane-path="a/b/.../j"): resize the two
+      // siblings within the band they share.
       const path = handle.getAttribute("data-lane-path");
-      const parent = path ? Number(path.split("/")[0]) : -1;
-      const idx = path ? Number(path.split("/")[1]) : Number(handle.getAttribute("data-lane-idx"));
-      const siblings = parent >= 0 ? lanes[parent]?.lanes ?? [] : lanes;
-      if (!Number.isInteger(idx) || idx >= siblings.length - 1) return;
-      const extent = parent >= 0 ? laneHeights(asStackLanes(lanes, horizontal), poolExtent)[parent] : poolExtent;
-      const write = (sized: ReturnType<typeof resizeLaneBoundary>) => (parent >= 0
-        ? lanes.map((ln, i) => (i === parent ? { ...ln, lanes: fromStackLanes(siblings, sized, horizontal) } : ln))
-        : fromStackLanes(lanes, sized, horizontal));
+      const steps = path ? path.split("/").map(Number) : [Number(handle.getAttribute("data-lane-idx"))];
+      const idx = steps[steps.length - 1];
+      if (steps.some((n) => !Number.isInteger(n))) return;
+      let level: typeof lanes = lanes;
+      let parentId: string | null = null;
+      for (const i of steps.slice(0, -1)) { parentId = level[i]?.id ?? null; level = level[i]?.lanes ?? []; }
+      const siblings = level;
+      if (idx >= siblings.length - 1) return;
+      const band = laneBandOf(asStackLanes(lanes, horizontal), siblings[0].id, poolExtent);
+      if (!band) return;
+      const write = (sized: ReturnType<typeof resizeLaneBoundary>) =>
+        setSiblings(lanes, parentId, (kids) => fromStackLanes(kids, sized, horizontal));
       e.preventDefault(); e.stopPropagation();
       handle.classList.add("is-dragging");
-      const container = handle.closest(parent >= 0 ? ".bp-pool-sublanes" : ".bp-pool-body");
+      const container = handle.closest(parentId ? ".bp-pool-sublanes" : ".bp-pool-body");
       const laneEls = Array.from(container?.querySelectorAll<HTMLElement>(":scope > .bp-pool-lane") ?? []);
       const at = (ev: PointerEvent) => (horizontal ? ev.clientY : ev.clientX);
       const start = at(e);
       const scale = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
       const resized = (ev: PointerEvent) =>
-        resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at(ev) - start) / scale, MIN_LANE / (parent >= 0 ? 2 : 1));
+        resizeLaneBoundary(asStackLanes(siblings, horizontal), band.extent, idx, (at(ev) - start) / scale, MIN_LANE / (parentId ? 2 : 1));
       const mv = (ev: PointerEvent) => {
         resized(ev).forEach((ln, i) => { if (laneEls[i]) laneEls[i].style.flex = `${ln.height} 1 0px`; });
       };
@@ -1386,12 +1405,14 @@ export class OmniboardCanvas {
       }
       edge.addTools(tools);
       this.showEdgeBar(edge);
+      this.refreshProps();
       if (this.padLayer) this.padLayer.style.display = "none";
     });
     this.graph.on("edge:unselected", ({ edge }) => {
       this.applyEdgeStyle(edge, false);
       edge.removeTools();
       this.hideEdgeBar();
+      this.refreshProps();
       const snap = (edge as any).__selVertsSnapshot;
       const changed = (edge as any).__selVertsUserChanged;
       if (snap !== undefined && !changed) {
@@ -1451,7 +1472,10 @@ export class OmniboardCanvas {
 
     this.graph.on("node:selected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
     this.graph.on("node:unselected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
-    this.graph.on("node:moved", ({ node }) => { this.settleBoundaryEvent(node as Node); });
+    this.graph.on("node:moved", ({ node }) => { this.settleBoundaryEvent(node as Node); this.adoptIntoSubprocess(node as Node); });
+    this.graph.on("node:added", ({ node }) => {
+      if (!this.graph.model.hasActiveBatch("load" as never)) this.adoptIntoSubprocess(node as Node);
+    });
     this.graph.on("node:moved", () => {
       // Pinned-port endpoints follow the port (X6 native); body-drop endpoints
       // re-dock automatically via the edge's anchor=center + boundary crop. No
@@ -1515,12 +1539,18 @@ export class OmniboardCanvas {
     // dispatch to a specific child-label editor first, fall back to whole-node label.
     this.graph.on("node:dblclick", ({ node, e }) => {
       e.stopPropagation();
+      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle]")) return;
       if (this.tryEditChildLabel(e.target as HTMLElement | null, node as Node)) return;
       this.editLabel(node as Node);
     });
     // X6 fires node:click on every click (incl. the one that selects it).
     // Open child-label editor only when the node was already selected BEFORE this click.
     this.graph.on("node:click", ({ node, e }) => {
+      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle]")) {
+        e.stopPropagation();
+        this.toggleSubprocess(node as Node);
+        return;
+      }
       if (this.lastSelectedAt.get(node.id) === undefined) return;
       const sinceSel = Date.now() - (this.lastSelectedAt.get(node.id) ?? 0);
       if (sinceSel < 80) return; // too fresh — this click is the selection itself
@@ -1671,6 +1701,15 @@ export class OmniboardCanvas {
     rail.appendChild(hand);
     this.railHand = hand;
 
+    // Space tool — drag across the board to open or close room (bpmn-js style).
+    const space = el("div", "lk-rail-item");
+    space.innerHTML = SPACE_ICON;
+    space.title = "Giãn / thu khoảng cách (S)";
+    space.onclick = () => this.setTool(this.tool === "space" ? "select" : "space");
+    space.onmouseenter = () => this.scheduleFlyoutClose();
+    rail.appendChild(space);
+    this.railSpace = space;
+
     // Arrow / message tool (directly below pan): hover (desktop) or tap (mobile) →
     // pick an arrow type. Generic arrows are orthogonal; sequence lifelines still
     // switch to a horizontal sequence connector.
@@ -1815,19 +1854,21 @@ export class OmniboardCanvas {
    * board is draggable anywhere without a modifier key (essential on touch, where
    * there is no Space key) and node interaction is suspended so drags always pan.
    */
-  private setTool(tool: "select" | "pan"): void {
+  private setTool(tool: "select" | "pan" | "space"): void {
+    this.cancelSpaceDrag();
     this.tool = tool;
     const pan = tool === "pan";
+    const idle = tool !== "select";   // pan and space: nodes are not draggable, no rubberband
     // Suspend node interaction so a drag pans rather than moving a node. On mobile,
     // X6's native node-drag stays OFF even in select mode — we move nodes ourselves
     // via Pointer Events, and leaving X6's mouse-based drag on let it grab the
     // selected node off iOS-synthesised mouse events (the "node jumps to an empty
     // tap" bug). Arrowhead/magnet interaction stays on so edges still connect.
     (this.graph.options as { interacting?: unknown }).interacting =
-      pan ? false : (this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true });
+      idle ? false : (this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true });
     // Disable the rubberband (blue selection box) while panning.
     const g = this.graph as unknown as { enableRubberband?: () => void; disableRubberband?: () => void };
-    if (pan) g.disableRubberband?.(); else g.enableRubberband?.();
+    if (idle) g.disableRubberband?.(); else g.enableRubberband?.();
     // [Review][Patch P11] AC#7 — preserve selection across tool switches
     // (pan/zoom → select). Previously `cleanSelection()` ran on every switch
     // to pan, wiping the user's multi-selection. Selection indicators stay
@@ -1848,7 +1889,18 @@ export class OmniboardCanvas {
     m.removeEventListener("pointermove", this.onSelMove);
     m.removeEventListener("pointerup", this.onSelUp);
     m.removeEventListener("pointercancel", this.onSelUp);
-    if (pan) {
+    m.removeEventListener("pointerdown", this.onSpaceDown);
+    m.removeEventListener("pointermove", this.onSpaceMove);
+    m.removeEventListener("pointerup", this.onSpaceUp);
+    m.removeEventListener("pointercancel", this.onSpaceUp);
+    if (tool === "space") {
+      m.addEventListener("pointerdown", this.onSpaceDown);
+      m.addEventListener("pointermove", this.onSpaceMove);
+      m.addEventListener("pointerup", this.onSpaceUp);
+      m.addEventListener("pointercancel", this.onSpaceUp);
+      m.style.cursor = "col-resize";
+      this.setPending(null);
+    } else if (pan) {
       m.addEventListener("pointerdown", this.onPanDown);
       m.addEventListener("pointermove", this.onPanMove);
       m.addEventListener("pointerup", this.onPanUp);
@@ -1863,8 +1915,9 @@ export class OmniboardCanvas {
       m.style.cursor = "";
       this.panStart = null;
     }
-    this.railSelect?.classList.toggle("is-active", !pan);
+    this.railSelect?.classList.toggle("is-active", tool === "select");
     this.railHand?.classList.toggle("is-active", pan);
+    this.railSpace?.classList.toggle("is-active", tool === "space");
   }
 
   /**
@@ -1908,7 +1961,7 @@ export class OmniboardCanvas {
   /** Arm a shape for tap-to-place (mobile-friendly add); shows a hint banner. */
   private setPending(item: PaletteItem | null): void {
     this.pendingShape = item;
-    this.graphMount.style.cursor = item ? "copy" : (this.tool === "pan" ? "grab" : "");
+    this.graphMount.style.cursor = item ? "copy" : (this.tool === "pan" ? "grab" : this.tool === "space" ? "col-resize" : "");
     if (item && !this.pendingHint) {
       this.pendingHint = el("div", "lk-place-hint", "Chạm vào canvas để đặt hình");
       this.root.appendChild(this.pendingHint);
@@ -2037,6 +2090,144 @@ export class OmniboardCanvas {
     this.panStart = null;
     if (this.tool === "pan") this.graphMount.style.cursor = "grab";
   };
+
+  // ── Space tool ───────────────────────────────────────────────────────────
+  private space: {
+    id: number; sx: number; sy: number; axis: Axis | null; line: number; last: number;
+    move: Node[]; resize: Array<{ node: Node; w: number; h: number }>; edges: Array<{ edge: Edge; verts: Array<{ x: number; y: number }> }>;
+    guide: HTMLElement; boxes: SpaceBox[]; plan: ReturnType<typeof planSpace> | null;
+    pools: Array<{ node: Node; lanes: NonNullable<ReturnType<OmniboardCanvas["nodeExtra"]>["lanes"]>; horizontal: boolean; extent: number; rel: number }>; floor: number;
+  } | null = null;
+
+  private onSpaceDown = (e: PointerEvent): void => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    this.closeFlyoutNow(); this.hidePopup();
+    const p = this.graph.clientToLocal(e.clientX, e.clientY);
+    const guide = el("div", "lk-space-guide");
+    guide.style.display = "none";
+    this.graphMount.appendChild(guide);
+    this.space = { id: e.pointerId, sx: p.x, sy: p.y, axis: null, line: 0, last: 0, move: [], resize: [], edges: [], guide, boxes: [], plan: null, pools: [], floor: -Infinity };
+    try { this.graphMount.setPointerCapture(e.pointerId); } catch { /* capture unsupported */ }
+    e.preventDefault();
+  };
+
+  private onSpaceMove = (e: PointerEvent): void => {
+    const s = this.space; if (!s || e.pointerId !== s.id) return;
+    const p = this.graph.clientToLocal(e.clientX, e.clientY);
+    if (!s.axis) {
+      if (Math.hypot(p.x - s.sx, p.y - s.sy) < 6 / (this.graph.scale().sx || 1)) return;
+      this.beginSpace(s, Math.abs(p.x - s.sx) >= Math.abs(p.y - s.sy) ? "x" : "y");
+    }
+    const axis = s.axis!;
+    const want = (axis === "x" ? p.x - s.sx : p.y - s.sy);
+    const delta = Math.max(Math.round(clampDelta(want, s.boxes, s.plan!.resize, axis)), s.floor);
+    const step = delta - s.last;
+    if (step === 0) { e.preventDefault(); return; }
+    s.last = delta;
+    for (const n of s.move) n.translate(axis === "x" ? step : 0, axis === "y" ? step : 0);
+    for (const r of s.resize) r.node.resize(r.w + (axis === "x" ? delta : 0), r.h + (axis === "y" ? delta : 0));
+    // The lane the line crosses takes the room; the others (and their shapes) keep their size.
+    for (const pl of s.pools) {
+      const grown = growLaneAt(asStackLanes(pl.lanes, pl.horizontal), pl.extent, pl.rel, delta);
+      pl.node.setData({ ...pl.node.getData(), lanes: fromStackLanesDeep(pl.lanes, grown, pl.horizontal) }, { deep: false });
+      this.rerender(pl.node);
+    }
+    for (const it of s.edges) it.edge.setVertices(shiftVertices(it.verts, axis, s.line, delta));
+    e.preventDefault();
+  };
+
+  /** Fix the axis and line, snapshot what the drag acts on, open one undo step. */
+  private beginSpace(s: NonNullable<OmniboardCanvas["space"]>, axis: Axis): void {
+    s.axis = axis;
+    s.line = axis === "x" ? s.sx : s.sy;
+    const nodes = this.graph.getNodes().filter((n) => n.isVisible());
+    s.boxes = nodes.map((n) => {
+      const b = n.getBBox();
+      return { id: n.id, x: b.x, y: b.y, w: b.width, h: b.height, frame: FRAME_KINDS.has(this.nodeKind(n)), parentId: n.getParent()?.id };
+    });
+    s.plan = planSpace(s.boxes, axis, s.line);
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    s.move = s.plan.move.map((id) => byId.get(id)!);
+    s.resize = s.plan.resize.map((id) => { const n = byId.get(id)!; const z = n.getSize(); return { node: n, w: z.width, h: z.height }; });
+    // A pool cut along its stacking axis: remember its lanes and where the line falls.
+    for (const r of s.resize) {
+      const ex = this.nodeExtra(r.node);
+      const horizontal = ex.poolHorizontal !== false;
+      if (this.nodeKind(r.node) !== "bpmn-pool" || !ex.lanes?.length || (horizontal ? "y" : "x") !== axis) continue;
+      const extent = horizontal ? r.h : r.w;
+      const rel = s.line - r.node.getPosition()[axis];
+      s.pools.push({ node: r.node, lanes: ex.lanes, horizontal, extent, rel });
+      s.floor = Math.max(s.floor, 30 - leafLaneSize(asStackLanes(ex.lanes, horizontal), extent, rel));
+    }
+    s.edges = this.graph.getEdges().filter((e) => e.getVertices().length).map((edge) => ({ edge, verts: edge.getVertices().map((v) => ({ x: v.x, y: v.y })) }));
+    // the guide line sits on the start point, across the whole board
+    s.guide.style.display = "block";
+    const c = this.graph.localToClient(s.sx, s.sy);
+    const r = this.graphMount.getBoundingClientRect();
+    s.guide.style.cssText = axis === "x"
+      ? `display:block;left:${c.x - r.left}px;top:0;bottom:0;width:0;border-left:1.5px dashed var(--pg-accent)`
+      : `display:block;top:${c.y - r.top}px;left:0;right:0;height:0;border-top:1.5px dashed var(--pg-accent)`;
+    this.graph.cleanSelection();
+    this.graph.startBatch("space");
+  }
+
+  private onSpaceUp = (e: PointerEvent): void => {
+    const s = this.space; if (!s || e.pointerId !== s.id) return;
+    try { this.graphMount.releasePointerCapture(e.pointerId); } catch { /* already released */ }
+    this.endSpace(true);
+  };
+  private cancelSpaceDrag(): void { if (this.space) this.endSpace(false); }
+  private endSpace(commit: boolean): void {
+    const s = this.space; if (!s) return;
+    this.space = null;
+    s.guide.remove();
+    if (!s.axis) return;
+    this.graph.stopBatch("space");
+    if (!commit) { if (s.last !== 0) this.graph.undo(); return; }
+    for (const r of s.resize) this.rerender(r.node);
+    if (s.last !== 0) this.onChange();
+  }
+
+  // ── Find on the board (Ctrl+F) ───────────────────────────────────────────
+  private searchBox: HTMLElement | null = null;
+  openSearch(): void {
+    if (this.searchBox) { (this.searchBox.querySelector("input") as HTMLInputElement).select(); return; }
+    const box = el("div", "lk-search");
+    const input = el("input", "lk-pinput") as HTMLInputElement;
+    input.placeholder = "Tìm phần tử…";
+    const count = el("span", "lk-search-count", "");
+    const prev = el("button", "lk-cb-btn", "↑"); prev.title = "Kết quả trước (Shift+Enter)";
+    const next = el("button", "lk-cb-btn", "↓"); next.title = "Kết quả sau (Enter)";
+    const close = el("button", "lk-cb-btn", "✕"); close.title = "Đóng (Esc)";
+    box.append(input, count, prev, next, close);
+    this.root.appendChild(box);
+    this.searchBox = box;
+    let matches: Node[] = [];
+    let cur = -1;
+    const show = () => {
+      count.textContent = input.value.trim() ? (matches.length ? `${cur + 1}/${matches.length}` : "0") : "";
+      const n = matches[cur];
+      if (!n) return;
+      this.graph.resetSelection([n]);
+      this.graph.centerCell(n);
+    };
+    const search = () => {
+      const items = this.graph.getNodes().filter((n) => n.isVisible()).map((n) => ({ id: n.id, label: this.nodeLabel(n), x: n.getPosition().x, y: n.getPosition().y, node: n }));
+      matches = findMatches(items, input.value).map((m) => m.node);
+      cur = matches.length ? 0 : -1;
+      show();
+    };
+    const step = (dir: 1 | -1) => { cur = stepIndex(cur, matches.length, dir); show(); };
+    const closeBox = () => { box.remove(); this.searchBox = null; };
+    input.oninput = search;
+    input.onkeydown = (ev) => {
+      ev.stopPropagation();
+      if (ev.key === "Enter") { ev.preventDefault(); step(ev.shiftKey ? -1 : 1); }
+      else if (ev.key === "Escape") { ev.preventDefault(); closeBox(); }
+    };
+    prev.onclick = () => step(-1); next.onclick = () => step(1); close.onclick = closeBox;
+    input.focus();
+  }
 
   private openFlyout(cat: ShapeCategory, anchor: HTMLElement) {
     this.cancelFlyoutClose();
@@ -2423,7 +2614,9 @@ export class OmniboardCanvas {
     const body = this.propsBody;
     if (!body) return;
     body.innerHTML = "";
-    const nodes = this.graph.getSelectedCells().filter((c) => c.isNode()) as Node[];
+    const cells = this.graph.getSelectedCells();
+    const nodes = cells.filter((c) => c.isNode()) as Node[];
+    if (cells.length === 1 && cells[0].isEdge() && this.buildSequenceFlowEditor(cells[0] as Edge, body)) return;
     if (nodes.length !== 1) {
       const empty = el("div", "lk-props-empty");
       empty.innerHTML = `<div class="lk-props-empty-ic">◇</div>Chọn một phần tử trên canvas để chỉnh nội dung, màu và vị trí.`;
@@ -2502,6 +2695,31 @@ export class OmniboardCanvas {
   }
 
   // ── BPMN Properties editor (Phase D) ──────────────────────────────────────
+  /** Condition of a BPMN sequence flow (bpmn:conditionExpression body). False
+   *  when the edge is not one, so the caller shows the empty state. */
+  private buildSequenceFlowEditor(edge: Edge, body: HTMLElement): boolean {
+    const d = (edge.getData() as { bpmnKind?: string; bpmnAttrs?: Record<string, unknown> } | undefined) ?? {};
+    const ft = this.edgeStyle(edge).flowType;
+    const ends = [edge.getSourceCell(), edge.getTargetCell()];
+    const isSequence = !d.bpmnKind || d.bpmnKind === "sequence";
+    if (!isSequence || ft === "message" || ft === "association"
+      || !ends.every((c) => c?.isNode() && this.nodeKind(c as Node).startsWith("bpmn-"))) return false;
+    const s = el("div", "lk-psec"); s.appendChild(el("div", "lk-psec-h", "Sequence flow")); body.appendChild(s);
+    const f = el("div", "lk-pfield"); f.appendChild(el("label", undefined, "Điều kiện")); s.appendChild(f);
+    const ta = el("textarea", "lk-ptextarea") as HTMLTextAreaElement;
+    ta.rows = 3; ta.placeholder = "${amount > 1000}";
+    ta.value = (d.bpmnAttrs?.condition as string | undefined) ?? "";
+    ta.oninput = () => {
+      const cur = (edge.getData() as typeof d | undefined) ?? {};
+      const attrs = { ...(cur.bpmnAttrs ?? {}), condition: ta.value.trim() || undefined };
+      if (!attrs.condition) delete attrs.condition;
+      edge.setData({ ...cur, bpmnAttrs: Object.keys(attrs).length ? attrs : undefined }, { deep: false });
+      this.onChange();
+    };
+    f.appendChild(ta);
+    return true;
+  }
+
   private buildBpmnPropsEditor(node: Node, body: HTMLElement): void {
     const kind = this.nodeKind(node);
     const ex = this.nodeExtra(node);
@@ -2542,12 +2760,10 @@ export class OmniboardCanvas {
     // ── Event trigger (for event nodes) ─────────────────────────────────────
     if (kind === "bpmn-event-start" || kind === "bpmn-event-intermediate" || kind === "bpmn-event-end") {
       const sTrig = sec("Trigger sự kiện");
-      const TRIGGERS = ["(none)", "message", "timer", "signal", "error", "escalation",
-        "compensation", "conditional", "link", "cancel", "terminate", "multiple", "parallel-multiple"];
       const sel = el("select", "lk-pselect") as HTMLSelectElement;
-      for (const t of TRIGGERS) {
-        const opt = document.createElement("option"); opt.value = t === "(none)" ? "" : t;
-        opt.textContent = t; if ((ex.trigger ?? "") === opt.value) opt.selected = true;
+      for (const t of triggerChoices(kind, ex)) {
+        const opt = document.createElement("option"); opt.value = t === "none" ? "" : t;
+        opt.textContent = t === "none" ? "(none)" : t; if ((ex.trigger ?? "") === opt.value) opt.selected = true;
         sel.appendChild(opt);
       }
       sel.onchange = () => { save({ trigger: sel.value || undefined }); };
@@ -2555,7 +2771,8 @@ export class OmniboardCanvas {
       if (kind === "bpmn-event-intermediate") {
         const thrChk = el("input") as HTMLInputElement;
         thrChk.type = "checkbox"; thrChk.checked = ex.throwing === true;
-        thrChk.onchange = () => { save({ throwing: thrChk.checked }); };
+        // The trigger list depends on throwing — rebuild the panel.
+        thrChk.onchange = () => { save({ throwing: thrChk.checked }); this.refreshProps(); };
         field(sTrig, "Throwing", thrChk);
       }
     }
@@ -2587,6 +2804,27 @@ export class OmniboardCanvas {
         save({ markers: compChk.checked ? [...others, "compensation" as const] : others });
       };
       field(sLoop, "Compensation", compChk);
+    }
+
+    // ── Identity: ID + called element ───────────────────────────────────────
+    const sId = sec("Định danh");
+    const idInp = el("input", "lk-pinput") as HTMLInputElement;
+    idInp.value = node.id;
+    idInp.onchange = () => {
+      const next = idInp.value.trim();
+      if (this.renameNode(node.id, next)) return;
+      idInp.setCustomValidity(`ID "${next}" không hợp lệ hoặc đã có.`);
+      idInp.reportValidity();
+      idInp.setCustomValidity("");
+      idInp.value = node.id;
+    };
+    field(sId, "ID", idInp);
+    if (kind === "bpmn-call-activity") {
+      const callInp = el("input", "lk-pinput") as HTMLInputElement;
+      callInp.placeholder = "ID process được gọi";
+      callInp.value = (d.calledElement as string | undefined) ?? "";
+      callInp.oninput = () => { save({ calledElement: callInp.value.trim() || undefined }); };
+      field(sId, "calledElement", callInp);
     }
 
     // ── BPMN Documentation ───────────────────────────────────────────────────
@@ -2775,6 +3013,11 @@ export class OmniboardCanvas {
         `<svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor"><rect x="3" y="8" width="3" height="3"/><rect x="8.5" y="8" width="3" height="3"/><rect x="14" y="8" width="3" height="3"/></svg><span class="lk-cb-caret">▾</span>`,
         "Activity markers (loop / MI / ad-hoc / compensation)",
         (ev) => this.openBpmnMarkerPopup(node, ev.currentTarget as HTMLElement)));
+    }
+    if (this.isSubprocessNode(node)) {
+      this.contextBar.appendChild(mkBtn(
+        `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="11" height="11"/><path d="M10 3h7v7M17 3l-7 7"/></svg>`,
+        "Mở trang riêng", () => this.enterSubprocess(node)));
     }
 
     // BPMN Pool — quick-action buttons (bpmn.io UX).
@@ -3088,7 +3331,8 @@ export class OmniboardCanvas {
    *  remove a child lane. One undo step each. */
   private showLaneMenu(pool: Node, laneId: string, clientX: number, clientY: number): void {
     const lanes = this.nodeExtra(pool).lanes ?? [];
-    const top = lanes.find((l) => l.id === laneId);
+    const lane = findLaneDeep(lanes, laneId);
+    const topLevel = lanes.some((l) => l.id === laneId);
     const apply = (next: typeof lanes) => {
       this.graph.startBatch("lane-edit");
       try {
@@ -3097,14 +3341,15 @@ export class OmniboardCanvas {
       } finally { this.graph.stopBatch("lane-edit"); }
       this.onChange();
     };
-    const items: Array<[string, () => void]> = top
-      ? top.lanes?.length
-        ? [["Gộp các lane con", () => apply(mergeChildLanes(lanes, laneId))]]
-        : [["Chia thành 2 lane con", () => apply(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))]]
-      : [
-        ["Thêm lane con bên dưới", () => apply(addChildLane(lanes, laneId, this.newLaneId()))],
-        ["Xoá lane con này", () => apply(removeChildLane(lanes, laneId))],
-      ];
+    const items: Array<[string, () => void]> = [
+      lane?.lanes?.length
+        ? ["Gộp các lane con", () => apply(mergeChildLanes(lanes, laneId))]
+        : ["Chia thành 2 lane con", () => apply(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))],
+      ...(topLevel ? [] : [
+        ["Thêm lane con bên dưới", () => apply(addChildLane(lanes, laneId, this.newLaneId()))] as [string, () => void],
+        ["Xoá lane con này", () => apply(removeChildLane(lanes, laneId))] as [string, () => void],
+      ]),
+    ];
     const menu = el("div", "lk-context-menu");
     for (const [label, fn] of items) {
       const item = el("div", "lk-menu-item");
@@ -3430,13 +3675,173 @@ export class OmniboardCanvas {
     this.onChange();
   }
 
+  // ── Sub-process open / close in place ────────────────────────────────────
+  /** ⊞ / − on a sub-process: open it as a frame around its steps, or close it
+   *  to task size with the steps hidden. A task with the ⊞ marker opens as an
+   *  empty sub-process; one closed with no steps goes back to that task. */
+  private toggleSubprocess(node: Node): void {
+    const opening = this.nodeKind(node) === "bpmn-task" || node.getData()?.collapsed === true;
+    this.graph.startBatch("subprocess-toggle");
+    try {
+      if (opening) this.openSubprocess(node); else { this.closeSubprocess(node); this.refreshSubprocessVisibility(); }
+    } finally { this.graph.stopBatch("subprocess-toggle"); }
+    this.onChange(); this.refreshContextBar(); this.refreshContextPad();
+  }
+  private openSubprocess(node: Node): void {
+    const d = node.getData() ?? {};
+    const markers = ((d.markers ?? []) as string[]).filter((m) => m !== "subprocess");
+    node.setData(this.nodeKind(node) === "bpmn-task"
+      ? { ...d, kind: "bpmn-subprocess", markers: markers.length ? markers : undefined, collapsed: undefined }
+      : { ...d, collapsed: undefined }, { deep: false });
+    // Show the steps before moving them: arrows re-route only to visible ends.
+    this.refreshSubprocessVisibility();
+    const kids = (node.getChildren() ?? []).filter((c): c is Node => c.isNode());
+    const lay = openLayout(node.getPosition(), kids.map((k) => ({ ...k.getPosition(), ...k.getSize() })));
+    kids.forEach((k) => k.translate(lay.dx, lay.dy));
+    node.resize(lay.width, lay.height);
+    node.setZIndex(frameZ(this.nodeKind(node), this.ancestorCount(node)));
+    this.rerender(node);
+  }
+  private closeSubprocess(node: Node): void {
+    const d = node.getData() ?? {};
+    const empty = !(node.getChildren() ?? []).some((c) => c.isNode());
+    const toTask = empty && this.nodeKind(node) === "bpmn-subprocess";
+    node.setData(toTask
+      ? { ...d, kind: "bpmn-task", markers: [...((d.markers ?? []) as string[]), "subprocess"], collapsed: true }
+      : { ...d, collapsed: true }, { deep: false });
+    node.resize(SUB_CLOSED.width, SUB_CLOSED.height);
+    if (toTask) node.toFront();
+    this.rerender(node);
+  }
+  private ancestorCount(node: Node): number {
+    let d = 0;
+    for (let p = node.getParent(); p && d < 32; p = p.getParent()) d++;
+    return d;
+  }
+  /** Steps inside a closed sub-process are hidden, with every arrow touching them. */
+  private refreshSubprocessVisibility(): void {
+    const root = this.drillRoot;
+    // Shown: outside any closed sub-process — or, on a sub-process's own page,
+    // inside it and not inside a closed one below it.
+    const shown = (n: Node): boolean => {
+      for (let p = n.getParent(); p; p = p.getParent()) {
+        if (p.id === root) return true;
+        if (p.getData()?.collapsed === true) return false;
+      }
+      return !root;
+    };
+    for (const n of this.graph.getNodes()) {
+      const show = shown(n);
+      if (n.isVisible() === show) continue;
+      n.setVisible(show);
+      if (!show) this.graph.unselect(n);
+    }
+    for (const e of this.graph.getEdges()) {
+      const ends = [e.getSourceCell(), e.getTargetCell()];
+      const show = ends.every((c) => !c || c.isVisible());
+      if (e.isVisible() === show) continue;
+      e.setVisible(show);
+      // X6 only toggles CSS: a path laid out while its ends were display:none is stale.
+      if (show) (this.graph.findViewByCell(e) as EdgeView | null)?.update();
+    }
+  }
+  /** A sub-process, or a task with the ⊞ marker (an empty one). */
+  private isSubprocessNode(node: Node): boolean {
+    const k = this.nodeKind(node);
+    return SUBPROCESS_KINDS.has(k) || (k === "bpmn-task" && !!(node.getData()?.markers as string[] | undefined)?.includes("subprocess"));
+  }
+  /** Sub-process whose steps are shown on their own page (null = the whole process). */
+  private drillRoot: string | null = null;
+  private crumbs: HTMLElement | null = null;
+  /** "Mở trang riêng": show only this sub-process's steps, with a breadcrumb
+   *  back — the same canvas, every other shape hidden (bpmn-js drill-down). */
+  private enterSubprocess(node: Node): void {
+    if (this.nodeKind(node) === "bpmn-task") {
+      // An empty ⊞ task becomes a closed sub-process so it can hold steps.
+      const d = node.getData() ?? {};
+      const markers = ((d.markers ?? []) as string[]).filter((m) => m !== "subprocess");
+      node.setData({ ...d, kind: "bpmn-subprocess", markers: markers.length ? markers : undefined, collapsed: true }, { deep: false });
+      this.rerender(node);
+    }
+    this.setDrillRoot(node.id);
+  }
+  /** View of each level above the current page, saved when going deeper. */
+  private drillViews: Array<{ id: string | null; scale: number; tx: number; ty: number }> = [];
+  private setDrillRoot(id: string | null): void {
+    const prev = this.drillRoot ? this.graph.getCellById(this.drillRoot) : null;
+    const back = this.drillViews.findIndex((v) => v.id === id);
+    const saved = back >= 0 ? this.drillViews[back] : null;
+    if (saved) this.drillViews = this.drillViews.slice(0, back);
+    else this.drillViews = [...this.drillViews, { id: this.drillRoot, scale: this.graph.scale().sx, ...this.graph.translate() }];
+    this.drillRoot = id;
+    // Left a closed sub-process with no steps: back to the ⊞ task it came from.
+    if (prev?.isNode() && prev.id !== id && prev.getData()?.collapsed === true
+      && this.nodeKind(prev) === "bpmn-subprocess" && !(prev.getChildren() ?? []).some((c) => c.isNode())) {
+      const d = prev.getData() ?? {};
+      prev.setData({ ...d, kind: "bpmn-task", markers: [...((d.markers ?? []) as string[]), "subprocess"] }, { deep: false });
+      this.rerender(prev);
+    }
+    this.graph.cleanSelection();
+    this.refreshSubprocessVisibility();
+    this.renderCrumbs();
+    const shown = this.graph.getNodes().filter((n) => n.isVisible());
+    if (saved) { this.graph.zoomTo(saved.scale); this.graph.translate(saved.tx, saved.ty); }
+    else if (id && shown.length) this.graph.zoomToRect(this.graph.getCellsBBox(shown)!.inflate(80), { maxScale: 1 });
+    else if (id) this.graph.centerCell(this.graph.getCellById(id));
+    else if (prev) this.graph.centerCell(prev);
+  }
+  /** "Process › Sub A › Sub B" over the canvas while inside a sub-process. */
+  private renderCrumbs(): void {
+    if (!this.drillRoot) { this.crumbs?.remove(); this.crumbs = null; return; }
+    if (!this.crumbs) { this.crumbs = el("div", "lk-crumbs"); this.graphMount.appendChild(this.crumbs); }
+    this.crumbs.innerHTML = "";
+    const path: Node[] = [];
+    for (let c: Cell | null = this.graph.getCellById(this.drillRoot); c?.isNode(); c = c.getParent()) {
+      if (this.isSubprocessNode(c)) path.unshift(c);
+    }
+    const seg = (label: string, id: string | null, current: boolean) => {
+      const b = el("button", "lk-crumb" + (current ? " is-current" : ""), "");
+      b.textContent = label;
+      if (!current) b.onclick = () => this.setDrillRoot(id);
+      this.crumbs!.appendChild(b);
+    };
+    seg("Process", null, false);
+    path.forEach((n, i) => {
+      this.crumbs!.appendChild(el("span", "lk-crumb-sep", "›"));
+      seg(this.nodeLabel(n) || "Sub-process", n.id, i === path.length - 1);
+    });
+  }
+  /** A shape dropped inside an open sub-process becomes one of its steps;
+   *  dragged out of it, it stops being one. */
+  private adoptIntoSubprocess(node: Node): void {
+    const kind = this.nodeKind(node);
+    if (kind === "bpmn-pool" || kind === "bpmn-lane" || !node.isVisible()) return;
+    const c = node.getBBox().center;
+    const own = new Set([node.id, ...node.getDescendants().map((x) => x.id), node.getData()?.attachedTo]);
+    const host = this.graph.getNodes()
+      .filter((f) => !own.has(f.id) && SUBPROCESS_KINDS.has(this.nodeKind(f)) && f.getData()?.collapsed !== true
+        && f.isVisible() && f.getBBox().containsPoint(c))
+      .sort((a, b) => a.getBBox().width * a.getBBox().height - b.getBBox().width * b.getBBox().height)[0];
+    // On a sub-process's own page every shape belongs to it.
+    const drill = this.drillRoot && !own.has(this.drillRoot) ? this.graph.getCellById(this.drillRoot) as Node : undefined;
+    const target = host ?? drill;
+    const cur = node.getParent();
+    const curIsSub = !!cur?.isNode() && SUBPROCESS_KINDS.has(this.nodeKind(cur as Node));
+    if (target ? cur === target : !curIsSub) return;
+    if (cur) cur.unembed(node);
+    if (target) target.embed(node);
+    node.setData({ ...node.getData(), parentId: target?.id }, { deep: false });
+    if (FRAME_KINDS.has(kind)) node.setZIndex(frameZ(kind, this.ancestorCount(node)));
+  }
+
   // ── BPMN Đợt D — Trigger / Marker / Interrupting pickers ────────────────
   /** Open the trigger picker for an event node (popup grid of 12 OMG triggers). */
   private openBpmnTriggerPopup(node: Node, anchor: HTMLElement): void {
     const list = el("div", "lk-line-list");
-    const cur = this.nodeExtra(node).trigger ?? "none";
-    for (const t of BPMN_TRIGGERS) {
-      const row = el("button", "lk-line-row" + (t === cur ? " on" : ""), `<span>${BPMN_TRIGGER_LABEL[t]}</span>`);
+    const ex = this.nodeExtra(node);
+    const cur = ex.trigger ?? "none";
+    for (const t of triggerChoices(this.nodeKind(node), ex)) {
+      const row = el("button", "lk-line-row" + (t === cur ? " on" : ""), `<span>${BPMN_TRIGGER_LABEL[t] ?? t}</span>`);
       row.onclick = () => {
         const data = node.getData() ?? {};
         const nextTrigger = t === "none" ? undefined : t;
@@ -3672,8 +4077,7 @@ export class OmniboardCanvas {
   private editLaneLabel(node: Node, laneId: string, anchor: HTMLElement): void {
     const ex = this.nodeExtra(node);
     const lanes = ex.lanes ?? [];
-    // The lane may be a child lane (one level of nesting).
-    const current = lanes.flatMap((l) => [l, ...(l.lanes ?? [])]).find((l) => l.id === laneId);
+    const current = findLaneDeep(lanes, laneId);
     if (!current) return;
     const relabel = (list: typeof lanes, v: string): typeof lanes => list.map((l) => (l.id === laneId
       ? { ...l, label: v }
@@ -4437,6 +4841,9 @@ export class OmniboardCanvas {
   }
 
   loadModel(model: CanvasModel, opts?: { keepView?: boolean }) {
+    this.drillRoot = null;   // a fresh model opens on the whole process
+    this.drillViews = [];
+    this.renderCrumbs();
     // Migration: legacy pool defaults hardcoded lane id "l1", so files with
     // ≥2 pools have duplicate lane ids across pools. exportBpmn dồn lanes
     // vào 1 laneSet → invalid BPMN (Canvas._ensureValid: "element already
@@ -4476,6 +4883,7 @@ export class OmniboardCanvas {
       // Phase D — store metadata attrs directly on node.data for round-trip.
       const phaseD: Record<string, unknown> = {};
       if (a.bpmnDoc) phaseD.bpmnDoc = a.bpmnDoc;
+      if (a.calledElement) phaseD.calledElement = a.calledElement;
       if (a.bpmnFill) phaseD.bpmnFill = a.bpmnFill;
       if (a.bpmnStroke) phaseD.bpmnStroke = a.bpmnStroke;
       if (a.camunda) phaseD.camunda = a.camunda;
@@ -4671,7 +5079,11 @@ export class OmniboardCanvas {
       cell.setZIndex(frameZ(n.shape, depthOf(n.id)));
     }
     this.raiseBoundaryEvents();
+    this.refreshSubprocessVisibility();
     this.graph.stopBatch("load");
+    // Loading is not an edit: drop the clear + add records (and any earlier
+    // edits of the previous board), or Ctrl+Z walks back to an empty board.
+    this.graph.cleanHistory();
     this.resyncHtmlNodes();   // rebuild the mobile overlay from the freshly loaded nodes
     // Auto-grow every mindmap node once the foreignObject DOM is mounted &
     // measurable — covers long labels saved with too-small initial height.
@@ -4786,6 +5198,38 @@ export class OmniboardCanvas {
     return { added: incoming.nodes.length };
   }
 
+  /** Change a node's id. X6 ids are fixed, so the node is replaced by a copy
+   *  under the new id, with arrows, steps and references moved over in one undo
+   *  step. The BPMN export finds the old file element through `__source.sourceId`,
+   *  so nothing only the file had is lost. */
+  renameNode(oldId: string, newId: string): boolean {
+    if (newId === oldId) return true;
+    const old = this.graph.getCellById(oldId);
+    if (!old?.isNode() || !/^[A-Za-z_][\w.-]*$/.test(newId) || this.graph.getCellById(newId)) return false;
+    const REFS = ["attachedTo", "parentId", "laneId", "poolId"];
+    this.graph.startBatch("rename");
+    const { parent: _p, children: _c, ...json } = old.toJSON();
+    const next = this.graph.addNode({ ...json, id: newId });
+    old.getParent()?.embed(next);
+    for (const c of old.getChildren() ?? []) { old.unembed(c); next.embed(c); }
+    for (const e of this.graph.getConnectedEdges(old)) {
+      if (e.getSourceCellId() === oldId) e.setSource({ ...e.getSource(), cell: newId } as Edge.TerminalCellData);
+      if (e.getTargetCellId() === oldId) e.setTarget({ ...e.getTarget(), cell: newId } as Edge.TerminalCellData);
+    }
+    for (const n of this.graph.getNodes()) {
+      const d = n.getData() ?? {};
+      const hit = REFS.filter((k) => d[k] === oldId);
+      if (hit.length) n.setData(Object.fromEntries(hit.map((k) => [k, newId])));
+    }
+    old.remove();
+    this.graph.stopBatch("rename");
+    if (this.drillRoot === oldId) this.setDrillRoot(newId);
+    this.rerender(next);
+    this.graph.resetSelection([next]);
+    this.onChange();
+    return true;
+  }
+
   getModel(): CanvasModel {
     const nodes = this.graph.getNodes().map((n) => {
       const p = n.getPosition(); const s = n.getSize(); const ex = this.nodeExtra(n);
@@ -4853,6 +5297,7 @@ export class OmniboardCanvas {
           collapsed: ex.collapsed,
           // Phase D — BPMN metadata (live on node.data, not NodeExtra)
           bpmnDoc: n.getData()?.bpmnDoc,
+          calledElement: n.getData()?.calledElement,
           bpmnFill: n.getData()?.bpmnFill,
           bpmnStroke: n.getData()?.bpmnStroke,
           camunda: n.getData()?.camunda,
@@ -5287,6 +5732,8 @@ export class OmniboardCanvas {
     this.commitLabel();
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
+    this.cancelSpaceDrag();
+    this.searchBox?.remove(); this.searchBox = null;
     if (this.wheelPan) this.graphMount.removeEventListener("wheel", this.wheelPan);
     // Remove document-scoped listeners so they don't pile up (and keep firing
     // against a disposed graph) every time a board is re-opened.

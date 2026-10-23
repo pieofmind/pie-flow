@@ -96,20 +96,19 @@ export function layoutInLanes(pools: LayoutPool[], nodes: LayoutNode[], edges: L
     } else {
       let at = y;
       const ofLane = (id: string) => inPool.filter((nd) => nd.laneId === id);
-      lanes = lanes.map((ln) => {
+      // A lane with children is the stack of its children; shapes pinned to the
+      // parent itself go with its first child. Heights add up the tree.
+      const place = (list: PoolLane[], extra: LayoutNode[] = []): PoolLane[] => list.map((ln, i) => {
         if (!ln.lanes?.length) {
-          const h = placeLane(ofLane(ln.id), at);
+          const h = placeLane([...ofLane(ln.id), ...(i === 0 ? extra : [])], at);
           at += h;
           return { ...ln, height: h };
         }
         const start = at;
-        const children = ln.lanes.map((c) => {
-          const h = placeLane([...ofLane(c.id), ...(c === ln.lanes![0] ? ofLane(ln.id) : [])], at);
-          at += h;
-          return { ...c, height: h };
-        });
+        const children = place(ln.lanes, [...ofLane(ln.id), ...(i === 0 ? extra : [])]);
         return { ...ln, height: at - start, lanes: children };
       });
+      lanes = place(lanes);
       height = at - y;
     }
     out.pools.set(pool.id, { x: left, y, width: right - left, height, lanes });

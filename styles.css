@@ -922,6 +922,9 @@
   border: 2px dashed #C99A2E; border-radius: 50%; pointer-events: none; }
 /* Đợt A — Activity markers row (icons stacked at the bottom of a task/sub-process) */
 .lk-root .bp-markers { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: none; }
+.lk-root [data-sub-toggle] { pointer-events: auto; cursor: pointer; }
+.lk-root .bp-sub-closed.is-event-sub { border-style: dashed; }
+.lk-root .bp-sub-closed.is-transaction { outline: 1.4px solid var(--pg-border-strong); outline-offset: -5px; }
 .lk-root .bp-markers .bp-mk-ic svg { width: 12px; height: 12px; color: var(--pg-text-muted); display: block; }
 .lk-root .bp-dataobj { position: relative; }
 /* Đợt B — Group (dashed-rounded container, no fill) */
@@ -1808,3 +1811,16 @@ body.is-mobile .diagrams-card-header {
 .omniboard-embed-cardwrap {
   display: block;
 }
+
+/* Breadcrumb while a sub-process is open on its own page. */
+.lk-root .lk-crumbs { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--pg-surface); border: 1px solid var(--pg-border); border-radius: 8px; box-shadow: var(--sh-sm); font-size: 12px; }
+.lk-root .lk-crumb { background: none; border: none; box-shadow: none; padding: 2px 6px; border-radius: 5px; color: var(--pg-accent); cursor: pointer; font: inherit; }
+.lk-root .lk-crumb:hover { background: var(--pg-hover); }
+.lk-root .lk-crumb.is-current { color: var(--pg-text); font-weight: 600; cursor: default; }
+.lk-root .lk-crumb-sep { color: var(--pg-text-muted); }
+
+/* Space tool guide line and find box */
+.lk-root .lk-space-guide { position: absolute; z-index: 15; pointer-events: none; }
+.lk-root .lk-search { position: absolute; top: 12px; right: 64px; z-index: 25; display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: var(--pg-surface); border: 1px solid var(--pg-border); border-radius: 8px; box-shadow: var(--sh-sm); }
+.lk-root .lk-search input { width: 180px; }
+.lk-root .lk-search-count { min-width: 32px; text-align: center; font-size: 12px; color: var(--pg-text-muted); }

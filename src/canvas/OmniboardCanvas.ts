@@ -1,3 +1,4 @@
+import { fixInnerMessageFlows } from "../io/bpmn/innerFlows";
 import { Graph, Node, Edge, Path, type Cell, type EdgeView } from "@antv/x6";
 import { Selection } from "@antv/x6-plugin-selection";
 import { Clipboard } from "@antv/x6-plugin-clipboard";
@@ -4850,7 +4851,7 @@ export class OmniboardCanvas {
     // exists"). Rename collisions BEFORE rendering so subsequent exports
     // emit unique ids. Children's `data.laneId` is recomputed by spatial
     // overlap during `getModel()`, so we only need to rename pool lanes.
-    model = this.dedupeLaneIdsAcrossPools(model);
+    model = fixInnerMessageFlows(this.dedupeLaneIdsAcrossPools(model));
     this.flushPendingRender();
     this.graph.clearCells();
     this.graph.startBatch("load");

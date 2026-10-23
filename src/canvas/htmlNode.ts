@@ -194,7 +194,10 @@ const MARKER_ICON: Record<BpmnMarker, string> = {
 };
 function renderMarkers(markers?: BpmnMarker[]): string {
   if (!markers || markers.length === 0) return "";
-  const items = markers.map((m) => MARKER_ICON[m] ? `<span class="bp-mk-ic">${MARKER_ICON[m]}</span>` : "").join("");
+  // The ⊞ marker on a task opens it as a sub-process (canvas: data-sub-toggle).
+  const items = markers.map((m) => !MARKER_ICON[m] ? ""
+    : m === "subprocess" ? `<span class="bp-mk-ic bp-mk-toggle" data-sub-toggle title="Mở sub-process">${MARKER_ICON[m]}</span>`
+    : `<span class="bp-mk-ic">${MARKER_ICON[m]}</span>`).join("");
   return items ? `<div class="bp-markers">${items}</div>` : "";
 }
 
@@ -343,10 +346,10 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
     case "bpmn-task-receive": return bpTask(L, "msg", extra);
     case "bpmn-task-rule": return bpTask(L, "rule", extra);
     // Sub-process & sibling Activity types (Đợt A — Transaction / Event-Sub / Call)
-    case "bpmn-subprocess": return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L || "Sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
-    case "bpmn-transaction": return `<div class="bp-frame bp-sub is-transaction"><span class="bp-frame-lbl">${L || "Transaction"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
-    case "bpmn-event-subprocess": return `<div class="bp-frame bp-sub is-event-sub"><span class="bp-frame-lbl">${L || "Event sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}</div>`;
-    case "bpmn-adhoc-subprocess": return `<div class="bp-frame bp-sub is-adhoc"><span class="bp-frame-lbl">${L || "Ad-hoc sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}<span class="bp-adhoc-mark">∼</span></div>`;
+    case "bpmn-subprocess": return bpSub("", L || "Sub-process", extra);
+    case "bpmn-transaction": return bpSub(" is-transaction", L || "Transaction", extra);
+    case "bpmn-event-subprocess": return bpSub(" is-event-sub", L || "Event sub-process", extra);
+    case "bpmn-adhoc-subprocess": return bpSub(" is-adhoc", L || "Ad-hoc sub-process", extra, `<span class="bp-adhoc-mark">∼</span>`);
     case "bpmn-call-activity": return `<div class="bp-task is-call">${nl(L) || "Call activity"}${renderMarkers(extra?.markers)}</div>`;
     // Data artifacts (Đợt A — Collection/Input/Output)
     case "bpmn-data-object": return bpData("", dataShape(kind, "9 5 13 22"), L, extra);
@@ -423,6 +426,15 @@ const dataShape = (shape: string, viewBox: string) =>
 function bpData(mod: string, shape: string, label: string, extra?: NodeExtra, cls = "bp-dataobj"): string {
   const lbl = label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : "";
   return `<div class="${cls}${mod}">${shape}${lbl}</div>`;
+}
+/** Sub-process: open = a frame around its steps (− closes it); closed = task-sized
+ *  with ⊞ (opens it). `data-sub-toggle` is what the canvas listens for. */
+function bpSub(mod: string, label: string, extra?: NodeExtra, tail = ""): string {
+  const closed = extra?.collapsed === true;
+  const toggle = `<span class="bp-plus" data-sub-toggle title="${closed ? "Mở sub-process" : "Thu gọn"}">${closed ? "+" : "−"}</span>`;
+  return closed
+    ? `<div class="bp-task bp-sub-closed${mod}">${nl(label)}${toggle}${renderMarkers(extra?.markers)}${tail}</div>`
+    : `<div class="bp-frame bp-sub${mod}"><span class="bp-frame-lbl">${label}</span>${toggle}${renderMarkers(extra?.markers)}${tail}</div>`;
 }
 function bpTask(label: string, iconKey?: string, extra?: NodeExtra): string {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";

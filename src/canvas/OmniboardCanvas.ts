@@ -1,4 +1,4 @@
-import { Graph, Node, Edge, Path } from "@antv/x6";
+import { Graph, Node, Edge, Path, type EdgeView } from "@antv/x6";
 import { Selection } from "@antv/x6-plugin-selection";
 import { Clipboard } from "@antv/x6-plugin-clipboard";
 import { History } from "@antv/x6-plugin-history";
@@ -16,6 +16,7 @@ import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
+import { SUBPROCESS_KINDS, SUB_CLOSED, openLayout } from "./subprocessLayout";
 import { ATTACH_DISTANCE, distanceToBorder, eventLabelSide, followHost, hostSide, pickHost, snapToHostBorder, type Box } from "./boundaryLayout";
 import {
   alignLeft, alignCenterH, alignRight,
@@ -1451,7 +1452,10 @@ export class OmniboardCanvas {
 
     this.graph.on("node:selected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
     this.graph.on("node:unselected", () => { this.refreshContextBar(); this.refreshProps(); this.refreshMindmapFabs(); this.refreshContextPad(); });
-    this.graph.on("node:moved", ({ node }) => { this.settleBoundaryEvent(node as Node); });
+    this.graph.on("node:moved", ({ node }) => { this.settleBoundaryEvent(node as Node); this.adoptIntoSubprocess(node as Node); });
+    this.graph.on("node:added", ({ node }) => {
+      if (!this.graph.model.hasActiveBatch("load" as never)) this.adoptIntoSubprocess(node as Node);
+    });
     this.graph.on("node:moved", () => {
       // Pinned-port endpoints follow the port (X6 native); body-drop endpoints
       // re-dock automatically via the edge's anchor=center + boundary crop. No
@@ -1515,12 +1519,18 @@ export class OmniboardCanvas {
     // dispatch to a specific child-label editor first, fall back to whole-node label.
     this.graph.on("node:dblclick", ({ node, e }) => {
       e.stopPropagation();
+      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle]")) return;
       if (this.tryEditChildLabel(e.target as HTMLElement | null, node as Node)) return;
       this.editLabel(node as Node);
     });
     // X6 fires node:click on every click (incl. the one that selects it).
     // Open child-label editor only when the node was already selected BEFORE this click.
     this.graph.on("node:click", ({ node, e }) => {
+      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle]")) {
+        e.stopPropagation();
+        this.toggleSubprocess(node as Node);
+        return;
+      }
       if (this.lastSelectedAt.get(node.id) === undefined) return;
       const sinceSel = Date.now() - (this.lastSelectedAt.get(node.id) ?? 0);
       if (sinceSel < 80) return; // too fresh — this click is the selection itself
@@ -3430,6 +3440,90 @@ export class OmniboardCanvas {
     this.onChange();
   }
 
+  // ── Sub-process open / close in place ────────────────────────────────────
+  /** ⊞ / − on a sub-process: open it as a frame around its steps, or close it
+   *  to task size with the steps hidden. A task with the ⊞ marker opens as an
+   *  empty sub-process; one closed with no steps goes back to that task. */
+  private toggleSubprocess(node: Node): void {
+    const opening = this.nodeKind(node) === "bpmn-task" || node.getData()?.collapsed === true;
+    this.graph.startBatch("subprocess-toggle");
+    try {
+      if (opening) this.openSubprocess(node); else { this.closeSubprocess(node); this.refreshSubprocessVisibility(); }
+    } finally { this.graph.stopBatch("subprocess-toggle"); }
+    this.onChange(); this.refreshContextBar(); this.refreshContextPad();
+  }
+  private openSubprocess(node: Node): void {
+    const d = node.getData() ?? {};
+    const markers = ((d.markers ?? []) as string[]).filter((m) => m !== "subprocess");
+    node.setData(this.nodeKind(node) === "bpmn-task"
+      ? { ...d, kind: "bpmn-subprocess", markers: markers.length ? markers : undefined, collapsed: undefined }
+      : { ...d, collapsed: undefined }, { deep: false });
+    // Show the steps before moving them: arrows re-route only to visible ends.
+    this.refreshSubprocessVisibility();
+    const kids = (node.getChildren() ?? []).filter((c): c is Node => c.isNode());
+    const lay = openLayout(node.getPosition(), kids.map((k) => ({ ...k.getPosition(), ...k.getSize() })));
+    kids.forEach((k) => k.translate(lay.dx, lay.dy));
+    node.resize(lay.width, lay.height);
+    node.setZIndex(frameZ(this.nodeKind(node), this.ancestorCount(node)));
+    this.rerender(node);
+  }
+  private closeSubprocess(node: Node): void {
+    const d = node.getData() ?? {};
+    const empty = !(node.getChildren() ?? []).some((c) => c.isNode());
+    const toTask = empty && this.nodeKind(node) === "bpmn-subprocess";
+    node.setData(toTask
+      ? { ...d, kind: "bpmn-task", markers: [...((d.markers ?? []) as string[]), "subprocess"], collapsed: true }
+      : { ...d, collapsed: true }, { deep: false });
+    node.resize(SUB_CLOSED.width, SUB_CLOSED.height);
+    if (toTask) node.toFront();
+    this.rerender(node);
+  }
+  private ancestorCount(node: Node): number {
+    let d = 0;
+    for (let p = node.getParent(); p && d < 32; p = p.getParent()) d++;
+    return d;
+  }
+  /** Steps inside a closed sub-process are hidden, with every arrow touching them. */
+  private refreshSubprocessVisibility(): void {
+    const inClosed = (n: Node): boolean => {
+      for (let p = n.getParent(); p; p = p.getParent()) if (p.getData()?.collapsed === true) return true;
+      return false;
+    };
+    for (const n of this.graph.getNodes()) {
+      const show = !inClosed(n);
+      if (n.isVisible() === show) continue;
+      n.setVisible(show);
+      if (!show) this.graph.unselect(n);
+    }
+    for (const e of this.graph.getEdges()) {
+      const ends = [e.getSourceCell(), e.getTargetCell()];
+      const show = ends.every((c) => !c || c.isVisible());
+      if (e.isVisible() === show) continue;
+      e.setVisible(show);
+      // X6 only toggles CSS: a path laid out while its ends were display:none is stale.
+      if (show) (this.graph.findViewByCell(e) as EdgeView | null)?.update();
+    }
+  }
+  /** A shape dropped inside an open sub-process becomes one of its steps;
+   *  dragged out of it, it stops being one. */
+  private adoptIntoSubprocess(node: Node): void {
+    const kind = this.nodeKind(node);
+    if (kind === "bpmn-pool" || kind === "bpmn-lane" || !node.isVisible()) return;
+    const c = node.getBBox().center;
+    const own = new Set([node.id, ...node.getDescendants().map((x) => x.id), node.getData()?.attachedTo]);
+    const host = this.graph.getNodes()
+      .filter((f) => !own.has(f.id) && SUBPROCESS_KINDS.has(this.nodeKind(f)) && f.getData()?.collapsed !== true
+        && f.isVisible() && f.getBBox().containsPoint(c))
+      .sort((a, b) => a.getBBox().width * a.getBBox().height - b.getBBox().width * b.getBBox().height)[0];
+    const cur = node.getParent();
+    const curIsSub = !!cur?.isNode() && SUBPROCESS_KINDS.has(this.nodeKind(cur as Node));
+    if (host ? cur === host : !curIsSub) return;
+    if (cur) cur.unembed(node);
+    if (host) host.embed(node);
+    node.setData({ ...node.getData(), parentId: host?.id }, { deep: false });
+    if (FRAME_KINDS.has(kind)) node.setZIndex(frameZ(kind, this.ancestorCount(node)));
+  }
+
   // ── BPMN Đợt D — Trigger / Marker / Interrupting pickers ────────────────
   /** Open the trigger picker for an event node (popup grid of 12 OMG triggers). */
   private openBpmnTriggerPopup(node: Node, anchor: HTMLElement): void {
@@ -4671,6 +4765,7 @@ export class OmniboardCanvas {
       cell.setZIndex(frameZ(n.shape, depthOf(n.id)));
     }
     this.raiseBoundaryEvents();
+    this.refreshSubprocessVisibility();
     this.graph.stopBatch("load");
     this.resyncHtmlNodes();   // rebuild the mobile overlay from the freshly loaded nodes
     // Auto-grow every mindmap node once the foreignObject DOM is mounted &

@@ -68,6 +68,66 @@ function shapeToBpmnType(shape: string, attrs?: { attachedTo?: string; markers?:
 
 const isCollapsed = (n: { attrs?: unknown }): boolean => (n.attrs as { collapsed?: boolean } | undefined)?.collapsed === true;
 
+type DiPlane = { planeElement?: ModdleElement[]; bpmnElement?: ModdleElement | string };
+const diRefId = (pe: { bpmnElement?: ModdleElement | string }): string | undefined =>
+  typeof pe.bpmnElement === "string" ? pe.bpmnElement : pe.bpmnElement?.id;
+/** A plane drawn for one sub-process (bpmn-js drill-down), not the main diagram. */
+const isSubPlane = (pl: DiPlane): boolean =>
+  typeof pl.bpmnElement === "object" && /SubProcess|Transaction/.test(pl.bpmnElement.$type);
+
+/** Nearest collapsed sub-process above `id`: its children are drawn on that sub-process's own plane. */
+function collapsedOwner(byId: Map<string, CanvasModel["nodes"][number]>, id: string): string | undefined {
+  const seen = new Set<string>();
+  for (let p = byId.get(id)?.parentId; p && !seen.has(p); p = byId.get(p)?.parentId) {
+    seen.add(p);
+    if (isCollapsed(byId.get(p) ?? {})) return p;
+  }
+  return undefined;
+}
+
+/** Put every DI shape / edge on its plane — children of a collapsed sub-process
+ *  on that sub-process's plane (BPMN drill-down), the rest on the main plane —
+ *  and drop sub-planes left empty (the sub-process was expanded or deleted). */
+function placeOnPlanes(
+  defs: ModdleElement, mainPlane: DiPlane, model: CanvasModel,
+  diShape: Map<string, ModdleElement>, diEdge: Map<string, ModdleElement>,
+  feById: Map<string, ModdleElement>, m: BpmnModdle,
+): void {
+  const byId = new Map(model.nodes.map((n) => [n.id, n] as const));
+  const subPlanes = new Map<string, DiPlane>();
+  for (const d of defs.diagrams ?? []) {
+    const ref = diRefId(d.plane);
+    if (d.plane !== mainPlane && ref && isSubPlane(d.plane)) subPlanes.set(ref, d.plane);
+  }
+  const planeFor = (owner: string | undefined): DiPlane => {
+    if (!owner) return mainPlane;
+    let pl = subPlanes.get(owner);
+    if (!pl) {
+      pl = m.create("bpmndi:BPMNPlane", { id: `${owner}_plane`, bpmnElement: feById.get(owner), planeElement: [] }) as DiPlane;
+      (defs.diagrams ??= []).push(m.create("bpmndi:BPMNDiagram", { id: `${owner}_diagram`, plane: pl }) as never);
+      subPlanes.set(owner, pl);
+    }
+    return pl;
+  };
+  const put = (di: ModdleElement, plane: DiPlane): void => {
+    for (const pl of [mainPlane, ...subPlanes.values()]) {
+      if (pl !== plane && pl.planeElement?.includes(di)) pl.planeElement = pl.planeElement.filter((x) => x !== di);
+    }
+    if (!(plane.planeElement ??= []).includes(di)) plane.planeElement.push(di);
+  };
+  for (const n of model.nodes) {
+    const di = diShape.get(n.id);
+    if (di) put(di, planeFor(collapsedOwner(byId, n.id)));
+  }
+  for (const e of model.edges) {
+    const de = diEdge.get(e.id);
+    if (!de) continue;
+    const owner = collapsedOwner(byId, e.source);
+    put(de, planeFor(owner === collapsedOwner(byId, e.target) ? owner : undefined));
+  }
+  defs.diagrams = (defs.diagrams ?? []).filter((d) => !isSubPlane(d.plane) || (d.plane.planeElement?.length ?? 0) > 0);
+}
+
 /** BPMN node attrs Đợt F — read by `applyBpmnExtras` to inject moddle children. */
 interface BpmnNodeAttrs {
   trigger?: string;
@@ -437,15 +497,17 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     mainPlane = diagrams[Math.max(0, Math.min(diagramIndex, diagrams.length - 1))].plane;
   }
   if (!mainPlane && diagrams[0]) mainPlane = diagrams[0].plane;
-  if (mainPlane) {
-    for (const pe of mainPlane.planeElement ?? []) {
-      const refId = typeof pe.bpmnElement === "string" ? pe.bpmnElement : pe.bpmnElement?.id;
+  if (!mainPlane) throw new Error("BPMN export: source document has no BPMNPlane.");
+  // Sub-process planes first so the main plane wins if an element is on both.
+  const indexedPlanes = [...diagrams.map((d) => d.plane).filter((pl) => pl !== mainPlane && isSubPlane(pl)), mainPlane];
+  for (const pl of indexedPlanes) {
+    for (const pe of pl.planeElement ?? []) {
+      const refId = diRefId(pe);
       if (!refId) continue;
       if (pe.$type === "bpmndi:BPMNShape") diShape.set(refId, pe);
       else if (pe.$type === "bpmndi:BPMNEdge") diEdge.set(refId, pe);
     }
   }
-  if (!mainPlane) throw new Error("BPMN export: source document has no BPMNPlane.");
 
   // Find the first root process (most BPMN docs have exactly one).
   const process = (definitions.rootElements ?? []).find((r) => r.$type === "bpmn:Process") ?? null;
@@ -657,8 +719,8 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
   // shapes verbatim; without the pool/lane shape the importer in bpmn.io
   // has nothing to anchor the rendered diagram to and every node floats.
   const flowNodeIdSet = new Set<string>([...flowById.keys(), ...modelNodeIds]);
-  mainPlane.planeElement = (mainPlane.planeElement ?? []).filter((pe: ModdleElement) => {
-    const refId = typeof pe.bpmnElement === "string" ? pe.bpmnElement : pe.bpmnElement?.id;
+  const keepDi = (pe: ModdleElement): boolean => {
+    const refId = diRefId(pe);
     if (!refId) return true;
     if (pe.$type === "bpmndi:BPMNEdge") return modelEdgeIds.has(refId);
     if (pe.$type === "bpmndi:BPMNShape") {
@@ -667,7 +729,8 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       return modelNodeIds.has(refId) || referenced.has(refId);
     }
     return true;
-  });
+  };
+  for (const pl of indexedPlanes) pl.planeElement = (pl.planeElement ?? []).filter(keepDi);
 
   // (1b) Pool/lane DI — emit AFTER flow shapes are patched so the pool bbox is
   //      computed from final bounds. Verified against bpmn-js@17: this renders
@@ -753,6 +816,23 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     const edgeFe = flowById.get(e.id);
     if (srcFe && edgeFe) srcFe.default = edgeFe;
   }
+  // A sequence flow lives in the sub-process both its ends are in, else in
+  // the process holding its old container.
+  const parentOf = new Map(model.nodes.map((n) => [n.id, n.parentId] as const));
+  for (const e of validModelEdges) {
+    const sf = flowById.get(e.id);
+    if (!sf || sf.$type !== "bpmn:SequenceFlow") continue;
+    const p = parentOf.get(e.source);
+    const home = p && p === parentOf.get(e.target) ? flowById.get(p) : undefined;
+    const cur = containerOf.get(e.id) ?? process;
+    let up = cur;
+    while (up.$type !== "bpmn:Process" && containerOf.get(up.id!)) up = containerOf.get(up.id!)!;
+    const target = home ?? up;
+    if (target === cur) continue;
+    cur.flowElements = (cur.flowElements ?? []).filter((fe) => fe !== sf);
+    (target.flowElements ??= []).push(sf);
+  }
+  placeOnPlanes(definitions, mainPlane, model, diShape, diEdge, flowById, m);
 
   const { xml } = await m.toXML(definitions as never, { format: true });
   return patchCamundaXml(xml, model);
@@ -1281,7 +1361,9 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     } else if (kind === "message" && collaborationRoot) {
       (collaborationRoot.messageFlows ??= []).push(sf);
     } else {
-      (srcProc.flowElements ??= []).push(sf);
+      const p = srcNode?.parentId;
+      const home = p && p === tgtNode?.parentId ? feById.get(p) : undefined;
+      ((home ?? srcProc).flowElements ??= []).push(sf);
     }
     sfById.set(e.id, sf);
   }
@@ -1299,6 +1381,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     planeElement: [],
   }) as { planeElement?: ModdleElement[]; bpmnElement?: ModdleElement | string };
   const diShape = new Map<string, ModdleElement>();
+  const diEdge = new Map<string, ModdleElement>();
   for (const n of model.nodes) {
     const srcKind = (n.attrs?.__source as { kind?: string } | undefined)?.kind;
     if (n.shape === "bpmn-pool" || n.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
@@ -1320,16 +1403,19 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     if (!src || !tgt || !sf) continue;
     const waypoints = buildWaypoints(e, src, tgt, m);
     const eLabel = edgeLabelBoundsFromModel(m, e, waypoints);
-    plane.planeElement!.push(m.create("bpmndi:BPMNEdge", {
+    const de = m.create("bpmndi:BPMNEdge", {
       id: e.id + "_di",
       bpmnElement: sf,
       waypoint: waypoints,
       ...(eLabel ? { label: m.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}),
-    }));
+    }) as ModdleElement;
+    plane.planeElement!.push(de);
+    diEdge.set(e.id, de);
   }
   emitPoolLaneShapes(model, defs, process, plane, diShape, m, multiPool ? processByPoolId : undefined, laneIdByPool);
   const dia = m.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane }) as ModdleElement;
   (defs.diagrams ??= []).push(dia as never);
+  placeOnPlanes(defs, plane, model, diShape, diEdge, feById, m);
 
   const { xml } = await m.toXML(defs as never, { format: true });
   return patchCamundaXml(xml, model);

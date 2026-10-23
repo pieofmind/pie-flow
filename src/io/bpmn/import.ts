@@ -338,6 +338,9 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     }
   }
   const diagrams = (definitions as ModdleElement).diagrams ?? [];
+  // A plane drawn for one collapsed sub-process (bpmn-js drill-down) holds that
+  // sub-process's children; it is read together with the main plane, never chosen.
+  const isSubPlane = (dia: ModdleDiagram): boolean => /SubProcess|Transaction/.test(dia.plane?.bpmnElement?.$type ?? "");
   let chosenDiagramIndex = 0;
   const requested = options?.diagramIndex;
   if (typeof requested === "number" && requested >= 0 && requested < diagrams.length) {
@@ -345,6 +348,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
   } else {
     let bestScore = -1;
     diagrams.forEach((dia, idx) => {
+      if (isSubPlane(dia)) return;
       let score = 0;
       for (const pe of dia.plane.planeElement ?? []) {
         const id = pe.bpmnElement?.id;
@@ -353,7 +357,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       if (score > bestScore) { bestScore = score; chosenDiagramIndex = idx; }
     });
   }
-  if (diagrams.length > 1) {
+  if (diagrams.filter((d) => !isSubPlane(d)).length > 1) {
     warnings.push(`BPMN có ${diagrams.length} diagrams; đang import plane #${chosenDiagramIndex + 1} (nhiều phần tử nhất).`);
   }
   const chosenPlane = diagrams[chosenDiagramIndex]?.plane;
@@ -361,7 +365,8 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
   // Map BPMN element id → DI shape / edge so we can pull bounds + waypoints.
   const diShapes = new Map<string, ModdleDiElement>();
   const diEdges = new Map<string, ModdleDiElement>();
-  for (const pe of chosenPlane?.planeElement ?? []) {
+  const readPlanes = [...diagrams.filter(isSubPlane).map((d) => d.plane), ...(chosenPlane ? [chosenPlane] : [])];
+  for (const pe of readPlanes.flatMap((pl) => pl.planeElement ?? [])) {
       const refId = pe.bpmnElement?.id;
       if (!refId) continue;
       if (pe.$type === "bpmndi:BPMNShape") diShapes.set(refId, pe);

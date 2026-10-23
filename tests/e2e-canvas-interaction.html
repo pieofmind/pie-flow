@@ -11,7 +11,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
 </head><body>
 <div id="host" class="da-board-view"></div>
 <div id="log"></div>
-<script src="../harness/harness.js?v=interaction1"></script>
+<script src="../harness/harness.js?v=interaction4"></script>
 <script>
 // Multi-select drag moves each node once per tick; ports are easy to grab.
 // Serve the repo root (python3 -m http.server) and open tests/e2e-canvas-interaction.html.
@@ -264,6 +264,105 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     const bb = document.getElementById(id).querySelector('path').getBBox();
     // marker drawn rotate(180): tip = -bb.x must not pass the line end (x ≤ 0 + stroke)
     assert(Math.abs(bb.x) <= 0.5, 'arrowhead offset from line end: ' + bb.x);
+  });
+
+  // ── Sub-process open / close in place (⊞ / −) ──
+  const clickToggle = (id) => {
+    const el = document.querySelector(`[data-cell-id="${id}"] [data-sub-toggle]`);
+    if (!el) throw new Error('no toggle on ' + id);
+    const r = el.getBoundingClientRect();
+    const o = { bubbles: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, button: 0 };
+    el.dispatchEvent(new MouseEvent('mousedown', o));
+    el.dispatchEvent(new MouseEvent('mouseup', o));
+    el.dispatchEvent(new MouseEvent('click', o));
+  };
+  const mnode = (id) => window.__ob.getModel().nodes.find((n) => n.id === id);
+
+  await run('⊞ on a task opens it as an empty sub-process; − on it closes it back to the task', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'st', shape: 'bpmn-task', x: 100, y: 100, width: 120, height: 80, label: 'Chăm sóc', attrs: { markers: ['subprocess'], collapsed: true } },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    clickToggle('st');
+    await tick(200);
+    let n = mnode('st');
+    assert(n.shape === 'bpmn-subprocess' && !n.attrs?.collapsed && !(n.attrs?.markers ?? []).includes('subprocess'), 'opened: ' + JSON.stringify(n));
+    assert(n.width >= 280 && n.height >= 180 && n.x === 100 && n.y === 100, 'open size: ' + [n.x, n.y, n.width, n.height]);
+    clickToggle('st');
+    await tick(200);
+    n = mnode('st');
+    assert(n.shape === 'bpmn-task' && n.attrs?.collapsed === true && n.attrs?.markers?.includes('subprocess'), 'closed: ' + JSON.stringify(n));
+    assert(n.width === 120 && n.height === 80, 'closed size: ' + [n.width, n.height]);
+  });
+
+  await run('a shape dropped inside an open sub-process becomes its step; closing hides it, opening shows it', async () => {
+    clickToggle('st');
+    await tick(200);
+    window.__ob.addHtmlNode('bpmn-task', 150, 160, 100, 60, 'Gọi', undefined, 'kid');
+    await tick(100);
+    assert(mnode('kid').parentId === 'st', 'kid parent: ' + mnode('kid').parentId);
+    clickToggle('st');
+    await tick(200);
+    const sub = mnode('st');
+    assert(sub.shape === 'bpmn-subprocess' && sub.attrs?.collapsed === true && sub.width === 120, 'closed with a step stays a sub-process: ' + JSON.stringify(sub));
+    assert(!cell('kid').isVisible(), 'step still visible');
+    assert(mnode('kid').parentId === 'st', 'step lost its parent');
+    clickToggle('st');
+    await tick(200);
+    assert(cell('kid').isVisible(), 'step not shown again');
+    const k = mnode('kid'), f = mnode('st');
+    assert(k.x > f.x && k.y > f.y && k.x + k.width < f.x + f.width && k.y + k.height < f.y + f.height, 'step not inside the frame');
+  });
+
+  await run('dragging a step out of the sub-process releases it', async () => {
+    cell('kid').position(700, 380);
+    g().trigger('node:moved', { node: cell('kid') });
+    await tick(100);
+    assert(!mnode('kid').parentId, 'still parented: ' + mnode('kid').parentId);
+  });
+
+  await run('a closed sub-process loaded with steps hides them and their arrows; ⊞ brings them inside the frame', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'cs', shape: 'bpmn-subprocess', x: 300, y: 300, width: 120, height: 80, label: 'Khung', attrs: { collapsed: true } },
+      { id: 'ca', shape: 'bpmn-task', x: 10, y: 10, width: 100, height: 80, label: 'A', parentId: 'cs' },
+      { id: 'cb', shape: 'bpmn-task', x: 200, y: 10, width: 100, height: 80, label: 'B', parentId: 'cs' },
+    ], edges: [{ id: 'cab', source: 'ca', target: 'cb' }] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    assert(!cell('ca').isVisible() && !cell('cab').isVisible(), 'steps or arrow visible while closed');
+    assert(document.querySelector('[data-cell-id="cs"] .bp-sub-closed'), 'closed sub-process not drawn as a task');
+    clickToggle('cs');
+    await tick(200);
+    assert(cell('ca').isVisible() && cell('cab').isVisible(), 'not shown after opening');
+    const a = mnode('ca'), b = mnode('cb'), f = mnode('cs');
+    assert(a.x === 330 && a.y === 340 && b.x - a.x === 190, 'steps placed: ' + [a.x, a.y, b.x]);
+    assert(f.x === 300 && f.y === 300 && f.x + f.width >= b.x + b.width, 'frame: ' + [f.x, f.y, f.width]);
+    // the arrow was laid out while hidden: it must start at A's right side, not its centre
+    await tick(200);
+    const d0 = document.querySelector('[data-cell-id="cab"] path').getAttribute('d');
+    const x0 = +d0.match(/^M\s*([\d.]+)/)[1];
+    assert(Math.abs(x0 - (a.x + a.width)) <= 1, 'arrow starts at ' + x0 + ', A right side ' + (a.x + a.width));
+    g().undo();
+    await tick(200);
+    assert(mnode('cs').attrs?.collapsed === true && !cell('ca').isVisible(), 'undo did not close it again');
+  });
+
+  await run('reopening a sub-process whose steps are already in place redraws their arrows', async () => {
+    // closed by hand, board reloaded: steps sit inside the frame, so opening moves nothing
+    window.__ob.loadModel({ nodes: [
+      { id: 'rs', shape: 'bpmn-subprocess', x: 300, y: 300, width: 120, height: 80, label: 'Khung', attrs: { collapsed: true } },
+      { id: 'ra', shape: 'bpmn-task', x: 330, y: 340, width: 100, height: 80, label: 'A', parentId: 'rs' },
+      { id: 'rb', shape: 'bpmn-task', x: 520, y: 340, width: 100, height: 80, label: 'B', parentId: 'rs' },
+    ], edges: [{ id: 'rab', source: 'ra', sourcePort: 'right', target: 'rb', targetPort: 'left' }] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    clickToggle('rs');
+    await tick(300);
+    assert(mnode('ra').x === 330, 'step moved: ' + mnode('ra').x);
+    const d0 = document.querySelector('[data-cell-id="rab"] path').getAttribute('d');
+    const x0 = +d0.match(/^M\s*([\d.]+)/)[1];
+    assert(Math.abs(x0 - 430) <= 1, 'arrow starts at ' + x0 + ', expected 430');
   });
 
   const failed = results.filter(r => !r.ok).length;

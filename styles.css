@@ -922,6 +922,9 @@
   border: 2px dashed #C99A2E; border-radius: 50%; pointer-events: none; }
 /* Đợt A — Activity markers row (icons stacked at the bottom of a task/sub-process) */
 .lk-root .bp-markers { position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; pointer-events: none; }
+.lk-root [data-sub-toggle] { pointer-events: auto; cursor: pointer; }
+.lk-root .bp-sub-closed.is-event-sub { border-style: dashed; }
+.lk-root .bp-sub-closed.is-transaction { outline: 1.4px solid var(--pg-border-strong); outline-offset: -5px; }
 .lk-root .bp-markers .bp-mk-ic svg { width: 12px; height: 12px; color: var(--pg-text-muted); display: block; }
 .lk-root .bp-dataobj { position: relative; }
 /* Đợt B — Group (dashed-rounded container, no fill) */

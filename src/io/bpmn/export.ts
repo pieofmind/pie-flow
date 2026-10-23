@@ -695,7 +695,10 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
         console.warn(`[omniboard:bpmn] dropped ${kind} flow "${e.id}": endpoint has no BPMN element (${e.source} → ${e.target})`);
         continue;
       }
-      sf = m.create(bpmnTypeForEdgeKind(kind), {
+      // No collaboration → a MessageFlow has no valid host: write it as a
+      // SequenceFlow on the process so the edge isn't silently dropped.
+      const orphanMessage = kind === "message" && !collaboration;
+      sf = m.create(orphanMessage ? "bpmn:SequenceFlow" : bpmnTypeForEdgeKind(kind), {
         id: e.id,
         // bpmn:Association is an artifact with no `name` in the BPMN schema.
         ...(kind === "association" ? {} : { name: e.label ?? "" }),
@@ -704,11 +707,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       }) as ModdleElement;
       if (kind === "message") {
         if (!collaboration) {
-          // No collaboration → MessageFlow has no valid host. Fall back to
-          // SequenceFlow on the process so the edge isn't silently dropped.
-          // (Round-trip will downgrade kind on next import; user will see
-          // a warning when validator lands in Phase E.)
-          sf.$type = "bpmn:SequenceFlow";
+          // (Round-trip will downgrade kind on next import.)
           (process.flowElements ??= []).push(sf);
         } else {
           (collaboration.messageFlows ??= []).push(sf);

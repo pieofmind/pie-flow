@@ -455,19 +455,19 @@ function bpPool(label: string, extra?: NodeExtra): string {
   // (same rule as laneHeights()). Divider handle between lanes = drag to resize.
   // A vertical pool lines its lanes up as columns, sized by `width`.
   const horizontal = extra?.poolHorizontal !== false;
-  // Lanes (and a lane's child lanes inside it): own size → flex weight.
-  // Dividers between siblings: data-lane-idx="i" (top level) or
-  // data-lane-path="i/j" (children of lane i).
-  const laneList = (list: PoolLaneExtra[], parent?: number): string => {
+  // Lanes (and a lane's child lanes inside it, at any depth): own size → flex
+  // weight. Dividers between siblings: data-lane-idx="i" (top level) or
+  // data-lane-path="i/j/k" (the k-th divider among the children of lane i/j).
+  const laneList = (list: PoolLaneExtra[], path: number[] = []): string => {
     const weights = laneWeights(asStackLanes(list, horizontal));
     return list.map((ln, i) => {
       const flex = weights ? ` style="flex: ${weights[i]} 1 0px"` : "";
-      const at = parent === undefined ? `data-lane-idx="${i}"` : `data-lane-path="${parent}/${i}"`;
+      const at = path.length ? `data-lane-path="${[...path, i].join("/")}"` : `data-lane-idx="${i}"`;
       const divider = i < list.length - 1 ? `<div class="bp-pool-lane-divider" ${at}></div>` : "";
-      const body = parent === undefined && ln.lanes?.length
-        ? `<div class="bp-pool-sublanes">${laneList(ln.lanes, i)}</div>`
+      const body = ln.lanes?.length
+        ? `<div class="bp-pool-sublanes">${laneList(ln.lanes, [...path, i])}</div>`
         : `<div class="bp-pool-lane-body"></div>`;
-      const cls = parent === undefined ? "bp-pool-lane" : "bp-pool-lane is-child";
+      const cls = path.length ? "bp-pool-lane is-child" : "bp-pool-lane";
       return `<div class="${cls}" data-lane-id="${esc(ln.id)}"${flex}><div class="bp-pool-lane-head">${esc(ln.label)}</div>${body}${divider}</div>`;
     }).join("");
   };

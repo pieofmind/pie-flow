@@ -11,7 +11,7 @@ import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type 
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
-import { addChildLane, allLaneIds, asStackLanes, fromStackLanes, laneHeights, leafLaneAt, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, splitLane } from "./laneLayout";
+import { addChildLane, allLaneIds, asStackLanes, fromStackLanes, laneBandOf, laneHeights, leafLaneAt, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, setSiblings, splitLane } from "./laneLayout";
 import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
@@ -361,6 +361,16 @@ type ConnectedEndpointEvent = {
   currentCell?: { id?: string } | null;
   currentPort?: string | null;
 };
+
+/** The lane `id` at any nesting depth. */
+function findLaneDeep<T extends { id: string; lanes?: T[] }>(lanes: readonly T[], id: string): T | undefined {
+  for (const ln of lanes) {
+    if (ln.id === id) return ln;
+    const hit = ln.lanes ? findLaneDeep(ln.lanes, id) : undefined;
+    if (hit) return hit;
+  }
+  return undefined;
+}
 
 export class OmniboardCanvas {
   private graph: Graph;
@@ -1064,26 +1074,31 @@ export class OmniboardCanvas {
       // Rows in a horizontal pool (drag along y), columns in a vertical one (x).
       const horizontal = this.nodeExtra(node).poolHorizontal !== false;
       const poolExtent = horizontal ? node.getSize().height : node.getSize().width;
-      // Top-level divider (data-lane-idx="i") or between the child lanes of
-      // lane p (data-lane-path="p/j"): resize two siblings within their band.
+      // Top-level divider (data-lane-idx="i") or, at any depth, a divider
+      // between sibling lanes (data-lane-path="a/b/.../j"): resize the two
+      // siblings within the band they share.
       const path = handle.getAttribute("data-lane-path");
-      const parent = path ? Number(path.split("/")[0]) : -1;
-      const idx = path ? Number(path.split("/")[1]) : Number(handle.getAttribute("data-lane-idx"));
-      const siblings = parent >= 0 ? lanes[parent]?.lanes ?? [] : lanes;
-      if (!Number.isInteger(idx) || idx >= siblings.length - 1) return;
-      const extent = parent >= 0 ? laneHeights(asStackLanes(lanes, horizontal), poolExtent)[parent] : poolExtent;
-      const write = (sized: ReturnType<typeof resizeLaneBoundary>) => (parent >= 0
-        ? lanes.map((ln, i) => (i === parent ? { ...ln, lanes: fromStackLanes(siblings, sized, horizontal) } : ln))
-        : fromStackLanes(lanes, sized, horizontal));
+      const steps = path ? path.split("/").map(Number) : [Number(handle.getAttribute("data-lane-idx"))];
+      const idx = steps[steps.length - 1];
+      if (steps.some((n) => !Number.isInteger(n))) return;
+      let level: typeof lanes = lanes;
+      let parentId: string | null = null;
+      for (const i of steps.slice(0, -1)) { parentId = level[i]?.id ?? null; level = level[i]?.lanes ?? []; }
+      const siblings = level;
+      if (idx >= siblings.length - 1) return;
+      const band = laneBandOf(asStackLanes(lanes, horizontal), siblings[0].id, poolExtent);
+      if (!band) return;
+      const write = (sized: ReturnType<typeof resizeLaneBoundary>) =>
+        setSiblings(lanes, parentId, (kids) => fromStackLanes(kids, sized, horizontal));
       e.preventDefault(); e.stopPropagation();
       handle.classList.add("is-dragging");
-      const container = handle.closest(parent >= 0 ? ".bp-pool-sublanes" : ".bp-pool-body");
+      const container = handle.closest(parentId ? ".bp-pool-sublanes" : ".bp-pool-body");
       const laneEls = Array.from(container?.querySelectorAll<HTMLElement>(":scope > .bp-pool-lane") ?? []);
       const at = (ev: PointerEvent) => (horizontal ? ev.clientY : ev.clientX);
       const start = at(e);
       const scale = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
       const resized = (ev: PointerEvent) =>
-        resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at(ev) - start) / scale, MIN_LANE / (parent >= 0 ? 2 : 1));
+        resizeLaneBoundary(asStackLanes(siblings, horizontal), band.extent, idx, (at(ev) - start) / scale, MIN_LANE / (parentId ? 2 : 1));
       const mv = (ev: PointerEvent) => {
         resized(ev).forEach((ln, i) => { if (laneEls[i]) laneEls[i].style.flex = `${ln.height} 1 0px`; });
       };
@@ -3299,7 +3314,8 @@ export class OmniboardCanvas {
    *  remove a child lane. One undo step each. */
   private showLaneMenu(pool: Node, laneId: string, clientX: number, clientY: number): void {
     const lanes = this.nodeExtra(pool).lanes ?? [];
-    const top = lanes.find((l) => l.id === laneId);
+    const lane = findLaneDeep(lanes, laneId);
+    const topLevel = lanes.some((l) => l.id === laneId);
     const apply = (next: typeof lanes) => {
       this.graph.startBatch("lane-edit");
       try {
@@ -3308,14 +3324,15 @@ export class OmniboardCanvas {
       } finally { this.graph.stopBatch("lane-edit"); }
       this.onChange();
     };
-    const items: Array<[string, () => void]> = top
-      ? top.lanes?.length
-        ? [["Gộp các lane con", () => apply(mergeChildLanes(lanes, laneId))]]
-        : [["Chia thành 2 lane con", () => apply(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))]]
-      : [
-        ["Thêm lane con bên dưới", () => apply(addChildLane(lanes, laneId, this.newLaneId()))],
-        ["Xoá lane con này", () => apply(removeChildLane(lanes, laneId))],
-      ];
+    const items: Array<[string, () => void]> = [
+      lane?.lanes?.length
+        ? ["Gộp các lane con", () => apply(mergeChildLanes(lanes, laneId))]
+        : ["Chia thành 2 lane con", () => apply(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))],
+      ...(topLevel ? [] : [
+        ["Thêm lane con bên dưới", () => apply(addChildLane(lanes, laneId, this.newLaneId()))] as [string, () => void],
+        ["Xoá lane con này", () => apply(removeChildLane(lanes, laneId))] as [string, () => void],
+      ]),
+    ];
     const menu = el("div", "lk-context-menu");
     for (const [label, fn] of items) {
       const item = el("div", "lk-menu-item");
@@ -4043,8 +4060,7 @@ export class OmniboardCanvas {
   private editLaneLabel(node: Node, laneId: string, anchor: HTMLElement): void {
     const ex = this.nodeExtra(node);
     const lanes = ex.lanes ?? [];
-    // The lane may be a child lane (one level of nesting).
-    const current = lanes.flatMap((l) => [l, ...(l.lanes ?? [])]).find((l) => l.id === laneId);
+    const current = findLaneDeep(lanes, laneId);
     if (!current) return;
     const relabel = (list: typeof lanes, v: string): typeof lanes => list.map((l) => (l.id === laneId
       ? { ...l, label: v }

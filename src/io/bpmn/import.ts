@@ -341,9 +341,13 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
   }
   for (const root of (definitions as ModdleElement).rootElements ?? []) {
     if (root.$type !== "bpmn:Process") continue;
-    for (const ls of root.laneSets ?? []) {
-      for (const ln of ls.lanes ?? []) if (ln.id) candidateIds.add(ln.id);
-    }
+    const addLanes = (lanes: ModdleElement[] | undefined): void => {
+      for (const ln of lanes ?? []) {
+        if (ln.id) candidateIds.add(ln.id);
+        addLanes((ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes);
+      }
+    };
+    for (const ls of root.laneSets ?? []) addLanes(ls.lanes);
   }
   const diagrams = (definitions as ModdleElement).diagrams ?? [];
   // A plane drawn for one collapsed sub-process (bpmn-js drill-down) holds that
@@ -622,20 +626,20 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       // draws the same bands: height of a row in a horizontal pool, width of
       // a column in a vertical one.
       const poolIsHorizontal = part.id ? ((diShapes.get(part.id) as { isHorizontal?: boolean } | undefined)?.isHorizontal !== false) : true;
-      // One level of nested lanes: a lane's childLaneSet becomes its `lanes`.
+      // Nested lanes at any depth: a lane's childLaneSet becomes its `lanes`.
       type LaneAttr = { id: string; label: string; height?: number; width?: number; lanes?: LaneAttr[] };
-      const toLaneAttr = (ln: ModdleElement, depth: number): LaneAttr => {
+      const toLaneAttr = (ln: ModdleElement): LaneAttr => {
         const b = ln.id ? diShapes.get(ln.id)?.bounds : undefined;
         const size = poolIsHorizontal ? b?.height : b?.width;
         const key = poolIsHorizontal ? "height" : "width";
-        const children = depth === 0 ? (ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes ?? [] : [];
+        const children = (ln as { childLaneSet?: { lanes?: ModdleElement[] } }).childLaneSet?.lanes ?? [];
         return {
           id: ln.id ?? "", label: ln.name ?? "",
           ...(size && size > 0 ? { [key]: size } : {}),
-          ...(children.length ? { lanes: children.map((c) => toLaneAttr(c, 1)) } : {}),
+          ...(children.length ? { lanes: children.map(toLaneAttr) } : {}),
         };
       };
-      const laneAttrs = lanes.map((ln) => toLaneAttr(ln, 0));
+      const laneAttrs = lanes.map(toLaneAttr);
 
       // Determine bounds: prefer the participant's own DI shape.
       let px: number, py: number, pw: number, ph: number;

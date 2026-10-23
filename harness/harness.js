@@ -69793,42 +69793,66 @@
     const lane = lanes[i3];
     if (!lane.lanes?.length) return lane.id;
     const start = hs.slice(0, i3).reduce((a3, b2) => a3 + b2, 0);
-    return lane.lanes[laneIndexAt(lane.lanes, hs[i3], rel - start)].id;
+    return leafLaneAt(lane.lanes, hs[i3], rel - start);
   }
   function allLaneIds(lanes) {
-    return lanes.flatMap((ln3) => [ln3.id, ...(ln3.lanes ?? []).map((c4) => c4.id)]);
+    return lanes.flatMap((ln3) => [ln3.id, ...allLaneIds(ln3.lanes ?? [])]);
   }
-  var mapLanes = (lanes, id, fn2) => lanes.map((ln3) => ln3.id === id ? fn2(ln3) : ln3);
+  function laneBandOf(lanes, id, extent) {
+    const index3 = lanes.findIndex((ln3) => ln3.id === id);
+    if (index3 >= 0) return { siblings: [...lanes], index: index3, extent };
+    const hs = laneHeights(lanes, extent);
+    for (let i3 = 0; i3 < lanes.length; i3++) {
+      const kids = lanes[i3].lanes;
+      const hit = kids?.length ? laneBandOf(kids, id, hs[i3]) : void 0;
+      if (hit) return { ...hit, parent: hit.parent ?? lanes[i3] };
+    }
+    return void 0;
+  }
+  var mapLane = (lanes, id, fn2) => lanes.map((ln3) => {
+    if (ln3.id === id) return fn2(ln3);
+    return ln3.lanes?.length ? { ...ln3, lanes: mapLane(ln3.lanes, id, fn2) } : ln3;
+  });
+  function setSiblings(lanes, parentId, fn2) {
+    if (parentId === null) return fn2([...lanes]);
+    return mapLane(lanes, parentId, (ln3) => ({ ...ln3, lanes: fn2(ln3.lanes ?? []) }));
+  }
   function splitLane(lanes, laneId, ids) {
-    return mapLanes(lanes, laneId, (ln3) => ({
+    return mapLane(lanes, laneId, (ln3) => ({
       ...ln3,
       lanes: [{ id: ids[0], label: `${ln3.label ?? "Lane"} 1` }, { id: ids[1], label: `${ln3.label ?? "Lane"} 2` }]
     }));
   }
   function mergeChildLanes(lanes, laneId) {
-    return mapLanes(lanes, laneId, (ln3) => {
+    return mapLane(lanes, laneId, (ln3) => {
       const { lanes: _children, ...rest } = ln3;
       return rest;
     });
   }
   function addChildLane(lanes, afterId, newId) {
     return lanes.map((ln3) => {
-      const i3 = ln3.lanes?.findIndex((c4) => c4.id === afterId) ?? -1;
-      if (i3 < 0) return ln3;
-      const children2 = [...ln3.lanes ?? []];
-      children2.splice(i3 + 1, 0, { id: newId, label: `Lane ${children2.length + 1}` });
-      return { ...ln3, lanes: children2 };
+      const kids = ln3.lanes ?? [];
+      const i3 = kids.findIndex((c4) => c4.id === afterId);
+      if (i3 >= 0) {
+        const children2 = [...kids];
+        children2.splice(i3 + 1, 0, { id: newId, label: `Lane ${children2.length + 1}` });
+        return { ...ln3, lanes: children2 };
+      }
+      return kids.length ? { ...ln3, lanes: addChildLane(kids, afterId, newId) } : ln3;
     });
   }
   function removeChildLane(lanes, childId) {
     return lanes.map((ln3) => {
-      if (!ln3.lanes?.some((c4) => c4.id === childId)) return ln3;
-      const children2 = ln3.lanes.filter((c4) => c4.id !== childId);
-      if (children2.length < 2) {
-        const { lanes: _children, ...rest } = ln3;
-        return rest;
+      const kids = ln3.lanes ?? [];
+      if (kids.some((c4) => c4.id === childId)) {
+        const children2 = kids.filter((c4) => c4.id !== childId);
+        if (children2.length < 2) {
+          const { lanes: _children, ...rest } = ln3;
+          return rest;
+        }
+        return { ...ln3, lanes: children2 };
       }
-      return { ...ln3, lanes: children2 };
+      return kids.length ? { ...ln3, lanes: removeChildLane(kids, childId) } : ln3;
     });
   }
 
@@ -70225,14 +70249,14 @@
     const lanes = extra?.lanes?.length ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
     const orient = extra?.poolHorizontal === false ? " is-vertical" : "";
     const horizontal = extra?.poolHorizontal !== false;
-    const laneList = (list, parent) => {
+    const laneList = (list, path2 = []) => {
       const weights = laneWeights(asStackLanes(list, horizontal));
       return list.map((ln3, i3) => {
         const flex = weights ? ` style="flex: ${weights[i3]} 1 0px"` : "";
-        const at3 = parent === void 0 ? `data-lane-idx="${i3}"` : `data-lane-path="${parent}/${i3}"`;
+        const at3 = path2.length ? `data-lane-path="${[...path2, i3].join("/")}"` : `data-lane-idx="${i3}"`;
         const divider = i3 < list.length - 1 ? `<div class="bp-pool-lane-divider" ${at3}></div>` : "";
-        const body = parent === void 0 && ln3.lanes?.length ? `<div class="bp-pool-sublanes">${laneList(ln3.lanes, i3)}</div>` : `<div class="bp-pool-lane-body"></div>`;
-        const cls = parent === void 0 ? "bp-pool-lane" : "bp-pool-lane is-child";
+        const body = ln3.lanes?.length ? `<div class="bp-pool-sublanes">${laneList(ln3.lanes, [...path2, i3])}</div>` : `<div class="bp-pool-lane-body"></div>`;
+        const cls = path2.length ? "bp-pool-lane is-child" : "bp-pool-lane";
         return `<div class="${cls}" data-lane-id="${esc(ln3.id)}"${flex}><div class="bp-pool-lane-head">${esc(ln3.label)}</div>${body}${divider}</div>`;
       }).join("");
     };
@@ -72570,20 +72594,17 @@
       } else {
         let at3 = y3;
         const ofLane = (id) => inPool.filter((nd) => nd.laneId === id);
-        lanes = lanes.map((ln3) => {
+        const place = (list, extra = []) => list.map((ln3, i3) => {
           if (!ln3.lanes?.length) {
-            const h3 = placeLane(ofLane(ln3.id), at3);
+            const h3 = placeLane([...ofLane(ln3.id), ...i3 === 0 ? extra : []], at3);
             at3 += h3;
             return { ...ln3, height: h3 };
           }
           const start = at3;
-          const children2 = ln3.lanes.map((c4) => {
-            const h3 = placeLane([...ofLane(c4.id), ...c4 === ln3.lanes[0] ? ofLane(ln3.id) : []], at3);
-            at3 += h3;
-            return { ...c4, height: h3 };
-          });
+          const children2 = place(ln3.lanes, [...ofLane(ln3.id), ...i3 === 0 ? extra : []]);
           return { ...ln3, height: at3 - start, lanes: children2 };
         });
+        lanes = place(lanes);
         height2 = at3 - y3;
       }
       out.pools.set(pool.id, { x: left4, y: y3, width: right4 - left4, height: height2, lanes });
@@ -73087,6 +73108,14 @@
     const dash = style2.dash === "dashed" ? ` stroke-dasharray="3 3"` : style2.dash === "dotted" ? ` stroke-dasharray="1 3"` : "";
     const head = style2.end === "none" ? "" : style2.end === "arrow-open" ? `<path d="M20 4 27 9 20 14" fill="none" stroke="currentColor" stroke-width="1.8"/>` : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
     return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
+  }
+  function findLaneDeep(lanes, id) {
+    for (const ln3 of lanes) {
+      if (ln3.id === id) return ln3;
+      const hit = ln3.lanes ? findLaneDeep(ln3.lanes, id) : void 0;
+      if (hit) return hit;
+    }
+    return void 0;
   }
   var OmniboardCanvas = class _OmniboardCanvas {
     constructor(root2, categories, onChange) {
@@ -73967,21 +73996,29 @@
         const horizontal = this.nodeExtra(node2).poolHorizontal !== false;
         const poolExtent = horizontal ? node2.getSize().height : node2.getSize().width;
         const path2 = handle.getAttribute("data-lane-path");
-        const parent = path2 ? Number(path2.split("/")[0]) : -1;
-        const idx = path2 ? Number(path2.split("/")[1]) : Number(handle.getAttribute("data-lane-idx"));
-        const siblings = parent >= 0 ? lanes[parent]?.lanes ?? [] : lanes;
-        if (!Number.isInteger(idx) || idx >= siblings.length - 1) return;
-        const extent = parent >= 0 ? laneHeights(asStackLanes(lanes, horizontal), poolExtent)[parent] : poolExtent;
-        const write = (sized) => parent >= 0 ? lanes.map((ln3, i3) => i3 === parent ? { ...ln3, lanes: fromStackLanes(siblings, sized, horizontal) } : ln3) : fromStackLanes(lanes, sized, horizontal);
+        const steps = path2 ? path2.split("/").map(Number) : [Number(handle.getAttribute("data-lane-idx"))];
+        const idx = steps[steps.length - 1];
+        if (steps.some((n2) => !Number.isInteger(n2))) return;
+        let level = lanes;
+        let parentId = null;
+        for (const i3 of steps.slice(0, -1)) {
+          parentId = level[i3]?.id ?? null;
+          level = level[i3]?.lanes ?? [];
+        }
+        const siblings = level;
+        if (idx >= siblings.length - 1) return;
+        const band = laneBandOf(asStackLanes(lanes, horizontal), siblings[0].id, poolExtent);
+        if (!band) return;
+        const write = (sized) => setSiblings(lanes, parentId, (kids) => fromStackLanes(kids, sized, horizontal));
         e2.preventDefault();
         e2.stopPropagation();
         handle.classList.add("is-dragging");
-        const container = handle.closest(parent >= 0 ? ".bp-pool-sublanes" : ".bp-pool-body");
+        const container = handle.closest(parentId ? ".bp-pool-sublanes" : ".bp-pool-body");
         const laneEls = Array.from(container?.querySelectorAll(":scope > .bp-pool-lane") ?? []);
         const at3 = (ev) => horizontal ? ev.clientY : ev.clientX;
         const start = at3(e2);
         const scale2 = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
-        const resized = (ev) => resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE2 / (parent >= 0 ? 2 : 1));
+        const resized = (ev) => resizeLaneBoundary(asStackLanes(siblings, horizontal), band.extent, idx, (at3(ev) - start) / scale2, MIN_LANE2 / (parentId ? 2 : 1));
         const mv = (ev) => {
           resized(ev).forEach((ln3, i3) => {
             if (laneEls[i3]) laneEls[i3].style.flex = `${ln3.height} 1 0px`;
@@ -76216,7 +76253,8 @@
      *  remove a child lane. One undo step each. */
     showLaneMenu(pool, laneId, clientX, clientY) {
       const lanes = this.nodeExtra(pool).lanes ?? [];
-      const top4 = lanes.find((l3) => l3.id === laneId);
+      const lane = findLaneDeep(lanes, laneId);
+      const topLevel = lanes.some((l3) => l3.id === laneId);
       const apply4 = (next) => {
         this.graph.startBatch("lane-edit");
         try {
@@ -76227,9 +76265,12 @@
         }
         this.onChange();
       };
-      const items = top4 ? top4.lanes?.length ? [["G\u1ED9p c\xE1c lane con", () => apply4(mergeChildLanes(lanes, laneId))]] : [["Chia th\xE0nh 2 lane con", () => apply4(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))]] : [
-        ["Th\xEAm lane con b\xEAn d\u01B0\u1EDBi", () => apply4(addChildLane(lanes, laneId, this.newLaneId()))],
-        ["Xo\xE1 lane con n\xE0y", () => apply4(removeChildLane(lanes, laneId))]
+      const items = [
+        lane?.lanes?.length ? ["G\u1ED9p c\xE1c lane con", () => apply4(mergeChildLanes(lanes, laneId))] : ["Chia th\xE0nh 2 lane con", () => apply4(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))],
+        ...topLevel ? [] : [
+          ["Th\xEAm lane con b\xEAn d\u01B0\u1EDBi", () => apply4(addChildLane(lanes, laneId, this.newLaneId()))],
+          ["Xo\xE1 lane con n\xE0y", () => apply4(removeChildLane(lanes, laneId))]
+        ]
       ];
       const menu = el("div", "lk-context-menu");
       for (const [label, fn2] of items) {
@@ -76942,7 +76983,7 @@
     editLaneLabel(node2, laneId, anchor3) {
       const ex = this.nodeExtra(node2);
       const lanes = ex.lanes ?? [];
-      const current = lanes.flatMap((l3) => [l3, ...l3.lanes ?? []]).find((l3) => l3.id === laneId);
+      const current = findLaneDeep(lanes, laneId);
       if (!current) return;
       const relabel = (list, v4) => list.map((l3) => l3.id === laneId ? { ...l3, label: v4 } : l3.lanes ? { ...l3, lanes: relabel(l3.lanes, v4) } : l3);
       const r2 = anchor3.getBoundingClientRect();
@@ -84873,9 +84914,13 @@
     }
     for (const root2 of definitions.rootElements ?? []) {
       if (root2.$type !== "bpmn:Process") continue;
-      for (const ls of root2.laneSets ?? []) {
-        for (const ln3 of ls.lanes ?? []) if (ln3.id) candidateIds.add(ln3.id);
-      }
+      const addLanes = (lanes) => {
+        for (const ln3 of lanes ?? []) {
+          if (ln3.id) candidateIds.add(ln3.id);
+          addLanes(ln3.childLaneSet?.lanes);
+        }
+      };
+      for (const ls of root2.laneSets ?? []) addLanes(ls.lanes);
     }
     const diagrams = definitions.diagrams ?? [];
     const isSubPlane2 = (dia) => /SubProcess|Transaction/.test(dia.plane?.bpmnElement?.$type ?? "");
@@ -85110,19 +85155,19 @@
         const proc = processRefId ? processById.get(processRefId) : void 0;
         const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
         const poolIsHorizontal = part.id ? diShapes.get(part.id)?.isHorizontal !== false : true;
-        const toLaneAttr = (ln3, depth) => {
+        const toLaneAttr = (ln3) => {
           const b2 = ln3.id ? diShapes.get(ln3.id)?.bounds : void 0;
           const size = poolIsHorizontal ? b2?.height : b2?.width;
           const key = poolIsHorizontal ? "height" : "width";
-          const children2 = depth === 0 ? ln3.childLaneSet?.lanes ?? [] : [];
+          const children2 = ln3.childLaneSet?.lanes ?? [];
           return {
             id: ln3.id ?? "",
             label: ln3.name ?? "",
             ...size && size > 0 ? { [key]: size } : {},
-            ...children2.length ? { lanes: children2.map((c4) => toLaneAttr(c4, 1)) } : {}
+            ...children2.length ? { lanes: children2.map(toLaneAttr) } : {}
           };
         };
-        const laneAttrs = lanes.map((ln3) => toLaneAttr(ln3, 0));
+        const laneAttrs = lanes.map(toLaneAttr);
         let px2, py, pw, ph;
         const partDi = part.id ? diShapes.get(part.id) : void 0;
         if (partDi?.bounds) {

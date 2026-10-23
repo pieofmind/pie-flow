@@ -8,7 +8,7 @@
  * pool is resized they scale proportionally to fill the pool.
  */
 
-/** A pool lane; `lanes` = its child lanes (one level of nesting). */
+/** A pool lane; `lanes` = its child lanes (any depth of nesting). */
 export interface PoolLane { id: string; label?: string; height?: number; lanes?: PoolLane[] }
 
 const hasHeight = (ln: PoolLane): boolean => typeof ln.height === "number" && Number.isFinite(ln.height) && ln.height > 0;
@@ -107,8 +107,8 @@ export function fromStackLanes<T extends PoolLane & { width?: number }>(lanes: r
 }
 
 /** Id of the leaf lane at `rel` (offset along the stacking axis from the
- *  pool's start): the lane under it, or that lane's child under it when it
- *  has child lanes (children split their parent's band by their own sizes). */
+ *  pool's start): the lane under it, or — recursively — that lane's child under
+ *  it when it has child lanes (children split their parent's band by their own sizes). */
 export function leafLaneAt(lanes: readonly PoolLane[], extent: number, rel: number): string | undefined {
   if (!lanes.length) return undefined;
   const hs = laneHeights(lanes, extent);
@@ -116,22 +116,51 @@ export function leafLaneAt(lanes: readonly PoolLane[], extent: number, rel: numb
   const lane = lanes[i];
   if (!lane.lanes?.length) return lane.id;
   const start = hs.slice(0, i).reduce((a, b) => a + b, 0);
-  return lane.lanes[laneIndexAt(lane.lanes, hs[i], rel - start)].id;
+  return leafLaneAt(lane.lanes, hs[i], rel - start);
 }
 
-/** Every lane id of a pool, parents and children. */
+/** Every lane id of a pool, parents and descendants at any depth. */
 export function allLaneIds(lanes: readonly PoolLane[]): string[] {
-  return lanes.flatMap((ln) => [ln.id, ...(ln.lanes ?? []).map((c) => c.id)]);
+  return lanes.flatMap((ln) => [ln.id, ...allLaneIds(ln.lanes ?? [])]);
 }
 
-// ── Child lane edits (pure; the Board's lane-title menu calls these) ─────────
+/** The lane `id` with the list it sits in and the extent that list shares
+ *  (the pool's for top-level lanes, else its parent lane's band). */
+export function laneBandOf<T extends PoolLane>(
+  lanes: readonly T[],
+  id: string,
+  extent: number,
+): { siblings: T[]; index: number; extent: number; parent?: T } | undefined {
+  const index = lanes.findIndex((ln) => ln.id === id);
+  if (index >= 0) return { siblings: [...lanes], index, extent };
+  const hs = laneHeights(lanes, extent);
+  for (let i = 0; i < lanes.length; i++) {
+    const kids = lanes[i].lanes as T[] | undefined;
+    const hit = kids?.length ? laneBandOf(kids, id, hs[i]) : undefined;
+    if (hit) return { ...hit, parent: hit.parent ?? lanes[i] };
+  }
+  return undefined;
+}
+
+// ── Lane edits (pure; the Board's lane-title menu calls these) ───────────────
 type EditLane = PoolLane & { label?: string };
-const mapLanes = <T extends EditLane>(lanes: readonly T[], id: string, fn: (ln: T) => T): T[] =>
-  lanes.map((ln) => (ln.id === id ? fn(ln) : ln));
+
+/** Apply `fn` to the lane `id` wherever it is in the tree. */
+const mapLane = <T extends EditLane>(lanes: readonly T[], id: string, fn: (ln: T) => T): T[] =>
+  lanes.map((ln) => {
+    if (ln.id === id) return fn(ln);
+    return ln.lanes?.length ? { ...ln, lanes: mapLane(ln.lanes as T[], id, fn) } : ln;
+  });
+
+/** Replace the list of child lanes of lane `parentId` (null = the pool's own lanes). */
+export function setSiblings<T extends EditLane>(lanes: readonly T[], parentId: string | null, fn: (kids: T[]) => T[]): T[] {
+  if (parentId === null) return fn([...lanes]);
+  return mapLane(lanes, parentId, (ln) => ({ ...ln, lanes: fn((ln.lanes ?? []) as T[]) }));
+}
 
 /** Lane `laneId` gets two child lanes (its band split equally). */
 export function splitLane<T extends EditLane>(lanes: readonly T[], laneId: string, ids: [string, string]): T[] {
-  return mapLanes(lanes, laneId, (ln) => ({
+  return mapLane(lanes, laneId, (ln) => ({
     ...ln,
     lanes: [{ id: ids[0], label: `${ln.label ?? "Lane"} 1` }, { id: ids[1], label: `${ln.label ?? "Lane"} 2` }],
   }));
@@ -139,32 +168,38 @@ export function splitLane<T extends EditLane>(lanes: readonly T[], laneId: strin
 
 /** Lane `laneId` loses its child lanes (shapes fall back into it). */
 export function mergeChildLanes<T extends EditLane>(lanes: readonly T[], laneId: string): T[] {
-  return mapLanes(lanes, laneId, (ln) => {
+  return mapLane(lanes, laneId, (ln) => {
     const { lanes: _children, ...rest } = ln;
     return rest as T;
   });
 }
 
-/** A new child lane right after child `afterId`. */
+/** A new lane right after the child lane `afterId`, at any depth. */
 export function addChildLane<T extends EditLane>(lanes: readonly T[], afterId: string, newId: string): T[] {
   return lanes.map((ln) => {
-    const i = ln.lanes?.findIndex((c) => c.id === afterId) ?? -1;
-    if (i < 0) return ln;
-    const children = [...(ln.lanes ?? [])];
-    children.splice(i + 1, 0, { id: newId, label: `Lane ${children.length + 1}` });
-    return { ...ln, lanes: children };
+    const kids = (ln.lanes ?? []) as T[];
+    const i = kids.findIndex((c) => c.id === afterId);
+    if (i >= 0) {
+      const children = [...kids];
+      children.splice(i + 1, 0, { id: newId, label: `Lane ${children.length + 1}` } as T);
+      return { ...ln, lanes: children };
+    }
+    return kids.length ? { ...ln, lanes: addChildLane(kids, afterId, newId) } : ln;
   });
 }
 
-/** Remove child `childId`; a lane left with one child has its children merged. */
+/** Remove child lane `childId` at any depth; a lane left with one child has its children merged. */
 export function removeChildLane<T extends EditLane>(lanes: readonly T[], childId: string): T[] {
   return lanes.map((ln) => {
-    if (!ln.lanes?.some((c) => c.id === childId)) return ln;
-    const children = ln.lanes.filter((c) => c.id !== childId);
-    if (children.length < 2) {
-      const { lanes: _children, ...rest } = ln;
-      return rest as T;
+    const kids = (ln.lanes ?? []) as T[];
+    if (kids.some((c) => c.id === childId)) {
+      const children = kids.filter((c) => c.id !== childId);
+      if (children.length < 2) {
+        const { lanes: _children, ...rest } = ln;
+        return rest as T;
+      }
+      return { ...ln, lanes: children };
     }
-    return { ...ln, lanes: children };
+    return kids.length ? { ...ln, lanes: removeChildLane(kids, childId) } : ln;
   });
 }

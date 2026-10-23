@@ -1,3 +1,4 @@
+import { fixInnerMessageFlows } from "./innerFlows";
 import { addForeignFlows, foreignIds } from "./diagramScope";
 import { BpmnModdle } from "bpmn-moddle";
 import type { CanvasModel } from "../../canvas/types";
@@ -107,7 +108,11 @@ function processOwner(model: CanvasModel, processes: ModdleElement[], collaborat
     if (part.id && pr) ofPool.set(part.id, pr);
   }
   const pools = model.nodes.filter((n) => n.shape === "bpmn-pool" && ofPool.has(n.id));
-  return (n) => {
+  const byNode = new Map(model.nodes.map((x) => [x.id, x] as const));
+  const owner = (n: CanvasModel["nodes"][number], hops = 0): ModdleElement => {
+    // A step inside a sub-process is in that sub-process's process, whatever lane its position suggests.
+    const up = n.parentId ? byNode.get(n.parentId) : undefined;
+    if (up && hops < 20 && up.shape !== "bpmn-pool") return owner(up, hops + 1);
     const lane = n.laneId ? ofLane.get(n.laneId) : undefined;
     if (lane) return lane;
     const poolId = (n.attrs as { poolId?: string } | undefined)?.poolId;
@@ -116,6 +121,7 @@ function processOwner(model: CanvasModel, processes: ModdleElement[], collaborat
     const pool = pools.find((p) => cx >= p.x && cx <= p.x + p.width && cy >= p.y && cy <= p.y + p.height);
     return (pool && ofPool.get(pool.id)) || fallback;
   };
+  return (n) => owner(n);
 }
 
 /** A copy of `el` as another BPMN type, keeping the properties that type has. */
@@ -567,7 +573,7 @@ const LANE_HEADER = 30;  // lane vertical title strip
 const POOL_MARGIN = 40;  // padding between content bbox and pool edges
 
 export async function exportBpmn(model: CanvasModel, meta?: SourceMeta | null): Promise<string> {
-  const normalizedModel = normalizeModelIdsForBpmn(model);
+  const normalizedModel = normalizeModelIdsForBpmn(fixInnerMessageFlows(model));
   const m = moddle();
   if (meta?.format === "bpmn") {
     const raw = String((meta.payload as { raw?: string })?.raw ?? "");
@@ -1425,6 +1431,9 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
   const findOwningProcess = (n: CanvasModel["nodes"][number]): ModdleElement => {
     if (!multiPool) return process;
     if (n.parentId && processByPoolId.has(n.parentId)) return processByPoolId.get(n.parentId)!;
+    // A step inside a sub-process is in that sub-process's process, not the one its position or lane hints at.
+    const up = n.parentId ? model.nodes.find((x) => x.id === n.parentId) : undefined;
+    if (up && up !== n) return findOwningProcess(up);
     if (n.laneId) {
       for (const pool of pools) {
         const ls = (pool.attrs?.lanes as ModelLane[] | undefined) ?? [];
@@ -1463,7 +1472,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
   const allProcesses = multiPool ? [...processByPoolId.values()] : [process];
   for (const proc of allProcesses) {
     const refsOf = (laneId: string) => model.nodes
-      .filter((n) => n.laneId === laneId)
+      .filter((n) => n.laneId === laneId && findOwningProcess(n) === proc)
       .map((n) => feById.get(n.id))
       .filter((fe): fe is ModdleElement => !!fe);
     for (const ls of proc.laneSets ?? []) fillLaneRefs(ls.lanes as ModdleElement[] | undefined, refsOf);

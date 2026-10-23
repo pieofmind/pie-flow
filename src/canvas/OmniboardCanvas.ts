@@ -17,6 +17,7 @@ import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import { SUBPROCESS_KINDS, SUB_CLOSED, openLayout } from "./subprocessLayout";
+import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { ATTACH_DISTANCE, distanceToBorder, eventLabelSide, followHost, hostSide, pickHost, snapToHostBorder, type Box } from "./boundaryLayout";
 import {
   alignLeft, alignCenterH, alignRight,
@@ -207,10 +208,6 @@ const CONTAINER_KINDS = new Set<string>([
 ]);
 
 // BPMN Đợt D — context-bar pickers
-const BPMN_TRIGGERS = [
-  "none", "message", "timer", "signal", "error", "escalation", "compensation",
-  "conditional", "link", "cancel", "terminate", "multiple", "parallel-multiple",
-] as const;
 const BPMN_TRIGGER_LABEL: Record<string, string> = {
   none: "Không", message: "Message", timer: "Timer", signal: "Signal", error: "Error",
   escalation: "Escalation", compensation: "Compensation", conditional: "Conditional",
@@ -1387,12 +1384,14 @@ export class OmniboardCanvas {
       }
       edge.addTools(tools);
       this.showEdgeBar(edge);
+      this.refreshProps();
       if (this.padLayer) this.padLayer.style.display = "none";
     });
     this.graph.on("edge:unselected", ({ edge }) => {
       this.applyEdgeStyle(edge, false);
       edge.removeTools();
       this.hideEdgeBar();
+      this.refreshProps();
       const snap = (edge as any).__selVertsSnapshot;
       const changed = (edge as any).__selVertsUserChanged;
       if (snap !== undefined && !changed) {
@@ -2433,7 +2432,9 @@ export class OmniboardCanvas {
     const body = this.propsBody;
     if (!body) return;
     body.innerHTML = "";
-    const nodes = this.graph.getSelectedCells().filter((c) => c.isNode()) as Node[];
+    const cells = this.graph.getSelectedCells();
+    const nodes = cells.filter((c) => c.isNode()) as Node[];
+    if (cells.length === 1 && cells[0].isEdge() && this.buildSequenceFlowEditor(cells[0] as Edge, body)) return;
     if (nodes.length !== 1) {
       const empty = el("div", "lk-props-empty");
       empty.innerHTML = `<div class="lk-props-empty-ic">◇</div>Chọn một phần tử trên canvas để chỉnh nội dung, màu và vị trí.`;
@@ -2512,6 +2513,31 @@ export class OmniboardCanvas {
   }
 
   // ── BPMN Properties editor (Phase D) ──────────────────────────────────────
+  /** Condition of a BPMN sequence flow (bpmn:conditionExpression body). False
+   *  when the edge is not one, so the caller shows the empty state. */
+  private buildSequenceFlowEditor(edge: Edge, body: HTMLElement): boolean {
+    const d = (edge.getData() as { bpmnKind?: string; bpmnAttrs?: Record<string, unknown> } | undefined) ?? {};
+    const ft = this.edgeStyle(edge).flowType;
+    const ends = [edge.getSourceCell(), edge.getTargetCell()];
+    const isSequence = !d.bpmnKind || d.bpmnKind === "sequence";
+    if (!isSequence || ft === "message" || ft === "association"
+      || !ends.every((c) => c?.isNode() && this.nodeKind(c as Node).startsWith("bpmn-"))) return false;
+    const s = el("div", "lk-psec"); s.appendChild(el("div", "lk-psec-h", "Sequence flow")); body.appendChild(s);
+    const f = el("div", "lk-pfield"); f.appendChild(el("label", undefined, "Điều kiện")); s.appendChild(f);
+    const ta = el("textarea", "lk-ptextarea") as HTMLTextAreaElement;
+    ta.rows = 3; ta.placeholder = "${amount > 1000}";
+    ta.value = (d.bpmnAttrs?.condition as string | undefined) ?? "";
+    ta.oninput = () => {
+      const cur = (edge.getData() as typeof d | undefined) ?? {};
+      const attrs = { ...(cur.bpmnAttrs ?? {}), condition: ta.value.trim() || undefined };
+      if (!attrs.condition) delete attrs.condition;
+      edge.setData({ ...cur, bpmnAttrs: Object.keys(attrs).length ? attrs : undefined }, { deep: false });
+      this.onChange();
+    };
+    f.appendChild(ta);
+    return true;
+  }
+
   private buildBpmnPropsEditor(node: Node, body: HTMLElement): void {
     const kind = this.nodeKind(node);
     const ex = this.nodeExtra(node);
@@ -2552,12 +2578,10 @@ export class OmniboardCanvas {
     // ── Event trigger (for event nodes) ─────────────────────────────────────
     if (kind === "bpmn-event-start" || kind === "bpmn-event-intermediate" || kind === "bpmn-event-end") {
       const sTrig = sec("Trigger sự kiện");
-      const TRIGGERS = ["(none)", "message", "timer", "signal", "error", "escalation",
-        "compensation", "conditional", "link", "cancel", "terminate", "multiple", "parallel-multiple"];
       const sel = el("select", "lk-pselect") as HTMLSelectElement;
-      for (const t of TRIGGERS) {
-        const opt = document.createElement("option"); opt.value = t === "(none)" ? "" : t;
-        opt.textContent = t; if ((ex.trigger ?? "") === opt.value) opt.selected = true;
+      for (const t of triggerChoices(kind, ex)) {
+        const opt = document.createElement("option"); opt.value = t === "none" ? "" : t;
+        opt.textContent = t === "none" ? "(none)" : t; if ((ex.trigger ?? "") === opt.value) opt.selected = true;
         sel.appendChild(opt);
       }
       sel.onchange = () => { save({ trigger: sel.value || undefined }); };
@@ -2565,7 +2589,8 @@ export class OmniboardCanvas {
       if (kind === "bpmn-event-intermediate") {
         const thrChk = el("input") as HTMLInputElement;
         thrChk.type = "checkbox"; thrChk.checked = ex.throwing === true;
-        thrChk.onchange = () => { save({ throwing: thrChk.checked }); };
+        // The trigger list depends on throwing — rebuild the panel.
+        thrChk.onchange = () => { save({ throwing: thrChk.checked }); this.refreshProps(); };
         field(sTrig, "Throwing", thrChk);
       }
     }
@@ -2597,6 +2622,27 @@ export class OmniboardCanvas {
         save({ markers: compChk.checked ? [...others, "compensation" as const] : others });
       };
       field(sLoop, "Compensation", compChk);
+    }
+
+    // ── Identity: ID + called element ───────────────────────────────────────
+    const sId = sec("Định danh");
+    const idInp = el("input", "lk-pinput") as HTMLInputElement;
+    idInp.value = node.id;
+    idInp.onchange = () => {
+      const next = idInp.value.trim();
+      if (this.renameNode(node.id, next)) return;
+      idInp.setCustomValidity(`ID "${next}" không hợp lệ hoặc đã có.`);
+      idInp.reportValidity();
+      idInp.setCustomValidity("");
+      idInp.value = node.id;
+    };
+    field(sId, "ID", idInp);
+    if (kind === "bpmn-call-activity") {
+      const callInp = el("input", "lk-pinput") as HTMLInputElement;
+      callInp.placeholder = "ID process được gọi";
+      callInp.value = (d.calledElement as string | undefined) ?? "";
+      callInp.oninput = () => { save({ calledElement: callInp.value.trim() || undefined }); };
+      field(sId, "calledElement", callInp);
     }
 
     // ── BPMN Documentation ───────────────────────────────────────────────────
@@ -3601,9 +3647,10 @@ export class OmniboardCanvas {
   /** Open the trigger picker for an event node (popup grid of 12 OMG triggers). */
   private openBpmnTriggerPopup(node: Node, anchor: HTMLElement): void {
     const list = el("div", "lk-line-list");
-    const cur = this.nodeExtra(node).trigger ?? "none";
-    for (const t of BPMN_TRIGGERS) {
-      const row = el("button", "lk-line-row" + (t === cur ? " on" : ""), `<span>${BPMN_TRIGGER_LABEL[t]}</span>`);
+    const ex = this.nodeExtra(node);
+    const cur = ex.trigger ?? "none";
+    for (const t of triggerChoices(this.nodeKind(node), ex)) {
+      const row = el("button", "lk-line-row" + (t === cur ? " on" : ""), `<span>${BPMN_TRIGGER_LABEL[t] ?? t}</span>`);
       row.onclick = () => {
         const data = node.getData() ?? {};
         const nextTrigger = t === "none" ? undefined : t;
@@ -4645,6 +4692,7 @@ export class OmniboardCanvas {
       // Phase D — store metadata attrs directly on node.data for round-trip.
       const phaseD: Record<string, unknown> = {};
       if (a.bpmnDoc) phaseD.bpmnDoc = a.bpmnDoc;
+      if (a.calledElement) phaseD.calledElement = a.calledElement;
       if (a.bpmnFill) phaseD.bpmnFill = a.bpmnFill;
       if (a.bpmnStroke) phaseD.bpmnStroke = a.bpmnStroke;
       if (a.camunda) phaseD.camunda = a.camunda;
@@ -4956,6 +5004,31 @@ export class OmniboardCanvas {
     return { added: incoming.nodes.length };
   }
 
+  /** Change a node's id. X6 ids are fixed, so the board is rebuilt with the id
+   *  re-pointed everywhere; the BPMN export finds the old file element through
+   *  `__source.sourceId`, so nothing only the file had is lost. */
+  renameNode(oldId: string, newId: string): boolean {
+    if (newId === oldId) return true;
+    const model = this.getModel();
+    const taken = new Set([...model.nodes.map((n) => n.id), ...model.edges.map((e) => e.id)]);
+    if (!/^[A-Za-z_][\w.-]*$/.test(newId) || taken.has(newId)) return false;
+    const re = <T,>(v: T): T => (v === oldId ? newId as T : v);
+    const ATTR_REFS = ["attachedTo", "parentId", "laneId", "poolId"];
+    const drill = this.drillRoot;
+    this.loadModel({
+      nodes: model.nodes.map((n) => ({
+        ...n, id: re(n.id), parentId: re(n.parentId), laneId: re(n.laneId),
+        attrs: n.attrs && Object.fromEntries(Object.entries(n.attrs).map(([k, v]) => [k, ATTR_REFS.includes(k) ? re(v) : v])),
+      })),
+      edges: model.edges.map((e) => ({ ...e, source: re(e.source), target: re(e.target) })),
+    }, { keepView: true });
+    if (drill) this.setDrillRoot(re(drill));
+    const cell = this.graph.getCellById(newId);
+    if (cell) this.graph.resetSelection([cell]);
+    this.onChange();
+    return true;
+  }
+
   getModel(): CanvasModel {
     const nodes = this.graph.getNodes().map((n) => {
       const p = n.getPosition(); const s = n.getSize(); const ex = this.nodeExtra(n);
@@ -5023,6 +5096,7 @@ export class OmniboardCanvas {
           collapsed: ex.collapsed,
           // Phase D — BPMN metadata (live on node.data, not NodeExtra)
           bpmnDoc: n.getData()?.bpmnDoc,
+          calledElement: n.getData()?.calledElement,
           bpmnFill: n.getData()?.bpmnFill,
           bpmnStroke: n.getData()?.bpmnStroke,
           camunda: n.getData()?.camunda,

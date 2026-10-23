@@ -4,6 +4,7 @@ import type { SourceMeta } from "../types";
 import { allLaneIds, asStackLanes, laneHeights, type PoolLane } from "../../canvas/laneLayout";
 import { SHAPE_TO_BPMN, TRIGGER_TO_EVENT_DEF } from "./shapes";
 import { defaultLabelDy, hasExternalLabel } from "./labelGeometry";
+import { isThrowingEvent } from "./eventTriggers";
 
 /**
  * BPMN 2.0 exporter — uses `bpmn-moddle` so all namespace handling, attribute
@@ -56,10 +57,11 @@ function moddle(): BpmnModdle {
   return moddleSingleton;
 }
 
-function shapeToBpmnType(shape: string, attrs?: { attachedTo?: string; markers?: string[] }): string {
+function shapeToBpmnType(shape: string, attrs?: { attachedTo?: string; markers?: string[]; trigger?: string; throwing?: boolean }): string {
   // Đợt F — if an intermediate event has attachedTo, export it as BoundaryEvent
   // (not IntermediateThrowEvent) per OMG.
   if (shape === "bpmn-event-intermediate" && attrs?.attachedTo) return "bpmn:BoundaryEvent";
+  if (shape === "bpmn-event-intermediate") return isThrowingEvent(attrs ?? {}) ? "bpmn:IntermediateThrowEvent" : "bpmn:IntermediateCatchEvent";
   // A task drawn with the ⊞ marker is a (collapsed) sub-process in BPMN.
   if (attrs?.markers?.includes("subprocess") && (SHAPE_TO_BPMN[shape] ?? "task") === "task") return "bpmn:SubProcess";
   const tag = SHAPE_TO_BPMN[shape] ?? "task";
@@ -113,6 +115,18 @@ function processOwner(model: CanvasModel, processes: ModdleElement[], collaborat
     const pool = pools.find((p) => cx >= p.x && cx <= p.x + p.width && cy >= p.y && cy <= p.y + p.height);
     return (pool && ofPool.get(pool.id)) || processes[0];
   };
+}
+
+/** A copy of `el` as another BPMN type, keeping the properties that type has. */
+function retype(m: BpmnModdle, el: ModdleElement, type: string): ModdleElement {
+  const next = m.create(type, { id: el.id }) as ModdleElement;
+  const allowed = new Set((m as unknown as { getElementDescriptor(e: unknown): { properties: Array<{ name: string }> } })
+    .getElementDescriptor(next).properties.map((p) => p.name));
+  for (const [k, v] of Object.entries(el)) {
+    if (k !== "$type" && allowed.has(k)) (next as unknown as Record<string, unknown>)[k] = v;
+  }
+  Object.assign(next.$attrs ?? {}, el.$attrs ?? {});   // $attrs is getter-only on moddle elements
+  return next;
 }
 
 const isArtifactShape = (shape: string): boolean => shape === "bpmn-annotation" || shape === "bpmn-group";
@@ -200,6 +214,7 @@ function placeOnPlanes(
 
 /** BPMN node attrs Đợt F — read by `applyBpmnExtras` to inject moddle children. */
 interface BpmnNodeAttrs {
+  calledElement?: string;
   trigger?: string;
   throwing?: boolean;
   interrupting?: boolean;
@@ -276,10 +291,21 @@ function applyBpmnExtras(m: BpmnModdle, fe: ModdleElement, shape: string, attrs:
   };
   // Event trigger → <bpmn:xxxEventDefinition/>
   if (/^bpmn-event-(start|intermediate|end)/.test(shape)) {
+    const multi = attrs.trigger === "multiple" || attrs.trigger === "parallel-multiple";
     const defName = attrs.trigger ? TRIGGER_TO_EVENT_DEF[attrs.trigger] : undefined;
     const defType = defName ? "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1) : undefined;
-    if (!defType) delete el.eventDefinitions;
-    else if (el.eventDefinitions?.[0]?.$type !== defType) el.eventDefinitions = [m.create(defType, {}) as ModdleElement];
+    const isMulti = (el.eventDefinitions?.length ?? 0) > 1;
+    // Multiple = more than one definition; the Board can't say which, so a new
+    // one gets message + signal (what the file has is kept).
+    if (multi) { if (!isMulti) el.eventDefinitions = [m.create("bpmn:MessageEventDefinition", {}), m.create("bpmn:SignalEventDefinition", {})] as ModdleElement[]; }
+    else if (!defType) delete el.eventDefinitions;
+    else if (isMulti || el.eventDefinitions?.[0]?.$type !== defType) el.eventDefinitions = [m.create(defType, {}) as ModdleElement];
+    const pm = fe as ModdleElement & { parallelMultiple?: boolean };
+    if (attrs.trigger === "parallel-multiple") pm.parallelMultiple = true; else delete pm.parallelMultiple;
+  }
+  if (shape === "bpmn-call-activity") {
+    const call = fe as ModdleElement & { calledElement?: string };
+    if (attrs.calledElement) call.calledElement = attrs.calledElement; else delete call.calledElement;
   }
   // Loop / multi-instance
   const markers = attrs.markers ?? [];
@@ -619,6 +645,19 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     }
   }
 
+  // A node renamed on the Board keeps its file element: move that to the new id
+  // (references are object links, so sourceRef / lanes / attachedToRef follow).
+  for (const n of model.nodes) {
+    const was = (n.attrs?.__source as { sourceId?: string } | undefined)?.sourceId;
+    const fe = was && was !== n.id && !flowById.has(n.id) ? flowById.get(was) : undefined;
+    if (!was || !fe) continue;
+    fe.id = n.id;
+    flowById.delete(was); flowById.set(n.id, fe);
+    containerOf.set(n.id, containerOf.get(was)!); containerOf.delete(was);
+    const di = diShape.get(was);
+    if (di) { diShape.delete(was); diShape.set(n.id, di); }
+  }
+
   const modelNodeIds = new Set(model.nodes.map((n) => n.id));
   const endpointIds = new Set<string>(flowById.keys());
   for (const pr of processes) for (const ar of pr.artifacts ?? []) if (ar.id) endpointIds.add(ar.id);
@@ -696,16 +735,17 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
     // the actual parent element differs from the desired container.
     let existing = flowById.get(n.id);
     const curContainer = containerOf.get(n.id);
-    // The ⊞ marker was added to a task read from the file: swap in a
-    // sub-process with the same id and properties (refs serialise by id).
-    if (existing?.$type === "bpmn:Task" && curContainer && shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs) === "bpmn:SubProcess") {
-      const { $type: _t, ...props } = Object.fromEntries(Object.entries(existing)) as Record<string, unknown>;
-      const sub = m.create("bpmn:SubProcess", props) as ModdleElement;
+    // The Board changed the element's type (task → user task, XOR → AND, ⊞ on
+    // a task, throw → catch …): swap in the new type with the same id and the
+    // properties it still has (refs serialise by id, so flows stay attached).
+    const wantType = shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs);
+    if (existing && curContainer && existing.$type !== wantType && curContainer.flowElements?.includes(existing)) {
+      const swapped = retype(m, existing, wantType);
       const old = existing;
-      curContainer.flowElements = (curContainer.flowElements ?? []).map((fe) => (fe === old ? sub : fe));
-      if (di) di.bpmnElement = sub;
-      flowById.set(n.id, sub);
-      existing = sub;
+      curContainer.flowElements = curContainer.flowElements.map((fe) => (fe === old ? swapped : fe));
+      if (di) di.bpmnElement = swapped;
+      flowById.set(n.id, swapped);
+      existing = swapped;
     }
     // (Artifacts and ioSpecification data stay where the file has them.)
     if (existing && curContainer && curContainer !== targetContainer && curContainer.flowElements?.includes(existing)) {

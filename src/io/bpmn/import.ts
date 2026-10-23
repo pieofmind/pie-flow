@@ -42,6 +42,8 @@ function bpmnExtras(fn: BpmnElementShape, tagLc: string): {
   const defRaw = fn.eventDefinitions?.[0]?.$type?.replace(/^bpmn:/, "");
   const defLc = defRaw ? defRaw.charAt(0).toLowerCase() + defRaw.slice(1) : undefined;
   if (defLc && EVENT_DEF_TO_TRIGGER[defLc]) out.trigger = EVENT_DEF_TO_TRIGGER[defLc];
+  // More than one definition = multiple (all of them) or parallel multiple.
+  if ((fn.eventDefinitions?.length ?? 0) > 1) out.trigger = (fn as { parallelMultiple?: boolean }).parallelMultiple ? "parallel-multiple" : "multiple";
   // Throwing: only intermediate-throw + end events fire the icon as filled.
   if (tagLc === "intermediateThrowEvent" || tagLc === "endEvent") out.throwing = true;
   // Interrupting flag (boundary + event-subprocess start). Default true per OMG.
@@ -453,6 +455,7 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
         ...(extras.attachedTo ? { attachedTo: extras.attachedTo } : {}),
         ...(markers ? { markers } : {}),
         ...(nodeLabelOffset ? { labelOffset: nodeLabelOffset } : {}),
+        ...((fn as { calledElement?: string }).calledElement ? { calledElement: (fn as { calledElement?: string }).calledElement } : {}),
       },
     });
     if (!di) warnings.push(`BPMN flow node "${id}" thiếu BPMNShape DI — đặt vị trí mặc định.`);

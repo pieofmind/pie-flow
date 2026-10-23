@@ -11,7 +11,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
 </head><body>
 <div id="host" class="da-board-view"></div>
 <div id="log"></div>
-<script src="../harness/harness.js?v=interaction5"></script>
+<script src="../harness/harness.js?v=interaction7"></script>
 <script>
 // Multi-select drag moves each node once per tick; ports are easy to grab.
 // Serve the repo root (python3 -m http.server) and open tests/e2e-canvas-interaction.html.
@@ -408,6 +408,94 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     await tick(150);
     const n = mnode('dt');
     assert(n.shape === 'bpmn-task' && n.attrs?.markers?.includes('subprocess') && n.attrs?.collapsed === true, 'not back to ⊞ task: ' + JSON.stringify(n));
+  });
+
+  // ── Properties that must reach the file (trigger by position, condition, ID, calledElement) ──
+  const props = () => document.querySelector('.lk-props-body');
+  const propField = (label) => [...props().querySelectorAll('.lk-pfield')]
+    .find((f) => f.querySelector('label')?.textContent === label)?.querySelector('input,select,textarea');
+
+  await run('the trigger picker offers only triggers allowed where the event is', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'ts', shape: 'bpmn-event-start', x: 100, y: 100, width: 36, height: 36 },
+      { id: 'te', shape: 'bpmn-event-end', x: 300, y: 100, width: 36, height: 36 },
+    ], edges: [] });
+    await tick(150);
+    const rows = async (id) => {
+      g().resetSelection([cell(id)]);
+      await tick(150);
+      [...document.querySelectorAll('.lk-cb-btn')].find((b) => b.title === 'Trigger sự kiện').click();
+      await tick(100);
+      const out = [...document.querySelectorAll('.lk-line-list .lk-line-row')].map((r) => r.textContent);
+      document.body.click();
+      return out;
+    };
+    const start = await rows('ts');
+    assert(start.includes('Timer') && !start.includes('Terminate') && !start.includes('Cancel'), 'start: ' + start);
+    const end = await rows('te');
+    assert(end.includes('Terminate') && !end.includes('Timer'), 'end: ' + end);
+    g().resetSelection([cell('ts')]);
+    await tick(150);
+    const opts = [...propField('Trigger').options].map((o) => o.value);
+    assert(opts.includes('timer') && !opts.includes('terminate'), 'panel start: ' + opts);
+  });
+
+  await run('a sequence flow takes a condition that lands in the model', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'cg', shape: 'bpmn-gateway-xor', x: 100, y: 100, width: 50, height: 50 },
+      { id: 'ct', shape: 'bpmn-task', x: 300, y: 85, width: 100, height: 80, label: 'T' },
+    ], edges: [{ id: 'cf', source: 'cg', target: 'ct' }] });
+    await tick(150);
+    g().resetSelection([cell('cf')]);
+    await tick(150);
+    const ta = propField('Điều kiện');
+    assert(ta, 'no condition field for a sequence flow');
+    ta.value = '${tien > 80}';
+    ta.dispatchEvent(new Event('input'));
+    const e = window.__ob.getModel().edges.find((x) => x.id === 'cf');
+    assert(e.attrs?.condition === '${tien > 80}', 'condition: ' + JSON.stringify(e.attrs));
+  });
+
+  await run('renaming an ID re-points arrows, steps and boundary events', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'rs0', shape: 'bpmn-event-start', x: 40, y: 130, width: 36, height: 36 },
+      { id: 'rsub', shape: 'bpmn-subprocess', x: 200, y: 60, width: 300, height: 200, label: 'S' },
+      { id: 'rin', shape: 'bpmn-task', x: 240, y: 120, width: 100, height: 80, label: 'In', parentId: 'rsub' },
+      { id: 'rbe', shape: 'bpmn-event-intermediate', x: 482, y: 240, width: 36, height: 36, attrs: { trigger: 'timer', attachedTo: 'rsub' } },
+    ], edges: [{ id: 'rf', source: 'rs0', target: 'rsub' }] });
+    await tick(150);
+    g().resetSelection([cell('rsub')]);
+    await tick(150);
+    const inp = propField('ID');
+    inp.value = 'Sub_ChamSoc';
+    inp.dispatchEvent(new Event('change'));
+    await tick(150);
+    const m = window.__ob.getModel();
+    assert(!m.nodes.some((n) => n.id === 'rsub'), 'old id still there');
+    assert(m.edges.find((e) => e.id === 'rf').target === 'Sub_ChamSoc', 'arrow not re-pointed');
+    assert(m.nodes.find((n) => n.id === 'rin').parentId === 'Sub_ChamSoc', 'step not re-pointed');
+    assert(m.nodes.find((n) => n.id === 'rbe').attrs?.attachedTo === 'Sub_ChamSoc', 'boundary event not re-pointed');
+    // a taken or invalid id is refused
+    g().resetSelection([cell('rin')]);
+    await tick(150);
+    propField('ID').value = 'rs0';
+    propField('ID').dispatchEvent(new Event('change'));
+    await tick(100);
+    assert(window.__ob.getModel().nodes.some((n) => n.id === 'rin'), 'taken id accepted');
+  });
+
+  await run('a call activity carries its called process', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'ca1', shape: 'bpmn-call-activity', x: 100, y: 100, width: 100, height: 80, label: 'Gọi' },
+    ], edges: [] });
+    await tick(150);
+    g().resetSelection([cell('ca1')]);
+    await tick(150);
+    const inp = propField('calledElement');
+    assert(inp, 'no calledElement field');
+    inp.value = 'Process_BaoGia';
+    inp.dispatchEvent(new Event('input'));
+    assert(mnode('ca1').attrs?.calledElement === 'Process_BaoGia', 'calledElement: ' + JSON.stringify(mnode('ca1').attrs));
   });
 
   const failed = results.filter(r => !r.ok).length;

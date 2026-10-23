@@ -342,11 +342,11 @@ function nodeHtmlBase(kind: string, label: string, extra?: NodeExtra): string {
     case "bpmn-adhoc-subprocess": return `<div class="bp-frame bp-sub is-adhoc"><span class="bp-frame-lbl">${L || "Ad-hoc sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra?.markers)}<span class="bp-adhoc-mark">∼</span></div>`;
     case "bpmn-call-activity": return `<div class="bp-task is-call">${nl(L) || "Call activity"}${renderMarkers(extra?.markers)}</div>`;
     // Data artifacts (Đợt A — Collection/Input/Output)
-    case "bpmn-data-object": return `<div class="bp-dataobj"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L}</span></div>`;
-    case "bpmn-data-collection": return `<div class="bp-dataobj is-collection"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L}</span><span class="bp-coll-bars"></span></div>`;
-    case "bpmn-data-input": return `<div class="bp-dataobj is-input"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L || "Input"}</span><span class="bp-data-arr"></span></div>`;
-    case "bpmn-data-output": return `<div class="bp-dataobj is-output"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L || "Output"}</span><span class="bp-data-arr"></span></div>`;
-    case "bpmn-data-store": return `<div class="bp-datastore"><span class="ic">${BP_ICON.cyl}</span><span class="lbl">${L}</span></div>`;
+    case "bpmn-data-object": return bpData("", DATA_PAGE, L, extra);
+    case "bpmn-data-collection": return bpData(" is-collection", DATA_PAGE, L, extra, `<span class="bp-coll-bars"></span>`);
+    case "bpmn-data-input": return bpData(" is-input", DATA_PAGE, L || "Input", extra, `<span class="bp-data-arr"></span>`);
+    case "bpmn-data-output": return bpData(" is-output", DATA_PAGE, L || "Output", extra, `<span class="bp-data-arr"></span>`);
+    case "bpmn-data-store": return bpData("", DATA_CYLINDER, L, extra, "", "bp-datastore");
     case "bpmn-annotation": return `<div class="bp-anno">${L || "Annotation"}</div>`;
     case "bpmn-group": return `<div class="bp-group">${L ? `<span class="bp-group-lbl">${L}</span>` : ""}</div>`;
     case "bpmn-lane": return `<div class="bp-lane"><span>${L}</span></div>`;
@@ -393,6 +393,15 @@ function bpEvent(kind: string, label: string, icon?: string, extra?: NodeExtra):
   const inner = trigIc ?? icon ?? (pos === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`));
   const interrupt = extra?.interrupting === false ? " is-non-interrupting" : "";
   return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
+}
+// Data object / store: the shape fills the node box (like bpmn-js, node box =
+// shape), so ports and arrows meet the shape; the label is external, below it
+// (draggable, auto-flips up like event labels). `label` is already escaped.
+const DATA_PAGE = `<svg class="bp-data-shape" viewBox="0 0 36 50" preserveAspectRatio="none"><path d="M1 1h24l10 10v38H1z"/><path d="M25 1v10h10"/></svg>`;
+const DATA_CYLINDER = `<svg class="bp-data-shape" viewBox="0 0 50 50" preserveAspectRatio="none"><path d="M1 7v36c0 3.3 10.7 6 24 6s24-2.7 24-6V7"/><ellipse cx="25" cy="7" rx="24" ry="6"/><path d="M1 12c0 3.3 10.7 6 24 6s24-2.7 24-6"/></svg>`;
+function bpData(mod: string, shape: string, label: string, extra?: NodeExtra, deco = "", cls = "bp-dataobj"): string {
+  const lbl = label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : "";
+  return `<div class="${cls}${mod}">${shape}${deco}${lbl}</div>`;
 }
 function bpTask(label: string, iconKey?: string, extra?: NodeExtra): string {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";

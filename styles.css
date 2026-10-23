@@ -881,10 +881,12 @@
 .lk-root .bp-event.inter { border: 2px solid #C99A2E; box-shadow: inset 0 0 0 2.5px var(--pg-surface), inset 0 0 0 4.5px #C99A2E, var(--sh-sm); }
 .lk-root .bp-event.inter svg { color: #C99A2E; }
 .lk-root .bp-event.start svg, .lk-root .bp-event.end svg, .lk-root .bp-event.inter svg { width: 14px; height: 14px; }
-.lk-root .bp-dataobj, .lk-root .bp-datastore { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: var(--pg-text); box-sizing: border-box; }
-.lk-root .bp-dataobj .ic svg { width: 30px; height: 38px; color: var(--pg-text-muted); }
-.lk-root .bp-datastore .ic svg { width: 34px; height: 32px; color: var(--pg-text-muted); }
-.lk-root .bp-dataobj .lbl, .lk-root .bp-datastore .lbl { font-size: 9px; font-weight: 600; text-align: center; line-height: 1.2; }
+/* Node box = the shape (page / cylinder stretched to it); label is the
+   external .bp-elabel below, so arrows on the bottom port never cross text. */
+.lk-root .bp-dataobj, .lk-root .bp-datastore { width: 100%; height: 100%; position: relative; color: var(--pg-text); box-sizing: border-box; }
+.lk-root .bp-data-shape { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.lk-root .bp-data-shape path, .lk-root .bp-data-shape ellipse { fill: var(--pg-surface, #fff); stroke: var(--pg-text-muted, #6b6b6b); stroke-width: 1.6px; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.lk-root .bp-dataobj.label-top .bp-elabel, .lk-root .bp-datastore.label-top .bp-elabel { top: auto; bottom: calc(100% + 6px); }
 .lk-root .bp-anno { width: 100%; height: 100%; box-sizing: border-box; border-left: 2px solid var(--pg-border-strong); padding: 6px 9px; font-size: 9px; color: var(--pg-text); display: grid; align-items: center; }
 .lk-root .bp-frame.bp-sub { position: relative; width: 100%; height: 100%; box-sizing: border-box; border: 1.6px solid var(--pg-border-strong); border-radius: 9px; background: color-mix(in srgb, var(--pg-accent) 4%, var(--pg-surface)); box-shadow: var(--sh-sm); }
 .lk-root .bp-frame-lbl { position: absolute; top: 8px; left: 0; right: 0; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--pg-text); }

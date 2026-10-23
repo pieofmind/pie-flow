@@ -3,6 +3,7 @@ import type { CanvasModel } from "../../canvas/types";
 import type { SourceMeta } from "../types";
 import { laneHeights, type PoolLane } from "../../canvas/laneLayout";
 import { SHAPE_TO_BPMN, TRIGGER_TO_EVENT_DEF } from "./shapes";
+import { defaultLabelDy, hasExternalLabel } from "./labelGeometry";
 
 /**
  * BPMN 2.0 exporter — uses `bpmn-moddle` so all namespace handling, attribute
@@ -991,10 +992,9 @@ function nodeLabelBoundsFromModel(
   m: BpmnModdle,
   node: CanvasModel["nodes"][number],
 ): ModdleElement | undefined {
-  // Only export label bounds for events and gateways (which have labels outside the shape)
-  const isEvent = node.shape.includes("event") || node.shape.includes("bpmn-start") || node.shape.includes("bpmn-intermediate") || node.shape.includes("bpmn-end");
-  const isGw = node.shape.includes("gateway");
-  if (!isEvent && !isGw) return undefined;
+  // Only export label bounds for shapes whose label sits outside the shape
+  // (events, gateways, data objects / stores).
+  if (!hasExternalLabel(node.shape)) return undefined;
 
   const textLen = (node.label ?? "").length;
   if (!textLen) return undefined;
@@ -1005,7 +1005,7 @@ function nodeLabelBoundsFromModel(
 
   // Detect if the label is positioned on top (e.g., negative offset or if flipped)
   const isTop = (off.y ?? 0) < -10;
-  const defaultY = isGw ? 37 : 36;
+  const defaultY = defaultLabelDy(node.shape, node.height);
   const dy = (isTop ? -defaultY : defaultY) + (off.y ?? 0);
   const dx = (off.x ?? 0);
 

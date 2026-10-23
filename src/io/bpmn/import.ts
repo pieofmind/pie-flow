@@ -1,5 +1,6 @@
 import { BpmnModdle } from "bpmn-moddle";
 import { getOrientation } from "diagram-js/lib/layout/LayoutUtil";
+import { defaultLabelDy } from "./labelGeometry";
 import type { CanvasModel } from "../../canvas/types";
 import type { ImportOptions, ImportResult, SourceMeta } from "../types";
 import { BPMN_TO_SHAPE, EVENT_DEF_TO_TRIGGER } from "./shapes";
@@ -382,14 +383,13 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
     const y = bounds?.y ?? 100;
     const width = bounds?.width ?? (tagLc.endsWith("Event") ? 36 : 100);
     const height = bounds?.height ?? (tagLc.endsWith("Event") ? 36 : 60);
-    const isGw = shape.includes("gateway");
     const labelBounds = di?.label?.bounds;
     let nodeLabelOffset: { x: number; y: number } | undefined;
     if (labelBounds) {
       const labelCenterY = labelBounds.y + labelBounds.height / 2;
       const nodeCenterY = y + height / 2;
       const isTop = labelCenterY < nodeCenterY;
-      const defaultY = isGw ? 37 : 36;
+      const defaultY = defaultLabelDy(shape, height);
       const defaultOffset = { x: 0, y: isTop ? -defaultY : defaultY };
       const rawOffset = {
         x: (labelBounds.x + labelBounds.width / 2) - (x + width / 2) - defaultOffset.x,

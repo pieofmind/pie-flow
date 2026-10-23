@@ -10699,6 +10699,25 @@ var init_shapes = __esm({
   }
 });
 
+// src/io/bpmn/labelGeometry.ts
+function hasExternalLabel(shape) {
+  return isEvent(shape) || isGateway(shape) || isData(shape);
+}
+function defaultLabelDy(shape, height2) {
+  if (isGateway(shape)) return 37;
+  if (isData(shape)) return height2 / 2 + 16;
+  return 36;
+}
+var isEvent, isGateway, isData;
+var init_labelGeometry = __esm({
+  "src/io/bpmn/labelGeometry.ts"() {
+    "use strict";
+    isEvent = (shape) => shape.includes("event") || shape.includes("bpmn-start") || shape.includes("bpmn-intermediate") || shape.includes("bpmn-end");
+    isGateway = (shape) => shape.includes("gateway");
+    isData = (shape) => shape.startsWith("bpmn-data-");
+  }
+});
+
 // node_modules/diagram-js/lib/util/Geometry.js
 function pointDistance(a5, b4) {
   if (!a5 || !b4) {
@@ -11724,14 +11743,13 @@ async function importBpmn(raw2, options) {
     const y5 = (_q = bounds == null ? void 0 : bounds.y) != null ? _q : 100;
     const width2 = (_r = bounds == null ? void 0 : bounds.width) != null ? _r : tagLc.endsWith("Event") ? 36 : 100;
     const height2 = (_s = bounds == null ? void 0 : bounds.height) != null ? _s : tagLc.endsWith("Event") ? 36 : 60;
-    const isGw = shape.includes("gateway");
     const labelBounds = (_t3 = di == null ? void 0 : di.label) == null ? void 0 : _t3.bounds;
     let nodeLabelOffset;
     if (labelBounds) {
       const labelCenterY = labelBounds.y + labelBounds.height / 2;
       const nodeCenterY = y5 + height2 / 2;
       const isTop = labelCenterY < nodeCenterY;
-      const defaultY = isGw ? 37 : 36;
+      const defaultY = defaultLabelDy(shape, height2);
       const defaultOffset = { x: 0, y: isTop ? -defaultY : defaultY };
       const rawOffset = {
         x: labelBounds.x + labelBounds.width / 2 - (x5 + width2 / 2) - defaultOffset.x,
@@ -11976,6 +11994,7 @@ var init_import = __esm({
     "use strict";
     init_dist5();
     init_LayoutUtil();
+    init_labelGeometry();
     init_shapes();
     FLOW_NODE_TYPES = /* @__PURE__ */ new Set([
       "bpmn:StartEvent",
@@ -74034,15 +74053,15 @@ function nodeHtmlBase(kind, label, extra) {
     case "bpmn-call-activity":
       return `<div class="bp-task is-call">${nl(L4) || "Call activity"}${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
     case "bpmn-data-object":
-      return `<div class="bp-dataobj"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L4}</span></div>`;
+      return bpData("", DATA_PAGE, L4, extra);
     case "bpmn-data-collection":
-      return `<div class="bp-dataobj is-collection"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L4}</span><span class="bp-coll-bars"></span></div>`;
+      return bpData(" is-collection", DATA_PAGE, L4, extra, `<span class="bp-coll-bars"></span>`);
     case "bpmn-data-input":
-      return `<div class="bp-dataobj is-input"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L4 || "Input"}</span><span class="bp-data-arr"></span></div>`;
+      return bpData(" is-input", DATA_PAGE, L4 || "Input", extra, `<span class="bp-data-arr"></span>`);
     case "bpmn-data-output":
-      return `<div class="bp-dataobj is-output"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L4 || "Output"}</span><span class="bp-data-arr"></span></div>`;
+      return bpData(" is-output", DATA_PAGE, L4 || "Output", extra, `<span class="bp-data-arr"></span>`);
     case "bpmn-data-store":
-      return `<div class="bp-datastore"><span class="ic">${BP_ICON.cyl}</span><span class="lbl">${L4}</span></div>`;
+      return bpData("", DATA_CYLINDER, L4, extra, "", "bp-datastore");
     case "bpmn-annotation":
       return `<div class="bp-anno">${L4 || "Annotation"}</div>`;
     case "bpmn-group":
@@ -74078,6 +74097,12 @@ function bpEvent(kind, label, icon, extra) {
   const inner = (_a3 = trigIc != null ? trigIc : icon) != null ? _a3 : pos === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`);
   const interrupt = (extra == null ? void 0 : extra.interrupting) === false ? " is-non-interrupting" : "";
   return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
+}
+var DATA_PAGE = `<svg class="bp-data-shape" viewBox="0 0 36 50" preserveAspectRatio="none"><path d="M1 1h24l10 10v38H1z"/><path d="M25 1v10h10"/></svg>`;
+var DATA_CYLINDER = `<svg class="bp-data-shape" viewBox="0 0 50 50" preserveAspectRatio="none"><path d="M1 7v36c0 3.3 10.7 6 24 6s24-2.7 24-6V7"/><ellipse cx="25" cy="7" rx="24" ry="6"/><path d="M1 12c0 3.3 10.7 6 24 6s24-2.7 24-6"/></svg>`;
+function bpData(mod3, shape, label, extra, deco = "", cls = "bp-dataobj") {
+  const lbl = label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : "";
+  return `<div class="${cls}${mod3}">${shape}${deco}${lbl}</div>`;
 }
 function bpTask(label, iconKey, extra) {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
@@ -74252,11 +74277,11 @@ var SHAPE_CATEGORIES = [
       { shape: "bpmn-adhoc-subprocess", label: "Ad-hoc sub-process", w: 200, h: 120, advanced: true },
       { shape: "bpmn-call-activity", label: "Call activity", w: 100, h: 80, advanced: true },
       // Data artifacts
-      { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
-      { shape: "bpmn-data-collection", label: "Data collection", w: 60, h: 76, advanced: true },
-      { shape: "bpmn-data-input", label: "Data input", w: 60, h: 76, advanced: true },
-      { shape: "bpmn-data-output", label: "Data output", w: 60, h: 76, advanced: true },
-      { shape: "bpmn-data-store", label: "Data store", w: 70, h: 64, advanced: true },
+      { shape: "bpmn-data-object", label: "Data object", w: 40, h: 60, advanced: true },
+      { shape: "bpmn-data-collection", label: "Data collection", w: 40, h: 60, advanced: true },
+      { shape: "bpmn-data-input", label: "Data input", w: 40, h: 60, advanced: true },
+      { shape: "bpmn-data-output", label: "Data output", w: 40, h: 60, advanced: true },
+      { shape: "bpmn-data-store", label: "Data store", w: 60, h: 50, advanced: true },
       // Misc
       { shape: "bpmn-annotation", label: "Annotation", w: 150, h: 56, advanced: true },
       { shape: "bpmn-group", label: "Group", w: 200, h: 120, advanced: true }
@@ -74414,6 +74439,7 @@ init_boardSerde();
 // src/io/bpmn/export.ts
 init_dist5();
 init_shapes();
+init_labelGeometry();
 var moddleSingleton = null;
 function moddle() {
   if (!moddleSingleton) moddleSingleton = new SimpleBpmnModdle();
@@ -75183,16 +75209,14 @@ function edgeLabelBoundsFromModel(m7, edge, wps) {
 }
 function nodeLabelBoundsFromModel(m7, node3) {
   var _a3, _b2, _c, _d, _e3, _f;
-  const isEvent = node3.shape.includes("event") || node3.shape.includes("bpmn-start") || node3.shape.includes("bpmn-intermediate") || node3.shape.includes("bpmn-end");
-  const isGw = node3.shape.includes("gateway");
-  if (!isEvent && !isGw) return void 0;
+  if (!hasExternalLabel(node3.shape)) return void 0;
   const textLen = ((_a3 = node3.label) != null ? _a3 : "").length;
   if (!textLen) return void 0;
   const off = (_c = (_b2 = node3.attrs) == null ? void 0 : _b2.labelOffset) != null ? _c : { x: 0, y: 0 };
   const width2 = Math.max(30, Math.min(320, textLen * 7 + 18));
   const height2 = 20;
   const isTop = ((_d = off.y) != null ? _d : 0) < -10;
-  const defaultY = isGw ? 37 : 36;
+  const defaultY = defaultLabelDy(node3.shape, node3.height);
   const dy = (isTop ? -defaultY : defaultY) + ((_e3 = off.y) != null ? _e3 : 0);
   const dx = (_f = off.x) != null ? _f : 0;
   const cx = node3.x + node3.width / 2 + dx;
@@ -87114,9 +87138,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     var _a3, _b2;
     for (const n4 of this.graph.getNodes()) {
       const k5 = this.nodeKind(n4);
-      const isEvent = BPMN_EVENT_KINDS.has(k5);
+      const isEvent2 = BPMN_EVENT_KINDS.has(k5);
       const isGw = k5.startsWith("bpmn-gateway");
-      if (!isEvent && !isGw) continue;
+      const isData2 = k5.startsWith("bpmn-data-");
+      if (!isEvent2 && !isGw && !isData2) continue;
       const cy = n4.getPosition().y + n4.getSize().height / 2;
       let bottom4 = false, top4 = false;
       for (const e5 of this.graph.getEdges()) {
@@ -87133,7 +87158,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
       const flipUp = bottom4 && !top4;
       const view = this.graph.findViewByCell(n4);
-      const el4 = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, isGw ? ".bp-gw" : ".bp-event");
+      const el4 = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, isGw ? ".bp-gw" : isData2 ? ".bp-dataobj, .bp-datastore" : ".bp-event");
       if (el4) el4.classList.toggle("label-top", flipUp);
     }
   }
@@ -92748,7 +92773,7 @@ var FLOW_LABEL_INDENT = 15;
 function isLabelExternal(semantic) {
   return is2(semantic, "bpmn:Event") || is2(semantic, "bpmn:Gateway") || is2(semantic, "bpmn:DataStoreReference") || is2(semantic, "bpmn:DataObjectReference") || is2(semantic, "bpmn:DataInput") || is2(semantic, "bpmn:DataOutput") || is2(semantic, "bpmn:SequenceFlow") || is2(semantic, "bpmn:MessageFlow") || is2(semantic, "bpmn:Group");
 }
-function hasExternalLabel(element) {
+function hasExternalLabel2(element) {
   return isLabel(element.label);
 }
 function getFlowLabelPosition(waypoints) {
@@ -102130,7 +102155,7 @@ function AdaptiveLabelPositioningBehavior(eventBus, modeling) {
     }
   });
   function checkLabelAdjustment(element) {
-    if (!hasExternalLabel(element)) {
+    if (!hasExternalLabel2(element)) {
       return;
     }
     if (isConnection(element)) {
@@ -104258,7 +104283,7 @@ function LabelBehavior(eventBus, modeling, bpmnFactory, textRenderer) {
   });
   this.postExecute("shape.resize", function(event2) {
     var context = event2.context, shape = context.shape, newBounds = context.newBounds, oldBounds = context.oldBounds;
-    if (!hasExternalLabel(shape)) {
+    if (!hasExternalLabel2(shape)) {
       return;
     }
     var label = shape.label, labelMid = getMid(label), edges = asEdges(oldBounds);
@@ -112043,7 +112068,7 @@ function UpdateLabelHandler(modeling, textRenderer, bpmnFactory) {
   }
   function preExecute(ctx) {
     var element = ctx.element, businessObject = element.businessObject, newLabel = ctx.newLabel;
-    if (!isLabel(element) && isLabelExternal(element) && !hasExternalLabel(element) && !isEmptyText(newLabel)) {
+    if (!isLabel(element) && isLabelExternal(element) && !hasExternalLabel2(element) && !isEmptyText(newLabel)) {
       var paddingTop = 7;
       var labelCenter = getExternalLabelMid(element);
       labelCenter = {
@@ -117190,7 +117215,7 @@ LabelEditingProvider.prototype.getEditingBBox = function(element) {
       lineHeight: externalLineHeight
     });
   }
-  if (isLabelExternal(target) && !hasExternalLabel(target) && !isLabel(target)) {
+  if (isLabelExternal(target) && !hasExternalLabel2(target) && !isLabel(target)) {
     var externalLabelMid = getExternalLabelMid(element);
     var absoluteBBox = canvas.getAbsoluteBBox({
       x: externalLabelMid.x,
@@ -123059,8 +123084,8 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
       };
       field(taskSec, "Loop Type", loopSelect);
     }
-    const isGateway = bo.$type && (bo.$type === "bpmn:ExclusiveGateway" || bo.$type === "bpmn:ParallelGateway" || bo.$type === "bpmn:InclusiveGateway" || bo.$type === "bpmn:EventBasedGateway" || bo.$type === "bpmn:ComplexGateway");
-    if (isGateway) {
+    const isGateway2 = bo.$type && (bo.$type === "bpmn:ExclusiveGateway" || bo.$type === "bpmn:ParallelGateway" || bo.$type === "bpmn:InclusiveGateway" || bo.$type === "bpmn:EventBasedGateway" || bo.$type === "bpmn:ComplexGateway");
+    if (isGateway2) {
       const gatewaySec = section("Gateway Options");
       const gatewaySelect = el3("select", "lk-pinput");
       const gateways = [
@@ -123109,8 +123134,8 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
         })
       );
     }
-    const isEvent = bo.$type && (bo.$type === "bpmn:StartEvent" || bo.$type === "bpmn:EndEvent" || bo.$type === "bpmn:IntermediateCatchEvent" || bo.$type === "bpmn:IntermediateThrowEvent" || bo.$type === "bpmn:BoundaryEvent");
-    if (isEvent) {
+    const isEvent2 = bo.$type && (bo.$type === "bpmn:StartEvent" || bo.$type === "bpmn:EndEvent" || bo.$type === "bpmn:IntermediateCatchEvent" || bo.$type === "bpmn:IntermediateThrowEvent" || bo.$type === "bpmn:BoundaryEvent");
+    if (isEvent2) {
       const eventSec = section("Event Options");
       const typeSelect = el3("select", "lk-pinput");
       const eventTypes = [

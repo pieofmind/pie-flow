@@ -151,11 +151,11 @@ export const SHAPE_CATEGORIES: ShapeCategory[] = [
       { shape: "bpmn-adhoc-subprocess", label: "Ad-hoc sub-process", w: 200, h: 120, advanced: true },
       { shape: "bpmn-call-activity", label: "Call activity", w: 100, h: 80, advanced: true },
       // Data artifacts
-      { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
-      { shape: "bpmn-data-collection", label: "Data collection", w: 60, h: 76, advanced: true },
-      { shape: "bpmn-data-input", label: "Data input", w: 60, h: 76, advanced: true },
-      { shape: "bpmn-data-output", label: "Data output", w: 60, h: 76, advanced: true },
-      { shape: "bpmn-data-store", label: "Data store", w: 70, h: 64, advanced: true },
+      { shape: "bpmn-data-object", label: "Data object", w: 40, h: 60, advanced: true },
+      { shape: "bpmn-data-collection", label: "Data collection", w: 40, h: 60, advanced: true },
+      { shape: "bpmn-data-input", label: "Data input", w: 40, h: 60, advanced: true },
+      { shape: "bpmn-data-output", label: "Data output", w: 40, h: 60, advanced: true },
+      { shape: "bpmn-data-store", label: "Data store", w: 60, h: 50, advanced: true },
       // Misc
       { shape: "bpmn-annotation", label: "Annotation", w: 150, h: 56, advanced: true },
       { shape: "bpmn-group", label: "Group", w: 200, h: 120, advanced: true },

@@ -4082,7 +4082,8 @@ export class OmniboardCanvas {
       const k = this.nodeKind(n);
       const isEvent = BPMN_EVENT_KINDS.has(k);
       const isGw = k.startsWith("bpmn-gateway");
-      if (!isEvent && !isGw) continue;
+      const isData = k.startsWith("bpmn-data-");
+      if (!isEvent && !isGw && !isData) continue;
       const cy = n.getPosition().y + n.getSize().height / 2;
       let bottom = false, top = false;
       for (const e of this.graph.getEdges()) {
@@ -4100,7 +4101,7 @@ export class OmniboardCanvas {
       // Flip up only when bottom is busy and top is free.
       const flipUp = bottom && !top;
       const view = this.graph.findViewByCell(n) as { container?: Element } | null;
-      const el = view?.container?.querySelector?.(isGw ? ".bp-gw" : ".bp-event") as HTMLElement | null;
+      const el = view?.container?.querySelector?.(isGw ? ".bp-gw" : isData ? ".bp-dataobj, .bp-datastore" : ".bp-event") as HTMLElement | null;
       if (el) el.classList.toggle("label-top", flipUp);
     }
   }

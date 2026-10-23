@@ -13,6 +13,7 @@ import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
 import { laneHeights, laneIndexAt, resizeLaneBoundary, resizePoolLanes } from "./laneLayout";
 import { poolDropAnchor } from "./poolConnect";
+import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import {
   alignLeft, alignCenterH, alignRight,
@@ -93,7 +94,8 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, cls?: string, html?: 
 // with console spam. orth is the plain orthogonal router: right-angle segments
 // that dock cleanly to the boundary anchor, no obstacle avoidance (which a
 // user-arranged flowchart doesn't need, and bpmn.io doesn't do either).
-const SMART_ROUTER = { name: "orth", args: { padding: 16 } };
+// New arrows route around shapes (avoidRouter.ts); arrows saved with "orth" keep it.
+const SMART_ROUTER = AVOID_ROUTER;
 const CONNECTOR = { name: "rounded", args: { radius: 6 } };
 
 // Sequence message: ignore X6 routing — emit a single horizontal line at the
@@ -309,8 +311,8 @@ const EDGE_MARKER_LABEL: Record<string, string> = {
 const EDGE_WIDTHS = [1.4, 2.4, 3.6];
 // Line shape presets → router + connector.
 const EDGE_SHAPES: Record<string, { router: unknown; connector: unknown }> = {
-  orthogonal: { router: { name: "orth", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 6 } } },
-  elbow: { router: { name: "orth", args: { padding: 16 } }, connector: { name: "normal" } },
+  orthogonal: { router: AVOID_ROUTER, connector: { name: "rounded", args: { radius: 6 } } },
+  elbow: { router: AVOID_ROUTER, connector: { name: "normal" } },
   straight: { router: { name: "normal" }, connector: { name: "normal" } },
   curved: { router: { name: "normal" }, connector: { name: "smooth" } },
 };
@@ -408,6 +410,7 @@ export class OmniboardCanvas {
 
     ensureSeqConnector();
     ensureMindmapConnector();
+    registerAvoidRouter();
     this.graph = this.initGraph();
     this.guardRenderQueue();
     if (this.isMobile) {
@@ -4058,7 +4061,7 @@ export class OmniboardCanvas {
   private isOrthogonalEdge(edge: Edge): boolean {
     const r = edge.getRouter() as any;
     const name = typeof r === "string" ? r : r?.name;
-    return name === "orth" || name === "manhattan" || name === "metro" || name === "er";
+    return name === "orth" || name === "avoid" || name === "manhattan" || name === "metro" || name === "er";
   }
 
   private materializeEditableBends(edge: Edge): Array<{ x: number; y: number }> {
@@ -4365,7 +4368,7 @@ export class OmniboardCanvas {
           data.style = { ...(data.style ?? {}), flowType: ft, ...FLOW_TYPE_PRESETS[ft] };
         }
       }
-      const forcedRouter = e.router === "normal" ? { name: "normal" } : e.router === "orth" ? { name: "orth" } : null;
+      const forcedRouter = e.router === "normal" ? { name: "normal" } : e.router === "orth" ? { name: "orth" } : e.router === "avoid" ? AVOID_ROUTER : null;
       // Legacy/import-only precise anchoring: when `sourceAnchor`/`targetAnchor`
       // is set, pin the endpoint to that exact offset from the node's top-left.
       // Newly drawn canvas edges use the fixed 12-port grid instead.
@@ -4708,8 +4711,8 @@ export class OmniboardCanvas {
         : undefined;
       const r = e.getRouter() as { name?: string } | string | undefined;
       const routerName = typeof r === "string" ? r : r?.name;
-      const router: "normal" | "orth" | undefined =
-        routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : undefined;
+      const router: "normal" | "orth" | "avoid" | undefined =
+        routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : routerName === "avoid" ? "avoid" : undefined;
       // Round-trip bpmn.io-style precise anchor offsets (topLeft + dx/dy).
       const srcAnchor = srcFull.anchor?.name === "topLeft" && typeof srcFull.anchor.args?.dx === "number" && typeof srcFull.anchor.args?.dy === "number"
         ? { dx: srcFull.anchor.args.dx, dy: srcFull.anchor.args.dy } : undefined;

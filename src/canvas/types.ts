@@ -41,7 +41,7 @@ export interface CanvasModel {
     style?: { stroke?: string; width?: number; dash?: string; start?: string; end?: string };
     vertices?: Array<{ x: number; y: number }>;
     /** Optional override of the canvas router. Used by importers to preserve DI waypoints byte-for-byte. */
-    router?: "manhattan" | "normal" | "orth";
+    router?: "manhattan" | "normal" | "orth" | "avoid";
     /** BPMN edge type (Phase A). Default "sequence" when omitted.
      *  - "sequence": bpmn:SequenceFlow (solid arrow inside a process)
      *  - "message": bpmn:MessageFlow (dashed arrow across pool boundary)

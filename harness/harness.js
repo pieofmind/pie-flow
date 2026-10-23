@@ -46641,6 +46641,27 @@
     Path3.arcToCurves = arcToCurves;
   })(Path || (Path = {}));
 
+  // node_modules/@antv/x6/es/registry/index.js
+  var registry_exports = {};
+  __export(registry_exports, {
+    Attr: () => Attr,
+    Background: () => Background,
+    ConnectionPoint: () => ConnectionPoint,
+    Connector: () => Connector,
+    EdgeAnchor: () => EdgeAnchor,
+    EdgeTool: () => EdgeTool,
+    Filter: () => Filter,
+    Grid: () => Grid,
+    Highlighter: () => Highlighter,
+    Marker: () => Marker,
+    NodeAnchor: () => NodeAnchor,
+    NodeTool: () => NodeTool,
+    PortLabelLayout: () => PortLabelLayout,
+    PortLayout: () => PortLayout,
+    Registry: () => Registry,
+    Router: () => Router
+  });
+
   // node_modules/@antv/x6/es/registry/registry.js
   var Registry = class {
     constructor(options) {
@@ -70655,6 +70676,41 @@
     return { dx: clamp2(other.x - pool.x, 0, pool.width), dy: toBottom ? pool.height : 0 };
   }
 
+  // src/canvas/avoidRouter.ts
+  var AVOID_ROUTER = { name: "avoid", args: { padding: 20 } };
+  var CONTAINER_KINDS = /* @__PURE__ */ new Set(["bpmn-pool", "bpmn-lane", "bpmn-group", "bpmn-annotation"]);
+  var EXPANDABLE_KINDS = /* @__PURE__ */ new Set(["bpmn-subprocess", "bpmn-event-subprocess", "bpmn-transaction"]);
+  function isRouteObstacle(kind, data2) {
+    if (CONTAINER_KINDS.has(kind)) return false;
+    if (EXPANDABLE_KINDS.has(kind) && data2?.collapsed !== true) return false;
+    return true;
+  }
+  function portSide(port2) {
+    const m4 = typeof port2 === "string" ? /^(top|right|bottom|left)/.exec(port2) : null;
+    return m4 ? m4[1] : void 0;
+  }
+  var registered2 = false;
+  function registerAvoidRouter() {
+    if (registered2) return;
+    registered2 = true;
+    Graph.registerRouter("avoid", function(vertices, args, view) {
+      const presets = registry_exports.Router.presets;
+      const padding = args.padding ?? 20;
+      if (vertices.length) return presets.orth.call(this, vertices, { padding }, view);
+      const graph = view.graph;
+      const excludeNodes = graph.getNodes().filter((n2) => !isRouteObstacle(String(n2.getData()?.kind ?? ""), n2.getData()));
+      const src = portSide(view.cell.getSource().port);
+      const tgt = portSide(view.cell.getTarget().port);
+      return presets.manhattan.call(this, vertices, {
+        padding,
+        step: 20,
+        excludeNodes,
+        ...src ? { startDirections: [src] } : {},
+        ...tgt ? { endDirections: [tgt] } : {}
+      }, view);
+    }, true);
+  }
+
   // src/io/bpmn/labelGeometry.ts
   var isEvent = (shape) => shape.includes("event") || shape.includes("bpmn-start") || shape.includes("bpmn-intermediate") || shape.includes("bpmn-end");
   var isGateway = (shape) => shape.includes("gateway");
@@ -72457,7 +72513,7 @@
     if (html3 !== void 0) node2.innerHTML = html3;
     return node2;
   }
-  var SMART_ROUTER = { name: "orth", args: { padding: 16 } };
+  var SMART_ROUTER = AVOID_ROUTER;
   var CONNECTOR = { name: "rounded", args: { radius: 6 } };
   var SEQ_CONNECTOR_REGISTERED = false;
   function ensureSeqConnector() {
@@ -72535,7 +72591,7 @@
     "bpmn-annotation",
     "bpmn-group"
   ]);
-  var CONTAINER_KINDS = /* @__PURE__ */ new Set([
+  var CONTAINER_KINDS2 = /* @__PURE__ */ new Set([
     "sq-frag-alt",
     "sq-frag-opt",
     "sq-frag-loop",
@@ -72621,7 +72677,7 @@
     if (!hit) return { kind: shape, extra };
     return { kind: hit.kind, extra: { ...extra, ...hit.patch } };
   }
-  function portSide(port2) {
+  function portSide2(port2) {
     const side = port2?.split("-")[0];
     return side && side in PORT_SIDE ? side : void 0;
   }
@@ -72631,7 +72687,7 @@
     return "";
   }
   function oppositePort(port2) {
-    const side = portSide(port2);
+    const side = portSide2(port2);
     if (!side) return void 0;
     return `${OPPOSITE_SIDE[side]}${portBand(port2)}`;
   }
@@ -72639,7 +72695,7 @@
     return side;
   }
   function collapsePortToSideCenter(port2) {
-    const side = portSide(port2 ?? void 0);
+    const side = portSide2(port2 ?? void 0);
     return side ? centerPortForSide(side) : void 0;
   }
   function nearestFixedPort(node2, pt2) {
@@ -72705,8 +72761,8 @@
   };
   var EDGE_WIDTHS = [1.4, 2.4, 3.6];
   var EDGE_SHAPES = {
-    orthogonal: { router: { name: "orth", args: { padding: 16 } }, connector: { name: "rounded", args: { radius: 6 } } },
-    elbow: { router: { name: "orth", args: { padding: 16 } }, connector: { name: "normal" } },
+    orthogonal: { router: AVOID_ROUTER, connector: { name: "rounded", args: { radius: 6 } } },
+    elbow: { router: AVOID_ROUTER, connector: { name: "normal" } },
     straight: { router: { name: "normal" }, connector: { name: "normal" } },
     curved: { router: { name: "normal" }, connector: { name: "smooth" } }
   };
@@ -72893,6 +72949,7 @@
       }
       ensureSeqConnector();
       ensureMindmapConnector();
+      registerAvoidRouter();
       this.graph = this.initGraph();
       this.guardRenderQueue();
       if (this.isMobile) {
@@ -76648,7 +76705,7 @@
     isOrthogonalEdge(edge) {
       const r2 = edge.getRouter();
       const name2 = typeof r2 === "string" ? r2 : r2?.name;
-      return name2 === "orth" || name2 === "manhattan" || name2 === "metro" || name2 === "er";
+      return name2 === "orth" || name2 === "avoid" || name2 === "manhattan" || name2 === "metro" || name2 === "er";
     }
     materializeEditableBends(edge) {
       const view = this.graph.findViewByCell(edge);
@@ -76899,7 +76956,7 @@
             data2.style = { ...data2.style ?? {}, flowType: ft3, ...FLOW_TYPE_PRESETS[ft3] };
           }
         }
-        const forcedRouter = e2.router === "normal" ? { name: "normal" } : e2.router === "orth" ? { name: "orth" } : null;
+        const forcedRouter = e2.router === "normal" ? { name: "normal" } : e2.router === "orth" ? { name: "orth" } : e2.router === "avoid" ? AVOID_ROUTER : null;
         const sourcePort = this.normalizeLegacyBpmnEventPort(e2.source, e2.sourcePort);
         const targetPort = this.normalizeLegacyBpmnEventPort(e2.target, e2.targetPort);
         const sourceEnd = { cell: e2.source };
@@ -77172,7 +77229,7 @@
         const labelPos = lbl?.position && (lbl.position.distance != null || lbl.position.offset != null) ? { distance: lbl.position.distance, offset: lbl.position.offset } : void 0;
         const r2 = e2.getRouter();
         const routerName = typeof r2 === "string" ? r2 : r2?.name;
-        const router2 = routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : void 0;
+        const router2 = routerName === "normal" ? "normal" : routerName === "orth" ? "orth" : routerName === "avoid" ? "avoid" : void 0;
         const srcAnchor = srcFull.anchor?.name === "topLeft" && typeof srcFull.anchor.args?.dx === "number" && typeof srcFull.anchor.args?.dy === "number" ? { dx: srcFull.anchor.args.dx, dy: srcFull.anchor.args.dy } : void 0;
         const tgtAnchor = tgtFull.anchor?.name === "topLeft" && typeof tgtFull.anchor.args?.dx === "number" && typeof tgtFull.anchor.args?.dy === "number" ? { dx: tgtFull.anchor.args.dx, dy: tgtFull.anchor.args.dy } : void 0;
         let bpmnKind = d2.bpmnKind;
@@ -77247,7 +77304,7 @@
         return !k3.startsWith("mm-") && !k3.startsWith("sq-");
       });
       if (layoutable.length < 2) return;
-      const containers = layoutable.filter((n2) => CONTAINER_KINDS.has(this.nodeKind(n2)));
+      const containers = layoutable.filter((n2) => CONTAINER_KINDS2.has(this.nodeKind(n2)));
       const containerIds = new Set(containers.map((c4) => c4.id));
       const leaves = layoutable.filter((n2) => !containerIds.has(n2.id));
       if (leaves.length < 2) return;

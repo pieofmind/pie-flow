@@ -148,6 +148,48 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(src.cell === 'sp_other' && src.port === 'left', 'blank drop: ' + JSON.stringify(src));
   });
 
+  // Does any segment of the edge's drawn route cross the box?
+  const routeCrosses = (edgeId, box) => {
+    const view = g().findViewByCell(cell(edgeId));
+    const pts = [view.sourcePoint, ...(view.routePoints || []), view.targetPoint];
+    const inside = (p) => p.x > box.x + 1 && p.x < box.x + box.width - 1 && p.y > box.y + 1 && p.y < box.y + box.height - 1;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      for (let k = 0; k <= 20; k++) {
+        if (inside({ x: a.x + (b.x - a.x) * k / 20, y: a.y + (b.y - a.y) * k / 20 })) return true;
+      }
+    }
+    return false;
+  };
+
+  await run('a new arrow routes around a shape in its way (router avoid)', async () => {
+    window.__ob.loadModel({ nodes: [
+      t('ra', 100, 200), t('rmid', 320, 190), t('rb', 560, 200),
+      { id: 'rpool', shape: 'bpmn-pool', x: 40, y: 120, width: 760, height: 260, label: 'P', attrs: { lanes: [{ id: 'rl', label: 'L' }] } },
+    ], edges: [{ id: 'rab', source: 'ra', sourcePort: 'right', target: 'rb', targetPort: 'left' }] });
+    await tick(400);
+    assert(!routeCrosses('rab', cell('rmid').getBBox()), 'route crosses the shape in between');
+    const r = cell('rab').getRouter();
+    assert((r?.name ?? r) === 'avoid', 'default router: ' + JSON.stringify(r));
+  });
+
+  await run('narrow gap: still around, not through', async () => {
+    // the straight line (y = 230) runs through nmid; the gap under it is only 10px
+    window.__ob.loadModel({ nodes: [t('na', 100, 200), t('nmid', 320, 185), t('nmid2', 320, 255), t('nb', 560, 200)],
+      edges: [{ id: 'nab', source: 'na', sourcePort: 'right', target: 'nb', targetPort: 'left' }] });
+    await tick(400);
+    assert(!routeCrosses('nab', cell('nmid').getBBox()) && !routeCrosses('nab', cell('nmid2').getBBox()), 'route crosses a shape');
+  });
+
+  await run('an arrow with hand-made bends keeps exactly those bends', async () => {
+    window.__ob.loadModel({ nodes: [t('va', 100, 200), t('vb', 560, 200)],
+      edges: [{ id: 'vab', source: 'va', sourcePort: 'right', target: 'vb', targetPort: 'left', vertices: [{ x: 300, y: 100 }, { x: 450, y: 100 }] }] });
+    await tick(400);
+    const view = g().findViewByCell(cell('vab'));
+    const pts = (view.routePoints || []).map((p) => `${Math.round(p.x)},${Math.round(p.y)}`);
+    assert(pts.includes('300,100') && pts.includes('450,100'), 'route ignores the bends: ' + pts);
+  });
+
   const failed = results.filter(r => !r.ok).length;
   w(failed ? `${failed} FAILED` : 'ALL PASS', failed ? 'fail' : 'pass');
   window.__results = results;

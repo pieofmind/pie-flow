@@ -1,4 +1,5 @@
 import type { CanvasModel } from "../../canvas/types";
+import { lintExtra } from "./validatorExtra";
 
 export interface BpmnIssue {
   id: string;
@@ -106,5 +107,6 @@ export function validateBpmnModel(model: CanvasModel): BpmnIssue[] {
       }
     }
   }
+  lintExtra(model, mk);
   return issues;
 }

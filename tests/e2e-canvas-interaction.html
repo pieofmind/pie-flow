@@ -11,7 +11,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
 </head><body>
 <div id="host" class="da-board-view"></div>
 <div id="log"></div>
-<script src="../harness/harness.js?v=interaction4"></script>
+<script src="../harness/harness.js?v=interaction5"></script>
 <script>
 // Multi-select drag moves each node once per tick; ports are easy to grab.
 // Serve the repo root (python3 -m http.server) and open tests/e2e-canvas-interaction.html.
@@ -363,6 +363,51 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     const d0 = document.querySelector('[data-cell-id="rab"] path').getAttribute('d');
     const x0 = +d0.match(/^M\s*([\d.]+)/)[1];
     assert(Math.abs(x0 - 430) <= 1, 'arrow starts at ' + x0 + ', expected 430');
+  });
+
+  // ── Sub-process on its own page (drill-down + breadcrumb) ──
+  const drillBtn = () => [...document.querySelectorAll('.lk-cb-btn')].find((b) => b.title === 'Mở trang riêng');
+
+  await run('"Mở trang riêng" shows only the sub-process steps, with a breadcrumb back', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'ds', shape: 'bpmn-event-start', x: 40, y: 330, width: 36, height: 36 },
+      { id: 'dsub', shape: 'bpmn-subprocess', x: 300, y: 300, width: 120, height: 80, label: 'Chăm sóc', attrs: { collapsed: true } },
+      { id: 'da', shape: 'bpmn-task', x: 330, y: 340, width: 100, height: 80, label: 'A', parentId: 'dsub' },
+      { id: 'db', shape: 'bpmn-task', x: 520, y: 340, width: 100, height: 80, label: 'B', parentId: 'dsub' },
+    ], edges: [{ id: 'dab', source: 'da', target: 'db' }, { id: 'dsf', source: 'ds', target: 'dsub' }] });
+    g().resetSelection([cell('dsub')]);
+    await tick(150);
+    assert(drillBtn(), 'no "Mở trang riêng" button');
+    drillBtn().click();
+    await tick(200);
+    assert(cell('da').isVisible() && cell('db').isVisible() && cell('dab').isVisible(), 'steps hidden on their page');
+    assert(!cell('ds').isVisible() && !cell('dsub').isVisible() && !cell('dsf').isVisible(), 'outside shapes still shown');
+    const crumbs = [...document.querySelectorAll('.lk-crumbs .lk-crumb')].map((b) => b.textContent);
+    assert(crumbs.join('|') === 'Process|Chăm sóc', 'crumbs: ' + crumbs);
+    // a shape added on this page is one of its steps, wherever it lands
+    window.__ob.addHtmlNode('bpmn-task', 700, 340, 100, 80, 'C', undefined, 'dc');
+    await tick(100);
+    assert(mnode('dc').parentId === 'dsub', 'new shape parent: ' + mnode('dc').parentId);
+    document.querySelector('.lk-crumbs .lk-crumb').click();
+    await tick(200);
+    assert(!document.querySelector('.lk-crumbs'), 'breadcrumb still shown');
+    assert(cell('ds').isVisible() && cell('dsub').isVisible() && !cell('da').isVisible() && !cell('dc').isVisible(), 'back: wrong visibility');
+    assert(mnode('dsub').attrs?.collapsed === true, 'collapsed state changed');
+  });
+
+  await run('a ⊞ task opened on its own page with nothing added goes back to the ⊞ task', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'dt', shape: 'bpmn-task', x: 300, y: 300, width: 120, height: 80, label: 'T', attrs: { markers: ['subprocess'], collapsed: true } },
+    ], edges: [] });
+    g().resetSelection([cell('dt')]);
+    await tick(150);
+    drillBtn().click();
+    await tick(150);
+    assert(mnode('dt').shape === 'bpmn-subprocess', 'not a sub-process on its page');
+    document.querySelector('.lk-crumbs .lk-crumb').click();
+    await tick(150);
+    const n = mnode('dt');
+    assert(n.shape === 'bpmn-task' && n.attrs?.markers?.includes('subprocess') && n.attrs?.collapsed === true, 'not back to ⊞ task: ' + JSON.stringify(n));
   });
 
   const failed = results.filter(r => !r.ok).length;

@@ -73196,6 +73196,9 @@
       };
       this.contextBarRaf = null;
       this.styleClipboard = null;
+      /** Sub-process whose steps are shown on their own page (null = the whole process). */
+      this.drillRoot = null;
+      this.crumbs = null;
       this.root = root2;
       this.categories = categories;
       this.onChange = onChange;
@@ -75563,6 +75566,13 @@
           (ev) => this.openBpmnMarkerPopup(node2, ev.currentTarget)
         ));
       }
+      if (this.isSubprocessNode(node2)) {
+        this.contextBar.appendChild(mkBtn(
+          `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="11" height="11"/><path d="M10 3h7v7M17 3l-7 7"/></svg>`,
+          "M\u1EDF trang ri\xEAng",
+          () => this.enterSubprocess(node2)
+        ));
+      }
       if (this.nodeKind(node2) === "bpmn-pool") {
         this.contextBar.appendChild(el("div", "lk-cb-sep"));
         const ic = (svg3) => `<svg viewBox="0 0 20 20" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">${svg3}</svg>`;
@@ -76308,12 +76318,16 @@
     }
     /** Steps inside a closed sub-process are hidden, with every arrow touching them. */
     refreshSubprocessVisibility() {
-      const inClosed = (n2) => {
-        for (let p4 = n2.getParent(); p4; p4 = p4.getParent()) if (p4.getData()?.collapsed === true) return true;
-        return false;
+      const root2 = this.drillRoot;
+      const shown = (n2) => {
+        for (let p4 = n2.getParent(); p4; p4 = p4.getParent()) {
+          if (p4.id === root2) return true;
+          if (p4.getData()?.collapsed === true) return false;
+        }
+        return !root2;
       };
       for (const n2 of this.graph.getNodes()) {
-        const show = !inClosed(n2);
+        const show = shown(n2);
         if (n2.isVisible() === show) continue;
         n2.setVisible(show);
         if (!show) this.graph.unselect(n2);
@@ -76326,6 +76340,66 @@
         if (show) this.graph.findViewByCell(e2)?.update();
       }
     }
+    /** A sub-process, or a task with the ⊞ marker (an empty one). */
+    isSubprocessNode(node2) {
+      const k3 = this.nodeKind(node2);
+      return SUBPROCESS_KINDS.has(k3) || k3 === "bpmn-task" && !!node2.getData()?.markers?.includes("subprocess");
+    }
+    /** "Mở trang riêng": show only this sub-process's steps, with a breadcrumb
+     *  back — the same canvas, every other shape hidden (bpmn-js drill-down). */
+    enterSubprocess(node2) {
+      if (this.nodeKind(node2) === "bpmn-task") {
+        const d2 = node2.getData() ?? {};
+        const markers = (d2.markers ?? []).filter((m4) => m4 !== "subprocess");
+        node2.setData({ ...d2, kind: "bpmn-subprocess", markers: markers.length ? markers : void 0, collapsed: true }, { deep: false });
+        this.rerender(node2);
+      }
+      this.setDrillRoot(node2.id);
+    }
+    setDrillRoot(id) {
+      const prev = this.drillRoot ? this.graph.getCellById(this.drillRoot) : null;
+      this.drillRoot = id;
+      if (prev?.isNode() && prev.id !== id && prev.getData()?.collapsed === true && this.nodeKind(prev) === "bpmn-subprocess" && !(prev.getChildren() ?? []).some((c4) => c4.isNode())) {
+        const d2 = prev.getData() ?? {};
+        prev.setData({ ...d2, kind: "bpmn-task", markers: [...d2.markers ?? [], "subprocess"] }, { deep: false });
+        this.rerender(prev);
+      }
+      this.graph.cleanSelection();
+      this.refreshSubprocessVisibility();
+      this.renderCrumbs();
+      const shown = this.graph.getNodes().filter((n2) => n2.isVisible());
+      if (id && shown.length) this.graph.zoomToRect(this.graph.getCellsBBox(shown).inflate(80), { maxScale: 1 });
+      else if (id) this.graph.centerCell(this.graph.getCellById(id));
+      else if (prev) this.graph.centerCell(prev);
+    }
+    /** "Process › Sub A › Sub B" over the canvas while inside a sub-process. */
+    renderCrumbs() {
+      if (!this.drillRoot) {
+        this.crumbs?.remove();
+        this.crumbs = null;
+        return;
+      }
+      if (!this.crumbs) {
+        this.crumbs = el("div", "lk-crumbs");
+        this.graphMount.appendChild(this.crumbs);
+      }
+      this.crumbs.innerHTML = "";
+      const path2 = [];
+      for (let c4 = this.graph.getCellById(this.drillRoot); c4?.isNode(); c4 = c4.getParent()) {
+        if (this.isSubprocessNode(c4)) path2.unshift(c4);
+      }
+      const seg = (label, id, current) => {
+        const b2 = el("button", "lk-crumb" + (current ? " is-current" : ""), "");
+        b2.textContent = label;
+        if (!current) b2.onclick = () => this.setDrillRoot(id);
+        this.crumbs.appendChild(b2);
+      };
+      seg("Process", null, false);
+      path2.forEach((n2, i3) => {
+        this.crumbs.appendChild(el("span", "lk-crumb-sep", "\u203A"));
+        seg(this.nodeLabel(n2) || "Sub-process", n2.id, i3 === path2.length - 1);
+      });
+    }
     /** A shape dropped inside an open sub-process becomes one of its steps;
      *  dragged out of it, it stops being one. */
     adoptIntoSubprocess(node2) {
@@ -76334,12 +76408,14 @@
       const c4 = node2.getBBox().center;
       const own = /* @__PURE__ */ new Set([node2.id, ...node2.getDescendants().map((x3) => x3.id), node2.getData()?.attachedTo]);
       const host2 = this.graph.getNodes().filter((f3) => !own.has(f3.id) && SUBPROCESS_KINDS.has(this.nodeKind(f3)) && f3.getData()?.collapsed !== true && f3.isVisible() && f3.getBBox().containsPoint(c4)).sort((a3, b2) => a3.getBBox().width * a3.getBBox().height - b2.getBBox().width * b2.getBBox().height)[0];
+      const drill = this.drillRoot && !own.has(this.drillRoot) ? this.graph.getCellById(this.drillRoot) : void 0;
+      const target = host2 ?? drill;
       const cur = node2.getParent();
       const curIsSub = !!cur?.isNode() && SUBPROCESS_KINDS.has(this.nodeKind(cur));
-      if (host2 ? cur === host2 : !curIsSub) return;
+      if (target ? cur === target : !curIsSub) return;
       if (cur) cur.unembed(node2);
-      if (host2) host2.embed(node2);
-      node2.setData({ ...node2.getData(), parentId: host2?.id }, { deep: false });
+      if (target) target.embed(node2);
+      node2.setData({ ...node2.getData(), parentId: target?.id }, { deep: false });
       if (FRAME_KINDS.has(kind)) node2.setZIndex(frameZ(kind, this.ancestorCount(node2)));
     }
     // ── BPMN Đợt D — Trigger / Marker / Interrupting pickers ────────────────
@@ -77384,6 +77460,8 @@
       queue?.flushJobsSync?.();
     }
     loadModel(model, opts) {
+      this.drillRoot = null;
+      this.renderCrumbs();
       model = this.dedupeLaneIdsAcrossPools(model);
       this.flushPendingRender();
       this.graph.clearCells();

@@ -1811,3 +1811,10 @@ body.is-mobile .diagrams-card-header {
 .omniboard-embed-cardwrap {
   display: block;
 }
+
+/* Breadcrumb while a sub-process is open on its own page. */
+.lk-root .lk-crumbs { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; align-items: center; gap: 4px; padding: 4px 8px; background: var(--pg-surface); border: 1px solid var(--pg-border); border-radius: 8px; box-shadow: var(--sh-sm); font-size: 12px; }
+.lk-root .lk-crumb { background: none; border: none; box-shadow: none; padding: 2px 6px; border-radius: 5px; color: var(--pg-accent); cursor: pointer; font: inherit; }
+.lk-root .lk-crumb:hover { background: var(--pg-hover); }
+.lk-root .lk-crumb.is-current { color: var(--pg-text); font-weight: 600; cursor: default; }
+.lk-root .lk-crumb-sep { color: var(--pg-text-muted); }

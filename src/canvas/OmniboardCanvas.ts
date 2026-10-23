@@ -1,4 +1,4 @@
-import { Graph, Node, Edge, Path, type EdgeView } from "@antv/x6";
+import { Graph, Node, Edge, Path, type Cell, type EdgeView } from "@antv/x6";
 import { Selection } from "@antv/x6-plugin-selection";
 import { Clipboard } from "@antv/x6-plugin-clipboard";
 import { History } from "@antv/x6-plugin-history";
@@ -2786,6 +2786,11 @@ export class OmniboardCanvas {
         "Activity markers (loop / MI / ad-hoc / compensation)",
         (ev) => this.openBpmnMarkerPopup(node, ev.currentTarget as HTMLElement)));
     }
+    if (this.isSubprocessNode(node)) {
+      this.contextBar.appendChild(mkBtn(
+        `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="11" height="11"/><path d="M10 3h7v7M17 3l-7 7"/></svg>`,
+        "Mở trang riêng", () => this.enterSubprocess(node)));
+    }
 
     // BPMN Pool — quick-action buttons (bpmn.io UX).
     if (this.nodeKind(node) === "bpmn-pool") {
@@ -3485,12 +3490,18 @@ export class OmniboardCanvas {
   }
   /** Steps inside a closed sub-process are hidden, with every arrow touching them. */
   private refreshSubprocessVisibility(): void {
-    const inClosed = (n: Node): boolean => {
-      for (let p = n.getParent(); p; p = p.getParent()) if (p.getData()?.collapsed === true) return true;
-      return false;
+    const root = this.drillRoot;
+    // Shown: outside any closed sub-process — or, on a sub-process's own page,
+    // inside it and not inside a closed one below it.
+    const shown = (n: Node): boolean => {
+      for (let p = n.getParent(); p; p = p.getParent()) {
+        if (p.id === root) return true;
+        if (p.getData()?.collapsed === true) return false;
+      }
+      return !root;
     };
     for (const n of this.graph.getNodes()) {
-      const show = !inClosed(n);
+      const show = shown(n);
       if (n.isVisible() === show) continue;
       n.setVisible(show);
       if (!show) this.graph.unselect(n);
@@ -3504,6 +3515,65 @@ export class OmniboardCanvas {
       if (show) (this.graph.findViewByCell(e) as EdgeView | null)?.update();
     }
   }
+  /** A sub-process, or a task with the ⊞ marker (an empty one). */
+  private isSubprocessNode(node: Node): boolean {
+    const k = this.nodeKind(node);
+    return SUBPROCESS_KINDS.has(k) || (k === "bpmn-task" && !!(node.getData()?.markers as string[] | undefined)?.includes("subprocess"));
+  }
+  /** Sub-process whose steps are shown on their own page (null = the whole process). */
+  private drillRoot: string | null = null;
+  private crumbs: HTMLElement | null = null;
+  /** "Mở trang riêng": show only this sub-process's steps, with a breadcrumb
+   *  back — the same canvas, every other shape hidden (bpmn-js drill-down). */
+  private enterSubprocess(node: Node): void {
+    if (this.nodeKind(node) === "bpmn-task") {
+      // An empty ⊞ task becomes a closed sub-process so it can hold steps.
+      const d = node.getData() ?? {};
+      const markers = ((d.markers ?? []) as string[]).filter((m) => m !== "subprocess");
+      node.setData({ ...d, kind: "bpmn-subprocess", markers: markers.length ? markers : undefined, collapsed: true }, { deep: false });
+      this.rerender(node);
+    }
+    this.setDrillRoot(node.id);
+  }
+  private setDrillRoot(id: string | null): void {
+    const prev = this.drillRoot ? this.graph.getCellById(this.drillRoot) : null;
+    this.drillRoot = id;
+    // Left a closed sub-process with no steps: back to the ⊞ task it came from.
+    if (prev?.isNode() && prev.id !== id && prev.getData()?.collapsed === true
+      && this.nodeKind(prev) === "bpmn-subprocess" && !(prev.getChildren() ?? []).some((c) => c.isNode())) {
+      const d = prev.getData() ?? {};
+      prev.setData({ ...d, kind: "bpmn-task", markers: [...((d.markers ?? []) as string[]), "subprocess"] }, { deep: false });
+      this.rerender(prev);
+    }
+    this.graph.cleanSelection();
+    this.refreshSubprocessVisibility();
+    this.renderCrumbs();
+    const shown = this.graph.getNodes().filter((n) => n.isVisible());
+    if (id && shown.length) this.graph.zoomToRect(this.graph.getCellsBBox(shown)!.inflate(80), { maxScale: 1 });
+    else if (id) this.graph.centerCell(this.graph.getCellById(id));
+    else if (prev) this.graph.centerCell(prev);
+  }
+  /** "Process › Sub A › Sub B" over the canvas while inside a sub-process. */
+  private renderCrumbs(): void {
+    if (!this.drillRoot) { this.crumbs?.remove(); this.crumbs = null; return; }
+    if (!this.crumbs) { this.crumbs = el("div", "lk-crumbs"); this.graphMount.appendChild(this.crumbs); }
+    this.crumbs.innerHTML = "";
+    const path: Node[] = [];
+    for (let c: Cell | null = this.graph.getCellById(this.drillRoot); c?.isNode(); c = c.getParent()) {
+      if (this.isSubprocessNode(c)) path.unshift(c);
+    }
+    const seg = (label: string, id: string | null, current: boolean) => {
+      const b = el("button", "lk-crumb" + (current ? " is-current" : ""), "");
+      b.textContent = label;
+      if (!current) b.onclick = () => this.setDrillRoot(id);
+      this.crumbs!.appendChild(b);
+    };
+    seg("Process", null, false);
+    path.forEach((n, i) => {
+      this.crumbs!.appendChild(el("span", "lk-crumb-sep", "›"));
+      seg(this.nodeLabel(n) || "Sub-process", n.id, i === path.length - 1);
+    });
+  }
   /** A shape dropped inside an open sub-process becomes one of its steps;
    *  dragged out of it, it stops being one. */
   private adoptIntoSubprocess(node: Node): void {
@@ -3515,12 +3585,15 @@ export class OmniboardCanvas {
       .filter((f) => !own.has(f.id) && SUBPROCESS_KINDS.has(this.nodeKind(f)) && f.getData()?.collapsed !== true
         && f.isVisible() && f.getBBox().containsPoint(c))
       .sort((a, b) => a.getBBox().width * a.getBBox().height - b.getBBox().width * b.getBBox().height)[0];
+    // On a sub-process's own page every shape belongs to it.
+    const drill = this.drillRoot && !own.has(this.drillRoot) ? this.graph.getCellById(this.drillRoot) as Node : undefined;
+    const target = host ?? drill;
     const cur = node.getParent();
     const curIsSub = !!cur?.isNode() && SUBPROCESS_KINDS.has(this.nodeKind(cur as Node));
-    if (host ? cur === host : !curIsSub) return;
+    if (target ? cur === target : !curIsSub) return;
     if (cur) cur.unembed(node);
-    if (host) host.embed(node);
-    node.setData({ ...node.getData(), parentId: host?.id }, { deep: false });
+    if (target) target.embed(node);
+    node.setData({ ...node.getData(), parentId: target?.id }, { deep: false });
     if (FRAME_KINDS.has(kind)) node.setZIndex(frameZ(kind, this.ancestorCount(node)));
   }
 
@@ -4531,6 +4604,8 @@ export class OmniboardCanvas {
   }
 
   loadModel(model: CanvasModel, opts?: { keepView?: boolean }) {
+    this.drillRoot = null;   // a fresh model opens on the whole process
+    this.renderCrumbs();
     // Migration: legacy pool defaults hardcoded lane id "l1", so files with
     // ≥2 pools have duplicate lane ids across pools. exportBpmn dồn lanes
     // vào 1 laneSet → invalid BPMN (Canvas._ensureValid: "element already

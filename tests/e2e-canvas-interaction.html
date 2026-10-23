@@ -11,7 +11,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
 </head><body>
 <div id="host" class="da-board-view"></div>
 <div id="log"></div>
-<script src="../harness/harness.js?v=interaction4"></script>
+<script src="../harness/harness.js?v=merge30a"></script>
 <script>
 // Multi-select drag moves each node once per tick; ports are easy to grab.
 // Serve the repo root (python3 -m http.server) and open tests/e2e-canvas-interaction.html.
@@ -363,6 +363,41 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     const d0 = document.querySelector('[data-cell-id="rab"] path').getAttribute('d');
     const x0 = +d0.match(/^M\s*([\d.]+)/)[1];
     assert(Math.abs(x0 - 430) <= 1, 'arrow starts at ' + x0 + ', expected 430');
+  });
+
+  // ── Loading a board is not an edit: undo never goes back past it ──
+  const boardA = () => ({ nodes: [t('ua', 100, 100), t('ub', 300, 100)], edges: [{ id: 'uab', source: 'ua', target: 'ub' }] });
+  const boardB = () => ({ nodes: [t('uc', 100, 300)], edges: [] });
+  const ids = () => window.__ob.getModel().nodes.map((n) => n.id).sort().join();
+  const undoAll = async () => { for (let i = 0; i < 20 && g().canUndo(); i++) { window.__ob.undo(); await tick(20); } };
+
+  await run('opening a board leaves nothing to undo', async () => {
+    window.__ob.loadModel(boardA());
+    await tick(400);                         // past the deferred auto-grow after load
+    assert(!g().canUndo(), 'undo available right after opening');
+    await undoAll();
+    assert(ids() === 'ua,ub', 'board after undo: [' + ids() + ']');
+  });
+
+  await run('undo after an edit stops at the board as it was opened', async () => {
+    window.__ob.loadModel(boardA());
+    await tick(400);
+    cell('ua').setPosition(150, 180);
+    await undoAll();
+    assert(ids() === 'ua,ub', 'board after undo: [' + ids() + ']');
+    const p = cell('ua').getPosition();
+    assert(p.x === 100 && p.y === 100, 'node not back where it was opened: ' + JSON.stringify(p));
+  });
+
+  await run('loading another board over an edited one: undo does not bring the old one back or empty it', async () => {
+    window.__ob.loadModel(boardA());
+    await tick(400);
+    cell('ua').setPosition(150, 180);
+    window.__ob.loadModel(boardB());         // Board ⇄ native, another diagram, reload from disk
+    await tick(400);
+    assert(!g().canUndo(), 'undo available after loading another board');
+    await undoAll();
+    assert(ids() === 'uc', 'board after undo: [' + ids() + ']');
   });
 
   const failed = results.filter(r => !r.ok).length;

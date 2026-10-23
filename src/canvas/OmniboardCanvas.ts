@@ -4767,6 +4767,9 @@ export class OmniboardCanvas {
     this.raiseBoundaryEvents();
     this.refreshSubprocessVisibility();
     this.graph.stopBatch("load");
+    // Loading is not an edit: drop the clear + add records (and any earlier
+    // edits of the previous board), or Ctrl+Z walks back to an empty board.
+    this.graph.cleanHistory();
     this.resyncHtmlNodes();   // rebuild the mobile overlay from the freshly loaded nodes
     // Auto-grow every mindmap node once the foreignObject DOM is mounted &
     // measurable — covers long labels saved with too-small initial height.

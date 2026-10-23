@@ -14,10 +14,32 @@ export const FIXED_PORT_IDS = [
 
 export type FixedPortId = typeof FIXED_PORT_IDS[number];
 
+/** Radius of a port's grab area (the visible dot stays ≈2.75). */
+export const PORT_HIT_RADIUS = 8;
+
 export function makePorts(stroke = "#5E8FB9") {
   // Visibility is controlled by togglePorts. Keep the base attrs free of inline
   // visibility so X6 can render all 12 fixed magnets when a node is hovered.
-  const circle = { r: 2.75, magnet: true, stroke, fill: "#fff", strokeWidth: 0.9 };
+  //
+  // Grab area vs. look: the magnet is an r=8 circle (easy to hit) painted with a
+  // radial gradient that draws the same small dot as before (white r≈2.75 with a
+  // thin ring) and is transparent outside it. A transparent gradient still
+  // counts as painted, so the whole disc takes the pointer — no extra element,
+  // so every `circle[port=…]` selector keeps working.
+  const circle = {
+    r: PORT_HIT_RADIUS, magnet: true, stroke: "none",
+    fill: {
+      type: "radialGradient",
+      stops: [
+        { offset: "0%", color: "#fff" },
+        { offset: "28%", color: "#fff" },
+        { offset: "29%", color: stroke },
+        { offset: "40%", color: stroke },
+        { offset: "41%", color: stroke, opacity: 0 },
+        { offset: "100%", color: stroke, opacity: 0 },
+      ],
+    },
+  };
   return {
     groups: {
       // Cardinal — one item per group so X6 doesn't auto-distribute.

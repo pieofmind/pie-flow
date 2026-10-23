@@ -1,0 +1,72 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"/>
+<title>Canvas interaction</title>
+<style>
+:root{--font-interface:system-ui;}
+body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
+#host{width:1200px;height:520px;border:1px solid #ccc;}
+#log{padding:8px;font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap;background:#fff;border-top:1px solid #ccc;max-height:300px;overflow:auto}
+.pass{color:#0a0}.fail{color:#c00;font-weight:600}
+</style>
+<link rel="stylesheet" href="../styles.css"/>
+</head><body>
+<div id="host" class="da-board-view"></div>
+<div id="log"></div>
+<script src="../harness/harness.js?v=interaction1"></script>
+<script>
+// Multi-select drag moves each node once per tick; ports are easy to grab.
+// Serve the repo root (python3 -m http.server) and open tests/e2e-canvas-interaction.html.
+const log = document.getElementById('log');
+const w = (s, cls='') => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = s; log.appendChild(d); };
+const results = [];
+async function run(name, fn) {
+  try { const out = await fn(); results.push({name, ok:true}); w(`✅ ${name}  ${out||''}`, 'pass'); }
+  catch(e) { results.push({name, ok:false, err: String(e?.message||e)}); w(`❌ ${name}  ${e?.message||e}`, 'fail'); console.error(name, e); }
+}
+function assert(cond, msg) { if (!cond) throw new Error('assert: '+msg); }
+const tick = (ms = 120) => new Promise(r => setTimeout(r, ms));
+const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height: 60, label: id });
+
+(async () => {
+  const g = () => window.__ob.graph;
+  const cell = (id) => g().getCellById(id);
+
+  await run('dragging one of 3 selected nodes moves each of them exactly once', async () => {
+    window.__ob.loadModel({ nodes: [t('a', 100, 100), t('b', 300, 100), t('c', 500, 100), t('d', 300, 300)],
+      edges: [{ id: 'ab', source: 'a', target: 'b' }, { id: 'bc', source: 'b', target: 'c' }] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    g().resetSelection(['a', 'b', 'c'].map(cell));
+    const sets = {};
+    const onPos = ({ node }) => { sets[node.id] = (sets[node.id] || 0) + 1; };
+    g().on('node:change:position', onPos);
+    // what X6's node drag does for one pointer move of the dragged node
+    cell('b').setPosition(300, 140, { ui: true, translateBy: 'b' });
+    g().off('node:change:position', onPos);
+    assert(sets.a === 1 && sets.b === 1 && sets.c === 1 && !sets.d, 'position sets per node: ' + JSON.stringify(sets));
+    const ys = ['a', 'b', 'c', 'd'].map((id) => cell(id).getPosition().y);
+    assert(JSON.stringify(ys) === JSON.stringify([140, 140, 140, 300]), 'y after move: ' + ys);
+    return JSON.stringify(sets);
+  });
+
+  await run('a port can be grabbed a few px off its centre', async () => {
+    window.__ob.loadModel({ nodes: [t('portnode', 200, 200)], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    const c = document.querySelector('[data-cell-id="portnode"] circle[port="right"]');
+    c.style.visibility = 'visible';          // as on hover
+    const r = c.getBoundingClientRect();
+    const cx = r.x + r.width / 2, cy = r.y + r.height / 2;
+    for (const [dx, dy] of [[6, 0], [-6, 0], [0, 6], [4, -4]]) {
+      const el = document.elementFromPoint(cx + dx, cy + dy);
+      assert(el?.getAttribute('port') === 'right', `(${dx},${dy}) off centre hits ${el?.tagName}`);
+    }
+    c.style.visibility = '';
+    return `grab Ø ${Math.round(r.width)}px`;
+  });
+
+  const failed = results.filter(r => !r.ok).length;
+  w(failed ? `${failed} FAILED` : 'ALL PASS', failed ? 'fail' : 'pass');
+  window.__results = results;
+})();
+</script>
+</body></html>

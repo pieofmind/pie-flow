@@ -73651,8 +73651,24 @@ var FIXED_PORT_IDS = [
   "left",
   "left-2"
 ];
+var PORT_HIT_RADIUS = 8;
 function makePorts(stroke3 = "#5E8FB9") {
-  const circle2 = { r: 2.75, magnet: true, stroke: stroke3, fill: "#fff", strokeWidth: 0.9 };
+  const circle2 = {
+    r: PORT_HIT_RADIUS,
+    magnet: true,
+    stroke: "none",
+    fill: {
+      type: "radialGradient",
+      stops: [
+        { offset: "0%", color: "#fff" },
+        { offset: "28%", color: "#fff" },
+        { offset: "29%", color: stroke3 },
+        { offset: "40%", color: stroke3 },
+        { offset: "41%", color: stroke3, opacity: 0 },
+        { offset: "100%", color: stroke3, opacity: 0 }
+      ]
+    }
+  };
   return {
     groups: {
       // Cardinal — one item per group so X6 doesn't auto-distribute.
@@ -84316,7 +84332,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.refreshContextPad();
     });
     this.graph.on("node:change:position", ({ node: node3, current, previous, options }) => {
-      var _a3, _b2, _c, _d;
+      var _a3;
       if (options == null ? void 0 : options["__boundary_follow"]) return;
       if (options == null ? void 0 : options["__bulk_follow"]) return;
       if (!current || !previous) return;
@@ -84324,52 +84340,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const dy = current.y - previous.y;
       if (dx === 0 && dy === 0) return;
       const movedId = node3.id;
+      const groupMove = !!((options == null ? void 0 : options["ui"]) || (options == null ? void 0 : options["selection"]));
       for (const child of this.graph.getNodes()) {
         if (child.id === movedId) continue;
         if (((_a3 = child.getData()) == null ? void 0 : _a3.attachedTo) !== movedId) continue;
+        if (groupMove && this.graph.isSelected(child)) continue;
         const p6 = child.getPosition();
         child.setPosition(p6.x + dx, p6.y + dy, { "__boundary_follow": true });
-      }
-      if (!(options == null ? void 0 : options["ui"])) return;
-      const sel = this.graph.getSelectedCells().filter((c6) => {
-        var _a4;
-        return (_a4 = c6.isNode) == null ? void 0 : _a4.call(c6);
-      });
-      if (sel.length < 2) return;
-      if (!sel.some((c6) => c6.id === movedId)) return;
-      const selIds = new Set(sel.map((c6) => c6.id));
-      const isDescendantOfSelected = (n4) => {
-        let p6 = n4.getParent();
-        while (p6) {
-          if (selIds.has(p6.id)) return true;
-          p6 = p6.getParent();
-        }
-        return false;
-      };
-      const isBoundaryOfMoved = (n4) => {
-        var _a4;
-        return ((_a4 = n4.getData()) == null ? void 0 : _a4.attachedTo) === movedId;
-      };
-      const selEdges = this.graph.getSelectedCells().filter((c6) => {
-        var _a4;
-        return !((_a4 = c6.isNode) == null ? void 0 : _a4.call(c6));
-      });
-      const allMovingIds = new Set(selIds);
-      for (const peer of sel) {
-        if (peer.id === movedId) continue;
-        if (isDescendantOfSelected(peer)) continue;
-        if (isBoundaryOfMoved(peer)) continue;
-        const p6 = peer.getPosition();
-        peer.setPosition(p6.x + dx, p6.y + dy, { "__bulk_follow": true });
-      }
-      for (const edge of selEdges) {
-        const srcId = (_b2 = edge.getSourceCellId) == null ? void 0 : _b2.call(edge);
-        const tgtId = (_c = edge.getTargetCellId) == null ? void 0 : _c.call(edge);
-        if (!srcId || !tgtId) continue;
-        if (!allMovingIds.has(srcId) || !allMovingIds.has(tgtId)) continue;
-        const verts = (_d = edge.getVertices) == null ? void 0 : _d.call(edge);
-        if (!(verts == null ? void 0 : verts.length)) continue;
-        edge.setVertices(verts.map((v6) => ({ x: v6.x + dx, y: v6.y + dy })));
       }
     });
     this.graph.on("node:resized", () => {

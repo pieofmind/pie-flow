@@ -1416,60 +1416,16 @@ export class OmniboardCanvas {
       if (dx === 0 && dy === 0) return;
       const movedId = node.id;
       // Boundary events: fan out to any node whose extra.attachedTo points at this.
+      // Multi-select drags are moved by the X6 Selection plugin itself (it
+      // translates every selected node with the dragged one), so a selected
+      // boundary event is already moving — don't move it twice.
+      const groupMove = !!(options?.["ui"] || options?.["selection"]);
       for (const child of this.graph.getNodes()) {
         if (child.id === movedId) continue;
         if (child.getData()?.attachedTo !== movedId) continue;
+        if (groupMove && this.graph.isSelected(child)) continue;
         const p = child.getPosition();
         child.setPosition(p.x + dx, p.y + dy, { "__boundary_follow": true } as Record<string, unknown>);
-      }
-      // Story 6.1 AC3 — Bulk move: only when the move came from a user-driven
-      // interaction (options.ui === true from X6 drag). This stops programmatic
-      // setPosition calls (dagre layout, loadModel, history.undo) from fanning
-      // out delta to a coincidentally-active selection. [Review][Patch P7]
-      if (!options?.["ui"]) return;
-      const sel = this.graph.getSelectedCells().filter((c) => c.isNode?.()) as Node[];
-      if (sel.length < 2) return;
-      if (!sel.some((c) => c.id === movedId)) return;
-      const selIds = new Set(sel.map((c) => c.id));
-      // Skip descendants of selected ancestors — X6 auto-translates embedded
-      // children when their parent moves, so applying delta again would double-shift.
-      const isDescendantOfSelected = (n: Node): boolean => {
-        let p = n.getParent();
-        while (p) {
-          if (selIds.has(p.id)) return true;
-          p = p.getParent();
-        }
-        return false;
-      };
-      // [Review][Patch P4] Skip boundary events attached to movedId — the
-      // boundary-follow pass above already shifted them by the same delta.
-      // Without this guard, a boundary event that is ALSO in the selection
-      // gets shifted twice (boundary-follow + bulk-follow).
-      const isBoundaryOfMoved = (n: Node): boolean => n.getData()?.attachedTo === movedId;
-      // [Review][Patch P3] Collect edges whose BOTH endpoints sit in the
-      // selection so we can translate their vertices alongside the nodes.
-      // Edges with one endpoint in / one out follow the node naturally via X6.
-      const selEdges = this.graph.getSelectedCells().filter((c) => !c.isNode?.()) as Edge[];
-      const allMovingIds = new Set(selIds);
-      for (const peer of sel) {
-        if (peer.id === movedId) continue;
-        if (isDescendantOfSelected(peer)) continue;
-        if (isBoundaryOfMoved(peer)) continue;
-        const p = peer.getPosition();
-        peer.setPosition(p.x + dx, p.y + dy, { "__bulk_follow": true } as Record<string, unknown>);
-      }
-      // Translate edges where both endpoints are inside the moving group:
-      //   - both endpoints in node selection → vertices shift by same delta
-      //   - edge itself in selection AND its source+target are nodes in the
-      //     moving group → translate vertices
-      for (const edge of selEdges) {
-        const srcId = edge.getSourceCellId?.();
-        const tgtId = edge.getTargetCellId?.();
-        if (!srcId || !tgtId) continue;
-        if (!allMovingIds.has(srcId) || !allMovingIds.has(tgtId)) continue;
-        const verts = edge.getVertices?.();
-        if (!verts?.length) continue;
-        edge.setVertices(verts.map((v) => ({ x: v.x + dx, y: v.y + dy })));
       }
     });
     this.graph.on("node:resized", () => { this.refreshContextBar(); this.refreshContextPad(); });

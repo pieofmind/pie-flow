@@ -6,7 +6,6 @@
   var __getOwnPropNames = Object.getOwnPropertyNames;
   var __getProtoOf = Object.getPrototypeOf;
   var __hasOwnProp = Object.prototype.hasOwnProperty;
-  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
   var __esm = (fn2, res) => function __init() {
     return fn2 && (res = (0, fn2[__getOwnPropNames(fn2)[0]])(fn2 = 0)), res;
   };
@@ -33,7 +32,6 @@
     isNodeMode || !mod3 || !mod3.__esModule ? __defProp(target, "default", { value: mod3, enumerable: true }) : target,
     mod3
   ));
-  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
   // node_modules/mousetrap/mousetrap.js
   var require_mousetrap = __commonJS({
@@ -1160,6 +1158,31 @@
       };
       IOBuffer = class _IOBuffer {
         /**
+         * Reference to the internal ArrayBuffer object.
+         */
+        buffer;
+        /**
+         * Byte length of the internal ArrayBuffer.
+         */
+        byteLength;
+        /**
+         * Byte offset of the internal ArrayBuffer.
+         */
+        byteOffset;
+        /**
+         * Byte length of the internal ArrayBuffer.
+         */
+        length;
+        /**
+         * The current offset of the buffer's pointer.
+         */
+        offset;
+        lastWrittenByte;
+        littleEndian;
+        _data;
+        _mark;
+        _marks;
+        /**
          * Create a new IOBuffer.
          * @param data - The data to construct the IOBuffer with.
          * If data is a number, it will be the new buffer's length<br>
@@ -1170,31 +1193,6 @@
          * @returns A new IOBuffer instance.
          */
         constructor(data2 = defaultByteLength, options = {}) {
-          /**
-           * Reference to the internal ArrayBuffer object.
-           */
-          __publicField(this, "buffer");
-          /**
-           * Byte length of the internal ArrayBuffer.
-           */
-          __publicField(this, "byteLength");
-          /**
-           * Byte offset of the internal ArrayBuffer.
-           */
-          __publicField(this, "byteOffset");
-          /**
-           * Byte length of the internal ArrayBuffer.
-           */
-          __publicField(this, "length");
-          /**
-           * The current offset of the buffer's pointer.
-           */
-          __publicField(this, "offset");
-          __publicField(this, "lastWrittenByte");
-          __publicField(this, "littleEndian");
-          __publicField(this, "_data");
-          __publicField(this, "_mark");
-          __publicField(this, "_marks");
           let dataIsGiven = false;
           if (typeof data2 === "number") {
             data2 = new ArrayBuffer(data2);
@@ -6298,26 +6296,26 @@
       init_text2();
       init_internalTypes();
       PngDecoder = class extends IOBuffer {
+        _checkCrc;
+        _inflator;
+        _png;
+        _apng;
+        _end;
+        _hasPalette;
+        _palette;
+        _hasTransparency;
+        _transparency;
+        _compressionMethod;
+        _filterMethod;
+        _interlaceMethod;
+        _colorType;
+        _isAnimated;
+        _numberOfFrames;
+        _numberOfPlays;
+        _frames;
+        _writingDataChunks;
         constructor(data2, options = {}) {
           super(data2);
-          __publicField(this, "_checkCrc");
-          __publicField(this, "_inflator");
-          __publicField(this, "_png");
-          __publicField(this, "_apng");
-          __publicField(this, "_end");
-          __publicField(this, "_hasPalette");
-          __publicField(this, "_palette");
-          __publicField(this, "_hasTransparency");
-          __publicField(this, "_transparency");
-          __publicField(this, "_compressionMethod");
-          __publicField(this, "_filterMethod");
-          __publicField(this, "_interlaceMethod");
-          __publicField(this, "_colorType");
-          __publicField(this, "_isAnimated");
-          __publicField(this, "_numberOfFrames");
-          __publicField(this, "_numberOfPlays");
-          __publicField(this, "_frames");
-          __publicField(this, "_writingDataChunks");
           const { checkCrc: checkCrc2 = false } = options;
           this._checkCrc = checkCrc2;
           this._inflator = new Inflate_1();
@@ -21118,7 +21116,7 @@
       return color;
     }
     var rgbParts = 3;
-    var normalizedColor = color.replace(/\d+(\.\d+)?/g, (num, isFloat) => rgbParts-- && isFloat ? String(Math.round(parseFloat(num))) : num);
+    var normalizedColor = color.replace(/\d+(\.\d+)?/g, (num2, isFloat) => rgbParts-- && isFloat ? String(Math.round(parseFloat(num2))) : num2);
     return normalizedColor;
   }
   function findSelectorMatch(selector, regex) {
@@ -37546,21 +37544,21 @@
   function isPercentage(val) {
     return typeof val === "string" && val.slice(-1) === "%";
   }
-  function normalizePercentage(num, ref2) {
-    if (num == null) {
+  function normalizePercentage(num2, ref2) {
+    if (num2 == null) {
       return 0;
     }
     let raw2;
-    if (typeof num === "string") {
-      raw2 = parseFloat(num);
-      if (isPercentage(num)) {
+    if (typeof num2 === "string") {
+      raw2 = parseFloat(num2);
+      if (isPercentage(num2)) {
         raw2 /= 100;
         if (Number.isFinite(raw2)) {
           return raw2 * ref2;
         }
       }
     } else {
-      raw2 = num;
+      raw2 = num2;
     }
     if (!Number.isFinite(raw2)) {
       return 0;
@@ -41394,10 +41392,10 @@
     function lum(color, amt) {
       if (typeof color === "string") {
         const pound = color[0] === "#";
-        const num = parseInt(pound ? color.substr(1) : color, 16);
-        const r2 = number_exports.clamp((num >> 16) + amt, 0, 255);
-        const g2 = number_exports.clamp((num >> 8 & 255) + amt, 0, 255);
-        const b2 = number_exports.clamp((num & 255) + amt, 0, 255);
+        const num2 = parseInt(pound ? color.substr(1) : color, 16);
+        const r2 = number_exports.clamp((num2 >> 16) + amt, 0, 255);
+        const g2 = number_exports.clamp((num2 >> 8 & 255) + amt, 0, 255);
+        const b2 = number_exports.clamp((num2 & 255) + amt, 0, 255);
         return `${pound ? "#" : ""}${(b2 | g2 << 8 | r2 << 16).toString(16)}`;
       }
       const hex = rgb2hex(color[0], color[1], color[2]);
@@ -42023,8 +42021,8 @@
   // node_modules/@antv/x6-geometry/es/util.js
   var GeometryUtil;
   (function(GeometryUtil2) {
-    function round2(num, precision = 0) {
-      return Number.isInteger(num) ? num : +num.toFixed(precision);
+    function round2(num2, precision = 0) {
+      return Number.isInteger(num2) ? num2 : +num2.toFixed(precision);
     }
     GeometryUtil2.round = round2;
     function random2(min, max2) {
@@ -42045,7 +42043,7 @@
       return Math.floor(Math.random() * (mmax2 - mmin2 + 1) + mmin2);
     }
     GeometryUtil2.random = random2;
-    function clamp2(value, min, max2) {
+    function clamp3(value, min, max2) {
       if (Number.isNaN(value)) {
         return NaN;
       }
@@ -42054,7 +42052,7 @@
       }
       return min < max2 ? value < min ? min : value > max2 ? max2 : value : value < max2 ? max2 : value > min ? min : value;
     }
-    GeometryUtil2.clamp = clamp2;
+    GeometryUtil2.clamp = clamp3;
     function snapToGrid(value, gridSize) {
       return gridSize * Math.round(value / gridSize);
     }
@@ -43772,7 +43770,7 @@
       x22 = x32 + dx;
       y22 = y32 + dy;
     }
-    return result.map((num) => +num.toFixed(2));
+    return result.map((num2) => +num2.toFixed(2));
   }
   function drawArc(startX, startY, rx, ry, xAxisRotation = 0, largeArcFlag = 0, sweepFlag = 0, stopX, stopY) {
     const data2 = [];
@@ -46979,8 +46977,8 @@
   function getString(value, defaultValue) {
     return value != null ? value : defaultValue;
   }
-  function getNumber2(num, defaultValue) {
-    return num != null && Number.isFinite(num) ? num : defaultValue;
+  function getNumber2(num2, defaultValue) {
+    return num2 != null && Number.isFinite(num2) ? num2 : defaultValue;
   }
 
   // node_modules/@antv/x6/es/registry/filter/outline.js
@@ -52582,11 +52580,11 @@
   }
   function getPointAtEdge(edgeView, value) {
     const isPercentage2 = number_exports.isPercentage(value);
-    const num = typeof value === "string" ? parseFloat(value) : value;
+    const num2 = typeof value === "string" ? parseFloat(value) : value;
     if (isPercentage2) {
-      return edgeView.getPointAtRatio(num / 100);
+      return edgeView.getPointAtRatio(num2 / 100);
     }
-    return edgeView.getPointAtLength(num);
+    return edgeView.getPointAtLength(num2);
   }
 
   // node_modules/@antv/x6/es/registry/node-anchor/orth.js
@@ -69639,8 +69637,24 @@
     "left",
     "left-2"
   ];
+  var PORT_HIT_RADIUS = 8;
   function makePorts(stroke3 = "#5E8FB9") {
-    const circle2 = { r: 2.75, magnet: true, stroke: stroke3, fill: "#fff", strokeWidth: 0.9 };
+    const circle2 = {
+      r: PORT_HIT_RADIUS,
+      magnet: true,
+      stroke: "none",
+      fill: {
+        type: "radialGradient",
+        stops: [
+          { offset: "0%", color: "#fff" },
+          { offset: "28%", color: "#fff" },
+          { offset: "29%", color: stroke3 },
+          { offset: "40%", color: stroke3 },
+          { offset: "41%", color: stroke3, opacity: 0 },
+          { offset: "100%", color: stroke3, opacity: 0 }
+        ]
+      }
+    };
     return {
       groups: {
         // Cardinal — one item per group so X6 doesn't auto-distribute.
@@ -69670,10 +69684,67 @@
       ]
     };
   }
+  function fixedPort(side, along) {
+    const band = along < 0.375 ? "-1" : along > 0.625 ? "-2" : "";
+    return `${side}${band}`;
+  }
+  function nearestFixedPortInBox(b2, pt2) {
+    const dx = Math.max(0, Math.min(b2.width, pt2.x - b2.x));
+    const dy = Math.max(0, Math.min(b2.height, pt2.y - b2.y));
+    const dLeft = dx, dRight = b2.width - dx, dTop = dy, dBottom = b2.height - dy;
+    const m4 = Math.min(dLeft, dRight, dTop, dBottom);
+    if (m4 === dTop) return fixedPort("top", b2.width > 0 ? dx / b2.width : 0.5);
+    if (m4 === dBottom) return fixedPort("bottom", b2.width > 0 ? dx / b2.width : 0.5);
+    if (m4 === dLeft) return fixedPort("left", b2.height > 0 ? dy / b2.height : 0.5);
+    return fixedPort("right", b2.height > 0 ? dy / b2.height : 0.5);
+  }
+  function pickDropTarget(items, pt2) {
+    let best;
+    for (const it3 of items) {
+      const b2 = it3.bbox;
+      if (pt2.x < b2.x || pt2.x > b2.x + b2.width || pt2.y < b2.y || pt2.y > b2.y + b2.height) continue;
+      if (!best || b2.width * b2.height < best.bbox.width * best.bbox.height) best = it3;
+    }
+    return best;
+  }
+
+  // src/canvas/laneLayout.ts
+  var hasHeight = (ln3) => typeof ln3.height === "number" && Number.isFinite(ln3.height) && ln3.height > 0;
+  function laneWeights(lanes) {
+    const known = lanes.filter(hasHeight);
+    if (!known.length) return null;
+    const avg = known.reduce((s3, ln3) => s3 + ln3.height, 0) / known.length;
+    return lanes.map((ln3) => hasHeight(ln3) ? ln3.height : avg);
+  }
+  function laneHeights(lanes, poolH) {
+    if (!lanes.length) return [];
+    const w3 = laneWeights(lanes);
+    if (!w3) return lanes.map(() => poolH / lanes.length);
+    const total = w3.reduce((s3, h3) => s3 + h3, 0);
+    return w3.map((h3) => h3 * poolH / total);
+  }
+  function laneIndexAt(lanes, poolH, relY) {
+    const hs = laneHeights(lanes, poolH);
+    let acc = 0;
+    for (let i3 = 0; i3 < hs.length; i3++) {
+      acc += hs[i3];
+      if (relY < acc) return i3;
+    }
+    return hs.length - 1;
+  }
+  function resizeLaneBoundary(lanes, poolH, index3, dy, minHeight) {
+    const hs = laneHeights(lanes, poolH);
+    if (index3 < 0 || index3 >= hs.length - 1) return lanes.map((ln3, i3) => ({ ...ln3, height: Math.round(hs[i3]) }));
+    const pair = hs[index3] + hs[index3 + 1];
+    const upper = Math.min(Math.max(hs[index3] + dy, minHeight), pair - minHeight);
+    const next = hs.map((h3, i3) => i3 === index3 ? upper : i3 === index3 + 1 ? pair - upper : h3);
+    return lanes.map((ln3, i3) => ({ ...ln3, height: Math.round(next[i3]) }));
+  }
 
   // src/canvas/htmlNode.ts
   var XHTML = "http://www.w3.org/1999/xhtml";
   var registered = false;
+  var BPMN_DEFAULT_FONT_SIZE = 9;
   function registerHtmlNode() {
     if (registered) return;
     registered = true;
@@ -69733,7 +69804,7 @@
     if (existing) return html3.replace(existing[0], `${existing[1]} style="${existing[2]};${sty}"${existing[3]}`);
     return html3.replace(/^(\s*<[a-z][\w-]*\b[^>]*?)(>)/i, `$1 style="${sty}"$2`);
   }
-  var svg = (inner) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+  var svg = (inner) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
   var KEY = svg(`<circle cx="8" cy="15" r="4"/><path d="m10.5 12.5 7-7M16 5l3 3"/>`);
   var BP_ICON = {
     msg: svg(`<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>`),
@@ -69743,34 +69814,34 @@
     script: svg(`<path d="M7 3h8l3 3v15H7z"/><path d="M10 9h5M10 13h5M10 17h3"/>`),
     hand: svg(`<path d="M7 11V6.5a1.5 1.5 0 0 1 3 0V11M10 10.5V5.5a1.5 1.5 0 0 1 3 0V11M13 11V6.5a1.5 1.5 0 0 1 3 0V13a5 5 0 0 1-5 5h-1a4 4 0 0 1-3.5-2L7 13"/>`),
     rule: svg(`<rect x="4" y="5" width="16" height="14" rx="1"/><path d="M4 10h16M10 5v14"/>`),
-    send: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z"/><path d="m3 6 9 6 9-6" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
+    send: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v14H3z"/><path d="m3 6 9 6 9-6" fill="none" stroke="#fff" stroke-width="1.6"/></svg>`,
     page: svg(`<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/>`),
     cyl: svg(`<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/>`)
   };
   var ACTOR = svg(`<circle cx="12" cy="6" r="3"/><path d="M12 9v7M7 12h10M12 16l-4 5M12 16l4 5"/>`);
   var TRIG_OUT = {
-    message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5"/></svg>`,
-    timer: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><path d="M12 7v5l3 2"/><path d="M12 5v1M12 18v1M5 12h1M18 12h1" stroke-width="1.2"/></svg>`,
-    signal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 21 19H3Z"/></svg>`,
-    error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18 10 8l3 6 3-4 4 10"/></svg>`,
-    escalation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
-    compensation: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
-    conditional: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14"/><path d="M7 9h10M7 12h10M7 15h6"/></svg>`,
-    link: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h11l-3-3M15 12l-3 3"/></svg>`,
-    cancel: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg>`,
-    terminate: `<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`,
-    multiple: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
-    "parallel-multiple": `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>`
+    message: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5"/></svg>`,
+    timer: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7"/><path d="M12 7v5l3 2"/><path d="M12 5v1M12 18v1M5 12h1M18 12h1" stroke-width="1.2"/></svg>`,
+    signal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 21 19H3Z"/></svg>`,
+    error: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 18 10 8l3 6 3-4 4 10"/></svg>`,
+    escalation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+    compensation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+    conditional: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14"/><path d="M7 9h10M7 12h10M7 15h6"/></svg>`,
+    link: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 12h11l-3-3M15 12l-3 3"/></svg>`,
+    cancel: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m6 6 12 12M18 6 6 18"/></svg>`,
+    terminate: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>`,
+    multiple: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+    "parallel-multiple": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14"/></svg>`
   };
   var TRIG_FILL = {
-    message: `<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`,
-    signal: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 21 19H3Z"/></svg>`,
-    error: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 10 8l3 6 3-4 4 10Z"/></svg>`,
-    escalation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
-    compensation: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
-    link: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h11l-3-3M15 12l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 10h11v4H4z"/></svg>`,
-    multiple: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
-    cancel: `<svg viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 6 6 6-6 2 2-6 6 6 6-2 2-6-6-6 6-2-2 6-6-6-6Z"/></svg>`
+    message: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="7" width="14" height="10"/><path d="m5 8 7 5 7-5" fill="none" stroke="#fff" stroke-width="1.4"/></svg>`,
+    signal: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 21 19H3Z"/></svg>`,
+    error: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 18 10 8l3 6 3-4 4 10Z"/></svg>`,
+    escalation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 5 19 19 12 14 5 19Z"/></svg>`,
+    compensation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13 6 6 12 13 18ZM20 6 13 12 20 18Z"/></svg>`,
+    link: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12h11l-3-3M15 12l-3 3" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M4 10h11v4H4z"/></svg>`,
+    multiple: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4 20 10 17 19H7L4 10Z"/></svg>`,
+    cancel: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="m6 4 6 6 6-6 2 2-6 6 6 6-2 2-6-6-6 6-2-2 6-6-6-6Z"/></svg>`
   };
   function trigIcon(trigger, filled) {
     if (!trigger) return "";
@@ -69780,12 +69851,12 @@
     return TRIG_OUT[t3] ?? "";
   }
   var MARKER_ICON = {
-    loop: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9a4 4 0 1 0 1-3M5 5V3M5 5H3"/></svg>`,
-    "mi-par": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="2.4" height="10"/><rect x="6.8" y="3" width="2.4" height="10"/><rect x="10.6" y="3" width="2.4" height="10"/></svg>`,
-    "mi-seq": `<svg viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="2.4"/><rect x="3" y="6.8" width="10" height="2.4"/><rect x="3" y="10.6" width="10" height="2.4"/></svg>`,
-    adhoc: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10c2-4 4-4 6 0s4 4 6 0"/></svg>`,
-    compensation: `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M9 3 3 8l6 5ZM15 3 9 8l6 5Z"/></svg>`,
-    subprocess: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10"/><path d="M8 5.5v5M5.5 8h5"/></svg>`
+    loop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 9a4 4 0 1 0 1-3M5 5V3M5 5H3"/></svg>`,
+    "mi-par": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="2.4" height="10"/><rect x="6.8" y="3" width="2.4" height="10"/><rect x="10.6" y="3" width="2.4" height="10"/></svg>`,
+    "mi-seq": `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><rect x="3" y="3" width="10" height="2.4"/><rect x="3" y="6.8" width="10" height="2.4"/><rect x="3" y="10.6" width="10" height="2.4"/></svg>`,
+    adhoc: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 10c2-4 4-4 6 0s4 4 6 0"/></svg>`,
+    compensation: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor"><path d="M9 3 3 8l6 5ZM15 3 9 8l6 5Z"/></svg>`,
+    subprocess: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="10" height="10"/><path d="M8 5.5v5M5.5 8h5"/></svg>`
   };
   function renderMarkers(markers) {
     if (!markers || markers.length === 0) return "";
@@ -69795,12 +69866,13 @@
   function nodeHtml(kind, label, ov, extra) {
     return withStyle(nodeHtmlBase(kind, label, extra), styleStr(ov));
   }
-  function erdHtml(label, cols) {
+  function erdHtml(label, cols, headerColor) {
     const rows = cols.map((c4, i3) => {
       const k3 = c4.k === "PK" || c4.k === "FK" ? c4.k : "";
-      return `<div class="erd-col" data-col-idx="${i3}"><span class="kk ${k3.toLowerCase()}">${k3}</span><span class="cname">${esc(c4.name)}</span><span class="ctype">${esc(c4.type)}</span></div>`;
+      return `<div class="erd-col" data-col-idx="${i3}" data-col-name="${esc(c4.name)}"><span class="kk ${k3.toLowerCase()}">${k3}</span><span class="cname">${esc(c4.name)}</span><span class="ctype">${esc(c4.type)}</span></div>`;
     }).join("");
-    return `<div class="erd-table"><div class="erd-th">${KEY}${esc(label) || "Table"}</div>${rows}</div>`;
+    const headerStyle = headerColor ? ` style="background:${cssSafe(headerColor)}"` : "";
+    return `<div class="erd-table"><div class="erd-th"${headerStyle}>${KEY}${esc(label) || "Table"}</div>${rows}</div>`;
   }
   function umlLine(s3, comp, idx) {
     const m4 = String(s3).match(/^\s*([+\-#~])\s*(.*)$/);
@@ -69859,7 +69931,7 @@
       case "fc-connector":
         return `<div class="fc round" style="font-size:11px">${L3}</div>`;
       case "erd-entity":
-        return erdHtml(label, extra?.cols ?? defaultErdCols());
+        return erdHtml(label, extra?.cols ?? defaultErdCols(), extra?.headerColor);
       case "erd-relationship":
         return `<div class="fc diamond">${L3}</div>`;
       case "erd-attribute":
@@ -69951,9 +70023,9 @@
       case "bpmn-gateway-inclusive":
         return bpGateway("\u25CB", L3, extra);
       case "bpmn-gateway-event":
-        return bpGateway(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4 20 10 17 19 7 19 4 10Z"/></svg>`, L3, extra);
+        return bpGateway(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 4 20 10 17 19 7 19 4 10Z"/></svg>`, L3, extra);
       case "bpmn-gateway-complex":
-        return bpGateway(`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16M6 6l12 12M18 6 6 18"/></svg>`, L3, extra);
+        return bpGateway(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 4v16M4 12h16M6 6l12 12M18 6 6 18"/></svg>`, L3, extra);
       case "bpmn-task":
         return bpTask(L3, void 0, extra);
       case "bpmn-task-user":
@@ -69981,15 +70053,15 @@
       case "bpmn-call-activity":
         return `<div class="bp-task is-call">${nl(L3) || "Call activity"}${renderMarkers(extra?.markers)}</div>`;
       case "bpmn-data-object":
-        return `<div class="bp-dataobj"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L3}</span></div>`;
+        return bpData("", DATA_PAGE, L3, extra);
       case "bpmn-data-collection":
-        return `<div class="bp-dataobj is-collection"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L3}</span><span class="bp-coll-bars"></span></div>`;
+        return bpData(" is-collection", DATA_PAGE, L3, extra, `<span class="bp-coll-bars"></span>`);
       case "bpmn-data-input":
-        return `<div class="bp-dataobj is-input"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L3 || "Input"}</span><span class="bp-data-arr"></span></div>`;
+        return bpData(" is-input", DATA_PAGE, L3 || "Input", extra, `<span class="bp-data-arr"></span>`);
       case "bpmn-data-output":
-        return `<div class="bp-dataobj is-output"><span class="ic">${BP_ICON.page}</span><span class="lbl">${L3 || "Output"}</span><span class="bp-data-arr"></span></div>`;
+        return bpData(" is-output", DATA_PAGE, L3 || "Output", extra, `<span class="bp-data-arr"></span>`);
       case "bpmn-data-store":
-        return `<div class="bp-datastore"><span class="ic">${BP_ICON.cyl}</span><span class="lbl">${L3}</span></div>`;
+        return bpData("", DATA_CYLINDER, L3, extra, "", "bp-datastore");
       case "bpmn-annotation":
         return `<div class="bp-anno">${L3 || "Annotation"}</div>`;
       case "bpmn-group":
@@ -70025,6 +70097,12 @@
     const interrupt = extra?.interrupting === false ? " is-non-interrupting" : "";
     return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
   }
+  var DATA_PAGE = `<svg class="bp-data-shape" viewBox="0 0 36 50" preserveAspectRatio="none"><path d="M1 1h24l10 10v38H1z"/><path d="M25 1v10h10"/></svg>`;
+  var DATA_CYLINDER = `<svg class="bp-data-shape" viewBox="0 0 50 50" preserveAspectRatio="none"><path d="M1 7v36c0 3.3 10.7 6 24 6s24-2.7 24-6V7"/><ellipse cx="25" cy="7" rx="24" ry="6"/><path d="M1 12c0 3.3 10.7 6 24 6s24-2.7 24-6"/></svg>`;
+  function bpData(mod3, shape, label, extra, deco = "", cls = "bp-dataobj") {
+    const lbl = label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : "";
+    return `<div class="${cls}${mod3}">${shape}${deco}${lbl}</div>`;
+  }
   function bpTask(label, iconKey, extra) {
     const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
     return `<div class="bp-task">${icon}${nl(label)}${renderMarkers(extra?.markers)}</div>`;
@@ -70039,7 +70117,12 @@
     }
     const lanes = extra?.lanes?.length ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
     const orient = extra?.poolHorizontal === false ? " is-vertical" : "";
-    const laneHtml = lanes.map((ln3) => `<div class="bp-pool-lane" data-lane-id="${esc(ln3.id)}"><div class="bp-pool-lane-head">${esc(ln3.label)}</div><div class="bp-pool-lane-body"></div></div>`).join("");
+    const weights = laneWeights(lanes);
+    const laneHtml = lanes.map((ln3, i3) => {
+      const flex = weights ? ` style="flex: ${weights[i3]} 1 0px"` : "";
+      const divider = i3 < lanes.length - 1 ? `<div class="bp-pool-lane-divider" data-lane-idx="${i3}"></div>` : "";
+      return `<div class="bp-pool-lane" data-lane-id="${esc(ln3.id)}"${flex}><div class="bp-pool-lane-head">${esc(ln3.label)}</div><div class="bp-pool-lane-body"></div>${divider}</div>`;
+    }).join("");
     return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
   }
 
@@ -70192,18 +70275,18 @@
         { shape: "bpmn-adhoc-subprocess", label: "Ad-hoc sub-process", w: 200, h: 120, advanced: true },
         { shape: "bpmn-call-activity", label: "Call activity", w: 100, h: 80, advanced: true },
         // Data artifacts
-        { shape: "bpmn-data-object", label: "Data object", w: 60, h: 76, advanced: true },
-        { shape: "bpmn-data-collection", label: "Data collection", w: 60, h: 76, advanced: true },
-        { shape: "bpmn-data-input", label: "Data input", w: 60, h: 76, advanced: true },
-        { shape: "bpmn-data-output", label: "Data output", w: 60, h: 76, advanced: true },
-        { shape: "bpmn-data-store", label: "Data store", w: 70, h: 64, advanced: true },
+        { shape: "bpmn-data-object", label: "Data object", w: 40, h: 60, advanced: true },
+        { shape: "bpmn-data-collection", label: "Data collection", w: 40, h: 60, advanced: true },
+        { shape: "bpmn-data-input", label: "Data input", w: 40, h: 60, advanced: true },
+        { shape: "bpmn-data-output", label: "Data output", w: 40, h: 60, advanced: true },
+        { shape: "bpmn-data-store", label: "Data store", w: 60, h: 50, advanced: true },
         // Misc
         { shape: "bpmn-annotation", label: "Annotation", w: 150, h: 56, advanced: true },
         { shape: "bpmn-group", label: "Group", w: 200, h: 120, advanced: true }
       ]
     }
   ];
-  var I = (inner) => `<svg viewBox="0 0 32 32" fill="none">${inner}</svg>`;
+  var I = (inner) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">${inner}</svg>`;
   var ICONS = {
     "bs-rect": I(`<rect x="5" y="9" width="22" height="14" fill="#fff" stroke="#1f2329" stroke-width="2"/>`),
     "bs-rounded": I(`<rect x="5" y="9" width="22" height="14" rx="4" fill="#fff" stroke="#1f2329" stroke-width="2"/>`),
@@ -70342,10 +70425,66 @@
         terminate: `<circle cx="16" cy="16" r="5" fill="${c4}"/>`
       };
       const g2 = glyph[seed.trigger] ?? "";
-      return `<svg viewBox="0 0 32 32" fill="none">${borderByPos[shape] ?? ""}${g2}</svg>`;
+      return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">${borderByPos[shape] ?? ""}${g2}</svg>`;
     }
     return ICONS[shape] ?? I(`<rect x="6" y="10" width="20" height="12" rx="2" fill="#eee" stroke="#999" stroke-width="2"/>`);
   }
+
+  // src/canvas/erdPorts.ts
+  var HEAD_H = 38;
+  var ROW_H = 27;
+  function buildErdColumnPorts(cols, width2) {
+    if (!cols || cols.length === 0) return [];
+    const ports = [];
+    const seen = /* @__PURE__ */ new Map();
+    for (let i3 = 0; i3 < cols.length; i3++) {
+      const col = cols[i3];
+      if (!col || !col.name) continue;
+      const count = (seen.get(col.name) ?? 0) + 1;
+      seen.set(col.name, count);
+      const portName = count === 1 ? col.name : `${col.name}~${i3}`;
+      const y3 = HEAD_H + i3 * ROW_H + ROW_H / 2;
+      ports.push({
+        id: `col:${portName}-left`,
+        group: "erdColLeft",
+        args: { x: 0, y: y3 }
+      });
+      ports.push({
+        id: `col:${portName}-right`,
+        group: "erdColRight",
+        args: { x: width2, y: y3 }
+      });
+    }
+    return ports;
+  }
+  var ERD_COL_PORT_GROUPS = {
+    erdColLeft: {
+      position: { name: "absolute" },
+      attrs: {
+        circle: {
+          r: 11,
+          magnet: true,
+          stroke: "#5E8FB9",
+          strokeWidth: 0,
+          fill: "rgba(94,143,185,0.001)",
+          cursor: "crosshair"
+        }
+      }
+    },
+    erdColRight: {
+      position: { name: "absolute" },
+      attrs: {
+        circle: {
+          r: 11,
+          magnet: true,
+          stroke: "#5E8FB9",
+          strokeWidth: 0,
+          fill: "rgba(94,143,185,0.001)",
+          cursor: "crosshair"
+        }
+      }
+    }
+  };
 
   // src/canvas/staticRender.ts
   var SVGNS = "http://www.w3.org/2000/svg";
@@ -70421,10 +70560,8 @@
     return `M ${s3.x} ${s3.y} L ${p1.x} ${p1.y} L ${bend.x} ${bend.y} L ${p22.x} ${p22.y} L ${t3.x} ${t3.y}`;
   }
   var esc2 = (s3) => String(s3 ?? "").replace(/[&<>"]/g, (c4) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c4]);
-  function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
-    const nodes = model.nodes ?? [];
-    const edges = model.edges ?? [];
-    const byId = new Map(nodes.map((n2) => [n2.id, n2]));
+  var num = (v4) => Number(v4) || 0;
+  function computeBounds(nodes, pad) {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     for (const n2 of nodes) {
       minX = Math.min(minX, n2.x);
@@ -70438,9 +70575,15 @@
       maxX = 400;
       maxY = 300;
     }
-    const x3 = minX - pad, y3 = minY - pad;
-    const w3 = Math.ceil(maxX - minX + pad * 2), h3 = Math.ceil(maxY - minY + pad * 2);
-    const edgeSvg = edges.map((e2) => {
+    return {
+      x: minX - pad,
+      y: minY - pad,
+      w: Math.ceil(maxX - minX + pad * 2),
+      h: Math.ceil(maxY - minY + pad * 2)
+    };
+  }
+  function edgesMarkup(edges, byId) {
+    return (edges ?? []).map((e2) => {
       const sn2 = byId.get(e2.source), tn2 = byId.get(e2.target);
       if (!sn2 || !tn2) return "";
       const s3 = anchor2(sn2, e2.sourcePort), t3 = anchor2(tn2, e2.targetPort);
@@ -70449,18 +70592,53 @@
       const label = e2.label ? `<text x="${(s3.x + t3.x) / 2}" y="${(s3.y + t3.y) / 2 - 4}" text-anchor="middle" font-size="12" fill="#1f2329" style="font-family:var(--font-body,system-ui)">${esc2(e2.label)}</text>` : "";
       return line2 + label;
     }).join("");
+  }
+  function nodeInnerHtml(n2) {
+    const a3 = n2.attrs ?? {};
+    const style2 = a3.style ?? {};
+    const extra = {
+      cols: a3.cols,
+      fields: a3.fields,
+      methods: a3.methods,
+      who: a3.who,
+      labelOffset: a3.labelOffset,
+      lanes: a3.lanes,
+      poolHorizontal: a3.poolHorizontal,
+      blackBox: a3.blackBox,
+      trigger: a3.trigger,
+      throwing: a3.throwing,
+      interrupting: a3.interrupting,
+      attachedTo: a3.attachedTo,
+      markers: a3.markers,
+      collapsed: a3.collapsed
+    };
+    return nodeHtml(n2.shape, n2.label, style2, extra);
+  }
+  var ARROW_DEF = `<marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker>`;
+  function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
+    const nodes = model.nodes ?? [];
+    const byId = new Map(nodes.map((n2) => [n2.id, n2]));
+    const { x: x3, y: y3, w: w3, h: h3 } = computeBounds(nodes, pad);
+    const edgeSvg = edgesMarkup(model.edges, byId);
     const nodeSvg = nodes.map((n2) => {
-      const style2 = n2.attrs?.style ?? {};
-      const extra = {
-        cols: n2.attrs?.cols,
-        fields: n2.attrs?.fields,
-        methods: n2.attrs?.methods
-      };
-      const inner = nodeHtml(n2.shape, n2.label, style2, extra);
-      const num = (v4) => Number(v4) || 0;
+      const inner = nodeInnerHtml(n2);
       return `<foreignObject x="${num(n2.x)}" y="${num(n2.y)}" width="${num(n2.width)}" height="${num(n2.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
     }).join("");
-    return `<svg xmlns="${SVGNS}" class="lk-root" width="${w3}" height="${h3}" viewBox="${x3} ${y3} ${w3} ${h3}"><defs><marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker></defs>` + (css2 ? `<style>${css2}</style>` : "") + (bg && bg !== "transparent" ? `<rect x="${x3}" y="${y3}" width="${w3}" height="${h3}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
+    return `<svg xmlns="${SVGNS}" class="lk-root" width="${w3}" height="${h3}" viewBox="${x3} ${y3} ${w3} ${h3}"><defs>${ARROW_DEF}</defs><style>foreignObject{overflow:visible}${css2}</style>` + (bg && bg !== "transparent" ? `<rect x="${x3}" y="${y3}" width="${w3}" height="${h3}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
+  }
+
+  // src/canvas/poolConnect.ts
+  var POOL_EDGE_BAND = 16;
+  var clamp2 = (v4, lo, hi) => Math.min(Math.max(v4, lo), hi);
+  function poolDropAnchor(pool, drop, other) {
+    const top4 = pool.y, bottom4 = pool.y + pool.height;
+    if (drop.x < pool.x || drop.x > pool.x + pool.width) return null;
+    const nearTop = Math.abs(drop.y - top4) <= POOL_EDGE_BAND;
+    const nearBottom = Math.abs(drop.y - bottom4) <= POOL_EDGE_BAND;
+    const onBody = drop.y >= top4 && drop.y <= bottom4;
+    if (!nearTop && !nearBottom && !(pool.blackBox && onBody)) return null;
+    const toBottom = other.y > bottom4 ? true : other.y < top4 ? false : Math.abs(drop.y - bottom4) < Math.abs(drop.y - top4);
+    return { dx: clamp2(other.x - pool.x, 0, pool.width), dy: toBottom ? pool.height : 0 };
   }
 
   // src/canvas/bulkAlign.ts
@@ -72292,6 +72470,9 @@
   var ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
   var EDGE_ATTRS = { line: { stroke: EDGE_STROKE2, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
   var EDGE_LABEL_BODY = { ref: "label", refX: -6, refY: -2, refWidth: "100%", refHeight: "100%", refWidth2: 12, refHeight2: 4, fill: "var(--pg-surface)", stroke: "none", rx: 4, ry: 4, cursor: "move" };
+  function defaultFontSizeFor(node2) {
+    return String(node2.shape ?? "").startsWith("bpmn-") ? BPMN_DEFAULT_FONT_SIZE : 13;
+  }
   var EDGE_LABEL_TEXT = { fill: "var(--pg-text)", fontSize: 12, fontFamily: "var(--font-body)", cursor: "move", textAnchor: "middle", textVerticalAnchor: "middle", textWrap: { width: 150, breakWord: true, ellipsis: false } };
   var FLOW_TYPE_PRESETS = {
     sequence: { dash: "solid", start: "none", end: "arrow" },
@@ -72422,10 +72603,6 @@
     if (port2?.endsWith("-2")) return "-2";
     return "";
   }
-  function fixedPort(side, along) {
-    const band = along < 0.375 ? "-1" : along > 0.625 ? "-2" : "";
-    return `${side}${band}`;
-  }
   function oppositePort(port2) {
     const side = portSide(port2);
     if (!side) return void 0;
@@ -72439,15 +72616,7 @@
     return side ? centerPortForSide(side) : void 0;
   }
   function nearestFixedPort(node2, pt2) {
-    const b2 = node2.getBBox();
-    const dx = Math.max(0, Math.min(b2.width, pt2.x - b2.x));
-    const dy = Math.max(0, Math.min(b2.height, pt2.y - b2.y));
-    const dLeft = dx, dRight = b2.width - dx, dTop = dy, dBottom = b2.height - dy;
-    const m4 = Math.min(dLeft, dRight, dTop, dBottom);
-    if (m4 === dTop) return fixedPort("top", b2.width > 0 ? dx / b2.width : 0.5);
-    if (m4 === dBottom) return fixedPort("bottom", b2.width > 0 ? dx / b2.width : 0.5);
-    if (m4 === dLeft) return fixedPort("left", b2.height > 0 ? dy / b2.height : 0.5);
-    return fixedPort("right", b2.height > 0 ? dy / b2.height : 0.5);
+    return nearestFixedPortInBox(node2.getBBox(), pt2);
   }
   function portEndpoint(cell, port2) {
     return { cell, port: port2, connectionPoint: PORT_CONNECTION_POINT };
@@ -72478,6 +72647,10 @@
         return { name: "path", d: "M16 -8 2 0 16 8 M16 0 2 0 M14 -8 14 8", fill: "none", stroke: color, "stroke-width": 1.5 };
       case "bar-bar":
         return { name: "path", d: "M5 -8 5 8 M10 -8 10 8", fill: "none", stroke: color, "stroke-width": 1.5 };
+      case "circle-bar":
+        return { name: "path", d: "M14 -8 14 8 M9 0 a4 4 0 1 0 -8 0 a4 4 0 1 0 8 0", fill: "none", stroke: color, "stroke-width": 1.5 };
+      case "crow-circle":
+        return { name: "path", d: "M18 -8 4 0 18 8 M18 0 4 0 M3 0 a3 3 0 1 0 -6 0 a3 3 0 1 0 6 0", fill: "none", stroke: color, "stroke-width": 1.5 };
       case "def-slash":
         return { name: "path", d: "M2 -6 10 6", fill: "none", stroke: color, "stroke-width": 1.8 };
       case "none":
@@ -72485,7 +72658,7 @@
         return null;
     }
   }
-  var EDGE_MARKER_KINDS = ["none", "arrow", "arrow-open", "triangle", "triangle-f", "diamond", "diamond-o", "circle", "circle-f", "crow", "bar", "crow-bar", "bar-bar"];
+  var EDGE_MARKER_KINDS = ["none", "arrow", "arrow-open", "triangle", "triangle-f", "diamond", "diamond-o", "circle", "circle-f", "crow", "bar", "crow-bar", "bar-bar", "circle-bar", "crow-circle"];
   var EDGE_MARKER_LABEL = {
     none: "Kh\xF4ng",
     arrow: "M\u0169i t\xEAn",
@@ -72499,7 +72672,9 @@
     crow: "Crow nhi\u1EC1u (n)",
     bar: "M\u1ED9t (1)",
     "crow-bar": "M\u1ED9t-ho\u1EB7c-nhi\u1EC1u (1..n)",
-    "bar-bar": "\u0110\xFAng m\u1ED9t (1,1)"
+    "bar-bar": "\u0110\xFAng m\u1ED9t (1,1)",
+    "circle-bar": "Kh\xF4ng-ho\u1EB7c-m\u1ED9t (0..1)",
+    "crow-circle": "Kh\xF4ng-ho\u1EB7c-nhi\u1EC1u (0..n)"
   };
   var EDGE_WIDTHS = [1.4, 2.4, 3.6];
   var EDGE_SHAPES = {
@@ -72520,7 +72695,7 @@
     const head = style2.end === "none" ? "" : style2.end === "arrow-open" ? `<path d="M20 4 27 9 20 14" fill="none" stroke="currentColor" stroke-width="1.8"/>` : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
     return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
   }
-  var _OmniboardCanvas = class _OmniboardCanvas {
+  var OmniboardCanvas = class _OmniboardCanvas {
     constructor(root2, categories, onChange) {
       this.edgeBar = null;
       this.edgeBarDebounce = null;
@@ -72720,6 +72895,7 @@
       this.enableTrackpadPan();
       this.enablePinch();
       this.enableLabelDrag();
+      this.enableLaneResize();
       this.enableInlineLabelEdit();
       this.refreshProps();
       this.setTool("select");
@@ -72737,9 +72913,11 @@
         grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
         background: { color: "transparent" },
         connecting: {
-          // Tight 8px snap radius for port circle highlighting, while intelligent
-          // center-alignment at drop time handles straight-line snapping beautifully.
-          snap: { radius: 8 },
+          // 20px snap radius: the port circles are r=2.75 and hidden until hover,
+          // so a tighter radius made them nearly impossible to hit. Dropping on
+          // the node BODY also connects (handleDragToBlank → nearest fixed port),
+          // and the hovered node is ringed via .lk-drop-target for feedback.
+          snap: { radius: 20 },
           allowBlank: true,
           // drop on empty canvas → "pick shape" picker
           allowLoop: false,
@@ -73110,17 +73288,12 @@
         if (pt2.x < b2.x || pt2.x > b2.x + b2.width || pt2.y < b2.y || pt2.y > b2.y + b2.height) continue;
         candidates.push(n2);
       }
-      if (candidates.length) {
-        const best = candidates.reduce((pick3, cur) => {
-          const pb = pick3.getBBox();
-          const cb = cur.getBBox();
-          const pArea = pb.width * pb.height;
-          const cArea = cb.width * cb.height;
-          return cArea < pArea ? cur : pick3;
-        });
+      const best = pickDropTarget(candidates.map((n2) => ({ n: n2, bbox: n2.getBBox() })), pt2)?.n;
+      if (best) {
         edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt2)));
         return "connected";
       }
+      if (this.endOnPool(edge, src, pt2)) return "pool";
       this.pendingDrop = edge;
       const wrap = el("div", "lk-shape-popup");
       wrap.appendChild(el("div", "lk-flyout-title", "Ch\xE8n h\xECnh"));
@@ -73309,6 +73482,53 @@
           const n2 = node2;
           n2.setData({ ...n2.getData(), labelOffset: final });
           this.rerender(n2);
+          this.onChange();
+        };
+        document.addEventListener("pointermove", mv);
+        document.addEventListener("pointerup", up);
+      });
+    }
+    /**
+     * Drag the line between two lanes of a BPMN pool to move height from one
+     * lane to the other (pool keeps its size). Result lands in
+     * `lanes[i].height` as one undo step.
+     */
+    enableLaneResize() {
+      const MIN_LANE = 60;
+      this.root.addEventListener("pointerdown", (e2) => {
+        const handle = e2.target?.closest?.(".bp-pool-lane-divider");
+        if (!handle) return;
+        const cellId = handle.closest(".x6-node")?.getAttribute("data-cell-id");
+        const node2 = cellId ? this.graph.getCellById(cellId) : null;
+        if (!node2 || !node2.isNode()) return;
+        const lanes = this.nodeExtra(node2).lanes ?? [];
+        const idx = Number(handle.getAttribute("data-lane-idx"));
+        if (!Number.isInteger(idx) || idx >= lanes.length - 1) return;
+        e2.preventDefault();
+        e2.stopPropagation();
+        handle.classList.add("is-dragging");
+        const laneEls = Array.from(handle.closest(".bp-pool-body")?.querySelectorAll(":scope > .bp-pool-lane") ?? []);
+        const poolH = node2.getSize().height;
+        const startY = e2.clientY;
+        const scale2 = this.graph.scale().sy || 1;
+        const resized = (ev) => resizeLaneBoundary(lanes, poolH, idx, (ev.clientY - startY) / scale2, MIN_LANE);
+        const mv = (ev) => {
+          resized(ev).forEach((ln3, i3) => {
+            if (laneEls[i3]) laneEls[i3].style.flex = `${ln3.height} 1 0px`;
+          });
+        };
+        const up = (ev) => {
+          document.removeEventListener("pointermove", mv);
+          document.removeEventListener("pointerup", up);
+          handle.classList.remove("is-dragging");
+          if (Math.abs(ev.clientY - startY) < 1) return;
+          this.graph.startBatch("lane-resize");
+          try {
+            node2.setData({ ...node2.getData(), lanes: resized(ev) }, { deep: false });
+            this.rerender(node2);
+          } finally {
+            this.graph.stopBatch("lane-resize");
+          }
           this.onChange();
         };
         document.addEventListener("pointermove", mv);
@@ -73536,12 +73756,28 @@
       };
       this.graphMount.addEventListener("mousedown", onDomDown, true);
       this.graphMount.addEventListener("touchstart", onDomDown, true);
+      const clearDropTarget = () => {
+        this.graphMount.querySelectorAll(".lk-drop-target").forEach((el2) => el2.classList.remove("lk-drop-target"));
+      };
+      this.graphMount.addEventListener("mouseover", (e2) => {
+        if (!this.root.classList.contains("lk-dragging-edge")) return;
+        const t3 = e2.target;
+        const g2 = t3 && typeof t3.closest === "function" ? t3.closest(".x6-node") : null;
+        const id = g2?.getAttribute("data-cell-id") ?? void 0;
+        const dangling = this.graph.getEdges().find((ed) => !ed.getSourceCellId() !== !ed.getTargetCellId());
+        const otherEnd = dangling?.getSourceCellId() ?? dangling?.getTargetCellId() ?? void 0;
+        const ok = !!id && id !== otherEnd && !this.isPortDisabledNode(id) && !!this.graph.getCellById(id)?.isNode?.();
+        if (g2?.classList.contains("lk-drop-target") && ok) return;
+        clearDropTarget();
+        if (ok) g2.classList.add("lk-drop-target");
+      }, true);
       const addDoc = (type, fn2) => {
         document.addEventListener(type, fn2, true);
         this.docListeners.push({ type, fn: fn2 });
       };
       const clearDrag = () => {
         this.root.classList.remove("lk-dragging-edge");
+        clearDropTarget();
         let changedAny = false;
         this.graph.getEdges().forEach((edge) => {
           const e2 = edge;
@@ -73660,43 +73896,13 @@
         const dy = current.y - previous.y;
         if (dx === 0 && dy === 0) return;
         const movedId = node2.id;
+        const groupMove = !!(options?.["ui"] || options?.["selection"]);
         for (const child of this.graph.getNodes()) {
           if (child.id === movedId) continue;
           if (child.getData()?.attachedTo !== movedId) continue;
+          if (groupMove && this.graph.isSelected(child)) continue;
           const p4 = child.getPosition();
           child.setPosition(p4.x + dx, p4.y + dy, { "__boundary_follow": true });
-        }
-        if (!options?.["ui"]) return;
-        const sel = this.graph.getSelectedCells().filter((c4) => c4.isNode?.());
-        if (sel.length < 2) return;
-        if (!sel.some((c4) => c4.id === movedId)) return;
-        const selIds = new Set(sel.map((c4) => c4.id));
-        const isDescendantOfSelected = (n2) => {
-          let p4 = n2.getParent();
-          while (p4) {
-            if (selIds.has(p4.id)) return true;
-            p4 = p4.getParent();
-          }
-          return false;
-        };
-        const isBoundaryOfMoved = (n2) => n2.getData()?.attachedTo === movedId;
-        const selEdges = this.graph.getSelectedCells().filter((c4) => !c4.isNode?.());
-        const allMovingIds = new Set(selIds);
-        for (const peer of sel) {
-          if (peer.id === movedId) continue;
-          if (isDescendantOfSelected(peer)) continue;
-          if (isBoundaryOfMoved(peer)) continue;
-          const p4 = peer.getPosition();
-          peer.setPosition(p4.x + dx, p4.y + dy, { "__bulk_follow": true });
-        }
-        for (const edge of selEdges) {
-          const srcId = edge.getSourceCellId?.();
-          const tgtId = edge.getTargetCellId?.();
-          if (!srcId || !tgtId) continue;
-          if (!allMovingIds.has(srcId) || !allMovingIds.has(tgtId)) continue;
-          const verts = edge.getVertices?.();
-          if (!verts?.length) continue;
-          edge.setVertices(verts.map((v4) => ({ x: v4.x + dx, y: v4.y + dy })));
         }
       });
       this.graph.on("node:resized", () => {
@@ -73791,10 +73997,26 @@
       const view = this.graph.findViewByCell(node2);
       if (!view) return;
       const canConnect = !this.isPortDisabledNode(node2.id);
+      const isErd = this.nodeKind(node2) === "erd-entity";
       view.container.querySelectorAll(".x6-port circle").forEach((c4) => {
         const id = c4.getAttribute("port") ?? "";
         const isFixed = FIXED_PORT_IDS.includes(id);
-        c4.style.visibility = visible && canConnect && isFixed ? "visible" : "hidden";
+        const isErdCol = id.startsWith("col:");
+        const allowed = isErd ? isErdCol : isFixed;
+        const show = visible && canConnect && allowed;
+        c4.style.visibility = show ? "visible" : "hidden";
+        if (isErdCol) {
+          if (show) {
+            c4.setAttribute("r", "4");
+            c4.setAttribute("fill", "#fff");
+            c4.setAttribute("stroke", "#5E8FB9");
+            c4.setAttribute("stroke-width", "1.2");
+          } else {
+            c4.setAttribute("r", "11");
+            c4.setAttribute("fill", "rgba(94,143,185,0.001)");
+            c4.setAttribute("stroke-width", "0");
+          }
+        }
       });
     }
     // ── Left tool dock (design "PHẦN TỬ" — labeled vertical list) ─────────────
@@ -73844,6 +74066,23 @@
         rail.appendChild(item);
       }
       this.root.appendChild(rail);
+    }
+    static {
+      // Representative shape icon for each diagram category (rail + mobile bar).
+      this.CAT_REP = {
+        "C\u01A1 b\u1EA3n": "bs-rect",
+        "Flowchart": "fc-decision",
+        "ERD": "erd-entity",
+        "UML": "uml-class",
+        "State": "st-state",
+        "Sequence": "sq-actor",
+        "Mindmap": "mm-root",
+        "BPMN": "bpmn-gateway-x"
+      };
+    }
+    static {
+      // Diagram categories that get a dedicated button on the mobile bottom bar (rest → "Sơ đồ khác" sheet).
+      this.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
     }
     /**
      * Mobile toolbar (Excalidraw-style): one bottom bar in the thumb zone.
@@ -74532,9 +74771,9 @@
       fontIn.min = "6";
       fontIn.max = "96";
       fontIn.step = "1";
-      fontIn.value = String(st3.fontSize || 13);
+      fontIn.value = String(st3.fontSize || defaultFontSizeFor(node2));
       const applyFont = () => {
-        const v4 = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || 13));
+        const v4 = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || defaultFontSizeFor(node2)));
         fontIn.value = String(v4);
         this.setStyle(node2, { fontSize: v4 });
       };
@@ -75192,10 +75431,10 @@
       szIn.min = "6";
       szIn.max = "96";
       szIn.step = "1";
-      szIn.value = String(st3.fontSize ?? 13);
+      szIn.value = String(st3.fontSize ?? defaultFontSizeFor(node2));
       const inc = el("div", "lk-line-cell lk-fs-btn", "+");
       const apply4 = (v4) => {
-        const clamped = Math.max(6, Math.min(96, Math.round(v4) || 13));
+        const clamped = Math.max(6, Math.min(96, Math.round(v4) || defaultFontSizeFor(node2)));
         szIn.value = String(clamped);
         this.setStyle(node2, { fontSize: clamped });
         this.refreshContextBar();
@@ -75339,21 +75578,34 @@
         data: { kind, label, style: style2 ?? {}, ...ex, ...source !== void 0 ? { __source: source } : {} },
         attrs: { content: { html: nodeHtml(kind, label, style2, ex), class: "hn" } }
       });
-      if (kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf") {
+      if (this.autoGrowSelector(kind)) {
         this.scheduleMindmapAutoGrow(node2);
       }
       if (FRAME_KINDS.has(kind)) node2.toBack();
+      if (kind === "erd-entity" && ex.cols?.length) {
+        const colPorts = buildErdColumnPorts(ex.cols, w3);
+        if (colPorts.length) {
+          for (const [groupId, groupSpec] of Object.entries(ERD_COL_PORT_GROUPS)) {
+            node2;
+            node2.prop(`ports/groups/${groupId}`, groupSpec);
+          }
+          node2.addPorts(colPorts);
+        }
+      }
       return node2;
     }
     /** Defer autoGrow past X6's mount + fitWhenReady race so DOM is measurable. */
     scheduleMindmapAutoGrow(node2) {
-      setTimeout(() => this.autoGrowMindmapNode(node2), 60);
+      setTimeout(() => {
+        const sel = this.autoGrowSelector(this.nodeKind(node2));
+        if (sel) this.autoGrowNodeToContent(node2, sel);
+      }, 60);
     }
     // Seed default rows for data-driven kinds; keep only defined incoming overrides.
     seedExtra(kind) {
       if (kind === "erd-entity") return { cols: defaultErdCols() };
       if (kind === "uml-class" || kind === "uml-interface") return defaultUml(kind);
-      if (kind === "bpmn-pool") return { lanes: [{ id: "l1", label: "Lane 1" }] };
+      if (kind === "bpmn-pool") return { lanes: [{ id: this.newLaneId(), label: "Lane 1" }] };
       return {};
     }
     mergeExtra(kind, data2) {
@@ -75483,16 +75735,70 @@
     }
     // Update ERD cols / UML members, then re-render + grow node height to fit.
     setExtra(n2, patch) {
-      n2.setData({ ...n2.getData(), ...patch });
+      const isErd = this.nodeKind(n2) === "erd-entity";
+      const oldCols = isErd ? (this.nodeExtra(n2).cols ?? []).slice() : null;
+      n2.setData({ ...n2.getData(), ...patch }, { deep: false });
       this.rerender(n2);
       this.autoHeight(n2);
+      if (isErd) this.refreshErdPorts(n2, oldCols);
       this.onChange();
+    }
+    /** Rebuild col:* ports from current `cols` and re-attach edges that were
+     *  connected to the OLD col ports. Re-attach by INDEX — rename works,
+     *  insert/delete in the middle reflows correctly; orphaned edges (col
+     *  deleted) keep their old endpoint and X6 falls back to nearest anchor. */
+    refreshErdPorts(node2, oldCols) {
+      const ex = this.nodeExtra(node2);
+      const newCols = ex.cols ?? [];
+      const snapshots = [];
+      for (const edge of this.graph.getEdges()) {
+        for (const terminal of ["source", "target"]) {
+          const term = terminal === "source" ? edge.getSource() : edge.getTarget();
+          if (term?.cell !== node2.id) continue;
+          const port2 = term?.port;
+          if (!port2 || !port2.startsWith("col:")) continue;
+          const m4 = /^col:(.+)-(left|right)$/.exec(port2);
+          if (!m4) continue;
+          snapshots.push({ edge, terminal, oldPortId: port2, side: m4[2] });
+        }
+      }
+      for (const s3 of snapshots) {
+        const term = { cell: node2.id };
+        if (s3.terminal === "source") s3.edge.setSource(term);
+        else s3.edge.setTarget(term);
+      }
+      const allCurrent = node2.getPorts();
+      const nonCol = allCurrent.filter((p4) => !(typeof p4.id === "string" && p4.id.startsWith("col:")));
+      const w3 = node2.getSize().width;
+      const newColPorts = newCols.length ? buildErdColumnPorts(newCols, w3) : [];
+      node2.setPropByPath("ports/items", [...nonCol, ...newColPorts], { rewrite: true });
+      if (!oldCols) return;
+      const isPureRename = oldCols.length === newCols.length;
+      for (const s3 of snapshots) {
+        const oldName = /^col:(.+)-(left|right)$/.exec(s3.oldPortId)?.[1];
+        if (!oldName) continue;
+        let newName;
+        if (isPureRename) {
+          const idx = oldCols.findIndex((c4) => c4.name === oldName);
+          if (idx < 0) continue;
+          newName = newCols[idx]?.name;
+        } else {
+          newName = newCols.find((c4) => c4.name === oldName)?.name;
+        }
+        if (!newName) continue;
+        const newPortId = `col:${newName}-${s3.side}`;
+        if (s3.terminal === "source") {
+          s3.edge.setSource({ cell: node2.id, port: newPortId });
+        } else {
+          s3.edge.setTarget({ cell: node2.id, port: newPortId });
+        }
+      }
     }
     autoHeight(n2) {
       const kind = this.nodeKind(n2);
       const ex = this.nodeExtra(n2);
       let h3 = 0;
-      if (kind === "erd-entity") h3 = 34 + (ex.cols?.length ?? 0) * 25;
+      if (kind === "erd-entity") h3 = 38 + (ex.cols?.length ?? 0) * 27 + 12;
       else if (kind === "uml-class" || kind === "uml-interface") {
         const f3 = ex.fields?.length ?? 0, m4 = ex.methods?.length ?? 0;
         h3 = 38 + (f3 ? 14 + f3 * 20 : 0) + (m4 ? 14 + m4 * 20 : 0);
@@ -75613,15 +75919,61 @@
     newLaneId() {
       return "l" + Math.random().toString(36).slice(2, 8);
     }
+    /**
+     * Rename duplicate lane ids across pools (heal-on-load). Pool defaults used
+     * to hardcode "l1" so files with multiple pools collide. We keep the FIRST
+     * pool's lane id and rename collisions in later pools with `newLaneId()`.
+     * Also update child nodes whose `laneId` references the renamed lane within
+     * the same pool — best-effort by spatial containment (pool bbox).
+     */
+    dedupeLaneIdsAcrossPools(model) {
+      const seen = /* @__PURE__ */ new Set();
+      let changed = false;
+      const newNodes = model.nodes.map((n2) => {
+        if (n2.shape !== "bpmn-pool") return n2;
+        const lanes = n2.attrs?.lanes ?? [];
+        if (!lanes.length) return n2;
+        const remap = {};
+        const newLanes = lanes.map((ln3) => {
+          if (!seen.has(ln3.id)) {
+            seen.add(ln3.id);
+            return ln3;
+          }
+          const fresh = this.newLaneId();
+          remap[ln3.id] = fresh;
+          seen.add(fresh);
+          changed = true;
+          return { ...ln3, id: fresh };
+        });
+        if (!Object.keys(remap).length) return n2;
+        const poolBox = { x: n2.x, y: n2.y, w: n2.width, h: n2.height };
+        for (const child of model.nodes) {
+          const childLane = child.laneId;
+          if (!childLane || !remap[childLane]) continue;
+          const cx = child.x + child.width / 2;
+          const cy = child.y + child.height / 2;
+          if (cx >= poolBox.x && cx <= poolBox.x + poolBox.w && cy >= poolBox.y && cy <= poolBox.y + poolBox.h) {
+            child.laneId = remap[childLane];
+          }
+        }
+        return { ...n2, attrs: { ...n2.attrs ?? {}, lanes: newLanes } };
+      });
+      if (!changed) return model;
+      console.info("[omniboard] dedupeLaneIdsAcrossPools: renamed duplicate lane ids on load");
+      return { ...model, nodes: newNodes };
+    }
     addLaneToPool(node2, where) {
       const ex = this.nodeExtra(node2);
-      const lanes = [...ex.lanes ?? [{ id: "l1", label: "Lane 1" }]];
-      const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}` };
+      const s3 = node2.getSize();
+      const NEW_LANE_H = 70;
+      const prev = ex.lanes ?? [{ id: "l1", label: "Lane 1" }];
+      const sized = prev.some((ln3) => ln3.height) ? laneHeights(prev, s3.height).map((h3, i3) => ({ ...prev[i3], height: Math.round(h3) })) : null;
+      const lanes = [...sized ?? prev];
+      const next = { id: this.newLaneId(), label: `Lane ${lanes.length + 1}`, ...sized ? { height: NEW_LANE_H } : {} };
       if (where === "above") lanes.unshift(next);
       else lanes.push(next);
-      node2.setData({ ...node2.getData(), lanes });
-      const s3 = node2.getSize();
-      node2.resize(s3.width, s3.height + 70);
+      node2.setData({ ...node2.getData(), lanes }, { deep: false });
+      node2.resize(s3.width, s3.height + NEW_LANE_H);
       this.rerender(node2);
       this.refreshContextBar();
       this.onChange();
@@ -75774,12 +76126,27 @@
     }
     /** Re-measure rendered HTML and grow the node's height if the wrapped text overflows. */
     autoGrowMindmapNode(node2) {
+      this.autoGrowNodeToContent(node2, ".mm");
+    }
+    /**
+     * Grow a content-driven HTML node (mindmap / uml / erd) so its box fits the
+     * rendered inner element — content was being clipped when the initial height
+     * (from a parser estimate) was too small. Only grows, never shrinks.
+     */
+    autoGrowNodeToContent(node2, selector) {
       const view = this.graph.findViewByCell(node2);
-      const mm = view?.container?.querySelector?.(".mm");
-      if (!mm) return;
-      const desired = mm.scrollHeight;
+      const inner = view?.container?.querySelector?.(selector);
+      if (!inner) return;
+      const desired = inner.scrollHeight;
       const cur = node2.getSize().height;
       if (desired > cur + 1) node2.resize(node2.getSize().width, desired);
+    }
+    /** Selector of the measurable inner element for content-driven kinds. */
+    autoGrowSelector(kind) {
+      if (kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf") return ".mm";
+      if (kind === "uml-class" || kind === "uml-interface") return ".uml";
+      if (kind === "erd-entity") return ".erd-table";
+      return null;
     }
     commitLabel() {
       if (this.labelInput) this.labelInput.blur();
@@ -76026,6 +76393,36 @@
       }
       this.showPopup(grid, anchor3);
     }
+    /** End `edge` on the pool under `pt`, straight above / below its source,
+     *  as a message flow (the only flow BPMN allows to a participant). The
+     *  topLeft anchor keeps its offset when the pool moves. */
+    endOnPool(edge, src, pt2) {
+      const other = edge.getSourcePoint() ?? src.getBBox().center;
+      let hit = null;
+      for (const n2 of this.graph.getNodes()) {
+        if (n2.id === src.id || this.nodeKind(n2) !== "bpmn-pool") continue;
+        const b2 = n2.getBBox();
+        const anchor3 = poolDropAnchor({ x: b2.x, y: b2.y, width: b2.width, height: b2.height, blackBox: !!this.nodeExtra(n2).blackBox }, pt2, other);
+        if (anchor3 && (!hit || b2.width * b2.height < hit.area)) hit = { pool: n2, anchor: anchor3, area: b2.width * b2.height };
+      }
+      if (!hit) return false;
+      edge.setTarget({ cell: hit.pool.id, anchor: { name: "topLeft", args: hit.anchor }, connectionPoint: { name: "anchor" } });
+      edge.setVertices([]);
+      this.applyFlowType(edge, "message");
+      this.onChange();
+      return true;
+    }
+    /** Set an edge's BPMN flow type: visual preset + semantic kind / attrs. */
+    applyFlowType(edge, key) {
+      this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
+      const data2 = edge.getData() ?? {};
+      const nextAttrs = { ...data2.bpmnAttrs ?? {} };
+      delete nextAttrs.isDefault;
+      if (key === "message" || key === "association") delete nextAttrs.condition;
+      if (key === "default") nextAttrs.isDefault = true;
+      const nextKind = key === "message" ? "message" : key === "association" ? "association" : void 0;
+      edge.setData({ ...data2, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : void 0 });
+    }
     /** BPMN flow-type popup — applies a preset (Sequence/Default/Message/Conditional/Association). Đợt C. */
     openEdgeFlowTypePopup(edge, anchor3) {
       const list = el("div", "lk-line-list");
@@ -76033,14 +76430,7 @@
       for (const key of ["sequence", "default", "message", "conditional", "association"]) {
         const row = el("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
         row.onclick = () => {
-          this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
-          const data2 = edge.getData() ?? {};
-          const nextAttrs = { ...data2.bpmnAttrs ?? {} };
-          delete nextAttrs.isDefault;
-          if (key === "message" || key === "association") delete nextAttrs.condition;
-          if (key === "default") nextAttrs.isDefault = true;
-          const nextKind = key === "message" ? "message" : key === "association" ? "association" : void 0;
-          edge.setData({ ...data2, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : void 0 });
+          this.applyFlowType(edge, key);
           this.hidePopup();
           this.showEdgeBar(edge);
         };
@@ -76217,9 +76607,10 @@
     refreshBpmnEventLabels() {
       for (const n2 of this.graph.getNodes()) {
         const k3 = this.nodeKind(n2);
-        const isEvent = BPMN_EVENT_KINDS.has(k3);
+        const isEvent2 = BPMN_EVENT_KINDS.has(k3);
         const isGw = k3.startsWith("bpmn-gateway");
-        if (!isEvent && !isGw) continue;
+        const isData2 = k3.startsWith("bpmn-data-");
+        if (!isEvent2 && !isGw && !isData2) continue;
         const cy = n2.getPosition().y + n2.getSize().height / 2;
         let bottom4 = false, top4 = false;
         for (const e2 of this.graph.getEdges()) {
@@ -76236,7 +76627,7 @@
         }
         const flipUp = bottom4 && !top4;
         const view = this.graph.findViewByCell(n2);
-        const el2 = view?.container?.querySelector?.(isGw ? ".bp-gw" : ".bp-event");
+        const el2 = view?.container?.querySelector?.(isGw ? ".bp-gw" : isData2 ? ".bp-dataobj, .bp-datastore" : ".bp-event");
         if (el2) el2.classList.toggle("label-top", flipUp);
       }
     }
@@ -76323,7 +76714,8 @@
       edge.setConnector("mm-edge");
     }
     // ── Model load / serialize ───────────────────────────────────────────────
-    loadModel(model) {
+    loadModel(model, opts) {
+      model = this.dedupeLaneIdsAcrossPools(model);
       this.graph.clearCells();
       this.graph.startBatch("load");
       for (const n2 of model.nodes) {
@@ -76343,7 +76735,9 @@
           interrupting: a3.interrupting,
           attachedTo: a3.attachedTo,
           markers: a3.markers,
-          collapsed: a3.collapsed
+          collapsed: a3.collapsed,
+          // Story 2.1 — ERD cluster header color from DBML TableGroup.
+          headerColor: a3.__headerColor
         };
         const migrated = migrateBpmnEventKind(n2.shape, extra);
         const node2 = this.addHtmlNode(migrated.kind, n2.x, n2.y, n2.width, n2.height, n2.label, style2, n2.id, migrated.extra, a3.__source);
@@ -76440,6 +76834,13 @@
         });
         if (e2.style || data2.style) this.applyEdgeStyle(created);
         if (mm) this.applyMindmapRoutingIfNeeded(created);
+        const srcNode = this.graph.getCellById(e2.source);
+        const tgtNode = this.graph.getCellById(e2.target);
+        const srcKind = srcNode && srcNode.getData?.()?.kind;
+        const tgtKind = tgtNode && tgtNode.getData?.()?.kind;
+        if (srcKind === "erd-entity" && tgtKind === "erd-entity") {
+          created.setZIndex(-1);
+        }
       }
       for (const n2 of model.nodes) {
         if (!n2.parentId && !n2.laneId) continue;
@@ -76476,13 +76877,13 @@
       this.resyncHtmlNodes();
       setTimeout(() => {
         this.graph.getNodes().forEach((n2) => {
-          const k3 = this.nodeKind(n2);
-          if (k3 === "mm-root" || k3 === "mm-branch" || k3 === "mm-leaf") this.autoGrowMindmapNode(n2);
+          const sel = this.autoGrowSelector(this.nodeKind(n2));
+          if (sel) this.autoGrowNodeToContent(n2, sel);
         });
         this.refreshMinimap();
         this.refreshBpmnEventLabels();
       }, 80);
-      if (model.nodes.length) this.fitWhenReady();
+      if (model.nodes.length && !opts?.keepView) this.fitWhenReady();
     }
     // In Obsidian the view container may have 0 size at load time (layout not
     // measured yet) — zoomToFit then computes scale ≈ 0 and content vanishes.
@@ -76588,10 +76989,7 @@
               const poolExtra = this.nodeExtra(pool);
               const poolLanes = poolExtra.lanes ?? [{ id: "l1", label: "Lane 1" }];
               if (poolLanes.length > 0) {
-                const laneHeight = poolSize.height / poolLanes.length;
-                const relY = cy - poolPos.y;
-                const laneIdx = Math.max(0, Math.min(poolLanes.length - 1, Math.floor(relY / laneHeight)));
-                laneId = poolLanes[laneIdx].id;
+                laneId = poolLanes[laneIndexAt(poolLanes, poolSize.height, cy - poolPos.y)].id;
                 if (laneId !== data2.laneId) {
                   n2.setData({ ...data2, laneId }, { silent: true });
                 }
@@ -76872,7 +77270,7 @@
       clone3.setAttribute("xmlns", SVGNS2);
       clone3.classList.add("lk-root");
       const style2 = document.createElementNS(SVGNS2, "style");
-      style2.textContent = collectPluginCss();
+      style2.textContent = collectPluginCss() + "\nforeignObject{overflow:visible}";
       const bg = document.createElementNS(SVGNS2, "rect");
       bg.setAttribute("x", String(x3));
       bg.setAttribute("y", String(y3));
@@ -76973,20 +77371,6 @@
       this.graph.dispose();
     }
   };
-  // Representative shape icon for each diagram category (rail + mobile bar).
-  _OmniboardCanvas.CAT_REP = {
-    "C\u01A1 b\u1EA3n": "bs-rect",
-    "Flowchart": "fc-decision",
-    "ERD": "erd-entity",
-    "UML": "uml-class",
-    "State": "st-state",
-    "Sequence": "sq-actor",
-    "Mindmap": "mm-root",
-    "BPMN": "bpmn-gateway-x"
-  };
-  // Diagram categories that get a dedicated button on the mobile bottom bar (rest → "Sơ đồ khác" sheet).
-  _OmniboardCanvas.QUICK_CATS = ["C\u01A1 b\u1EA3n", "Flowchart", "ERD", "BPMN"];
-  var OmniboardCanvas = _OmniboardCanvas;
 
   // node_modules/min-dash/dist/index.js
   var nativeToString = Object.prototype.toString;
@@ -83019,6 +83403,19 @@
     }
   }
 
+  // src/io/bpmn/labelGeometry.ts
+  var isEvent = (shape) => shape.includes("event") || shape.includes("bpmn-start") || shape.includes("bpmn-intermediate") || shape.includes("bpmn-end");
+  var isGateway = (shape) => shape.includes("gateway");
+  var isData = (shape) => shape.startsWith("bpmn-data-");
+  function hasExternalLabel(shape) {
+    return isEvent(shape) || isGateway(shape) || isData(shape);
+  }
+  function defaultLabelDy(shape, height2) {
+    if (isGateway(shape)) return 37;
+    if (isData(shape)) return height2 / 2 + 16;
+    return 36;
+  }
+
   // src/io/bpmn/shapes.ts
   var BPMN_TO_SHAPE = {
     // Events — base position; importer overlays extra.trigger/throwing.
@@ -83379,14 +83776,13 @@
       const y3 = bounds?.y ?? 100;
       const width2 = bounds?.width ?? (tagLc.endsWith("Event") ? 36 : 100);
       const height2 = bounds?.height ?? (tagLc.endsWith("Event") ? 36 : 60);
-      const isGw = shape.includes("gateway");
       const labelBounds = di?.label?.bounds;
       let nodeLabelOffset;
       if (labelBounds) {
         const labelCenterY = labelBounds.y + labelBounds.height / 2;
         const nodeCenterY = y3 + height2 / 2;
         const isTop = labelCenterY < nodeCenterY;
-        const defaultY = isGw ? 37 : 36;
+        const defaultY = defaultLabelDy(shape, height2);
         const defaultOffset = { x: 0, y: isTop ? -defaultY : defaultY };
         const rawOffset = {
           x: labelBounds.x + labelBounds.width / 2 - (x3 + width2 / 2) - defaultOffset.x,
@@ -83407,7 +83803,7 @@
         y: y3,
         width: width2,
         height: height2,
-        label: (fn2.name ?? "").replace(/&#10;/g, "\n"),
+        label: ((fn2.$type === "bpmn:TextAnnotation" ? fn2.text : fn2.name) ?? "").replace(/&#10;/g, "\n"),
         ...flowNodeParentId.get(id) ? { parentId: flowNodeParentId.get(id) } : {},
         ...flowNodeLaneId.get(id) ? { laneId: flowNodeLaneId.get(id) } : {},
         attrs: {
@@ -83436,13 +83832,20 @@
     }
     const nodeBox2 = /* @__PURE__ */ new Map();
     for (const n2 of model.nodes) nodeBox2.set(n2.id, { x: n2.x, y: n2.y, width: n2.width, height: n2.height });
+    for (const root2 of definitions.rootElements ?? []) {
+      for (const part of root2.participants ?? []) {
+        const b2 = part.id ? diShapes.get(part.id)?.bounds : void 0;
+        if (b2 && part.id) nodeBox2.set(part.id, b2);
+      }
+    }
     const buildEdge = (fe3, kind) => {
       const id = fe3.id;
       const sourceId = Array.isArray(fe3.sourceRef) ? (typeof fe3.sourceRef[0] === "string" ? fe3.sourceRef[0] : fe3.sourceRef[0]?.id) ?? void 0 : fe3.sourceRef?.id;
       const targetId = fe3.targetRef?.id;
       if (!id || !sourceId || !targetId) return null;
       const di = diEdges.get(id);
-      const wps = di?.waypoint ?? [];
+      const rawWps = di?.waypoint ?? [];
+      const wps = rawWps.filter((p4, i3) => i3 === 0 || Math.hypot(p4.x - rawWps[i3 - 1].x, p4.y - rawWps[i3 - 1].y) > 0.5);
       const vertices = wps.length > 2 ? wps.slice(1, -1).map((p4) => ({ x: p4.x, y: p4.y })) : void 0;
       const srcBox = nodeBox2.get(sourceId);
       const tgtBox = nodeBox2.get(targetId);
@@ -83460,11 +83863,11 @@
         const dx = tcx - scx;
         const dy = tcy - scy;
         if (Math.abs(dx) >= Math.abs(dy)) {
-          sourcePort ?? (sourcePort = dx >= 0 ? "right" : "left");
-          targetPort ?? (targetPort = dx >= 0 ? "left" : "right");
+          sourcePort ??= dx >= 0 ? "right" : "left";
+          targetPort ??= dx >= 0 ? "left" : "right";
         } else {
-          sourcePort ?? (sourcePort = dy >= 0 ? "bottom" : "top");
-          targetPort ?? (targetPort = dy >= 0 ? "top" : "bottom");
+          sourcePort ??= dy >= 0 ? "bottom" : "top";
+          targetPort ??= dy >= 0 ? "top" : "bottom";
         }
       }
       let labelPos;
@@ -83554,7 +83957,11 @@
         const processRefId = part.processRef?.id;
         const proc = processRefId ? processById.get(processRefId) : void 0;
         const lanes = (proc?.laneSets ?? []).flatMap((ls) => ls.lanes ?? []);
-        const laneAttrs = lanes.map((ln3) => ({ id: ln3.id ?? "", label: ln3.name ?? "" }));
+        const poolIsHorizontal = part.id ? diShapes.get(part.id)?.isHorizontal !== false : true;
+        const laneAttrs = lanes.map((ln3) => {
+          const h3 = poolIsHorizontal && ln3.id ? diShapes.get(ln3.id)?.bounds?.height : void 0;
+          return { id: ln3.id ?? "", label: ln3.name ?? "", ...h3 && h3 > 0 ? { height: h3 } : {} };
+        });
         let px2, py, pw, ph;
         const partDi = part.id ? diShapes.get(part.id) : void 0;
         if (partDi?.bounds) {
@@ -83580,7 +83987,6 @@
             if (fe3.id) flowNodePoolId.set(fe3.id, part.id);
           }
         }
-        const isHorizontal = part.id ? diShapes.get(part.id)?.isHorizontal !== false : true;
         const isBlackBox = !processRefId;
         pools.push({
           id: part.id ?? `pool_${pools.length}`,
@@ -83592,7 +83998,7 @@
           label: part.name ?? "",
           attrs: {
             lanes: laneAttrs.length ? laneAttrs : void 0,
-            poolHorizontal: isHorizontal,
+            poolHorizontal: poolIsHorizontal,
             blackBox: isBlackBox,
             __source: { format: "bpmn", sourceId: part.id, kind: "pool" }
           }
@@ -83620,6 +84026,9 @@
     if (shape === "bpmn-event-intermediate" && attrs?.attachedTo) return "bpmn:BoundaryEvent";
     const tag = SHAPE_TO_BPMN[shape] ?? "task";
     return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
+  }
+  function isBlackBoxPool(pool) {
+    return pool.attrs?.blackBox === true;
   }
   function edgeKindOf(e2) {
     return e2.kind ?? "sequence";
@@ -83834,7 +84243,7 @@
     }
     return void 0;
   }
-  var POOL_HEADER = 44;
+  var POOL_HEADER = 30;
   var LANE_HEADER = 30;
   var POOL_MARGIN = 40;
   async function exportBpmn(model, meta) {
@@ -83929,7 +84338,7 @@
         di.isExpanded = !collapsed;
         const bpmnFill = n2.attrs?.bpmnFill;
         const bpmnStroke = n2.attrs?.bpmnStroke;
-        const shapeAttrs = di.$attrs ?? (di.$attrs = {});
+        const shapeAttrs = di.$attrs ??= {};
         if (bpmnFill) shapeAttrs["bioc:fill"] = bpmnFill;
         else {
           delete shapeAttrs["bioc:fill"];
@@ -83941,27 +84350,30 @@
           delete shapeAttrs["color:border-color"];
         }
       } else {
-        const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), { id: n2.id, name: n2.label ?? "" });
+        const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), n2.shape === "bpmn-annotation" ? { id: n2.id, text: n2.label ?? "" } : n2.shape === "bpmn-group" ? { id: n2.id } : { id: n2.id, name: n2.label ?? "" });
         applyBpmnExtras(m4, fe3, n2.shape, n2.attrs ?? {});
-        (targetContainer.flowElements ?? (targetContainer.flowElements = [])).push(fe3);
+        (targetContainer.flowElements ??= []).push(fe3);
         flowById.set(n2.id, fe3);
         containerOf.set(n2.id, targetContainer);
         di = m4.create("bpmndi:BPMNShape", {
           bpmnElement: fe3,
           bounds: m4.create("dc:Bounds", { x: n2.x, y: n2.y, width: n2.width, height: n2.height })
         });
-        (mainPlane.planeElement ?? (mainPlane.planeElement = [])).push(di);
+        (mainPlane.planeElement ??= []).push(di);
         diShape.set(n2.id, di);
       }
       const existing = flowById.get(n2.id);
       const curContainer = containerOf.get(n2.id);
       if (existing && curContainer && curContainer !== targetContainer) {
         curContainer.flowElements = (curContainer.flowElements ?? []).filter((fe3) => fe3.id !== n2.id);
-        (targetContainer.flowElements ?? (targetContainer.flowElements = [])).push(existing);
+        (targetContainer.flowElements ??= []).push(existing);
         containerOf.set(n2.id, targetContainer);
       }
       if (existing) {
-        if (typeof n2.label === "string") existing.name = n2.label;
+        if (typeof n2.label === "string") {
+          if (n2.shape === "bpmn-annotation") existing.text = n2.label;
+          else if (n2.shape !== "bpmn-group") existing.name = n2.label;
+        }
         applyBpmnExtras(m4, existing, n2.shape, n2.attrs ?? {});
       }
     }
@@ -84049,29 +84461,34 @@
       const wps = buildWaypoints(e2, srcNode, tgtNode, m4);
       let sf = flowById.get(e2.id);
       if (!sf) {
-        const sourceFe = flowById.get(e2.source);
-        const targetFe = flowById.get(e2.target);
-        if (!sourceFe || !targetFe) continue;
+        const refOf = (id) => flowById.get(id) ?? (kind === "message" ? collaboration?.participants?.find((p4) => p4.id === id) : void 0);
+        const sourceFe = refOf(e2.source);
+        const targetFe = refOf(e2.target);
+        if (!sourceFe || !targetFe) {
+          console.warn(`[omniboard:bpmn] dropped ${kind} flow "${e2.id}": endpoint has no BPMN element (${e2.source} \u2192 ${e2.target})`);
+          continue;
+        }
         sf = m4.create(bpmnTypeForEdgeKind(kind), {
           id: e2.id,
-          name: e2.label ?? "",
+          // bpmn:Association is an artifact with no `name` in the BPMN schema.
+          ...kind === "association" ? {} : { name: e2.label ?? "" },
           sourceRef: sourceFe,
           targetRef: targetFe
         });
         if (kind === "message") {
           if (!collaboration) {
             sf.$type = "bpmn:SequenceFlow";
-            (process2.flowElements ?? (process2.flowElements = [])).push(sf);
+            (process2.flowElements ??= []).push(sf);
           } else {
-            (collaboration.messageFlows ?? (collaboration.messageFlows = [])).push(sf);
+            (collaboration.messageFlows ??= []).push(sf);
           }
         } else if (kind === "association") {
-          (process2.artifacts ?? (process2.artifacts = [])).push(sf);
+          (process2.artifacts ??= []).push(sf);
         } else {
-          (process2.flowElements ?? (process2.flowElements = [])).push(sf);
+          (process2.flowElements ??= []).push(sf);
         }
         flowById.set(e2.id, sf);
-      } else if (typeof e2.label === "string") {
+      } else if (typeof e2.label === "string" && kind !== "association") {
         sf.name = e2.label;
       }
       applyEdgeExtras(m4, sf, kind, e2.attrs);
@@ -84086,7 +84503,7 @@
           waypoint: wps,
           ...lb ? { label: m4.create("bpmndi:BPMNLabel", { bounds: lb }) } : {}
         });
-        (mainPlane.planeElement ?? (mainPlane.planeElement = [])).push(de3);
+        (mainPlane.planeElement ??= []).push(de3);
         diEdge.set(e2.id, de3);
       }
     }
@@ -84104,8 +84521,7 @@
     const { xml: xml3 } = await m4.toXML(definitions, { format: true });
     return patchCamundaXml(xml3, model);
   }
-  function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m4) {
-    var _a2;
+  function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m4, processByPoolId) {
     const pools = model.nodes.filter(
       (n2) => n2.shape === "bpmn-pool" || n2.attrs?.__source?.kind === "pool"
     );
@@ -84114,29 +84530,39 @@
     const ensureCollaboration = () => {
       if (collaboration) return collaboration;
       collaboration = m4.create("bpmn:Collaboration", { id: "Collaboration_Export" });
-      (definitions.rootElements ?? (definitions.rootElements = [])).push(collaboration);
+      (definitions.rootElements ??= []).push(collaboration);
       return collaboration;
     };
-    const ensureLaneSet = () => {
-      if ((process2.laneSets ?? []).length) return process2.laneSets[0];
-      const laneSet = m4.create("bpmn:LaneSet", { id: `LaneSet_${process2.id ?? "Process_Export"}` });
-      (process2.laneSets ?? (process2.laneSets = [])).push(laneSet);
+    const processForPool = (poolId) => processByPoolId?.get(poolId) ?? process2;
+    const ensureLaneSetIn = (proc) => {
+      if ((proc.laneSets ?? []).length) return proc.laneSets[0];
+      const laneSet = m4.create("bpmn:LaneSet", { id: `LaneSet_${proc.id ?? "Process_Export"}` });
+      (proc.laneSets ??= []).push(laneSet);
       return laneSet;
     };
     const flow = model.nodes.filter(
       (n2) => n2.shape !== "bpmn-pool" && n2.attrs?.__source?.kind !== "pool"
     );
-    if (!flow.length) return;
-    const minX = Math.min(...flow.map((n2) => n2.x));
-    const minY = Math.min(...flow.map((n2) => n2.y));
-    const maxX = Math.max(...flow.map((n2) => n2.x + n2.width));
-    const maxY = Math.max(...flow.map((n2) => n2.y + n2.height));
-    const poolX = minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN;
-    const poolY = minY - POOL_MARGIN;
-    const poolW = maxX - minX + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2;
-    const poolH = maxY - minY + POOL_MARGIN * 2;
+    const fallbackBox = () => {
+      const minX = Math.min(...flow.map((n2) => n2.x));
+      const minY = Math.min(...flow.map((n2) => n2.y));
+      const maxX = Math.max(...flow.map((n2) => n2.x + n2.width));
+      const maxY = Math.max(...flow.map((n2) => n2.y + n2.height));
+      return {
+        x: minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN,
+        y: minY - POOL_MARGIN,
+        width: maxX - minX + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2,
+        height: maxY - minY + POOL_MARGIN * 2
+      };
+    };
     for (const pool of pools) {
       const prefix2 = [];
+      const poolProcess = processForPool(pool.id);
+      const sized = pool.width > 0 && pool.height > 0;
+      if (!sized && !flow.length) continue;
+      const box = sized ? pool : fallbackBox();
+      const poolX = box.x, poolY = box.y, poolW = box.width, poolH = box.height;
+      const lanes = pool.attrs?.lanes ?? [];
       let pdi = diShape.get(pool.id);
       if (pdi?.bounds) {
         pdi.bounds.x = poolX;
@@ -84149,9 +84575,10 @@
           part = m4.create("bpmn:Participant", {
             id: pool.id,
             name: pool.label ?? "Pool",
-            processRef: process2
+            // Each participant references its OWN process when multi-pool.
+            ...isBlackBoxPool(pool) ? {} : { processRef: poolProcess }
           });
-          ((_a2 = ensureCollaboration()).participants ?? (_a2.participants = [])).push(part);
+          (ensureCollaboration().participants ??= []).push(part);
         }
         pdi = m4.create("bpmndi:BPMNShape", {
           bpmnElement: part,
@@ -84162,13 +84589,11 @@
         diShape.set(pool.id, pdi);
         prefix2.push(pdi);
       }
-      const lanes = pool.attrs?.lanes ?? [];
       const laneX = poolX + POOL_HEADER;
       const laneW = poolW - POOL_HEADER;
       if (lanes.length) {
-        const bands = laneBands(lanes, process2, model, poolY, poolH);
+        const bands = laneBandsOf(lanes, poolY, poolH);
         lanes.forEach((ln3, i3) => {
-          var _a3;
           if (!ln3.id) return;
           const band = bands[i3];
           let ldi = diShape.get(ln3.id);
@@ -84178,10 +84603,10 @@
             ldi.bounds.width = laneW;
             ldi.bounds.height = band.h;
           } else {
-            let laneEl = findLane(process2, ln3.id);
+            let laneEl = findLane(poolProcess, ln3.id);
             if (!laneEl) {
               laneEl = m4.create("bpmn:Lane", { id: ln3.id, name: ln3.label ?? ln3.id });
-              ((_a3 = ensureLaneSet()).lanes ?? (_a3.lanes = [])).push(laneEl);
+              (ensureLaneSetIn(poolProcess).lanes ??= []).push(laneEl);
             }
             ldi = m4.create("bpmndi:BPMNShape", {
               bpmnElement: laneEl,
@@ -84194,34 +84619,16 @@
           }
         });
       }
-      if (prefix2.length) (mainPlane.planeElement ?? (mainPlane.planeElement = [])).unshift(...prefix2);
+      if (prefix2.length) (mainPlane.planeElement ??= []).unshift(...prefix2);
     }
   }
-  function laneBands(lanes, process2, model, poolY, poolH) {
-    if (lanes.length <= 1) return [{ y: poolY, h: poolH }];
-    const nodeY = new Map(model.nodes.map((n2) => [n2.id, { top: n2.y, bot: n2.y + n2.height }]));
-    const mids = lanes.map((ln3) => {
-      const lane = findLane(process2, ln3.id);
-      const refs = lane?.flowNodeRef ?? [];
-      const ys = refs.map((r2) => nodeY.get(typeof r2 === "string" ? r2 : r2.id ?? "")).filter(Boolean);
-      if (!ys.length) return NaN;
-      return ys.reduce((s3, v4) => s3 + (v4.top + v4.bot) / 2, 0) / ys.length;
+  function laneBandsOf(lanes, poolY, poolH) {
+    let y3 = poolY;
+    return laneHeights(lanes, poolH).map((h3) => {
+      const band = { y: y3, h: h3 };
+      y3 += h3;
+      return band;
     });
-    if (mids.some((v4) => Number.isNaN(v4))) {
-      const each = poolH / lanes.length;
-      return lanes.map((_4, i3) => ({ y: poolY + i3 * each, h: each }));
-    }
-    const order = lanes.map((_4, i3) => i3).sort((a3, b2) => mids[a3] - mids[b2]);
-    const bounds = [poolY];
-    for (let i3 = 0; i3 < order.length - 1; i3++) {
-      bounds.push((mids[order[i3]] + mids[order[i3 + 1]]) / 2);
-    }
-    bounds.push(poolY + poolH);
-    const bands = new Array(lanes.length);
-    order.forEach((laneIdx, k3) => {
-      bands[laneIdx] = { y: bounds[k3], h: bounds[k3 + 1] - bounds[k3] };
-    });
-    return bands;
   }
   function getPortOffset(portId, width2, height2) {
     if (!portId) return { dx: width2 / 2, dy: height2 / 2 };
@@ -84292,7 +84699,8 @@
       const mid = e2.vertices ?? [];
       waypoints = [start, ...mid, end];
     }
-    return waypoints.map((w3) => point(w3.x, w3.y));
+    const clean2 = waypoints.filter((w3, i3) => i3 === 0 || Math.hypot(w3.x - waypoints[i3 - 1].x, w3.y - waypoints[i3 - 1].y) > 0.5);
+    return clean2.map((w3) => point(w3.x, w3.y));
   }
   function pointAtDistance(wps, distance) {
     if (!wps.length) return { x: 0, y: 0 };
@@ -84333,16 +84741,14 @@
     });
   }
   function nodeLabelBoundsFromModel(m4, node2) {
-    const isEvent = node2.shape.includes("event") || node2.shape.includes("bpmn-start") || node2.shape.includes("bpmn-intermediate") || node2.shape.includes("bpmn-end");
-    const isGw = node2.shape.includes("gateway");
-    if (!isEvent && !isGw) return void 0;
+    if (!hasExternalLabel(node2.shape)) return void 0;
     const textLen = (node2.label ?? "").length;
     if (!textLen) return void 0;
     const off = node2.attrs?.labelOffset ?? { x: 0, y: 0 };
     const width2 = Math.max(30, Math.min(320, textLen * 7 + 18));
     const height2 = 20;
     const isTop = (off.y ?? 0) < -10;
-    const defaultY = isGw ? 37 : 36;
+    const defaultY = defaultLabelDy(node2.shape, node2.height);
     const dy = (isTop ? -defaultY : defaultY) + (off.y ?? 0);
     const dx = off.x ?? 0;
     const cx = node2.x + node2.width / 2 + dx;
@@ -84354,36 +84760,103 @@
       id: "Definitions_Export",
       targetNamespace: "http://omniboard.local/bpmn"
     });
-    const process2 = m4.create("bpmn:Process", {
-      id: "Process_Export",
-      isExecutable: false
-    });
-    (defs.rootElements ?? (defs.rootElements = [])).push(process2);
     const pools = model.nodes.filter(
       (n2) => n2.shape === "bpmn-pool" || n2.attrs?.__source?.kind === "pool"
     );
+    const processByPoolId = /* @__PURE__ */ new Map();
+    const multiPool = pools.length >= 2;
+    let process2;
+    if (multiPool) {
+      for (const pool of pools) {
+        if (isBlackBoxPool(pool)) continue;
+        const proc = m4.create("bpmn:Process", {
+          id: `Process_${pool.id}`,
+          isExecutable: false
+        });
+        proc.flowElements = [];
+        (defs.rootElements ??= []).push(proc);
+        processByPoolId.set(pool.id, proc);
+      }
+      const firstWhiteBox = pools.find((p4) => !isBlackBoxPool(p4));
+      if (firstWhiteBox) {
+        process2 = processByPoolId.get(firstWhiteBox.id);
+      } else {
+        process2 = m4.create("bpmn:Process", { id: "Process_Export", isExecutable: false });
+        process2.flowElements = [];
+        (defs.rootElements ??= []).push(process2);
+      }
+    } else {
+      process2 = m4.create("bpmn:Process", {
+        id: "Process_Export",
+        isExecutable: false
+      });
+      process2.flowElements = [];
+      (defs.rootElements ??= []).push(process2);
+    }
     if (pools.length) {
       const collaboration = m4.create("bpmn:Collaboration", { id: "Collaboration_Export" });
       collaboration.participants = pools.map((pool) => m4.create("bpmn:Participant", {
         id: pool.id,
         name: pool.label ?? "Pool",
-        processRef: process2
+        // Multi-pool: each participant → its own process. Single-pool: shared.
+        ...isBlackBoxPool(pool) ? {} : { processRef: multiPool ? processByPoolId.get(pool.id) : process2 }
       }));
-      (defs.rootElements ?? (defs.rootElements = [])).push(collaboration);
-      const lanes = pools.flatMap((pool) => pool.attrs?.lanes ?? []);
-      if (lanes.length) {
-        process2.laneSets = [m4.create("bpmn:LaneSet", {
-          id: `LaneSet_${process2.id ?? "Process_Export"}`,
-          lanes: lanes.map((ln3) => m4.create("bpmn:Lane", { id: ln3.id, name: ln3.label ?? ln3.id }))
-        })];
+      (defs.rootElements ??= []).push(collaboration);
+      const globalSeenLaneIds = /* @__PURE__ */ new Set();
+      for (const pool of pools) {
+        const poolLanes = pool.attrs?.lanes ?? [];
+        if (!poolLanes.length) continue;
+        const lanes = poolLanes.map((ln3) => {
+          if (!globalSeenLaneIds.has(ln3.id)) {
+            globalSeenLaneIds.add(ln3.id);
+            return ln3;
+          }
+          let suffix = 2;
+          let fresh = `${ln3.id}_${suffix}`;
+          while (globalSeenLaneIds.has(fresh)) {
+            suffix += 1;
+            fresh = `${ln3.id}_${suffix}`;
+          }
+          globalSeenLaneIds.add(fresh);
+          return { ...ln3, id: fresh };
+        });
+        const targetProcess = multiPool ? processByPoolId.get(pool.id) : process2;
+        if (!targetProcess.laneSets || !targetProcess.laneSets.length) {
+          targetProcess.laneSets = [m4.create("bpmn:LaneSet", {
+            id: `LaneSet_${targetProcess.id}`,
+            lanes: []
+          })];
+        }
+        const laneSet = targetProcess.laneSets[0];
+        laneSet.lanes ??= [];
+        for (const ln3 of lanes) {
+          laneSet.lanes.push(m4.create("bpmn:Lane", { id: ln3.id, name: ln3.label ?? ln3.id }));
+        }
       }
     }
+    const findOwningProcess = (n2) => {
+      if (!multiPool) return process2;
+      if (n2.parentId && processByPoolId.has(n2.parentId)) return processByPoolId.get(n2.parentId);
+      if (n2.laneId) {
+        for (const pool of pools) {
+          const ls = pool.attrs?.lanes ?? [];
+          if (ls.some((l3) => l3.id === n2.laneId)) return processByPoolId.get(pool.id);
+        }
+      }
+      const cx = n2.x + n2.width / 2;
+      const cy = n2.y + n2.height / 2;
+      for (const pool of pools) {
+        if (cx >= pool.x && cx <= pool.x + pool.width && cy >= pool.y && cy <= pool.y + pool.height) {
+          return processByPoolId.get(pool.id);
+        }
+      }
+      return process2;
+    };
     const feById = /* @__PURE__ */ new Map();
-    process2.flowElements = [];
     for (const n2 of model.nodes) {
       const srcKind = n2.attrs?.__source?.kind;
       if (n2.shape === "bpmn-pool" || n2.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
-      const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), { id: n2.id, name: n2.label ?? "" });
+      const fe3 = m4.create(shapeToBpmnType(n2.shape, n2.attrs), n2.shape === "bpmn-annotation" ? { id: n2.id, text: n2.label ?? "" } : n2.shape === "bpmn-group" ? { id: n2.id } : { id: n2.id, name: n2.label ?? "" });
       applyBpmnExtras(m4, fe3, n2.shape, n2.attrs ?? {});
       feById.set(n2.id, fe3);
     }
@@ -84392,44 +84865,62 @@
       if (n2.shape === "bpmn-pool" || n2.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
       const fe3 = feById.get(n2.id);
       const parent = n2.parentId ? feById.get(n2.parentId) : void 0;
-      const container = parent ?? process2;
-      (container.flowElements ?? (container.flowElements = [])).push(fe3);
+      const container = parent ?? findOwningProcess(n2);
+      (container.flowElements ??= []).push(fe3);
     }
-    for (const ls of process2.laneSets ?? []) {
-      for (const ln3 of ls.lanes ?? []) {
-        const refs = [];
-        for (const n2 of model.nodes) {
-          if (n2.laneId !== ln3.id) continue;
-          const fe3 = feById.get(n2.id);
-          if (fe3) refs.push(fe3);
+    const allProcesses = multiPool ? [...processByPoolId.values()] : [process2];
+    for (const proc of allProcesses) {
+      for (const ls of proc.laneSets ?? []) {
+        for (const ln3 of ls.lanes ?? []) {
+          const refs = [];
+          for (const n2 of model.nodes) {
+            if (n2.laneId !== ln3.id) continue;
+            const fe3 = feById.get(n2.id);
+            if (fe3) refs.push(fe3);
+          }
+          ln3.flowNodeRef = refs;
         }
-        ln3.flowNodeRef = refs;
       }
     }
     const sfById = /* @__PURE__ */ new Map();
     const nodeIdSet = new Set(model.nodes.map((n2) => n2.id));
     const validEdges = model.edges.filter((e2) => nodeIdSet.has(e2.source) && nodeIdSet.has(e2.target));
     const collaborationRoot = (defs.rootElements ?? []).find((r2) => r2.$type === "bpmn:Collaboration") ?? null;
+    const nodeById = new Map(model.nodes.map((n2) => [n2.id, n2]));
     for (const e2 of validEdges) {
       const kind = edgeKindOf(e2);
+      const srcNode = nodeById.get(e2.source);
+      const tgtNode = nodeById.get(e2.target);
+      const srcProc = srcNode ? findOwningProcess(srcNode) : process2;
+      const tgtProc = tgtNode ? findOwningProcess(tgtNode) : process2;
+      const isCrossPool = multiPool && srcProc !== tgtProc;
       let typeStr = bpmnTypeForEdgeKind(kind);
-      if (kind === "message" && !collaborationRoot) {
-        typeStr = "bpmn:SequenceFlow";
+      if (kind === "message" && !collaborationRoot) typeStr = "bpmn:SequenceFlow";
+      if (isCrossPool && kind === "sequence" && collaborationRoot) {
+        typeStr = "bpmn:MessageFlow";
       }
+      const refOf = (id) => feById.get(id) ?? (typeStr === "bpmn:MessageFlow" ? collaborationRoot?.participants?.find((p4) => p4.id === id) : void 0);
       const sf = m4.create(typeStr, {
         id: e2.id,
-        name: e2.label ?? "",
-        sourceRef: feById.get(e2.source),
-        targetRef: feById.get(e2.target)
+        // bpmn:Association is an artifact with no `name` in the BPMN schema.
+        ...kind === "association" ? {} : { name: e2.label ?? "" },
+        sourceRef: refOf(e2.source),
+        targetRef: refOf(e2.target)
       });
-      if (!sf.sourceRef || !sf.targetRef) continue;
-      applyEdgeExtras(m4, sf, kind === "message" && !collaborationRoot ? "sequence" : kind, e2.attrs);
-      if (kind === "association") {
-        (process2.artifacts ?? (process2.artifacts = [])).push(sf);
+      if (!sf.sourceRef || !sf.targetRef) {
+        console.warn(`[omniboard:bpmn] dropped ${typeStr} "${e2.id}": endpoint has no BPMN element (${e2.source} \u2192 ${e2.target})`);
+        continue;
+      }
+      const extrasKind = typeStr === "bpmn:MessageFlow" ? "sequence" : kind === "message" && !collaborationRoot ? "sequence" : kind;
+      applyEdgeExtras(m4, sf, extrasKind, e2.attrs);
+      if (typeStr === "bpmn:MessageFlow" && collaborationRoot) {
+        (collaborationRoot.messageFlows ??= []).push(sf);
+      } else if (kind === "association") {
+        (srcProc.artifacts ??= []).push(sf);
       } else if (kind === "message" && collaborationRoot) {
-        (collaborationRoot.messageFlows ?? (collaborationRoot.messageFlows = [])).push(sf);
+        (collaborationRoot.messageFlows ??= []).push(sf);
       } else {
-        process2.flowElements.push(sf);
+        (srcProc.flowElements ??= []).push(sf);
       }
       sfById.set(e2.id, sf);
     }
@@ -84473,18 +84964,40 @@
         ...eLabel ? { label: m4.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}
       }));
     }
-    emitPoolLaneShapes(model, defs, process2, plane, diShape, m4);
+    emitPoolLaneShapes(model, defs, process2, plane, diShape, m4, multiPool ? processByPoolId : void 0);
     const dia = m4.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-    (defs.diagrams ?? (defs.diagrams = [])).push(dia);
+    (defs.diagrams ??= []).push(dia);
     const { xml: xml3 } = await m4.toXML(defs, { format: true });
     return patchCamundaXml(xml3, model);
   }
 
   // src/io/dbml/import.ts
+  function extractOndelete(flags) {
+    const m1 = /\b(?:on)?delete\s*[:=]\s*([a-z\-]+)/i.exec(flags);
+    if (m1) return `ondelete: ${m1[1].toUpperCase()}`;
+    return void 0;
+  }
+  function cardinalityMarkers(kind, srcNullable) {
+    const opt = (m4) => srcNullable ? m4 === "bar" ? "circle-bar" : m4 === "crow" ? "crow-circle" : m4 : m4;
+    switch (kind) {
+      case ">":
+        return { source: opt("crow"), target: "bar" };
+      case "<":
+        return { source: opt("bar"), target: "crow" };
+      case "<>":
+        return { source: opt("crow"), target: "crow" };
+      case "-":
+        return { source: opt("bar"), target: "bar" };
+      default:
+        return { source: "crow", target: "bar" };
+    }
+  }
   var TABLE_RE = /Table\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:as\s+\w+\s*)?\{([\s\S]*?)\n\}/g;
   var COLUMN_RE = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s+([^\s\[\n]+)(?:\s*\[([^\]]*)\])?\s*$/;
   var INLINE_REF_RE = /ref:\s*([<>]+|<>)\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)/i;
   var REF_RE = /Ref(?:\s+([A-Za-z_][A-Za-z0-9_]*))?\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)\s*([<>]+|<>)\s*([A-Za-z_][A-Za-z0-9_]*)\.([A-Za-z_][A-Za-z0-9_]*)/g;
+  var TABLEGROUP_RE = /TableGroup\s+([A-Za-z_][A-Za-z0-9_]*)\s*\{([\s\S]*?)\n\}/g;
+  var CLUSTER_PALETTE = ["#C99A2E", "#E07B5C", "#7BAE7F", "#9A6BB5", "#C76B6B", "#3D7BCC"];
   function stripComments(src) {
     let out = "";
     let i3 = 0;
@@ -84527,11 +85040,18 @@
           cols.push({ name: cm[1], type: cm[2], flags: (cm[3] || "").trim() });
           const ir2 = INLINE_REF_RE.exec(cm[3] || "");
           if (ir2) {
+            const flags = (cm[3] || "").toLowerCase();
+            const isPk = /\bpk\b|\bprimary\s+key\b/.test(flags);
+            const isNotNull = /\bnot\s+null\b/.test(flags);
+            const explicitNull = /\bnull\b(?!\s+null)/.test(flags) && !isNotNull;
+            const srcNullable = !isPk && !isNotNull ? explicitNull || true : false;
             refs.push({
               id: `__ref_${++refSeq}`,
               src: `${name2}.${cm[1]}`,
               tgt: `${ir2[2]}.${ir2[3]}`,
-              kind: ir2[1]
+              kind: ir2[1],
+              srcNullable,
+              tooltip: extractOndelete(cm[3] || "")
             });
           }
         }
@@ -84548,10 +85068,35 @@
       });
     }
     if (tables.length === 0) warnings.push("Kh\xF4ng t\xECm th\u1EA5y table n\xE0o trong DBML.");
+    const tableToGroup = /* @__PURE__ */ new Map();
+    const groupOrder = [];
+    const tableSet = new Set(tables.map((t3) => t3.name));
+    TABLEGROUP_RE.lastIndex = 0;
+    let gm;
+    while ((gm = TABLEGROUP_RE.exec(stripped)) !== null) {
+      const groupName = gm[1];
+      const body = gm[2];
+      if (!groupOrder.includes(groupName)) groupOrder.push(groupName);
+      for (const rawLine of body.split(/\r?\n/)) {
+        const tableName = rawLine.trim().replace(/[,;]+$/, "");
+        if (!tableName) continue;
+        if (!tableSet.has(tableName)) {
+          warnings.push(`TableGroup '${groupName}' references unknown table '${tableName}'; skipped`);
+          continue;
+        }
+        if (tableToGroup.has(tableName)) {
+          warnings.push(
+            `Table '${tableName}' belongs to multiple TableGroups; using '${tableToGroup.get(tableName)}'`
+          );
+          continue;
+        }
+        tableToGroup.set(tableName, groupName);
+      }
+    }
     const model = { nodes: [], edges: [] };
     const TABLE_W = 220;
-    const ROW_H = 22;
-    const HEAD_H = 36;
+    const ROW_H2 = 27;
+    const HEAD_H2 = 38;
     const idByTable = /* @__PURE__ */ new Map();
     for (const t3 of tables) {
       const id = t3.name;
@@ -84562,7 +85107,9 @@
         const isFk = /\bref\s*:/.test(flags);
         return { k: isPk ? "PK" : isFk ? "FK" : "", name: c4.name, type: c4.type };
       });
-      const height2 = HEAD_H + Math.max(1, erdCols.length) * ROW_H + 12;
+      const height2 = HEAD_H2 + Math.max(1, erdCols.length) * ROW_H2 + 12;
+      const groupName = tableToGroup.get(t3.name);
+      const headerColor = groupName ? CLUSTER_PALETTE[groupOrder.indexOf(groupName) % CLUSTER_PALETTE.length] : void 0;
       model.nodes.push({
         id,
         shape: "erd-entity",
@@ -84573,31 +85120,46 @@
         label: t3.name,
         attrs: {
           cols: erdCols,
-          __source: { format: "dbml", sourceId: t3.name, kind: "table", columns: t3.columns }
+          __source: { format: "dbml", sourceId: t3.name, kind: "table", columns: t3.columns },
+          ...groupName ? { __group: groupName, __headerColor: headerColor } : {}
         }
       });
     }
-    const seenPairs = /* @__PURE__ */ new Set();
     for (const r2 of refs) {
-      const [sTab] = r2.src.split(".");
-      const [tTab] = r2.tgt.split(".");
-      if (!idByTable.has(sTab) || !idByTable.has(tTab)) continue;
-      const key = `${sTab}->${tTab}`;
-      if (seenPairs.has(key)) continue;
-      seenPairs.add(key);
+      const [sTab, sCol] = r2.src.split(".");
+      const [tTab, tCol] = r2.tgt.split(".");
+      if (!idByTable.has(sTab)) {
+        warnings.push(`Ref skipped: source table '${sTab}' not found`);
+        continue;
+      }
+      if (!idByTable.has(tTab)) {
+        warnings.push(`Ref skipped: target table '${tTab}' not found`);
+        continue;
+      }
+      const markers = cardinalityMarkers(r2.kind, r2.srcNullable);
       model.edges.push({
         id: r2.id,
         source: sTab,
+        sourcePort: `col:${sCol}-right`,
         target: tTab,
+        targetPort: `col:${tCol || "id"}-left`,
         label: r2.kind,
-        style: { stroke: "#7a8aa6", width: 1 }
+        router: "orth",
+        style: { stroke: "#7a8aa6", width: 1, start: markers.source, end: markers.target },
+        ...r2.tooltip ? { attrs: { tooltip: r2.tooltip } } : {}
       });
     }
     if (model.nodes.length) {
-      const g2 = new To.graphlib.Graph();
-      g2.setGraph({ rankdir: "LR", nodesep: 40, ranksep: 80, marginx: 60, marginy: 60 });
+      const g2 = new To.graphlib.Graph({ compound: true });
+      g2.setGraph({ rankdir: "LR", nodesep: 60, ranksep: 120, marginx: 60, marginy: 60 });
       g2.setDefaultEdgeLabel(() => ({}));
       for (const n2 of model.nodes) g2.setNode(n2.id, { width: n2.width, height: n2.height });
+      for (const groupName of groupOrder) {
+        g2.setNode(`__cluster:${groupName}`, {});
+      }
+      for (const [tableName, groupName] of tableToGroup) {
+        g2.setParent(tableName, `__cluster:${groupName}`);
+      }
       for (const e2 of model.edges) g2.setEdge(e2.source, e2.target);
       To.layout(g2);
       for (const n2 of model.nodes) {

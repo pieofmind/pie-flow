@@ -759,6 +759,7 @@ function emitPoolLaneShapes(
   diShape: Map<string, ModdleElement>,
   m: BpmnModdle,
   processByPoolId?: Map<string, ModdleElement>,
+  laneIdByPool?: Map<string, Map<string, string>>,
 ): void {
   const pools = model.nodes.filter((n) =>
     n.shape === "bpmn-pool" ||
@@ -843,14 +844,17 @@ function emitPoolLaneShapes(
     // Board draws them: each lane's own height, else an equal split.
     if (lanes.length) {
       const horizontal = (pool.attrs?.poolHorizontal as boolean | undefined) !== false;
+      const renamed = laneIdByPool?.get(pool.id);
       const emitLane = (ln: ModelLane, r: { x: number; y: number; width: number; height: number }, parentEl?: ModdleElement): void => {
         if (!ln.id) return;
+        // The emitted id: a lane id duplicated across pools was renamed.
+        const laneId = renamed?.get(ln.id) ?? ln.id;
         // Lane lives in THIS pool's process (multi-pool) or the shared
         // process (single-pool). findLane must look in the right process,
         // else we'd create a duplicate lane element when emitting DI.
-        let laneEl = findLane(poolProcess, ln.id);
+        let laneEl = findLane(poolProcess, laneId);
         if (!laneEl) {
-          laneEl = m.create("bpmn:Lane", { id: ln.id, name: ln.label ?? ln.id }) as ModdleElement;
+          laneEl = m.create("bpmn:Lane", { id: laneId, name: ln.label ?? ln.id }) as ModdleElement;
           if (parentEl) {
             const holder = parentEl as { childLaneSet?: ModdleElement };
             holder.childLaneSet ??= m.create("bpmn:LaneSet", { id: `LaneSet_${parentEl.id}`, lanes: [] }) as ModdleElement;
@@ -859,7 +863,7 @@ function emitPoolLaneShapes(
             (ensureLaneSetIn(poolProcess).lanes ??= []).push(laneEl);
           }
         }
-        let ldi = diShape.get(ln.id);
+        let ldi = diShape.get(laneId);
         if (ldi?.bounds) {
           ldi.bounds.x = r.x; ldi.bounds.y = r.y; ldi.bounds.width = r.width; ldi.bounds.height = r.height;
         } else {
@@ -868,7 +872,7 @@ function emitPoolLaneShapes(
             bounds: m.create("dc:Bounds", { x: r.x, y: r.y, width: r.width, height: r.height }),
           }) as ModdleElement;
           (ldi as { isHorizontal?: boolean }).isHorizontal = horizontal;
-          diShape.set(ln.id, ldi);
+          diShape.set(laneId, ldi);
           prefix.push(ldi);
         }
         // Child lanes tile the parent's band after its own title strip.
@@ -1072,6 +1076,8 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
     n.shape === "bpmn-pool" ||
     (n.attrs?.__source as { kind?: string } | undefined)?.kind === "pool",
   );
+  /** Per pool: model lane id → emitted lane id (duplicates across pools renamed). */
+  const laneIdByPool = new Map<string, Map<string, string>>();
 
   // ── Process(es) ────────────────────────────────────────────────────────
   // Multi-pool BPMN spec rule: each participant MUST reference its own
@@ -1150,7 +1156,11 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       }
       const laneSet = targetProcess.laneSets[0];
       laneSet.lanes ??= [];
-      for (const ln of lanes) laneSet.lanes.push(createLaneEl(m, ln, uniqueLaneId));
+      // Remember renames so the DI pass finds this pool's (renamed) lanes.
+      const renames = new Map<string, string>();
+      laneIdByPool.set(pool.id, renames);
+      const idOf = (id: string) => { const u = uniqueLaneId(id); renames.set(id, u); return u; };
+      for (const ln of lanes) laneSet.lanes.push(createLaneEl(m, ln, idOf));
     }
   }
 
@@ -1301,7 +1311,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       ...(eLabel ? { label: m.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}),
     }));
   }
-  emitPoolLaneShapes(model, defs, process, plane, diShape, m, multiPool ? processByPoolId : undefined);
+  emitPoolLaneShapes(model, defs, process, plane, diShape, m, multiPool ? processByPoolId : undefined, laneIdByPool);
   const dia = m.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane }) as ModdleElement;
   (defs.diagrams ??= []).push(dia as never);
 

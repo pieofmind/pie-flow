@@ -75096,7 +75096,7 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
   const { xml: xml3 } = await m7.toXML(definitions, { format: true });
   return patchCamundaXml(xml3, model);
 }
-function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7, processByPoolId) {
+function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7, processByPoolId, laneIdByPool) {
   var _a3, _b2, _c, _d, _e3, _f, _g, _h;
   const pools = model.nodes.filter(
     (n4) => {
@@ -75178,21 +75178,23 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
     }
     if (lanes.length) {
       const horizontal = ((_g = pool.attrs) == null ? void 0 : _g.poolHorizontal) !== false;
+      const renamed = laneIdByPool == null ? void 0 : laneIdByPool.get(pool.id);
       const emitLane = (ln3, r5, parentEl) => {
-        var _a4, _b3, _c2, _d2, _e4, _f2, _g2;
+        var _a4, _b3, _c2, _d2, _e4, _f2, _g2, _h2;
         if (!ln3.id) return;
-        let laneEl = findLane(poolProcess, ln3.id);
+        const laneId = (_a4 = renamed == null ? void 0 : renamed.get(ln3.id)) != null ? _a4 : ln3.id;
+        let laneEl = findLane(poolProcess, laneId);
         if (!laneEl) {
-          laneEl = m7.create("bpmn:Lane", { id: ln3.id, name: (_a4 = ln3.label) != null ? _a4 : ln3.id });
+          laneEl = m7.create("bpmn:Lane", { id: laneId, name: (_b3 = ln3.label) != null ? _b3 : ln3.id });
           if (parentEl) {
             const holder = parentEl;
-            (_b3 = holder.childLaneSet) != null ? _b3 : holder.childLaneSet = m7.create("bpmn:LaneSet", { id: `LaneSet_${parentEl.id}`, lanes: [] });
-            ((_d2 = (_c2 = holder.childLaneSet).lanes) != null ? _d2 : _c2.lanes = []).push(laneEl);
+            (_c2 = holder.childLaneSet) != null ? _c2 : holder.childLaneSet = m7.create("bpmn:LaneSet", { id: `LaneSet_${parentEl.id}`, lanes: [] });
+            ((_e4 = (_d2 = holder.childLaneSet).lanes) != null ? _e4 : _d2.lanes = []).push(laneEl);
           } else {
-            ((_f2 = (_e4 = ensureLaneSetIn(poolProcess)).lanes) != null ? _f2 : _e4.lanes = []).push(laneEl);
+            ((_g2 = (_f2 = ensureLaneSetIn(poolProcess)).lanes) != null ? _g2 : _f2.lanes = []).push(laneEl);
           }
         }
-        let ldi = diShape.get(ln3.id);
+        let ldi = diShape.get(laneId);
         if (ldi == null ? void 0 : ldi.bounds) {
           ldi.bounds.x = r5.x;
           ldi.bounds.y = r5.y;
@@ -75204,10 +75206,10 @@ function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7
             bounds: m7.create("dc:Bounds", { x: r5.x, y: r5.y, width: r5.width, height: r5.height })
           });
           ldi.isHorizontal = horizontal;
-          diShape.set(ln3.id, ldi);
+          diShape.set(laneId, ldi);
           prefix2.push(ldi);
         }
-        if ((_g2 = ln3.lanes) == null ? void 0 : _g2.length) {
+        if ((_h2 = ln3.lanes) == null ? void 0 : _h2.length) {
           const inner = horizontal ? { x: r5.x + LANE_HEADER, y: r5.y, width: r5.width - LANE_HEADER, height: r5.height } : { x: r5.x, y: r5.y + LANE_HEADER, width: r5.width, height: r5.height - LANE_HEADER };
           const childRects = laneRects(ln3.lanes, inner, horizontal, 0);
           ln3.lanes.forEach((c6, j5) => emitLane(c6, childRects[j5], laneEl));
@@ -75368,6 +75370,7 @@ async function emitMinimal(model, m7) {
       return n4.shape === "bpmn-pool" || ((_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
     }
   );
+  const laneIdByPool = /* @__PURE__ */ new Map();
   const processByPoolId = /* @__PURE__ */ new Map();
   const multiPool = pools.length >= 2;
   let process2;
@@ -75433,7 +75436,14 @@ async function emitMinimal(model, m7) {
       }
       const laneSet = targetProcess.laneSets[0];
       (_g = laneSet.lanes) != null ? _g : laneSet.lanes = [];
-      for (const ln3 of lanes) laneSet.lanes.push(createLaneEl(m7, ln3, uniqueLaneId));
+      const renames = /* @__PURE__ */ new Map();
+      laneIdByPool.set(pool.id, renames);
+      const idOf = (id) => {
+        const u6 = uniqueLaneId(id);
+        renames.set(id, u6);
+        return u6;
+      };
+      for (const ln3 of lanes) laneSet.lanes.push(createLaneEl(m7, ln3, idOf));
     }
   }
   const findOwningProcess = (n4) => {
@@ -75561,7 +75571,7 @@ async function emitMinimal(model, m7) {
       ...eLabel ? { label: m7.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}
     }));
   }
-  emitPoolLaneShapes(model, defs, process2, plane, diShape, m7, multiPool ? processByPoolId : void 0);
+  emitPoolLaneShapes(model, defs, process2, plane, diShape, m7, multiPool ? processByPoolId : void 0, laneIdByPool);
   const dia = m7.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
   ((_A = defs.diagrams) != null ? _A : defs.diagrams = []).push(dia);
   const { xml: xml3 } = await m7.toXML(defs, { format: true });

@@ -11,7 +11,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
 </head><body>
 <div id="host" class="da-board-view"></div>
 <div id="log"></div>
-<script src="../harness/harness.js?v=interaction7"></script>
+<script src="../harness/harness.js?v=interaction9"></script>
 <script>
 // Multi-select drag moves each node once per tick; ports are easy to grab.
 // Serve the repo root (python3 -m http.server) and open tests/e2e-canvas-interaction.html.
@@ -482,6 +482,12 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     propField('ID').dispatchEvent(new Event('change'));
     await tick(100);
     assert(window.__ob.getModel().nodes.some((n) => n.id === 'rin'), 'taken id accepted');
+    // one undo gives the old id back, with the rest of the board intact
+    g().undo();
+    await tick(150);
+    const u = window.__ob.getModel();
+    assert(u.nodes.map((n) => n.id).sort().join() === 'rbe,rin,rs0,rsub', 'after undo: ' + u.nodes.map((n) => n.id));
+    assert(u.edges.find((e) => e.id === 'rf')?.target === 'rsub', 'arrow after undo');
   });
 
   await run('a call activity carries its called process', async () => {

@@ -77771,30 +77771,37 @@
       this.loadModel(merged);
       return { added: incoming.nodes.length };
     }
-    /** Change a node's id. X6 ids are fixed, so the board is rebuilt with the id
-     *  re-pointed everywhere; the BPMN export finds the old file element through
-     *  `__source.sourceId`, so nothing only the file had is lost. */
+    /** Change a node's id. X6 ids are fixed, so the node is replaced by a copy
+     *  under the new id, with arrows, steps and references moved over in one undo
+     *  step. The BPMN export finds the old file element through `__source.sourceId`,
+     *  so nothing only the file had is lost. */
     renameNode(oldId, newId) {
       if (newId === oldId) return true;
-      const model = this.getModel();
-      const taken = /* @__PURE__ */ new Set([...model.nodes.map((n2) => n2.id), ...model.edges.map((e2) => e2.id)]);
-      if (!/^[A-Za-z_][\w.-]*$/.test(newId) || taken.has(newId)) return false;
-      const re3 = (v4) => v4 === oldId ? newId : v4;
-      const ATTR_REFS = ["attachedTo", "parentId", "laneId", "poolId"];
-      const drill = this.drillRoot;
-      this.loadModel({
-        nodes: model.nodes.map((n2) => ({
-          ...n2,
-          id: re3(n2.id),
-          parentId: re3(n2.parentId),
-          laneId: re3(n2.laneId),
-          attrs: n2.attrs && Object.fromEntries(Object.entries(n2.attrs).map(([k3, v4]) => [k3, ATTR_REFS.includes(k3) ? re3(v4) : v4]))
-        })),
-        edges: model.edges.map((e2) => ({ ...e2, source: re3(e2.source), target: re3(e2.target) }))
-      }, { keepView: true });
-      if (drill) this.setDrillRoot(re3(drill));
-      const cell = this.graph.getCellById(newId);
-      if (cell) this.graph.resetSelection([cell]);
+      const old = this.graph.getCellById(oldId);
+      if (!old?.isNode() || !/^[A-Za-z_][\w.-]*$/.test(newId) || this.graph.getCellById(newId)) return false;
+      const REFS = ["attachedTo", "parentId", "laneId", "poolId"];
+      this.graph.startBatch("rename");
+      const { parent: _p, children: _c, ...json } = old.toJSON();
+      const next = this.graph.addNode({ ...json, id: newId });
+      old.getParent()?.embed(next);
+      for (const c4 of old.getChildren() ?? []) {
+        old.unembed(c4);
+        next.embed(c4);
+      }
+      for (const e2 of this.graph.getConnectedEdges(old)) {
+        if (e2.getSourceCellId() === oldId) e2.setSource({ ...e2.getSource(), cell: newId });
+        if (e2.getTargetCellId() === oldId) e2.setTarget({ ...e2.getTarget(), cell: newId });
+      }
+      for (const n2 of this.graph.getNodes()) {
+        const d2 = n2.getData() ?? {};
+        const hit = REFS.filter((k3) => d2[k3] === oldId);
+        if (hit.length) n2.setData(Object.fromEntries(hit.map((k3) => [k3, newId])));
+      }
+      old.remove();
+      this.graph.stopBatch("rename");
+      if (this.drillRoot === oldId) this.setDrillRoot(newId);
+      this.rerender(next);
+      this.graph.resetSelection([next]);
       this.onChange();
       return true;
     }

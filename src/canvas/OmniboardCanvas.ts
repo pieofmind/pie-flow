@@ -5004,27 +5004,34 @@ export class OmniboardCanvas {
     return { added: incoming.nodes.length };
   }
 
-  /** Change a node's id. X6 ids are fixed, so the board is rebuilt with the id
-   *  re-pointed everywhere; the BPMN export finds the old file element through
-   *  `__source.sourceId`, so nothing only the file had is lost. */
+  /** Change a node's id. X6 ids are fixed, so the node is replaced by a copy
+   *  under the new id, with arrows, steps and references moved over in one undo
+   *  step. The BPMN export finds the old file element through `__source.sourceId`,
+   *  so nothing only the file had is lost. */
   renameNode(oldId: string, newId: string): boolean {
     if (newId === oldId) return true;
-    const model = this.getModel();
-    const taken = new Set([...model.nodes.map((n) => n.id), ...model.edges.map((e) => e.id)]);
-    if (!/^[A-Za-z_][\w.-]*$/.test(newId) || taken.has(newId)) return false;
-    const re = <T,>(v: T): T => (v === oldId ? newId as T : v);
-    const ATTR_REFS = ["attachedTo", "parentId", "laneId", "poolId"];
-    const drill = this.drillRoot;
-    this.loadModel({
-      nodes: model.nodes.map((n) => ({
-        ...n, id: re(n.id), parentId: re(n.parentId), laneId: re(n.laneId),
-        attrs: n.attrs && Object.fromEntries(Object.entries(n.attrs).map(([k, v]) => [k, ATTR_REFS.includes(k) ? re(v) : v])),
-      })),
-      edges: model.edges.map((e) => ({ ...e, source: re(e.source), target: re(e.target) })),
-    }, { keepView: true });
-    if (drill) this.setDrillRoot(re(drill));
-    const cell = this.graph.getCellById(newId);
-    if (cell) this.graph.resetSelection([cell]);
+    const old = this.graph.getCellById(oldId);
+    if (!old?.isNode() || !/^[A-Za-z_][\w.-]*$/.test(newId) || this.graph.getCellById(newId)) return false;
+    const REFS = ["attachedTo", "parentId", "laneId", "poolId"];
+    this.graph.startBatch("rename");
+    const { parent: _p, children: _c, ...json } = old.toJSON();
+    const next = this.graph.addNode({ ...json, id: newId });
+    old.getParent()?.embed(next);
+    for (const c of old.getChildren() ?? []) { old.unembed(c); next.embed(c); }
+    for (const e of this.graph.getConnectedEdges(old)) {
+      if (e.getSourceCellId() === oldId) e.setSource({ ...e.getSource(), cell: newId } as Edge.TerminalCellData);
+      if (e.getTargetCellId() === oldId) e.setTarget({ ...e.getTarget(), cell: newId } as Edge.TerminalCellData);
+    }
+    for (const n of this.graph.getNodes()) {
+      const d = n.getData() ?? {};
+      const hit = REFS.filter((k) => d[k] === oldId);
+      if (hit.length) n.setData(Object.fromEntries(hit.map((k) => [k, newId])));
+    }
+    old.remove();
+    this.graph.stopBatch("rename");
+    if (this.drillRoot === oldId) this.setDrillRoot(newId);
+    this.rerender(next);
+    this.graph.resetSelection([next]);
     this.onChange();
     return true;
   }

@@ -3535,8 +3535,14 @@ export class OmniboardCanvas {
     }
     this.setDrillRoot(node.id);
   }
+  /** View of each level above the current page, saved when going deeper. */
+  private drillViews: Array<{ id: string | null; scale: number; tx: number; ty: number }> = [];
   private setDrillRoot(id: string | null): void {
     const prev = this.drillRoot ? this.graph.getCellById(this.drillRoot) : null;
+    const back = this.drillViews.findIndex((v) => v.id === id);
+    const saved = back >= 0 ? this.drillViews[back] : null;
+    if (saved) this.drillViews = this.drillViews.slice(0, back);
+    else this.drillViews = [...this.drillViews, { id: this.drillRoot, scale: this.graph.scale().sx, ...this.graph.translate() }];
     this.drillRoot = id;
     // Left a closed sub-process with no steps: back to the ⊞ task it came from.
     if (prev?.isNode() && prev.id !== id && prev.getData()?.collapsed === true
@@ -3549,7 +3555,8 @@ export class OmniboardCanvas {
     this.refreshSubprocessVisibility();
     this.renderCrumbs();
     const shown = this.graph.getNodes().filter((n) => n.isVisible());
-    if (id && shown.length) this.graph.zoomToRect(this.graph.getCellsBBox(shown)!.inflate(80), { maxScale: 1 });
+    if (saved) { this.graph.zoomTo(saved.scale); this.graph.translate(saved.tx, saved.ty); }
+    else if (id && shown.length) this.graph.zoomToRect(this.graph.getCellsBBox(shown)!.inflate(80), { maxScale: 1 });
     else if (id) this.graph.centerCell(this.graph.getCellById(id));
     else if (prev) this.graph.centerCell(prev);
   }
@@ -4605,6 +4612,7 @@ export class OmniboardCanvas {
 
   loadModel(model: CanvasModel, opts?: { keepView?: boolean }) {
     this.drillRoot = null;   // a fresh model opens on the whole process
+    this.drillViews = [];
     this.renderCrumbs();
     // Migration: legacy pool defaults hardcoded lane id "l1", so files with
     // ≥2 pools have duplicate lane ids across pools. exportBpmn dồn lanes

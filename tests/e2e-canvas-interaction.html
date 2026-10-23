@@ -11,7 +11,7 @@ body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
 </head><body>
 <div id="host" class="da-board-view"></div>
 <div id="log"></div>
-<script src="../harness/harness.js?v=interaction5"></script>
+<script src="../harness/harness.js?v=vp2"></script>
 <script>
 // Multi-select drag moves each node once per tick; ports are easy to grab.
 // Serve the repo root (python3 -m http.server) and open tests/e2e-canvas-interaction.html.
@@ -408,6 +408,29 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     await tick(150);
     const n = mnode('dt');
     assert(n.shape === 'bpmn-task' && n.attrs?.markers?.includes('subprocess') && n.attrs?.collapsed === true, 'not back to ⊞ task: ' + JSON.stringify(n));
+  });
+
+  await run('leaving a sub-process page puts back the view of the level you return to', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'vo', shape: 'bpmn-subprocess', x: 300, y: 300, width: 120, height: 80, label: 'Ngoài', attrs: { collapsed: true } },
+      { id: 'vi', shape: 'bpmn-subprocess', x: 330, y: 340, width: 120, height: 80, label: 'Trong', parentId: 'vo', attrs: { collapsed: true } },
+      { id: 'vt', shape: 'bpmn-task', x: 360, y: 380, width: 100, height: 80, label: 'T', parentId: 'vi' },
+    ], edges: [] });
+    await tick(150);
+    const view = () => { const s = g().scale().sx, t = g().translate(); return [+s.toFixed(3), Math.round(t.tx), Math.round(t.ty)].join(','); };
+    g().zoomTo(0.7); g().translate(-40, 25);
+    const top = view();
+    g().resetSelection([cell('vo')]); await tick(150);
+    drillBtn().click(); await tick(150);
+    g().translate(-120, -60);                 // look around on the page of "Ngoài"
+    const outer = view();
+    g().resetSelection([cell('vi')]); await tick(150);
+    drillBtn().click(); await tick(150);
+    assert(view() !== outer, 'inner page did not move the view');
+    document.querySelectorAll('.lk-crumbs .lk-crumb')[1].click(); await tick(150);
+    assert(view() === outer, 'back to Ngoài: ' + view() + ' expected ' + outer);
+    document.querySelector('.lk-crumbs .lk-crumb').click(); await tick(150);
+    assert(view() === top, 'back to Process: ' + view() + ' expected ' + top);
   });
 
   const failed = results.filter(r => !r.ok).length;

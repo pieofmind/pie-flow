@@ -50146,7 +50146,7 @@ var GeometryUtil;
     return Math.floor(Math.random() * (mmax2 - mmin2 + 1) + mmin2);
   }
   GeometryUtil2.random = random2;
-  function clamp2(value, min5, max9) {
+  function clamp3(value, min5, max9) {
     if (Number.isNaN(value)) {
       return NaN;
     }
@@ -50155,7 +50155,7 @@ var GeometryUtil;
     }
     return min5 < max9 ? value < min5 ? min5 : value > max9 ? max9 : value : value < max9 ? max9 : value > min5 ? min5 : value;
   }
-  GeometryUtil2.clamp = clamp2;
+  GeometryUtil2.clamp = clamp3;
   function snapToGrid(value, gridSize) {
     return gridSize * Math.round(value / gridSize);
   }
@@ -82661,6 +82661,20 @@ function fitCardStage(root2) {
   return () => ro.disconnect();
 }
 
+// src/canvas/poolConnect.ts
+var POOL_EDGE_BAND = 16;
+var clamp2 = (v6, lo, hi) => Math.min(Math.max(v6, lo), hi);
+function poolDropAnchor(pool, drop, other) {
+  const top4 = pool.y, bottom4 = pool.y + pool.height;
+  if (drop.x < pool.x || drop.x > pool.x + pool.width) return null;
+  const nearTop = Math.abs(drop.y - top4) <= POOL_EDGE_BAND;
+  const nearBottom = Math.abs(drop.y - bottom4) <= POOL_EDGE_BAND;
+  const onBody = drop.y >= top4 && drop.y <= bottom4;
+  if (!nearTop && !nearBottom && !(pool.blackBox && onBody)) return null;
+  const toBottom = other.y > bottom4 ? true : other.y < top4 ? false : Math.abs(drop.y - bottom4) < Math.abs(drop.y - top4);
+  return { dx: clamp2(other.x - pool.x, 0, pool.width), dy: toBottom ? pool.height : 0 };
+}
+
 // src/canvas/bulkAlign.ts
 function reposition(cells, mut) {
   return cells.map((c6) => {
@@ -83671,6 +83685,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt2)));
       return "connected";
     }
+    if (this.endOnPool(edge, src, pt2)) return "pool";
     this.pendingDrop = edge;
     const wrap = el2("div", "lk-shape-popup");
     wrap.appendChild(el2("div", "lk-flyout-title", "Ch\xE8n h\xECnh"));
@@ -86875,6 +86890,38 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     }
     this.showPopup(grid, anchor3);
   }
+  /** End `edge` on the pool under `pt`, straight above / below its source,
+   *  as a message flow (the only flow BPMN allows to a participant). The
+   *  topLeft anchor keeps its offset when the pool moves. */
+  endOnPool(edge, src, pt2) {
+    var _a3;
+    const other = (_a3 = edge.getSourcePoint()) != null ? _a3 : src.getBBox().center;
+    let hit = null;
+    for (const n4 of this.graph.getNodes()) {
+      if (n4.id === src.id || this.nodeKind(n4) !== "bpmn-pool") continue;
+      const b4 = n4.getBBox();
+      const anchor3 = poolDropAnchor({ x: b4.x, y: b4.y, width: b4.width, height: b4.height, blackBox: !!this.nodeExtra(n4).blackBox }, pt2, other);
+      if (anchor3 && (!hit || b4.width * b4.height < hit.area)) hit = { pool: n4, anchor: anchor3, area: b4.width * b4.height };
+    }
+    if (!hit) return false;
+    edge.setTarget({ cell: hit.pool.id, anchor: { name: "topLeft", args: hit.anchor }, connectionPoint: { name: "anchor" } });
+    edge.setVertices([]);
+    this.applyFlowType(edge, "message");
+    this.onChange();
+    return true;
+  }
+  /** Set an edge's BPMN flow type: visual preset + semantic kind / attrs. */
+  applyFlowType(edge, key) {
+    var _a3, _b2;
+    this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
+    const data2 = (_a3 = edge.getData()) != null ? _a3 : {};
+    const nextAttrs = { ...(_b2 = data2.bpmnAttrs) != null ? _b2 : {} };
+    delete nextAttrs.isDefault;
+    if (key === "message" || key === "association") delete nextAttrs.condition;
+    if (key === "default") nextAttrs.isDefault = true;
+    const nextKind = key === "message" ? "message" : key === "association" ? "association" : void 0;
+    edge.setData({ ...data2, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : void 0 });
+  }
   /** BPMN flow-type popup — applies a preset (Sequence/Default/Message/Conditional/Association). Đợt C. */
   openEdgeFlowTypePopup(edge, anchor3) {
     var _a3;
@@ -86883,15 +86930,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     for (const key of ["sequence", "default", "message", "conditional", "association"]) {
       const row = el2("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
       row.onclick = () => {
-        var _a4, _b2;
-        this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
-        const data2 = (_a4 = edge.getData()) != null ? _a4 : {};
-        const nextAttrs = { ...(_b2 = data2.bpmnAttrs) != null ? _b2 : {} };
-        delete nextAttrs.isDefault;
-        if (key === "message" || key === "association") delete nextAttrs.condition;
-        if (key === "default") nextAttrs.isDefault = true;
-        const nextKind = key === "message" ? "message" : key === "association" ? "association" : void 0;
-        edge.setData({ ...data2, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : void 0 });
+        this.applyFlowType(edge, key);
         this.hidePopup();
         this.showEdgeBar(edge);
       };

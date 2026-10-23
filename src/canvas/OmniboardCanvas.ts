@@ -12,6 +12,7 @@ import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type Node
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
 import { laneHeights, laneIndexAt, resizeLaneBoundary } from "./laneLayout";
+import { poolDropAnchor } from "./poolConnect";
 import {
   alignLeft, alignCenterH, alignRight,
   alignTop, alignMiddleV, alignBottom,
@@ -809,7 +810,7 @@ export class OmniboardCanvas {
 
 
   /** Drag an arrow onto empty canvas → pick a shape at the drop point, connect it. */
-  private handleDragToBlank(edge: Edge): "removed" | "connected" | "pending" {
+  private handleDragToBlank(edge: Edge): "removed" | "connected" | "pending" | "pool" {
     const srcId = edge.getSourceCellId();
     const src = srcId ? this.graph.getCellById(srcId) : null;
     if (!src || !src.isNode()) { edge.remove(); return "removed"; }
@@ -834,6 +835,9 @@ export class OmniboardCanvas {
       edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt)) as never);
       return "connected";
     }
+    // Dropped on a pool (black-box: anywhere; with lanes: near its top /
+    // bottom border) → a message flow ending on the pool's border.
+    if (this.endOnPool(edge, src as Node, pt)) return "pool";
 
     this.pendingDrop = edge;          // removed on dismiss unless a shape is picked
     const wrap = el("div", "lk-shape-popup");
@@ -3883,6 +3887,42 @@ export class OmniboardCanvas {
     }
     this.showPopup(grid, anchor);
   }
+  /** End `edge` on the pool under `pt`, straight above / below its source,
+   *  as a message flow (the only flow BPMN allows to a participant). The
+   *  topLeft anchor keeps its offset when the pool moves. */
+  private endOnPool(edge: Edge, src: Node, pt: { x: number; y: number }): boolean {
+    const other = edge.getSourcePoint() ?? src.getBBox().center;
+    let hit: { pool: Node; anchor: { dx: number; dy: number }; area: number } | null = null;
+    for (const n of this.graph.getNodes()) {
+      if (n.id === src.id || this.nodeKind(n) !== "bpmn-pool") continue;
+      const b = n.getBBox();
+      const anchor = poolDropAnchor({ x: b.x, y: b.y, width: b.width, height: b.height, blackBox: !!this.nodeExtra(n).blackBox }, pt, other);
+      if (anchor && (!hit || b.width * b.height < hit.area)) hit = { pool: n, anchor, area: b.width * b.height };
+    }
+    if (!hit) return false;
+    edge.setTarget({ cell: hit.pool.id, anchor: { name: "topLeft", args: hit.anchor }, connectionPoint: { name: "anchor" } } as never);
+    edge.setVertices([]);
+    this.applyFlowType(edge, "message");
+    this.onChange();
+    return true;
+  }
+
+  /** Set an edge's BPMN flow type: visual preset + semantic kind / attrs. */
+  private applyFlowType(edge: Edge, key: "sequence" | "default" | "message" | "conditional" | "association"): void {
+    this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
+    // Phase A — keep semantic bpmnKind + bpmnAttrs in sync so export emits
+    // the right BPMN element (SequenceFlow vs MessageFlow vs Association)
+    // and the right marker (default / conditional placeholder).
+    const data = (edge.getData() as { bpmnKind?: string; bpmnAttrs?: Record<string, unknown> } | undefined) ?? {};
+    const nextAttrs = { ...(data.bpmnAttrs ?? {}) };
+    delete nextAttrs.isDefault;
+    // Preserve user-typed condition body across visual switches; clear only
+    // when the new visual implies "not a sequence flow".
+    if (key === "message" || key === "association") delete nextAttrs.condition;
+    if (key === "default") nextAttrs.isDefault = true;
+    const nextKind = key === "message" ? "message" : key === "association" ? "association" : undefined;
+    edge.setData({ ...data, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : undefined });
+  }
   /** BPMN flow-type popup — applies a preset (Sequence/Default/Message/Conditional/Association). Đợt C. */
   private openEdgeFlowTypePopup(edge: Edge, anchor: HTMLElement) {
     const list = el("div", "lk-line-list");
@@ -3890,19 +3930,7 @@ export class OmniboardCanvas {
     for (const key of ["sequence", "default", "message", "conditional", "association"] as const) {
       const row = el("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
       row.onclick = () => {
-        this.setEdgeStyle(edge, { flowType: key, ...FLOW_TYPE_PRESETS[key] });
-        // Phase A — keep semantic bpmnKind + bpmnAttrs in sync so export emits
-        // the right BPMN element (SequenceFlow vs MessageFlow vs Association)
-        // and the right marker (default / conditional placeholder).
-        const data = (edge.getData() as { bpmnKind?: string; bpmnAttrs?: Record<string, unknown> } | undefined) ?? {};
-        const nextAttrs = { ...(data.bpmnAttrs ?? {}) };
-        delete nextAttrs.isDefault;
-        // Preserve user-typed condition body across visual switches; clear only
-        // when the new visual implies "not a sequence flow".
-        if (key === "message" || key === "association") delete nextAttrs.condition;
-        if (key === "default") nextAttrs.isDefault = true;
-        const nextKind = key === "message" ? "message" : key === "association" ? "association" : undefined;
-        edge.setData({ ...data, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : undefined });
+        this.applyFlowType(edge, key);
         this.hidePopup();
         this.showEdgeBar(edge);
       };

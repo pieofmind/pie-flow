@@ -465,7 +465,7 @@ button.lk-mm-fab {
 }
 .lk-mm-fab:hover { opacity: 1; transform: translate(-50%, -50%) scale(1.12); box-shadow: 0 2px 6px rgba(59,31,26,.22), 0 4px 14px rgba(94,143,185,.5); }
 /* Smart context pad handles: lighter than mindmap fabs */
-.lk-pad-fab { width: 22px; height: 22px; font-size: 15px; background: var(--pg-surface); color: var(--pg-accent); border: 1px solid var(--pg-accent); }
+button.lk-pad-fab { width: 22px; height: 22px; font-size: 15px; background: var(--pg-surface); color: var(--pg-accent); border: 1px solid var(--pg-accent); }
 .lk-pad-fab:hover { background: var(--pg-accent); color: #fff; }
 
 /* Popups */

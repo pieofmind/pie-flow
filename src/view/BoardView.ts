@@ -16,6 +16,7 @@ import { BoardEditor, type BoardEditorProps } from "../ui/BoardEditor";
 import { readObsidianTheme } from "../core/theme";
 import type { DiagramAdapter } from "../core/adapter";
 import { buildBoardTopbar } from "../ui/boardTopbar";
+import { BoardSidePanel } from "../ui/boardSidePanel";
 import { askExternalChange, writeIfUnchanged } from "./externalChange";
 
 registerAllShapes();
@@ -190,9 +191,14 @@ const BOARD_TAB_STUB_ADAPTER: DiagramAdapter<CanvasModel> = {
  * Excalidraw-style full-screen board view. One file = one board.
  * Opening the file opens the canvas directly — no code block, no modal.
  */
+/** Side panel open/closed — shared by every board tab for this session. */
+let sideOpen = true;
+
 export class BoardView extends TextFileView {
   private canvas: OmniboardCanvas | null = null;
   private host: HTMLElement | null = null;
+  private side: BoardSidePanel | null = null;
+  private sideFrame = 0;
   private boardTitleEl: { setText: (t: string) => void } | null = null;
   private model: CanvasModel = EMPTY_MODEL;
   private rawData = "";
@@ -242,8 +248,14 @@ export class BoardView extends TextFileView {
 
     this.buildTopBar();
 
-    this.host = this.contentEl.createDiv({ cls: "da-board-host" });
-    this.host.style.cssText = "position:relative; flex:1; min-height:0;";
+    const main = this.contentEl.createDiv({ cls: "da-board-main" });
+    this.contentEl.toggleClass("da-side-hidden", !sideOpen);
+    this.side = new BoardSidePanel(main, {
+      getModel: () => this.canvas?.getModel() ?? null,
+      focus: (id) => this.focusCellId(id),
+    });
+    this.host = main.createDiv({ cls: "da-board-host" });
+    this.host.style.cssText = "position:relative; flex:1; min-height:0; min-width:0;";
 
     // Story 7-4 — mount <BoardEditor mode="tab"> into the host instead of
     // constructing OmniboardCanvas directly. The canvas instance is captured
@@ -274,8 +286,12 @@ export class BoardView extends TextFileView {
         this.applyingDisk = true;
         try { canvas.loadModel(this.model); }
         finally { this.applyingDisk = false; }
-        canvas.setSelectionChangeHandler(emitOmniboardSelectionChange);
+        canvas.setSelectionChangeHandler(() => {
+          emitOmniboardSelectionChange();
+          this.side?.markSelected(canvas.getSelectedNodeSnapshot()?.id ?? null);
+        });
         emitBpmnIssuesRefresh();
+        this.side?.refresh();
       },
     };
     // Cast through `ComponentType<BoardEditorProps<CanvasModel>>` to pin the
@@ -302,12 +318,17 @@ export class BoardView extends TextFileView {
       onClose: () => this.leaf.detach(),
       onSave: () => void (async () => { await this.save(); this.leaf.detach(); })(),
       onExport: (e) => this.showExportMenu(e),
+      onToggleSide: () => {
+        sideOpen = !sideOpen;
+        this.contentEl.toggleClass("da-side-hidden", !sideOpen);
+        if (sideOpen) this.side?.refresh();
+      },
       extraButtons: [
-        { icon: "sliders-horizontal", tip: "BPMN properties", onClick: () => void this.openPropertiesLeaf() },
-        { icon: "alert-triangle", tip: "BPMN issues", onClick: () => void this.openIssuesLeaf() },
         { icon: "workflow", tip: "Chuyển sang BPMN Native", onClick: () => void this.switchToBpmnNativeView() },
-        { icon: "file-text", tip: "Mở dưới dạng Markdown", onClick: () => void this.openAsMarkdown() },
-        { icon: "upload", tip: "Import (BPMN / DBML)", onClick: () => this.openImportPicker() },
+        { icon: "sliders-horizontal", tip: "BPMN properties", onClick: () => void this.openPropertiesLeaf(), inMenu: true },
+        { icon: "alert-triangle", tip: "BPMN issues", onClick: () => void this.openIssuesLeaf(), inMenu: true },
+        { icon: "file-text", tip: "Mở dưới dạng Markdown", onClick: () => void this.openAsMarkdown(), inMenu: true },
+        { icon: "upload", tip: "Import (BPMN / DBML)", onClick: () => this.openImportPicker(), inMenu: true },
       ],
     });
     // Rename handler (onLoadFile) updates the title via this thin adapter.
@@ -318,6 +339,8 @@ export class BoardView extends TextFileView {
    *  canvas.getModel() at save time (see getViewData / save); here we just
    *  trigger the change pipeline. */
   private handleCanvasChange(): void {
+    // Outline / issue list follow every change, disk reloads included — once per frame.
+    if (sideOpen && !this.sideFrame) this.sideFrame = requestAnimationFrame(() => { this.sideFrame = 0; this.side?.refresh(); });
     if (this.applyingDisk) return;
     this.localEdits = true;
     this.requestSave();
@@ -755,6 +778,8 @@ export class BoardView extends TextFileView {
     // X6 selection events during teardown don't fire into a half-disposed
     // properties panel.
     this.canvas?.setSelectionChangeHandler(null);
+    cancelAnimationFrame(this.sideFrame);
+    this.side = null;
     // Unmount the Preact tree → OmniboardCanvasMount's useEffect cleanup
     // calls `canvas.destroy()` exactly once (idempotent via destroyedRef
     // guard added in Story 7-3). This replaces the previous direct

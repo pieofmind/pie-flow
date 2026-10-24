@@ -26,8 +26,11 @@ export interface BoardTopbarOptions {
   onSave: () => void;
   /** Export menu (anchored at the click). Omit to hide the Export button. */
   onExport?: (e: MouseEvent) => void;
-  /** Optional extra buttons before the divider (BoardView: properties/issues). */
-  extraButtons?: Array<{ icon: string; tip: string; onClick: () => void }>;
+  /** Optional extra buttons before the divider (BoardView: properties/issues).
+   *  `inMenu` ones are grouped under a "…" menu instead of an icon each. */
+  extraButtons?: Array<{ icon: string; tip: string; onClick: () => void; inMenu?: boolean }>;
+  /** Shows a button next to "Đóng" that toggles the host's side panel. */
+  onToggleSide?: () => void;
 }
 
 /**
@@ -44,6 +47,14 @@ export function buildBoardTopbar(
   setIcon(close, "x");
   close.createSpan({ text: "Đóng" });
   close.onclick = () => opts.onClose();
+
+  if (opts.onToggleSide) {
+    const side = bar.createEl("button", { cls: "da-tb-ic da-tb-side" });
+    setIcon(side, "panel-left");
+    side.setAttribute("aria-label", "Cấu trúc · Lỗi BPMN");
+    side.title = "Cấu trúc · Lỗi BPMN";
+    side.onclick = () => opts.onToggleSide!();
+  }
 
   const badge = bar.createDiv({ cls: "da-tb-badge" });
   setIcon(badge, opts.badgeIcon ?? "shapes");
@@ -80,7 +91,30 @@ export function buildBoardTopbar(
 
   if (opts.extraButtons?.length) {
     bar.createDiv({ cls: "da-tb-divider" });
-    for (const eb of opts.extraButtons) iconBtn(eb.icon, eb.tip, eb.onClick);
+    const menuItems = opts.extraButtons.filter((eb) => eb.inMenu);
+    for (const eb of opts.extraButtons) if (!eb.inMenu) iconBtn(eb.icon, eb.tip, eb.onClick);
+    if (menuItems.length) {
+      const wrap = bar.createDiv({ cls: "da-tb-more" });
+      const more = wrap.createEl("button", { cls: "da-tb-ic" });
+      setIcon(more, "more-horizontal");
+      more.setAttribute("aria-label", "Thêm");
+      more.title = "Thêm";
+      const pop = wrap.createDiv({ cls: "da-tb-pop" });
+      const doc = bar.ownerDocument;
+      const close = (): void => { pop.removeClass("is-open"); doc.removeEventListener("pointerdown", outside, true); };
+      const outside = (e: Event): void => { if (!wrap.contains(e.target as Node)) close(); };
+      for (const eb of menuItems) {
+        const item = pop.createEl("button", { cls: "da-tb-pop-item" });
+        setIcon(item, eb.icon);
+        item.createSpan({ text: eb.tip });
+        item.onclick = () => { close(); eb.onClick(); };
+      }
+      more.onclick = () => {
+        if (pop.hasClass("is-open")) return close();
+        pop.addClass("is-open");
+        doc.addEventListener("pointerdown", outside, true);
+      };
+    }
   }
 
   if (opts.onExport) {

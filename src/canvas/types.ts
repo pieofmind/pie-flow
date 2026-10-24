@@ -13,10 +13,12 @@ export interface PaletteItem {
 export interface ShapeCategory { title: string; items: PaletteItem[]; }
 
 export interface BoardAppState {
-  /** "dark" draws the board inverted (Excalidraw-style); omitted = light. */
+  /** "dark" draws the board with its own dark palette (n8n-style); omitted = light. */
   theme?: "dark";
-  /** Board background as picked in light terms (#rrggbb); omitted = cream paper. */
+  /** Light board background (#rrggbb); omitted = cream paper. */
   background?: string;
+  /** Dark board background (#rrggbb); omitted = charcoal. */
+  backgroundDark?: string;
 }
 
 export interface CanvasModel {

@@ -171,7 +171,7 @@ body[data-variant="B"] .p-switch { bottom: auto; top: 64px; }
 .c-lane { padding-left: 22px; font-weight: 400; } .c-lane em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--ink-3); }
 .c-space:hover, .c-lane:hover, .c-diag:hover { background: rgba(0,0,0,.04); }
 .c-space:active, .c-lane:active { transform: scale(.98); }
-.c-space.on, .c-lane.on, .c-diag.on { background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.c-space.on, .c-lane.on, .c-diag.on { background: #fff; color: var(--ink); font-weight: 600; box-shadow: 0 0 0 1px var(--line), 0 1px 3px rgba(0,0,0,.08); }
 .c-space.mute { color: var(--ink-2); }
 .c-sw { width: 14px; height: 14px; border-radius: 5px; background: var(--c); flex: none; }
 .c-sw.sm { width: 10px; height: 10px; border-radius: 4px; }

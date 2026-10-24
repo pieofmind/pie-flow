@@ -194,9 +194,8 @@ const MARKER_ICON: Record<BpmnMarker, string> = {
 };
 function renderMarkers(markers?: BpmnMarker[]): string {
   if (!markers || markers.length === 0) return "";
-  // The ⊞ marker on a task opens it as a sub-process (canvas: data-sub-toggle).
+  // The ⊞ marker is a marker only (bpmn-js); "Mở rộng tại chỗ" / "Mở trang riêng" open it.
   const items = markers.map((m) => !MARKER_ICON[m] ? ""
-    : m === "subprocess" ? `<span class="bp-mk-ic bp-mk-toggle" data-sub-toggle title="Mở sub-process">${MARKER_ICON[m]}</span>`
     : `<span class="bp-mk-ic">${MARKER_ICON[m]}</span>`).join("");
   return items ? `<div class="bp-markers">${items}</div>` : "";
 }
@@ -427,14 +426,14 @@ function bpData(mod: string, shape: string, label: string, extra?: NodeExtra, cl
   const lbl = label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : "";
   return `<div class="${cls}${mod}">${shape}${lbl}</div>`;
 }
-/** Sub-process: open = a frame around its steps (− closes it); closed = task-sized
- *  with ⊞ (opens it). `data-sub-toggle` is what the canvas listens for. */
+/** Sub-process, as bpmn-js draws it: expanded = a frame around its steps;
+ *  collapsed = task-sized with the ⊞ marker plus the drill-down button on its
+ *  bottom-right corner (`data-sub-drill` opens its steps on their own page). */
 function bpSub(mod: string, label: string, extra?: NodeExtra, tail = ""): string {
-  const closed = extra?.collapsed === true;
-  const toggle = `<span class="bp-plus" data-sub-toggle title="${closed ? "Mở sub-process" : "Thu gọn"}">${closed ? "+" : "−"}</span>`;
-  return closed
-    ? `<div class="bp-task bp-sub-closed${mod}">${nl(label)}${toggle}${renderMarkers(extra?.markers)}${tail}</div>`
-    : `<div class="bp-frame bp-sub${mod}"><span class="bp-frame-lbl">${label}</span>${toggle}${renderMarkers(extra?.markers)}${tail}</div>`;
+  if (extra?.collapsed !== true) return `<div class="bp-frame bp-sub${mod}"><span class="bp-frame-lbl">${label}</span>${renderMarkers(extra?.markers)}${tail}</div>`;
+  const plus = `<span class="bp-plus">+</span>`;
+  const drill = `<button type="button" class="bp-drill" data-sub-drill title="Mở trang riêng"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M4.81 1.5h6.38L8 6.43 4.81 1.5Zm0 6.6h6.38L8 13.03 4.81 8.1Z"/></svg></button>`;
+  return `<div class="bp-task bp-sub-closed${mod}">${nl(label)}${plus}${drill}${renderMarkers(extra?.markers)}${tail}</div>`;
 }
 function bpTask(label: string, iconKey?: string, extra?: NodeExtra): string {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";

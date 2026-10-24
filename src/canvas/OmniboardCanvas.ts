@@ -17,7 +17,7 @@ import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
-import { SUBPROCESS_KINDS, SUB_CLOSED, openLayout } from "./subprocessLayout";
+import { SUBPROCESS_KINDS, closedLayout, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
 import { findMatches, stepIndex } from "./search";
@@ -1548,16 +1548,16 @@ export class OmniboardCanvas {
     // dispatch to a specific child-label editor first, fall back to whole-node label.
     this.graph.on("node:dblclick", ({ node, e }) => {
       e.stopPropagation();
-      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle]")) return;
+      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-drill]")) return;
       if (this.tryEditChildLabel(e.target as HTMLElement | null, node as Node)) return;
       this.editLabel(node as Node);
     });
     // X6 fires node:click on every click (incl. the one that selects it).
     // Open child-label editor only when the node was already selected BEFORE this click.
     this.graph.on("node:click", ({ node, e }) => {
-      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle]")) {
+      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-drill]")) {
         e.stopPropagation();
-        this.toggleSubprocess(node as Node);
+        this.enterSubprocess(node as Node);
         return;
       }
       if (this.lastSelectedAt.get(node.id) === undefined) return;
@@ -3070,6 +3070,11 @@ export class OmniboardCanvas {
       this.contextBar.appendChild(mkBtn(
         `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="11" height="11"/><path d="M10 3h7v7M17 3l-7 7"/></svg>`,
         "Mở trang riêng", () => this.enterSubprocess(node)));
+      const closed = this.nodeKind(node) === "bpmn-task" || node.getData()?.collapsed === true;
+      this.contextBar.appendChild(mkBtn(closed
+        ? `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="15" height="11"/><path d="M7 10h6M10 7v6"/></svg>`
+        : `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="15" height="11"/><path d="M7 10h6"/></svg>`,
+        closed ? "Mở rộng tại chỗ (expanded)" : "Thu gọn (collapsed)", () => this.toggleSubprocess(node)));
     }
 
     // BPMN Pool — quick-action buttons (bpmn.io UX).
@@ -3730,10 +3735,12 @@ export class OmniboardCanvas {
     this.onChange();
   }
 
-  // ── Sub-process open / close in place ────────────────────────────────────
-  /** ⊞ / − on a sub-process: open it as a frame around its steps, or close it
-   *  to task size with the steps hidden. A task with the ⊞ marker opens as an
-   *  empty sub-process; one closed with no steps goes back to that task. */
+  // ── Sub-process expand / collapse (bpmn-js "change type") ──────────────
+  /** Expanded ⇄ collapsed sub-process, as bpmn-js's replace menu does it: an
+   *  expanded one shows its steps in a frame on the board; a collapsed one is
+   *  task-sized with ⊞ and its steps open on their own page (drill-down).
+   *  Nothing around it moves. A ⊞ task expands as an empty sub-process; one
+   *  collapsed with no steps goes back to that task. */
   private toggleSubprocess(node: Node): void {
     const opening = this.nodeKind(node) === "bpmn-task" || node.getData()?.collapsed === true;
     this.graph.startBatch("subprocess-toggle");
@@ -3748,10 +3755,18 @@ export class OmniboardCanvas {
     node.setData(this.nodeKind(node) === "bpmn-task"
       ? { ...d, kind: "bpmn-subprocess", markers: markers.length ? markers : undefined, collapsed: undefined }
       : { ...d, collapsed: undefined }, { deep: false });
+    // Notes live at process level (bpmn-js moves them out of the sub-process too).
+    for (const c of node.getChildren() ?? []) {
+      if (!c.isNode() || this.nodeKind(c) !== "bpmn-annotation") continue;
+      node.unembed(c);
+      node.getParent()?.embed(c);
+      c.setData({ ...c.getData(), parentId: node.getParent()?.id }, { deep: false });
+    }
     // Show the steps before moving them: arrows re-route only to visible ends.
     this.refreshSubprocessVisibility();
     const kids = (node.getChildren() ?? []).filter((c): c is Node => c.isNode());
-    const lay = openLayout(node.getPosition(), kids.map((k) => ({ ...k.getPosition(), ...k.getSize() })));
+    const lay = openLayout(node.getBBox(), kids.map((k) => ({ ...k.getPosition(), ...k.getSize() })));
+    node.setPosition(lay.x, lay.y, { deep: false });
     kids.forEach((k) => k.translate(lay.dx, lay.dy));
     node.resize(lay.width, lay.height);
     node.setZIndex(frameZ(this.nodeKind(node), this.ancestorCount(node)));
@@ -3764,7 +3779,9 @@ export class OmniboardCanvas {
     node.setData(toTask
       ? { ...d, kind: "bpmn-task", markers: [...((d.markers ?? []) as string[]), "subprocess"], collapsed: true }
       : { ...d, collapsed: true }, { deep: false });
-    node.resize(SUB_CLOSED.width, SUB_CLOSED.height);
+    const b = closedLayout(node.getBBox());
+    node.setPosition(b.x, b.y, { deep: false });
+    node.resize(b.width, b.height);
     if (toTask) node.toFront();
     this.rerender(node);
   }
@@ -3870,7 +3887,8 @@ export class OmniboardCanvas {
    *  dragged out of it, it stops being one. */
   private adoptIntoSubprocess(node: Node): void {
     const kind = this.nodeKind(node);
-    if (kind === "bpmn-pool" || kind === "bpmn-lane" || !node.isVisible()) return;
+    // Notes stay at process level, as in bpmn-js.
+    if (kind === "bpmn-pool" || kind === "bpmn-lane" || kind === "bpmn-annotation" || !node.isVisible()) return;
     const c = node.getBBox().center;
     const own = new Set([node.id, ...node.getDescendants().map((x) => x.id), node.getData()?.attachedTo]);
     const host = this.graph.getNodes()

@@ -8,7 +8,7 @@
     "dev": "node esbuild.config.mjs",
     "build": "tsc --noEmit -skipLibCheck && node esbuild.config.mjs production",
     "test": "vitest run",
-    "proto:ui": "esbuild harness/prototype-redesign.ts --bundle --outfile=harness/prototype-redesign.js --platform=browser --format=iife && echo \"Mở http://127.0.0.1:8796/harness/prototype-redesign.html?variant=A\" && python3 -m http.server 8796 --bind 127.0.0.1"
+    "proto:ui": "esbuild harness/prototype-redesign.ts --bundle --alias:obsidian=./harness/proto-obsidian-shim.ts --outfile=harness/prototype-redesign.js --platform=browser --format=iife && echo \"Mở http://127.0.0.1:8796/harness/prototype-redesign.html\" && python3 -m http.server 8796 --bind 127.0.0.1"
   },
   "devDependencies": {
     "@codemirror/commands": "^6.10.3",

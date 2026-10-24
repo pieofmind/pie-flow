@@ -204,8 +204,47 @@
 .lk-root.lk-dark .hn [style*="background:"] {
   --pg-text: #3B1F1A; --pg-text-muted: rgba(59,31,26,0.66); --pg-text-soft: rgba(59,31,26,0.42);
 }
+/* ── Board tab: left side panel (Cấu trúc / Lỗi BPMN) ── */
+.da-board-main { flex: 1; min-height: 0; display: flex; }
+.da-side { width: 260px; flex: none; display: flex; flex-direction: column; min-height: 0;
+  background: var(--pg-surface); border-right: 1px solid var(--pg-border); font-family: var(--font-body); }
+.da-side-hidden .da-side { display: none; }
+.da-side-hidden .da-tb-side { color: var(--pg-text-soft); }
+.da-tb-side { color: var(--pg-accent); }
+.da-side-tabs { display: flex; gap: 2px; padding: 8px; border-bottom: 1px solid var(--pg-border); }
+button.da-side-tab { flex: 1; height: 28px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent;
+  color: var(--pg-text-muted); font-size: 12.5px; font-weight: 500; cursor: pointer; box-shadow: none; }
+button.da-side-tab:hover { background: var(--pg-hover); color: var(--pg-text); }
+button.da-side-tab.is-active { background: var(--pg-accent-soft); color: var(--pg-accent); }
+.da-side-tab b { margin-left: 5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.da-side-pane { flex: 1; overflow: auto; padding: 4px 8px 16px; font-size: 13px; color: var(--pg-text); }
+.da-side-pool { padding: 12px 8px 4px; font-size: 12px; font-weight: 600; color: var(--pg-text); }
+.da-side-empty { padding: 4px 8px 6px 20px; font-size: 12px; color: var(--pg-text-soft); }
+.da-side-lane > summary { list-style: none; display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 6px;
+  cursor: pointer; color: var(--pg-text-muted); }
+.da-side-lane > summary::-webkit-details-marker { display: none; }
+.da-side-lane > summary::before { content: "›"; display: inline-block; width: 10px; transition: transform .15s; }
+.da-side-lane[open] > summary::before { transform: rotate(90deg); }
+.da-side-lane > summary em { margin-left: auto; font-style: normal; font-size: 11px; color: var(--pg-text-soft); }
+.da-side-item { display: flex; align-items: center; gap: 8px; padding: 4px 8px 4px 24px; border-radius: 6px; cursor: pointer; }
+.da-side-item span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.da-side-lane > summary:hover, .da-side-item:hover { background: var(--pg-hover); color: var(--pg-text); }
+.da-side-item.is-active { background: var(--pg-accent-soft); color: var(--pg-accent); }
+.da-side-ico { display: inline-grid; place-items: center; width: 16px; height: 16px; flex: none; }
+.da-side-ico svg { width: 16px; height: 16px; }
+.da-side .obi-row { width: 100%; margin: 6px 0; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--pg-border);
+  border-left-width: 3px; background: var(--pg-surface); color: var(--pg-text); display: flex; flex-direction: column; gap: 3px;
+  text-align: left; cursor: pointer; box-shadow: none; }
+.da-side .obi-row:hover { background: var(--pg-hover); }
+.da-side .obi-row.warn { border-left-color: #d29a25; }
+.da-side .obi-row.error { border-left-color: #cb4b4b; }
+.da-side .obi-code { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--pg-text-soft); }
+.da-side .obi-msg { font-size: 12px; }
+
+
 .lk-root.lk-dark > :not(.lk-graph-mount):not(.lk-html-layer),
-.da-board-view:has(.lk-root.lk-dark) > .da-topbar {
+.da-board-view:has(.lk-root.lk-dark) > .da-topbar,
+.da-board-view:has(.lk-root.lk-dark) .da-side {
   --pg-bg: #1b1917; --pg-surface: #262321; --pg-surface-2: #2e2a27;
   --pg-text: #ece4da; --pg-text-muted: rgba(236,228,218,.68); --pg-text-soft: rgba(236,228,218,.45);
   --pg-border: rgba(236,228,218,.14); --pg-border-strong: rgba(236,228,218,.24); --pg-hover: rgba(236,228,218,.08);

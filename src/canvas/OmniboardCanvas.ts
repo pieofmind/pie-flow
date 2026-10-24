@@ -4146,6 +4146,8 @@ export class OmniboardCanvas {
     value: string; vertical?: boolean; multiLine?: boolean;
     /** Pass empty strings through to onCommit too (so the caller can clear the field). Default false. */
     allowEmpty?: boolean;
+    /** Edit in place inside this element (bpmn-js): same font, centred, transparent, its text hidden meanwhile. */
+    inBox?: HTMLElement;
     onCommit: (next: string) => void;
   }): void {
     this.commitLabel(); // close any previous editor
@@ -4157,8 +4159,23 @@ export class OmniboardCanvas {
     ta.style.width = opts.width + "px";
     ta.style.height = opts.height + "px";
     ta.rows = 1;
+    const box = opts.inBox;
+    if (box) {
+      const cs = getComputedStyle(box); const k = this.graph.scale().sx;
+      ta.classList.add("is-inbox");
+      ta.style.fontSize = parseFloat(cs.fontSize) * k + "px";
+      ta.style.fontWeight = cs.fontWeight;
+      ta.style.lineHeight = cs.lineHeight;
+      ta.style.paddingLeft = ta.style.paddingRight = parseFloat(cs.paddingLeft) * k + "px";
+      box.classList.add("is-label-editing");
+    }
     const autoGrow = () => {
-      if (opts.vertical) {
+      if (box) {
+        // keep the text vertically centred like the static label
+        ta.style.paddingTop = ta.style.paddingBottom = "0"; ta.style.height = "auto";
+        const content = ta.scrollHeight; const h = Math.max(opts.height, content);
+        ta.style.paddingTop = ta.style.paddingBottom = (h - content) / 2 + "px"; ta.style.height = h + "px";
+      } else if (opts.vertical) {
         // vertical text grows along its writing axis (the textarea's HEIGHT after rotation = visual width)
         ta.style.width = "auto"; const w = Math.max(opts.width, ta.scrollWidth + 4); ta.style.width = w + "px";
       } else {
@@ -4174,6 +4191,7 @@ export class OmniboardCanvas {
       }
       this.graph.off("scale", abort); this.graph.off("translate", abort);
       ta.remove(); this.labelInput = null;
+      box?.classList.remove("is-label-editing");
       if (this.isMobile) this.setEditingChrome(false);   // restore the "+" pads
     };
     const abort = () => finish(true); // commit on viewport change so editor never drifts
@@ -4242,7 +4260,10 @@ export class OmniboardCanvas {
     const bbox = node.getBBox(); const s = this.graph.scale().sx; const t = this.graph.translate();
     const kind = this.nodeKind(node);
     const isMindmap = kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf";
+    const view = this.graph.findViewByCell(node) as unknown as { container?: HTMLElement } | null;
+    const task = view?.container?.querySelector(".bp-task") as HTMLElement | null;
     this.inlineEdit({
+      inBox: task ?? undefined,
       left: bbox.x * s + t.tx, top: bbox.y * s + t.ty,
       width: bbox.width * s, height: bbox.height * s,
       value: this.nodeLabel(node), multiLine: true, // allow Shift+Enter newline on all nodes

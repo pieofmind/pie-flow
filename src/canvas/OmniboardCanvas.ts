@@ -4424,13 +4424,17 @@ export class OmniboardCanvas {
       "diamond-o": `<path d="M11 8 17 3 23 8 17 13 Z" fill="var(--pg-surface)" stroke="currentColor" stroke-width="1.4"/>`,
       circle: `<circle cx="19" cy="8" r="3.6" fill="var(--pg-surface)" stroke="currentColor" stroke-width="1.4"/>`,
       "circle-f": `<circle cx="19" cy="8" r="3.8" fill="currentColor"/>`,
-      crow: `<path d="M24 8 13 2 M24 8 13 8 M24 8 13 14" fill="none" stroke="currentColor" stroke-width="1.4"/>`,
+      // ERD: the entity is on the right (x=25) — the crow's foot spreads onto it.
+      crow: `<path d="M14 8 25 2 M14 8 25 8 M14 8 25 14" fill="none" stroke="currentColor" stroke-width="1.4"/>`,
       bar: `<path d="M19 2 19 14" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
-      "crow-bar": `<path d="M24 8 14 2 M24 8 14 8 M24 8 14 14 M12 2 12 14" fill="none" stroke="currentColor" stroke-width="1.4"/>`,
+      "crow-bar": `<path d="M16 8 25 2 M16 8 25 8 M16 8 25 14 M12 2 12 14" fill="none" stroke="currentColor" stroke-width="1.4"/>`,
       "bar-bar": `<path d="M16 2 16 14 M20 2 20 14" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
+      "circle-bar": `<circle cx="10" cy="8" r="3.4" fill="var(--pg-surface)" stroke="currentColor" stroke-width="1.4"/><path d="M19 2 19 14" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
+      "crow-circle": `<circle cx="9" cy="8" r="3.4" fill="var(--pg-surface)" stroke="currentColor" stroke-width="1.4"/><path d="M16 8 25 2 M16 8 25 8 M16 8 25 14" fill="none" stroke="currentColor" stroke-width="1.4"/>`,
     };
-    const crowKinds = new Set(["crow", "bar", "crow-bar", "bar-bar"]);
-    const lineEnd = kind === "none" ? 25 : crowKinds.has(kind) ? 12 : 13;
+    // ERD kinds draw through to the entity; the circles' fill hides the line under them.
+    const erdKinds = new Set(["crow", "bar", "crow-bar", "bar-bar", "circle-bar", "crow-circle"]);
+    const lineEnd = kind === "none" || erdKinds.has(kind) ? 25 : 13;
     const inner = `<line x1="1" y1="8" x2="${lineEnd}" y2="8" stroke="currentColor" stroke-width="1.6"/>${head[kind] ?? ""}`;
     const body = side === "start" ? `<g transform="translate(26,0) scale(-1,1)">${inner}</g>` : inner;
     return `<svg viewBox="0 0 26 16" width="26" height="16">${body}</svg>`;

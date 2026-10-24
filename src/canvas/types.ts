@@ -12,6 +12,13 @@ export interface PaletteItem {
 }
 export interface ShapeCategory { title: string; items: PaletteItem[]; }
 
+export interface BoardAppState {
+  /** "dark" draws the board inverted (Excalidraw-style); omitted = light. */
+  theme?: "dark";
+  /** Board background as picked in light terms (#rrggbb); omitted = cream paper. */
+  background?: string;
+}
+
 export interface CanvasModel {
   nodes: Array<{
     id: string; shape: string; x: number; y: number; width: number; height: number; label: string;
@@ -28,6 +35,8 @@ export interface CanvasModel {
     laneId?: string;
     attrs?: Record<string, unknown>;
   }>;
+  /** Per-board look, saved in the file. Absent = light theme on the cream paper. */
+  appState?: BoardAppState;
   edges: Array<{
     id: string; source: string; sourcePort?: string; target: string; targetPort?: string;
     /** Legacy/import-only precise anchor on the source/target node.

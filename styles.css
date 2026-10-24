@@ -176,7 +176,25 @@
    right sidebar). Same approach as the Excalidraw plugin. Scrollable panels keep
    their own touch-action. */
 .lk-graph-mount { position: absolute; inset: 0; touch-action: none; }
-.lk-root .x6-graph { background: transparent !important; }
+
+/* Board dark mode (Excalidraw-style): the drawing — background, grid, shapes,
+   edges — is inverted with its hues kept, so every color the user picked stays
+   recognisable without a second palette. Chrome floating on the board gets real
+   dark tokens instead. Colors are stored in light terms; export stays light. */
+.lk-root.lk-dark { color-scheme: dark; background: #121212; }
+.lk-root.lk-dark .lk-graph-mount,
+.lk-root.lk-dark .lk-mm-svg,
+.lk-root.lk-dark .lk-swatch:not(.lk-swatch-add),
+.lk-root.lk-dark .lk-color-dot { filter: invert(93%) hue-rotate(180deg); }
+.lk-root.lk-dark > :not(.lk-graph-mount) {
+  --pg-bg: #1b1917; --pg-surface: #262321; --pg-surface-2: #2e2a27;
+  --pg-text: #ece4da; --pg-text-muted: rgba(236,228,218,.68); --pg-text-soft: rgba(236,228,218,.45);
+  --pg-border: rgba(236,228,218,.14); --pg-border-strong: rgba(236,228,218,.24); --pg-hover: rgba(236,228,218,.08);
+  --sh-sm: 0 1px 2px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.3);
+  --sh-md: 0 4px 10px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.35);
+  --sh-lg: 0 12px 28px rgba(0,0,0,.5), 0 28px 64px rgba(0,0,0,.4);
+}
+.lk-root .x6-graph { background: var(--lk-board-bg, var(--pg-canvas)) !important; }
 .lk-root .x6-node { filter: drop-shadow(0 1px 2px rgba(59,31,26,.10)) drop-shadow(0 2px 6px rgba(59,31,26,.06)); }
 
 /* ── Mobile HTML overlay ──────────────────────────────────────────
@@ -388,6 +406,12 @@
 .lk-shape-cell svg { width: 30px; height: 30px; }
 .lk-color-popup { padding: 10px; background: var(--pg-surface); border: 1px solid var(--pg-border); border-radius: 12px; box-shadow: var(--sh-lg); }
 .lk-color-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.lk-zoom-sep { width: 1px; align-self: stretch; margin: 4px 3px; background: var(--pg-border); }
+.lk-popup-title { font-size: 11px; font-weight: 600; color: var(--pg-text-muted); margin: 0 0 6px; }
+.lk-swatch.is-active { box-shadow: 0 0 0 2px var(--pg-accent); }
+.lk-board-menu .lk-menu-item { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 8px; padding: 6px 8px; border: 0; border-radius: 6px; background: transparent; box-shadow: none; color: var(--pg-text); font: inherit; font-size: 12.5px; cursor: pointer; }
+.lk-board-menu .lk-menu-item:hover { background: var(--pg-hover); }
+.lk-board-menu .lk-menu-item svg { width: 15px; height: 15px; }
 .lk-swatch { width: 22px; height: 22px; border-radius: 6px; cursor: pointer; box-shadow: inset 0 0 0 1px var(--pg-border); transition: transform .08s; }
 .lk-swatch:hover { transform: scale(1.15); }
 .lk-swatch.lk-swatch-add { display: grid; place-items: center; font-size: 16px; font-weight: 700; color: var(--pg-text-muted); background: var(--pg-surface-2); }

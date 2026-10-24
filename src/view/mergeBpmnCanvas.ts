@@ -35,6 +35,7 @@ export function mergeBpmnImport(
     model: {
       nodes: [...newImport.nodes, ...preservedNodes],
       edges: [...newImport.edges, ...preservedEdges],
+      ...(oldCanvas.appState ? { appState: oldCanvas.appState } : {}),
     },
     preservedNodes: preservedNodes.length,
     preservedEdges: preservedEdges.length,

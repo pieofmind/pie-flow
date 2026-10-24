@@ -833,6 +833,7 @@ export class OmniboardCanvas {
         for (const item of advanced) frag.appendChild(mkCell(item));
         more.parentElement?.insertBefore(frag, more);
         more.remove();
+        this.refitPopup(); // taller now: move up to stay on the board, the rest scrolls
       };
       grid.appendChild(more);
     }
@@ -925,6 +926,14 @@ export class OmniboardCanvas {
     const sc = this.graph.scale().sx; const tr = this.graph.translate();
     this.showPopupAt(wrap, pt.x * sc + tr.tx, pt.y * sc + tr.ty);
     return "pending";
+  }
+
+  /** Pull an open popup back inside the board after it grew (its CSS max-height
+   *  keeps it no taller than the board, so the overflow scrolls). */
+  private refitPopup(): void {
+    const top = parseFloat(this.popupLayer.style.top) || 0;
+    const maxTop = this.root.clientHeight - this.popupLayer.offsetHeight - 8;
+    if (top > maxTop) this.popupLayer.style.top = Math.max(8, maxTop) + "px";
   }
 
   /** Show the popup layer at a root-relative point (clamped into view). */
@@ -1180,7 +1189,7 @@ export class OmniboardCanvas {
     }
     // 7. BPMN event/gateway label below the shape (e.g. "Start", "End")
     const bpLabel = target.closest(".bp-elabel") as HTMLElement | null;
-    if (bpLabel) { this.editLabelAt(node, bpLabel); return true; }
+    if (bpLabel && this.editExternalLabel(node)) return true;
     // 8. Sequence actor name under the stick figure
     const sqActorLbl = target.closest(".sq-actor-lbl") as HTMLElement | null;
     if (sqActorLbl) { this.editLabelAt(node, sqActorLbl); return true; }
@@ -1213,25 +1222,27 @@ export class OmniboardCanvas {
   private editExternalLabel(node: Node): boolean {
     const view = this.graph.findViewByCell(node) as unknown as { container?: HTMLElement } | null;
     const shape = view?.container?.querySelector(".bp-event, .bp-gw, .bp-dataobj, .bp-datastore");
-    if (!shape) return false;
-    const W = 120, H = 28, GAP = 6;
+    const lbl = shape?.querySelector(".bp-elabel") as HTMLElement | null;
+    if (!shape || !lbl) return false;
+    const k = this.graph.scale().sx, GAP = 6 * k;
+    const W = Math.max(120 * k, lbl.getBoundingClientRect().width + 8);
+    const H = parseFloat(getComputedStyle(lbl).lineHeight) * k || 12 * k;
     const rr = this.root.getBoundingClientRect();
-    const lbl = shape.querySelector(".bp-elabel") as HTMLElement | null;
-    let box: { left: number; top: number };
-    if (lbl && lbl.textContent?.trim()) {
+    let box: { left: number; top: number; height: number };
+    if (lbl.textContent?.trim()) {
       const r = lbl.getBoundingClientRect();
-      box = { left: r.left + r.width / 2 - rr.left - W / 2, top: r.top - rr.top };
+      box = { left: r.left + r.width / 2 - rr.left - W / 2, top: r.top - rr.top, height: Math.max(H, r.height) };
     } else {
       const b = (shape as HTMLElement).getBoundingClientRect();
       const side = this.nodeExtra(node).labelSide ?? "bottom";
       const cx = b.left + b.width / 2 - rr.left, cy = b.top + b.height / 2 - rr.top;
-      box = side === "top" ? { left: cx - W / 2, top: b.top - rr.top - GAP - H }
-        : side === "left" ? { left: b.left - rr.left - GAP - W, top: cy - H / 2 }
-        : side === "right" ? { left: b.right - rr.left + GAP, top: cy - H / 2 }
-        : { left: cx - W / 2, top: b.bottom - rr.top + GAP };
+      box = side === "top" ? { left: cx - W / 2, top: b.top - rr.top - GAP - H, height: H }
+        : side === "left" ? { left: b.left - rr.left - GAP - W, top: cy - H / 2, height: H }
+        : side === "right" ? { left: b.right - rr.left + GAP, top: cy - H / 2, height: H }
+        : { left: cx - W / 2, top: b.bottom - rr.top + GAP, height: H };
     }
     this.inlineEdit({
-      ...box, width: W, height: H, value: this.nodeLabel(node), multiLine: true,
+      ...box, width: W, value: this.nodeLabel(node), multiLine: true, inBox: lbl,
       onCommit: (v) => { node.setData({ ...node.getData(), label: v }, { deep: false }); this.rerender(node); this.onChange(); },
     });
     return true;
@@ -4172,6 +4183,7 @@ export class OmniboardCanvas {
       ta.classList.add("is-inbox");
       ta.style.fontSize = parseFloat(cs.fontSize) * k + "px";
       ta.style.fontWeight = cs.fontWeight;
+      ta.style.color = cs.color; // read before the class below hides the original text
       const lh = parseFloat(cs.lineHeight); // px in the unscaled node: keep the ratio, not the px
       ta.style.lineHeight = lh ? String(lh / parseFloat(cs.fontSize)) : "normal";
       ta.style.paddingLeft = ta.style.paddingRight = parseFloat(cs.paddingLeft) * k + "px";

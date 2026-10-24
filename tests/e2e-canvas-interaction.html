@@ -173,6 +173,28 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(Math.abs(sx - tx) < 0.5, 'task end moved: task end x ' + sx + ' vs pool end x ' + tx);
   });
 
+  await run('"Load more" in the insert-shape popup near the board bottom keeps it on the board, the rest scrolls', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'lm_tk', shape: 'bpmn-task', x: 100, y: 100, width: 100, height: 80, label: 'T' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(200);
+    const rootH = document.querySelector('.lk-root').clientHeight;
+    const e = g().addEdge({ source: { cell: 'lm_tk', port: 'bottom' }, target: { x: 150, y: rootH - 60 } });
+    assert(window.__ob.handleDragToBlank(e) === 'pending', 'picker did not open');
+    await tick(50);
+    const layer = window.__ob.popupLayer;
+    const more = layer.querySelector('.lk-flyout-more');
+    assert(more, 'no Load more button');
+    more.click();
+    await tick(50);
+    const top = parseFloat(layer.style.top), h = layer.offsetHeight;
+    const bottom = top + h, scrollH = layer.scrollHeight, overflow = getComputedStyle(layer).overflowY;
+    window.__ob.hidePopup();
+    assert(bottom <= rootH, 'popup cut off at the bottom: ' + bottom + ' > ' + rootH);
+    assert(overflow === 'auto' && scrollH >= h, 'popup should scroll: ' + overflow);
+  });
+
   await run('renaming an event / gateway / data store edits below the icon (bpmn-js), a task inside its box', async () => {
     window.__ob.loadModel({ nodes: [
       { id: 'lb_gw', shape: 'bpmn-gateway-x', x: 100, y: 100, width: 50, height: 50, label: '' },
@@ -213,7 +235,19 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
         assert(look.backgroundColor === 'rgba(0, 0, 0, 0)' && look.fontSize === taskFont, 'task editor should be in place: ' + look.backgroundColor + ' ' + look.fontSize + ' vs ' + taskFont);
       }
       else assert(top >= b.y + b.height, id + ' editor covers the icon: top ' + top + ' < ' + (b.y + b.height));
+      if (id !== 'lb_tk') assert(look.backgroundColor === 'rgba(0, 0, 0, 0)' && look.fontSize === '9px', id + ' label editor should be in place: ' + look.backgroundColor + ' ' + look.fontSize);
     }
+    // Double-clicking the label text itself takes the same in-place editor.
+    const lab = document.querySelector('[data-cell-id="lb_ev"] .bp-elabel');
+    const lr = lab.getBoundingClientRect();
+    lab.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: lr.left + lr.width / 2, clientY: lr.top + lr.height / 2, detail: 2 }));
+    await tick(80);
+    const ta2 = [...document.querySelectorAll('.lk-label-input')].pop();
+    assert(ta2, 'double-click on the label opened no editor');
+    const bg2 = getComputedStyle(ta2).backgroundColor, hidden = getComputedStyle(lab).color;
+    ta2.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await tick(50);
+    assert(bg2 === 'rgba(0, 0, 0, 0)' && hidden === 'rgba(0, 0, 0, 0)', 'label double-click editor not in place: bg ' + bg2 + ', original text ' + hidden);
   });
 
   // Does any segment of the edge's drawn route cross the box?

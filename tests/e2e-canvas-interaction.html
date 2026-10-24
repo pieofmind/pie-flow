@@ -778,6 +778,22 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(ids() === 'uc', 'board after undo: [' + ids() + ']');
   });
 
+  await run('tap a palette event then tap the board: the event keeps its trigger', async () => {
+    window.__ob.loadModel({ nodes: [], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(200);
+    g().cleanSelection();
+    window.__ob.setPending({ shape: 'bpmn-event-start', label: 'Start timer', w: 36, h: 36, seed: { trigger: 'timer' } });
+    const mount = document.querySelector('.lk-graph-mount');
+    const r = mount.getBoundingClientRect();
+    mount.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerId: 1, pointerType: 'mouse', clientX: r.left + 300, clientY: r.top + 200 }));
+    await tick(150);
+    const n = g().getNodes().find((x) => x.getData()?.label === 'Start timer');
+    assert(n, 'no node placed');
+    assert(n.getData().trigger === 'timer', 'trigger: ' + n.getData().trigger);
+    assert(document.querySelector(`[data-cell-id="${n.id}"] .bp-event svg`), 'no trigger icon drawn');
+  });
+
   const failed = results.filter(r => !r.ok).length;
   w(failed ? `${failed} FAILED` : 'ALL PASS', failed ? 'fail' : 'pass');
   window.__results = results;

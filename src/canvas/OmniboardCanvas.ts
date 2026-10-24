@@ -2036,7 +2036,7 @@ export class OmniboardCanvas {
     if (this.pendingShape && !node && this.graph.getSelectedCells().length === 0) {
       const it = this.pendingShape;
       const p = this.graph.clientToLocal(e.clientX, e.clientY);
-      const created = this.addHtmlNode(it.shape, p.x - it.w / 2, p.y - it.h / 2, it.w, it.h, it.label);
+      const created = this.addPaletteNode(it, p);
       this.graph.resetSelection([created]);
       this.setPending(null);
       this.onChange();
@@ -2376,7 +2376,7 @@ export class OmniboardCanvas {
       // tap positions it. This avoids the old "node lands at top-left" jitter bug.
       if (moved && onCanvas && !onFlyout) {
         const p = this.graph.clientToLocal(ev.clientX, ev.clientY);
-        const node = this.addHtmlNode(item.shape, p.x - item.w / 2, p.y - item.h / 2, item.w, item.h, item.label, undefined, undefined, item.seed as NodeExtra);
+        const node = this.addPaletteNode(item, p);
         this.graph.resetSelection([node]);
         this.onChange();
       } else {
@@ -2420,7 +2420,7 @@ export class OmniboardCanvas {
       this.closeFlyoutNow();
       if (moved && onCanvas && !onFlyout && t) {
         const p = this.graph.clientToLocal(t.clientX, t.clientY);
-        const node = this.addHtmlNode(item.shape, p.x - item.w / 2, p.y - item.h / 2, item.w, item.h, item.label, undefined, undefined, item.seed as NodeExtra);
+        const node = this.addPaletteNode(item, p);
         this.graph.resetSelection([node]);
         this.onChange();
       } else {
@@ -3509,6 +3509,11 @@ export class OmniboardCanvas {
   }
 
   // ── HTML node helpers ────────────────────────────────────────────────────
+  /** A palette item dropped / tapped onto the board, centred on `at`. Every
+   *  placement path goes through here so the item's seed (event trigger…) is kept. */
+  private addPaletteNode(item: PaletteItem, at: { x: number; y: number }): Node {
+    return this.addHtmlNode(item.shape, at.x - item.w / 2, at.y - item.h / 2, item.w, item.h, item.label, undefined, undefined, item.seed as NodeExtra);
+  }
   private addHtmlNode(kind: string, x: number, y: number, w: number, h: number, label: string, style?: NodeStyle, id?: string, extra?: NodeExtra, source?: unknown): Node {
     const ex = this.mergeExtra(kind, extra);
     const hasPorts = !NON_CONNECTABLE_PORT_KINDS.has(kind);

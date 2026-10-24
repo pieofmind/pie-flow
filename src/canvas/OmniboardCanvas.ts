@@ -17,6 +17,7 @@ import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
+import { attachThickCaret } from "./thickCaret";
 import { SUBPROCESS_KINDS, closedLayout, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
@@ -4170,7 +4171,8 @@ export class OmniboardCanvas {
       ta.classList.add("is-inbox");
       ta.style.fontSize = parseFloat(cs.fontSize) * k + "px";
       ta.style.fontWeight = cs.fontWeight;
-      ta.style.lineHeight = cs.lineHeight;
+      const lh = parseFloat(cs.lineHeight); // px in the unscaled node: keep the ratio, not the px
+      ta.style.lineHeight = lh ? String(lh / parseFloat(cs.fontSize)) : "normal";
       ta.style.paddingLeft = ta.style.paddingRight = parseFloat(cs.paddingLeft) * k + "px";
       box.classList.add("is-label-editing");
     }
@@ -4188,8 +4190,10 @@ export class OmniboardCanvas {
       }
     };
     let done = false;
+    let dropCaret = () => {};
     const finish = (save: boolean) => {
       if (done) return; done = true;
+      dropCaret();
       if (save) {
         const v = ta.value.trim();
         if (v || opts.allowEmpty) opts.onCommit(v);
@@ -4211,6 +4215,7 @@ export class OmniboardCanvas {
     ta.addEventListener("blur", () => finish(true));
     this.root.appendChild(ta);
     this.labelInput = ta;
+    if (!opts.vertical) dropCaret = attachThickCaret(ta);
     this.graph.on("scale", abort); this.graph.on("translate", abort);
     setTimeout(() => { ta.focus(); ta.select(); autoGrow(); }, 10);
   }

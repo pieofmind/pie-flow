@@ -1,8 +1,8 @@
 /**
  * "Paper" board: the diagram surface (.lk-root canvas, bpmn-js .djs-container)
  * stays LIGHT regardless of Obsidian's theme — diagrams are documents
- * (bpmn.io / draw.io convention). Only chrome (.da-board-view topbar, native
- * palette/context-pad) follows the dark theme.
+ * (bpmn.io / draw.io convention). Chrome (.da-board-view topbar) uses Pie Flow's
+ * own tokens too; it turns dark only with the board's own dark mode (☰ menu).
  *
  * Guard against re-introducing a `.theme-dark` override on the surface.
  */
@@ -25,13 +25,15 @@ describe("paper board theme", () => {
     const block = /\.diagrams-canvas-mount\s*\{[^}]*\}/.exec(css)?.[0] ?? "";
     expect(block).toMatch(/background:\s*var\(--pg-canvas/);
   });
-  it("chrome (.da-board-view) follows the active Obsidian theme via its CSS vars", () => {
-    // No hard-coded brand-dark override: Obsidian's own vars flip with the theme.
+  it("chrome (.da-board-view) uses Pie Flow tokens, not the Obsidian theme", () => {
     expect(css).not.toMatch(/\.theme-dark\s+\.da-board-view\s*\{/);
     const block = /\n\.da-board-view\s*\{[^}]*\}/.exec(css)?.[0] ?? "";
-    expect(block).toMatch(/--pg-surface:\s*var\(--background-primary\)/);
-    expect(block).toMatch(/--pg-text:\s*var\(--text-normal\)/);
-    expect(block).toMatch(/--pg-border:\s*var\(--background-modifier-border\)/);
+    expect(block).not.toMatch(/var\(--background-primary|var\(--text-normal/);
+    // Obsidian's own button/input rules read its theme vars → those vars point at Pie Flow tokens.
+    const shared = /\.da-board-view, \.lk-root,[^{]*\{[^}]*\}/.exec(css)?.[0] ?? "";
+    expect(shared).toMatch(/--background-primary:\s*var\(--pg-surface\)/);
+    expect(shared).toMatch(/--text-normal:\s*var\(--pg-text\)/);
+    expect(shared).toMatch(/--interactive-normal:\s*transparent/);
   });
   it("bpmn-native.css paints .bpmn-native-root as paper, not the app background", () => {
     const block = /\n\.bpmn-native-root\s*\{[^}]*\}/.exec(native)?.[0] ?? "";

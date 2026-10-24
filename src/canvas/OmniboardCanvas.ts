@@ -46,6 +46,8 @@ export interface SelectedNodeSnapshot {
 // Row 1 = transparent + light surfaces/tints; Row 2 = brand cores + saturated extras.
 /** First entry = the default cream paper (stored as "no background"). */
 const BOARD_BG_SWATCHES = ["#FFFCF5", "#FFFFFF", "#F8F9FA", "#F5F0E6", "#EEF4FA", "#F3F0FA"];
+const BOARD_BG_SWATCHES_DARK = ["#1B1B1B", "#121212", "#1E2024", "#211E1B", "#1A2029", "#1F1C26"];
+const GRID_DOT = { light: "#d4d0c8", dark: "#3a3a3a" };
 const ICON_SVG = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICON_MOON = ICON_SVG(`<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>`);
 const ICON_SUN = ICON_SVG(`<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>`);
@@ -505,7 +507,7 @@ export class OmniboardCanvas {
       mousewheel: { enabled: true, modifiers: ["ctrl", "meta"], zoomAtMousePosition: true },
       // Allow user to drag edge labels (bpmn.io behaviour — avoid label overlap on busy intersections).
       interacting: this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true },
-      grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
+      grid: { visible: true, type: "dot", size: 22, args: { color: GRID_DOT.light, thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
         // 20px snap radius: the port circles are r=2.75 and hidden until hover,
@@ -2435,7 +2437,9 @@ export class OmniboardCanvas {
     this.appState = { ...state };
     const dark = state.theme === "dark";
     this.root.classList.toggle("lk-dark", dark);
-    if (state.background) this.root.style.setProperty("--lk-board-bg", state.background);
+    this.graph.drawGrid({ type: "dot", args: { color: dark ? GRID_DOT.dark : GRID_DOT.light, thickness: 2 } });
+    const bg = dark ? state.backgroundDark : state.background;
+    if (bg) this.root.style.setProperty("--lk-board-bg", bg);
     else this.root.style.removeProperty("--lk-board-bg");
   }
 
@@ -2444,19 +2448,22 @@ export class OmniboardCanvas {
     const wrap = el("div", "lk-color-popup lk-board-menu");
     wrap.appendChild(el("div", "lk-popup-title", "Màu nền board"));
     const row = el("div", "lk-color-grid");
-    const cur = this.appState.background;
-    for (const c of BOARD_BG_SWATCHES) {
-      const sw = el("div", "lk-swatch" + ((cur ?? BOARD_BG_SWATCHES[0]) === c ? " is-active" : ""));
+    const dark = this.appState.theme === "dark";
+    // Each theme keeps its own background, so switching never shows a light paper in dark mode.
+    const key = dark ? "backgroundDark" : "background";
+    const swatches = dark ? BOARD_BG_SWATCHES_DARK : BOARD_BG_SWATCHES;
+    const cur = this.appState[key];
+    for (const c of swatches) {
+      const sw = el("div", "lk-swatch" + ((cur ?? swatches[0]) === c ? " is-active" : ""));
       sw.style.background = c;
       sw.title = c;
-      sw.onclick = () => { this.setAppState({ background: c === BOARD_BG_SWATCHES[0] ? undefined : c }); this.openBoardMenu(anchor); };
+      sw.onclick = () => { this.setAppState({ [key]: c === swatches[0] ? undefined : c }); this.openBoardMenu(anchor); };
       row.appendChild(sw);
     }
     const plus = el("div", "lk-swatch lk-swatch-add", "+");
-    plus.onclick = () => this.openColorWheel(cur ?? BOARD_BG_SWATCHES[0], (hx) => this.setAppState({ background: hx }), anchor);
+    plus.onclick = () => this.openColorWheel(cur ?? swatches[0], (hx) => this.setAppState({ [key]: hx }), anchor);
     row.appendChild(plus);
     wrap.appendChild(row);
-    const dark = this.appState.theme === "dark";
     const item = el("button", "lk-menu-item");
     item.innerHTML = `${dark ? ICON_SUN : ICON_MOON}<span>${dark ? "Chế độ sáng" : "Chế độ tối"}</span>`;
     item.onclick = () => { this.setAppState({ theme: dark ? undefined : "dark" }); this.openBoardMenu(anchor); };

@@ -177,16 +177,34 @@
    their own touch-action. */
 .lk-graph-mount { position: absolute; inset: 0; touch-action: none; }
 
-/* Board dark mode (Excalidraw-style): the drawing — background, grid, shapes,
-   edges — is inverted with its hues kept, so every color the user picked stays
-   recognisable without a second palette. Chrome floating on the board gets real
-   dark tokens instead. Colors are stored in light terms; export stays light. */
-.lk-root.lk-dark { color-scheme: dark; background: #121212; }
+/* Board dark mode (n8n-style): the drawing gets its own neutral dark palette —
+   charcoal board, shapes one step lighter, bright outlines and text — instead of
+   an inverted light board. Colors the user picked are shown as picked; shapes
+   with their own fill keep dark text (rule below). Export stays light. */
+.lk-root.lk-dark { color-scheme: dark; background: #1b1b1b; }
+.lk-root.lk-dark .lk-mm-svg { filter: invert(93%) hue-rotate(180deg); }
 .lk-root.lk-dark .lk-graph-mount,
-.lk-root.lk-dark .lk-mm-svg,
-.lk-root.lk-dark .lk-swatch:not(.lk-swatch-add),
-.lk-root.lk-dark .lk-color-dot { filter: invert(93%) hue-rotate(180deg); }
-.lk-root.lk-dark > :not(.lk-graph-mount),
+.lk-root.lk-dark .lk-html-layer {
+  --pg-canvas: #1b1b1b; --pg-surface: #282828; --pg-surface-2: #303030;
+  --pg-text: #f4f5f7; --pg-text-muted: #b5b7c1; --pg-text-soft: #8b8d96;
+  --pg-border: rgba(199,201,214,.22); --pg-border-strong: #c7c9d6;
+  --sh-sm: none; --sh-md: none; --sh-lg: none;
+}
+.lk-root.lk-dark .x6-node { filter: none; }
+/* Containers stay quiet so the steps stand out (n8n has no lane lines at all). */
+.lk-root.lk-dark .bp-pool, .lk-root.lk-dark .bp-pool-head, .lk-root.lk-dark .bp-pool-lane,
+.lk-root.lk-dark .bp-pool-lane-head, .lk-root.lk-dark .bp-lane { border-color: rgba(199,201,214,.26); }
+.lk-root.lk-dark .bp-pool-head { background: #222222; }
+.lk-root.lk-dark .bp-anno { border-left-color: #8b8d96; color: var(--pg-text-muted); }
+.lk-root.lk-dark .bp-gw .x { color: #E2B23A; }
+.lk-root.lk-dark .x6-edge [stroke="#9c8b7e"] { stroke: #b5b7c1; }
+.lk-root.lk-dark .x6-edge [fill="#9c8b7e"] { fill: #b5b7c1; }
+.lk-root.lk-dark .x6-edge [fill="#fff"] { fill: var(--pg-canvas); }
+/* A shape with its own fill (picked, or a sticky) is a light card: keep paper text. */
+.lk-root.lk-dark .hn [style*="background:"] {
+  --pg-text: #3B1F1A; --pg-text-muted: rgba(59,31,26,0.66); --pg-text-soft: rgba(59,31,26,0.42);
+}
+.lk-root.lk-dark > :not(.lk-graph-mount):not(.lk-html-layer),
 .da-board-view:has(.lk-root.lk-dark) > .da-topbar {
   --pg-bg: #1b1917; --pg-surface: #262321; --pg-surface-2: #2e2a27;
   --pg-text: #ece4da; --pg-text-muted: rgba(236,228,218,.68); --pg-text-soft: rgba(236,228,218,.45);
@@ -200,7 +218,7 @@
    tokens so no theme colour leaks in. Re-declared on the dark chrome so it
    resolves against the dark tokens there. */
 .da-board-view, .lk-root,
-.lk-root.lk-dark > :not(.lk-graph-mount),
+.lk-root.lk-dark > :not(.lk-graph-mount):not(.lk-html-layer),
 .da-board-view:has(.lk-root.lk-dark) > .da-topbar {
   --interactive-normal: transparent; --interactive-hover: var(--pg-hover);
   --interactive-accent: var(--pg-accent); --interactive-accent-hover: var(--pg-accent); --text-on-accent: var(--pg-accent-ink);

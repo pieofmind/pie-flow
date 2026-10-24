@@ -7,7 +7,7 @@ import type { CanvasModel } from "../../src/canvas/types";
 const model: CanvasModel = {
   nodes: [{ id: "a", shape: "bpmn-task", x: 0, y: 0, width: 100, height: 80, label: "A" }],
   edges: [],
-  appState: { theme: "dark", background: "#F8F9FA" },
+  appState: { theme: "dark", background: "#F8F9FA", backgroundDark: "#1E2024" },
 };
 
 describe("board appState", () => {

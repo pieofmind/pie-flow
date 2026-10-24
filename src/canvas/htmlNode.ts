@@ -423,8 +423,7 @@ export const DATA_ICON: Record<string, string> = {
 const dataShape = (shape: string, viewBox: string) =>
   `<svg class="bp-data-shape" viewBox="${viewBox}" preserveAspectRatio="none">${DATA_ICON[shape]}</svg>`;
 function bpData(mod: string, shape: string, label: string, extra?: NodeExtra, cls = "bp-dataobj"): string {
-  const lbl = label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : "";
-  return `<div class="${cls}${mod}">${shape}${lbl}</div>`;
+  return `<div class="${cls}${mod}">${shape}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
 }
 /** Sub-process, as bpmn-js draws it: expanded = a frame around its steps;
  *  collapsed = task-sized with the ⊞ marker plus the drill-down button on its
@@ -440,7 +439,7 @@ function bpTask(label: string, iconKey?: string, extra?: NodeExtra): string {
   return `<div class="bp-task">${icon}${nl(label)}${renderMarkers(extra?.markers)}</div>`;
 }
 function bpGateway(mark: string, label: string, extra?: NodeExtra): string {
-  return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : ""}</div>`;
+  return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div><div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
 }
 /** BPMN Pool with N lanes (composite). Default: 1 lane "Lane 1" when extra.lanes empty. */
 function bpPool(label: string, extra?: NodeExtra): string {

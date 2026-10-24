@@ -810,6 +810,39 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(document.querySelector(`[data-cell-id="${n.id}"] .bp-event svg`), 'no trigger icon drawn');
   });
 
+  await run('turning a loop marker off removes it and its icon', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'lm', shape: 'bpmn-task', x: 100, y: 100, width: 100, height: 80, label: 'L' },
+    ], edges: [] });
+    await tick(150);
+    g().resetSelection([cell('lm')]);
+    await tick(150);
+    const icons = () => document.querySelectorAll('[data-cell-id="lm"] .bp-markers > *').length;
+    const sel = propField('Kiểu');
+    sel.value = 'mi-seq'; sel.dispatchEvent(new Event('change'));
+    const comp = propField('Compensation');
+    comp.checked = true; comp.dispatchEvent(new Event('change'));
+    await tick(50);
+    assert(icons() === 2, 'icons after set: ' + icons());
+    sel.value = ''; sel.dispatchEvent(new Event('change'));
+    comp.checked = false; comp.dispatchEvent(new Event('change'));
+    await tick(50);
+    assert(!(cell('lm').getData().markers ?? []).length, 'panel left: ' + JSON.stringify(cell('lm').getData().markers));
+    assert(icons() === 0, 'icons after panel off: ' + icons());
+    // Same through the context-bar popup: tick Loop, then untick it.
+    const toggle = async (label) => {
+      [...document.querySelectorAll('.lk-cb-btn')].find((b) => b.title.startsWith('Activity markers')).click();
+      await tick(100);
+      [...document.querySelectorAll('.lk-line-list .lk-line-row')].find((r) => r.textContent.includes(label)).click();
+      await tick(50);
+      document.body.click();
+    };
+    await toggle('Loop');
+    assert(icons() === 1, 'icons after popup on: ' + icons());
+    await toggle('Loop');
+    assert(!(cell('lm').getData().markers ?? []).length && icons() === 0, 'popup left: ' + JSON.stringify(cell('lm').getData().markers));
+  });
+
   const failed = results.filter(r => !r.ok).length;
   w(failed ? `${failed} FAILED` : 'ALL PASS', failed ? 'fail' : 'pass');
   window.__results = results;

@@ -910,7 +910,7 @@ export class OmniboardCanvas {
       const hint = oppositePort(srcPort) ?? nearestFixedPort(created, { x: sb2.x + sb2.width / 2, y: sb2.y + sb2.height / 2 });
       const targetPort = this.isBpmnEventNode(created.id) ? (collapsePortToSideCenter(hint) ?? hint) : hint;
       edge.setTarget(portEndpoint(created.id, targetPort) as never);
-      edge.setData({ ...(edge.getData() as object) });
+      edge.setData({ ...(edge.getData() as object) }, { deep: false });
       this.normalizeRegularEdgeEndpoints(edge, {
         type: "target",
         currentCell: { id: created.id },
@@ -1060,7 +1060,7 @@ export class OmniboardCanvas {
         // Snap-back to 0 if user barely moved → no persistent offset.
         const final = Math.abs(dx) < 1 && Math.abs(dy) < 1 ? undefined : next;
         const n = node as Node;
-        n.setData({ ...n.getData(), labelOffset: final });
+        n.setData({ ...n.getData(), labelOffset: final }, { deep: false });
         this.rerender(n);
         this.onChange();
       };
@@ -1200,7 +1200,7 @@ export class OmniboardCanvas {
       left: r.left - rr.left, top: r.top - rr.top, width: Math.max(r.width, 80), height: r.height,
       value: this.nodeLabel(node), multiLine: true,
       onCommit: (v) => {
-        node.setData({ ...node.getData(), label: v });
+        node.setData({ ...node.getData(), label: v }, { deep: false });
         this.rerender(node);
         this.onChange();
       },
@@ -1232,7 +1232,7 @@ export class OmniboardCanvas {
     }
     this.inlineEdit({
       ...box, width: W, height: H, value: this.nodeLabel(node), multiLine: true,
-      onCommit: (v) => { node.setData({ ...node.getData(), label: v }); this.rerender(node); this.onChange(); },
+      onCommit: (v) => { node.setData({ ...node.getData(), label: v }, { deep: false }); this.rerender(node); this.onChange(); },
     });
     return true;
   }
@@ -1245,7 +1245,7 @@ export class OmniboardCanvas {
       left: r.left - rr.left, top: r.top - rr.top, width: Math.max(r.width, 60), height: r.height,
       value: cur,
       onCommit: (v) => {
-        node.setData({ ...node.getData(), who: v });
+        node.setData({ ...node.getData(), who: v }, { deep: false });
         this.rerender(node);
         this.onChange();
       },
@@ -1266,7 +1266,7 @@ export class OmniboardCanvas {
       value: cols[idx][field],
       onCommit: (v) => {
         cols[idx] = { ...cols[idx], [field]: v };
-        node.setData({ ...node.getData(), cols });
+        node.setData({ ...node.getData(), cols }, { deep: false });
         this.rerender(node);
         this.onChange();
       },
@@ -1293,7 +1293,7 @@ export class OmniboardCanvas {
         const next = (this.nodeExtra(node).cols ?? []).slice();
         if (idx < next.length) {
           next[idx] = { ...next[idx], k: o.k };
-          node.setData({ ...node.getData(), cols: next });
+          node.setData({ ...node.getData(), cols: next }, { deep: false });
           this.rerender(node);
           this.onChange();
         }
@@ -1315,7 +1315,7 @@ export class OmniboardCanvas {
       value: arr[idx],
       onCommit: (v) => {
         arr[idx] = v;
-        node.setData({ ...node.getData(), [comp]: arr });
+        node.setData({ ...node.getData(), [comp]: arr }, { deep: false });
         this.rerender(node);
         this.onChange();
       },
@@ -2673,7 +2673,7 @@ export class OmniboardCanvas {
         if (!cell?.isNode()) continue;
         const node = cell as Node;
         const next = { ...this.nodeStyle(node), ...style };
-        node.setData({ ...node.getData(), style: next });
+        node.setData({ ...node.getData(), style: next }, { deep: false });
         this.rerender(node);
         applied++;
       }
@@ -2691,8 +2691,8 @@ export class OmniboardCanvas {
     const nodes = this.graph.getSelectedCells().filter((c) => c.isNode()) as Node[];
     if (nodes.length !== 1) return;
     const node = nodes[0];
-    if (patch.label !== undefined) node.setData({ ...node.getData(), label: patch.label });
-    if (patch.attrs) node.setData({ ...node.getData(), ...patch.attrs });
+    if (patch.label !== undefined) node.setData({ ...node.getData(), label: patch.label }, { deep: false });
+    if (patch.attrs) node.setData({ ...node.getData(), ...patch.attrs }, { deep: false });
     if (patch.style) this.setStyle(node, patch.style);
     if (patch.position) {
       const p = node.getPosition();
@@ -2738,7 +2738,7 @@ export class OmniboardCanvas {
     const s1 = sec("Nội dung");
     const labelInput = el("input", "lk-pinput") as HTMLInputElement;
     labelInput.value = this.nodeLabel(node);
-    labelInput.oninput = () => { node.setData({ ...node.getData(), label: labelInput.value }); this.rerender(node); this.onChange(); };
+    labelInput.oninput = () => { node.setData({ ...node.getData(), label: labelInput.value }, { deep: false }); this.rerender(node); this.onChange(); };
     field(s1, "Nhãn", labelInput);
 
     // Data-driven editors (ERD columns / UML members / BPMN properties)
@@ -2831,7 +2831,7 @@ export class OmniboardCanvas {
       f.appendChild(control); parent.appendChild(f);
     };
     const save = (patch: Record<string, unknown>) => {
-      node.setData({ ...node.getData(), ...patch });
+      node.setData({ ...node.getData(), ...patch }, { deep: false });
       this.rerender(node); this.onChange();
     };
 
@@ -2891,14 +2891,14 @@ export class OmniboardCanvas {
         if (curLoop === v) opt.selected = true; sel.appendChild(opt);
       }
       sel.onchange = () => {
-        const other = (ex.markers ?? []).filter(m => m !== "loop" && m !== "mi-par" && m !== "mi-seq");
+        const other = (this.nodeExtra(node).markers ?? []).filter(m => m !== "loop" && m !== "mi-par" && m !== "mi-seq");
         save({ markers: sel.value ? [...other, sel.value as "loop" | "mi-par" | "mi-seq"] : other });
       };
       field(sLoop, "Kiểu", sel);
       const compChk = el("input") as HTMLInputElement;
       compChk.type = "checkbox"; compChk.checked = (ex.markers ?? []).includes("compensation");
       compChk.onchange = () => {
-        const others = (ex.markers ?? []).filter(m => m !== "compensation");
+        const others = (this.nodeExtra(node).markers ?? []).filter(m => m !== "compensation");
         save({ markers: compChk.checked ? [...others, "compensation" as const] : others });
       };
       field(sLoop, "Compensation", compChk);
@@ -3109,7 +3109,7 @@ export class OmniboardCanvas {
       this.contextBar.appendChild(el("div", "lk-cb-sep"));
       this.contextBar.appendChild(mkBtn(
         `<svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor"><rect x="3" y="8" width="3" height="3"/><rect x="8.5" y="8" width="3" height="3"/><rect x="14" y="8" width="3" height="3"/></svg><span class="lk-cb-caret">▾</span>`,
-        "Activity markers (loop / MI / ad-hoc / compensation)",
+        "Activity markers (loop / MI / compensation)",
         (ev) => this.openBpmnMarkerPopup(node, ev.currentTarget as HTMLElement)));
     }
     if (this.isSubprocessNode(node)) {
@@ -3671,7 +3671,7 @@ export class OmniboardCanvas {
     const div = this.htmlNodes.get(id);
     if (div) { div.remove(); this.htmlNodes.delete(id); }
   }
-  private setStyle(n: Node, patch: NodeStyle) { n.setData({ ...n.getData(), style: { ...this.nodeStyle(n), ...patch } }); this.rerender(n); this.onChange(); }
+  private setStyle(n: Node, patch: NodeStyle) { n.setData({ ...n.getData(), style: { ...this.nodeStyle(n), ...patch } }, { deep: false }); this.rerender(n); this.onChange(); }
 
   // Update ERD cols / UML members, then re-render + grow node height to fit.
   private setExtra(n: Node, patch: NodeExtra) {
@@ -3780,7 +3780,7 @@ export class OmniboardCanvas {
 
   // ── Shape morph (change kind in place) ───────────────────────────────────
   private morphShape(node: Node, newKind: string) {
-    node.setData({ ...node.getData(), kind: newKind, ...this.mergeExtra(newKind, this.nodeExtra(node)) });
+    node.setData({ ...node.getData(), kind: newKind, ...this.mergeExtra(newKind, this.nodeExtra(node)) }, { deep: false });
     this.rerender(node);
     this.autoHeight(node);
     this.onChange();
@@ -3969,7 +3969,7 @@ export class OmniboardCanvas {
       row.onclick = () => {
         const data = node.getData() ?? {};
         const nextTrigger = t === "none" ? undefined : t;
-        node.setData({ ...data, trigger: nextTrigger });
+        node.setData({ ...data, trigger: nextTrigger }, { deep: false });
         this.rerender(node);
         this.onChange();
         this.hidePopup();
@@ -3983,7 +3983,7 @@ export class OmniboardCanvas {
   private toggleEventInterrupting(node: Node): void {
     const data = node.getData() ?? {};
     const cur = data.interrupting !== false;
-    node.setData({ ...data, interrupting: !cur ? undefined : false });
+    node.setData({ ...data, interrupting: !cur ? undefined : false }, { deep: false });
     this.rerender(node);
     this.onChange();
     this.refreshContextBar();
@@ -4024,18 +4024,19 @@ export class OmniboardCanvas {
     // Snap the event onto the nearest edge of the parent (centre on the border per OMG)
     const snap = snapToHostBorder(this.boxOf(node), { x: bestParent.x, y: bestParent.y, width: bestParent.w, height: bestParent.h });
     node.setPosition(snap.x, snap.y);
-    node.setData({ ...data, attachedTo: bestId });
+    node.setData({ ...data, attachedTo: bestId }, { deep: false });
     this.raiseBoundaryEvents();
     this.rerender(node);
     this.refreshBpmnEventLabels();
     this.onChange();
     this.refreshContextBar();
   }
-  /** Open the activity-marker picker (multi-select: loop / MI-par / MI-seq / ad-hoc / compensation). */
+  /** Open the activity-marker picker: one loop type (loop / MI-par / MI-seq) + compensation on its own. */
   private openBpmnMarkerPopup(node: Node, anchor: HTMLElement): void {
     const list = el("div", "lk-line-list");
     const cur = new Set(this.nodeExtra(node).markers ?? []);
-    for (const mk of BPMN_MARKERS) {
+    // Ad-hoc is a sub-process type (bpmn:adHocSubProcess), not a marker a task can carry.
+    for (const mk of BPMN_MARKERS.filter((m) => m !== "adhoc")) {
       const on = cur.has(mk);
       const row = el("button", "lk-line-row" + (on ? " on" : ""), `<span>${on ? "☑" : "☐"} ${BPMN_MARKER_LABEL[mk]}</span>`);
       row.onclick = () => {
@@ -4048,7 +4049,7 @@ export class OmniboardCanvas {
         if ((mk === "mi-par" || mk === "mi-seq") && !on) next.delete("loop");
         if (mk === "loop" && !on) { next.delete("mi-par"); next.delete("mi-seq"); }
         const arr = Array.from(next);
-        node.setData({ ...data, markers: arr.length ? arr : undefined });
+        node.setData({ ...data, markers: arr.length ? arr : undefined }, { deep: false });
         this.rerender(node);
         this.onChange();
         this.openBpmnMarkerPopup(node, anchor); // re-render popup with the new state
@@ -4133,7 +4134,7 @@ export class OmniboardCanvas {
 
   private dividePool(node: Node, count: number): void {
     const lanes = Array.from({ length: count }, (_, i) => ({ id: this.newLaneId(), label: `Lane ${i + 1}` }));
-    node.setData({ ...node.getData(), lanes });
+    node.setData({ ...node.getData(), lanes }, { deep: false });
     this.rerender(node);
     this.refreshContextBar();
     this.onChange();
@@ -4246,7 +4247,7 @@ export class OmniboardCanvas {
       left: r.left - rr.left, top: r.top - rr.top, width: r.width, height: r.height,
       value: this.nodeLabel(node), vertical: true,
       onCommit: (v) => {
-        node.setData({ ...node.getData(), label: v });
+        node.setData({ ...node.getData(), label: v }, { deep: false });
         this.rerender(node);
         this.onChange();
       },
@@ -4278,7 +4279,7 @@ export class OmniboardCanvas {
       width: bbox.width * s, height: bbox.height * s,
       value: this.nodeLabel(node), multiLine: true, // allow Shift+Enter newline on all nodes
       onCommit: (v) => {
-        node.setData({ ...node.getData(), label: v });
+        node.setData({ ...node.getData(), label: v }, { deep: false });
         this.rerender(node);
         if (isMindmap) this.autoGrowMindmapNode(node);
         this.onChange();
@@ -4343,7 +4344,7 @@ export class OmniboardCanvas {
   }
   private setEdgeStyle(edge: Edge, patch: EdgeStyle) {
     const next: EdgeStyle = { ...this.edgeStyle(edge), ...patch };
-    edge.setData({ ...(edge.getData() as object), style: next });
+    edge.setData({ ...(edge.getData() as object), style: next }, { deep: false });
     this.applyEdgeStyle(edge);
     this.onChange();
   }
@@ -4619,7 +4620,7 @@ export class OmniboardCanvas {
     if (key === "message" || key === "association") delete nextAttrs.condition;
     if (key === "default") nextAttrs.isDefault = true;
     const nextKind = key === "message" ? "message" : key === "association" ? "association" : undefined;
-    edge.setData({ ...data, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : undefined });
+    edge.setData({ ...data, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : undefined }, { deep: false });
   }
   /** BPMN flow-type popup — applies a preset (Sequence/Default/Message/Conditional/Association). Đợt C. */
   private openEdgeFlowTypePopup(edge: Edge, anchor: HTMLElement) {
@@ -4767,7 +4768,7 @@ export class OmniboardCanvas {
       const y = (p.getData() as { y?: number } | undefined)?.y ?? p.getSourcePoint()?.y ?? baseY;
       return Math.max(acc, y);
     }, baseY - 30);
-    edge.setData({ ...(edge.getData() ?? {}), y: lowest + 30 });
+    edge.setData({ ...(edge.getData() ?? {}), y: lowest + 30 }, { deep: false });
   }
 
   private boxOf(n: Node): Box { return { ...n.getPosition(), ...n.getSize() }; }
@@ -5064,7 +5065,7 @@ export class OmniboardCanvas {
       if (a.bpmnStroke) phaseD.bpmnStroke = a.bpmnStroke;
       if (a.camunda) phaseD.camunda = a.camunda;
       if (a.bpmnProps) phaseD.bpmnProps = a.bpmnProps;
-      if (Object.keys(phaseD).length) node.setData({ ...node.getData(), ...phaseD });
+      if (Object.keys(phaseD).length) node.setData({ ...node.getData(), ...phaseD }, { deep: false });
     }
     // Build a center-point index for auto port inference (used below).
     const nodeCenterMap = new Map<string, { cx: number; cy: number }>();
@@ -5229,7 +5230,7 @@ export class OmniboardCanvas {
         ...prev,
         ...(n.parentId ? { parentId: n.parentId } : {}),
         ...(n.laneId ? { laneId: n.laneId } : {}),
-      });
+      }, { deep: false });
       if (n.parentId) {
         const parent = this.graph.getCellById(n.parentId);
         if (parent && parent.isNode()) parent.addChild(child);
@@ -5449,7 +5450,7 @@ export class OmniboardCanvas {
               
               // Keep the cached data in sync silently
               if (laneId !== data.laneId) {
-                n.setData({ ...data, laneId }, { silent: true });
+                n.setData({ ...data, laneId }, { silent: true, deep: false });
               }
               break;
             }

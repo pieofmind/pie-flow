@@ -697,10 +697,11 @@ export class BoardView extends TextFileView {
       });
       if (index === null) return;
       const { switchBpmnDiagram } = await import("../io/bpmn/switchDiagram");
-      const next = await switchBpmnDiagram(this.canvas.getModel(), meta!, index);
+      const prev = this.canvas.getModel();
+      const next = await switchBpmnDiagram(prev, meta!, index);
       this.pendingSourceMeta = next.sourceMeta;
-      this.model = next.model;
-      this.canvas.loadModel(next.model);   // a new document: undo does not cross it
+      this.model = prev.appState ? { ...next.model, appState: prev.appState } : next.model;
+      this.canvas.loadModel(this.model);   // a new document: undo does not cross it
       this.requestSave();
       notify("success", `Đang xem sơ đồ #${index + 1} của file BPMN`);
     } catch (err) {

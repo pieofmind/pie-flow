@@ -6,7 +6,7 @@ import { History } from "@antv/x6-plugin-history";
 import { Keyboard } from "@antv/x6-plugin-keyboard";
 import { Snapline } from "@antv/x6-plugin-snapline";
 import { Transform } from "@antv/x6-plugin-transform";
-import type { PaletteItem, ShapeCategory, CanvasModel } from "./types";
+import type { PaletteItem, ShapeCategory, CanvasModel, BoardAppState } from "./types";
 import { shapeIcon } from "./shapes/index";
 import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type FixedPortId } from "./shapes/ports";
 import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
@@ -44,6 +44,12 @@ export interface SelectedNodeSnapshot {
 
 // Pie "Warm AI Productivity" palette (DESIGN.md): soft tints row + brand/accent row.
 // Row 1 = transparent + light surfaces/tints; Row 2 = brand cores + saturated extras.
+/** First entry = the default cream paper (stored as "no background"). */
+const BOARD_BG_SWATCHES = ["#FFFCF5", "#FFFFFF", "#F8F9FA", "#F5F0E6", "#EEF4FA", "#F3F0FA"];
+const ICON_SVG = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const ICON_MOON = ICON_SVG(`<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>`);
+const ICON_SUN = ICON_SVG(`<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>`);
+const ICON_MENU = ICON_SVG(`<path d="M4 6h16M4 12h16M4 18h16"/>`);
 const FILL_SWATCHES = [
   "transparent", "#FFFFFF", "#FFF4DE", "#9ED6F5", "#D6EFE0", "#FFF3BF", "#F6DADA", "#ECE0F5",
   "#3B1F1A", "#5E8FB9", "#9ED6F5", "#34A853", "#FFD966", "#FF8800", "#7A2E2E", "#E5484D", "#8E51FF", "#86909C",
@@ -389,6 +395,7 @@ export class OmniboardCanvas {
   private propsFab: HTMLElement | null = null;
   private selectionChangeHandler: (() => void) | null = null;
   private zoomLabel: HTMLElement | null = null;
+  private appState: BoardAppState = {};
   private minimap: HTMLElement | null = null;
   private minimapSvg: SVGSVGElement | null = null;
   private minimapVp: HTMLElement | null = null;
@@ -2410,9 +2417,52 @@ export class OmniboardCanvas {
     wrap.appendChild(this.zoomLabel);
     wrap.appendChild(mk(ICON_PLUS, "Phóng to", () => { this.graph.zoom(0.1); this.updateZoom(); }));
     wrap.appendChild(mk(ICON_FIT, "Vừa khung", () => { this.graph.zoomToFit({ padding: 40, maxScale: 1.2 }); this.updateZoom(); }));
+    const menuBtn = mk(ICON_MENU, "Menu board", () => this.openBoardMenu(menuBtn));
+    wrap.prepend(menuBtn, el("span", "lk-zoom-sep"));
     this.root.appendChild(wrap);
     this.graph.on("scale", () => this.updateZoom());
   }
+  /** Change the board look (merged into the current state) and save it with the file. */
+  private setAppState(patch: BoardAppState): void {
+    const next: BoardAppState = { ...this.appState, ...patch };
+    for (const k of Object.keys(next) as (keyof BoardAppState)[]) if (next[k] === undefined) delete next[k];
+    this.applyAppState(next);
+    this.onChange();
+  }
+
+  private applyAppState(state: BoardAppState): void {
+    this.appState = { ...state };
+    const dark = state.theme === "dark";
+    this.root.classList.toggle("lk-dark", dark);
+    if (state.background) this.root.style.setProperty("--lk-board-bg", state.background);
+    else this.root.style.removeProperty("--lk-board-bg");
+  }
+
+  /** ☰ menu, like Excalidraw's: board background swatches + dark mode toggle. */
+  private openBoardMenu(anchor: HTMLElement): void {
+    const wrap = el("div", "lk-color-popup lk-board-menu");
+    wrap.appendChild(el("div", "lk-popup-title", "Màu nền board"));
+    const row = el("div", "lk-color-grid");
+    const cur = this.appState.background;
+    for (const c of BOARD_BG_SWATCHES) {
+      const sw = el("div", "lk-swatch" + ((cur ?? BOARD_BG_SWATCHES[0]) === c ? " is-active" : ""));
+      sw.style.background = c;
+      sw.title = c;
+      sw.onclick = () => { this.setAppState({ background: c === BOARD_BG_SWATCHES[0] ? undefined : c }); this.openBoardMenu(anchor); };
+      row.appendChild(sw);
+    }
+    const plus = el("div", "lk-swatch lk-swatch-add", "+");
+    plus.onclick = () => this.openColorWheel(cur ?? BOARD_BG_SWATCHES[0], (hx) => this.setAppState({ background: hx }), anchor);
+    row.appendChild(plus);
+    wrap.appendChild(row);
+    const dark = this.appState.theme === "dark";
+    const item = el("button", "lk-menu-item");
+    item.innerHTML = `${dark ? ICON_SUN : ICON_MOON}<span>${dark ? "Chế độ sáng" : "Chế độ tối"}</span>`;
+    item.onclick = () => { this.setAppState({ theme: dark ? undefined : "dark" }); this.openBoardMenu(anchor); };
+    wrap.appendChild(item);
+    this.showPopup(wrap, anchor);
+  }
+
   private updateZoom() { if (this.zoomLabel) this.zoomLabel.textContent = Math.round(this.graph.scale().sx * 100) + "%"; }
 
   // ── Minimap (overview navigator, bottom-right) ───────────────────────────
@@ -3319,7 +3369,10 @@ export class OmniboardCanvas {
     const rootRect = this.root.getBoundingClientRect();
     this.popupLayer.style.display = "block";
     this.popupLayer.style.left = (r.left - rootRect.left) + "px";
-    this.popupLayer.style.top = (r.bottom - rootRect.top + 6) + "px";
+    const below = r.bottom - rootRect.top + 6;
+    // Anchors near the bottom edge (zoom bar) open upward instead of off-board.
+    const h = this.popupLayer.offsetHeight;
+    this.popupLayer.style.top = (below + h > rootRect.height ? Math.max(8, r.top - rootRect.top - 6 - h) : below) + "px";
   }
 
   private hidePopup() {
@@ -4842,6 +4895,7 @@ export class OmniboardCanvas {
   }
 
   loadModel(model: CanvasModel, opts?: { keepView?: boolean }) {
+    this.applyAppState(model.appState ?? {});
     this.drillRoot = null;   // a fresh model opens on the whole process
     this.drillViews = [];
     this.renderCrumbs();
@@ -5355,7 +5409,7 @@ export class OmniboardCanvas {
         ...(Object.keys(bpmnAttrs).length ? { attrs: bpmnAttrs as CanvasModel["edges"][number]["attrs"] } : {}),
       };
     });
-    return { nodes, edges };
+    return { nodes, edges, ...(Object.keys(this.appState).length ? { appState: { ...this.appState } } : {}) };
   }
 
   nodeCount(): number { return this.graph.getNodes().length; }

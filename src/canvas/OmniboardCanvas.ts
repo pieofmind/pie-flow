@@ -1206,6 +1206,36 @@ export class OmniboardCanvas {
     });
   }
 
+  /** Events, gateways and data shapes carry their name OUTSIDE the icon (bpmn-js):
+   *  edit it where it is drawn — or, while still empty, where it will appear
+   *  (below the shape, or on its chosen side) — never on top of the icon. */
+  private editExternalLabel(node: Node): boolean {
+    const view = this.graph.findViewByCell(node) as unknown as { container?: HTMLElement } | null;
+    const shape = view?.container?.querySelector(".bp-event, .bp-gw, .bp-dataobj, .bp-datastore");
+    if (!shape) return false;
+    const W = 120, H = 28, GAP = 6;
+    const rr = this.root.getBoundingClientRect();
+    const lbl = shape.querySelector(".bp-elabel") as HTMLElement | null;
+    let box: { left: number; top: number };
+    if (lbl && lbl.textContent?.trim()) {
+      const r = lbl.getBoundingClientRect();
+      box = { left: r.left + r.width / 2 - rr.left - W / 2, top: r.top - rr.top };
+    } else {
+      const b = (shape as HTMLElement).getBoundingClientRect();
+      const side = this.nodeExtra(node).labelSide ?? "bottom";
+      const cx = b.left + b.width / 2 - rr.left, cy = b.top + b.height / 2 - rr.top;
+      box = side === "top" ? { left: cx - W / 2, top: b.top - rr.top - GAP - H }
+        : side === "left" ? { left: b.left - rr.left - GAP - W, top: cy - H / 2 }
+        : side === "right" ? { left: b.right - rr.left + GAP, top: cy - H / 2 }
+        : { left: cx - W / 2, top: b.bottom - rr.top + GAP };
+    }
+    this.inlineEdit({
+      ...box, width: W, height: H, value: this.nodeLabel(node), multiLine: true,
+      onCommit: (v) => { node.setData({ ...node.getData(), label: v }); this.rerender(node); this.onChange(); },
+    });
+    return true;
+  }
+
   /** Inline edit data.who for sequence participants. */
   private editWho(node: Node, anchor: HTMLElement): void {
     const r = anchor.getBoundingClientRect(); const rr = this.root.getBoundingClientRect();
@@ -4208,6 +4238,7 @@ export class OmniboardCanvas {
 
   // ── Inline label editing ─────────────────────────────────────────────────
   private editLabel(node: Node) {
+    if (this.editExternalLabel(node)) return;
     const bbox = node.getBBox(); const s = this.graph.scale().sx; const t = this.graph.translate();
     const kind = this.nodeKind(node);
     const isMindmap = kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf";

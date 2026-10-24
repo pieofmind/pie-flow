@@ -173,6 +173,29 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(Math.abs(sx - tx) < 0.5, 'task end moved: task end x ' + sx + ' vs pool end x ' + tx);
   });
 
+  await run('renaming an event / gateway / data store edits below the icon (bpmn-js), a task inside its box', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'lb_gw', shape: 'bpmn-gateway-x', x: 100, y: 100, width: 50, height: 50, label: '' },
+      { id: 'lb_ev', shape: 'bpmn-start', x: 300, y: 107, width: 36, height: 36, label: 'Bắt đầu' },
+      { id: 'lb_ds', shape: 'bpmn-data-store', x: 450, y: 100, width: 50, height: 50, label: '' },
+      { id: 'lb_tk', shape: 'bpmn-task-user', x: 600, y: 90, width: 100, height: 80, label: 'Task' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    const root = document.querySelector('.lk-root').getBoundingClientRect();
+    for (const id of ['lb_gw', 'lb_ev', 'lb_ds', 'lb_tk']) {
+      window.__ob.editLabel(cell(id));
+      await tick(50);
+      const ta = [...document.querySelectorAll('.lk-label-input')].pop();
+      const top = ta.getBoundingClientRect().top - root.top;
+      const b = cell(id).getBBox();
+      ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await tick(50);
+      if (id === 'lb_tk') assert(Math.abs(top - b.y) < 3, 'task editor not on its box: ' + top);
+      else assert(top >= b.y + b.height, id + ' editor covers the icon: top ' + top + ' < ' + (b.y + b.height));
+    }
+  });
+
   // Does any segment of the edge's drawn route cross the box?
   const routeCrosses = (edgeId, box) => {
     const view = g().findViewByCell(cell(edgeId));

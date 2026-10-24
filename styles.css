@@ -186,13 +186,31 @@
 .lk-root.lk-dark .lk-mm-svg,
 .lk-root.lk-dark .lk-swatch:not(.lk-swatch-add),
 .lk-root.lk-dark .lk-color-dot { filter: invert(93%) hue-rotate(180deg); }
-.lk-root.lk-dark > :not(.lk-graph-mount) {
+.lk-root.lk-dark > :not(.lk-graph-mount),
+.da-board-view:has(.lk-root.lk-dark) > .da-topbar {
   --pg-bg: #1b1917; --pg-surface: #262321; --pg-surface-2: #2e2a27;
   --pg-text: #ece4da; --pg-text-muted: rgba(236,228,218,.68); --pg-text-soft: rgba(236,228,218,.45);
   --pg-border: rgba(236,228,218,.14); --pg-border-strong: rgba(236,228,218,.24); --pg-hover: rgba(236,228,218,.08);
   --sh-sm: 0 1px 2px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.3);
   --sh-md: 0 4px 10px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.35);
   --sh-lg: 0 12px 28px rgba(0,0,0,.5), 0 28px 64px rgba(0,0,0,.4);
+}
+/* Obsidian's own rules (button, input, select, scrollbar…) still reach elements
+   inside the board and read the theme's vars — point those vars at Pie Flow
+   tokens so no theme colour leaks in. Re-declared on the dark chrome so it
+   resolves against the dark tokens there. */
+.da-board-view, .lk-root,
+.lk-root.lk-dark > :not(.lk-graph-mount),
+.da-board-view:has(.lk-root.lk-dark) > .da-topbar {
+  --interactive-normal: transparent; --interactive-hover: var(--pg-hover);
+  --interactive-accent: var(--pg-accent); --interactive-accent-hover: var(--pg-accent); --text-on-accent: var(--pg-accent-ink);
+  --input-shadow: none; --input-shadow-hover: none;
+  --background-primary: var(--pg-surface); --background-secondary: var(--pg-bg);
+  --background-modifier-form-field: var(--pg-surface); --background-modifier-hover: var(--pg-hover);
+  --background-modifier-border: var(--pg-border); --background-modifier-border-hover: var(--pg-border-strong);
+  --background-modifier-border-focus: var(--pg-accent);
+  --text-normal: var(--pg-text); --text-muted: var(--pg-text-muted); --text-faint: var(--pg-text-soft);
+  --icon-color: var(--pg-text-muted); --icon-color-hover: var(--pg-text);
 }
 .lk-root .x6-graph { background: var(--lk-board-bg, var(--pg-canvas)) !important; }
 .lk-root .x6-node { filter: drop-shadow(0 1px 2px rgba(59,31,26,.10)) drop-shadow(0 2px 6px rgba(59,31,26,.06)); }
@@ -286,7 +304,7 @@
    * height (not 100vh) so the flyout always fits inside the leaf. */
   overflow-y: auto;
 }
-.lk-flyout-more {
+button.lk-flyout-more {
   grid-column: 1 / -1;             /* span all 3 columns inside the grid */
   margin: 4px 0 8px;
   padding: 6px 10px;
@@ -325,7 +343,7 @@
   border-radius: 10px; box-shadow: var(--sh-sm);
 }
 .lk-zoomctl .lk-ctrl-btn,
-.lk-ctrl-btn {
+button.lk-ctrl-btn {
   width: 30px; height: 30px; border: none !important; background: transparent; box-shadow: none !important;
   border-radius: 7px; cursor: pointer; color: var(--pg-text-muted);
   display: grid; place-items: center;
@@ -339,7 +357,7 @@
   padding: 4px; background: var(--pg-surface); border: 1px solid var(--pg-border);
   border-radius: 12px; box-shadow: var(--sh-md);
 }
-.lk-cb-btn {
+button.lk-cb-btn {
   min-width: 30px; height: 30px; border: none !important; background: transparent; box-shadow: none !important;
   border-radius: 7px; cursor: pointer; font-size: 14px; color: var(--pg-text);
   display: inline-flex; align-items: center; justify-content: center;
@@ -370,7 +388,7 @@
 
 /* Mindmap floating "+" quick-add buttons (Whimsical-style) */
 .lk-mm-fabs { position: absolute; inset: 0; pointer-events: none; z-index: 55; }
-.lk-mm-fab {
+button.lk-mm-fab {
   position: absolute; pointer-events: auto;
   width: 26px; height: 26px; padding: 0;
   border-radius: 50%; border: none;
@@ -431,7 +449,7 @@
   min-width: 200px; padding: 6px; background: var(--pg-surface);
   border: 1px solid var(--pg-border); border-radius: 12px; box-shadow: var(--sh-lg);
 }
-.lk-menu-item {
+.lk-menu-item, button.lk-menu-item {
   display: flex; justify-content: space-between; align-items: center;
   padding: 8px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--pg-text);
 }
@@ -547,12 +565,12 @@
 .lk-props.open { transform: none; opacity: 1; pointer-events: auto; }
 .lk-props-head { display: flex; align-items: center; padding: 13px 16px 11px; border-bottom: 1px solid var(--pg-border); }
 .lk-props-ttl { font-size: 13px; font-weight: 700; color: var(--pg-text); }
-.lk-props-collapse {
+button.lk-props-collapse {
   margin-left: auto; width: 26px; height: 26px; border: none; background: transparent;
   border-radius: 7px; cursor: pointer; color: var(--pg-text-muted); font-size: 18px; line-height: 1;
 }
 .lk-props-collapse:hover { background: var(--pg-hover); color: var(--pg-text); }
-.lk-props-fab {
+button.lk-props-fab {
   position: absolute; top: 16px; right: 16px; z-index: 40;
   width: 38px; height: 38px; display: grid; place-items: center;
   background: var(--pg-surface); border: 1px solid var(--pg-border);
@@ -578,7 +596,7 @@
 .lk-prow2 { display: flex; gap: 8px; } .lk-prow2 > * { flex: 1; }
 .lk-erd-row { display: flex; gap: 5px; align-items: center; margin-bottom: 6px; }
 .lk-erd-row .lk-pinput { padding: 6px 8px; font-size: 12px; min-width: 0; }
-.lk-padd { width: 100%; cursor: pointer; padding: 7px; font-size: 12px; font-weight: 600; color: var(--pg-accent); background: var(--pg-accent-soft); border: 1px dashed var(--pg-accent); border-radius: 8px; margin-top: 2px; }
+button.lk-padd { width: 100%; cursor: pointer; padding: 7px; font-size: 12px; font-weight: 600; color: var(--pg-accent); background: var(--pg-accent-soft); border: 1px dashed var(--pg-accent); border-radius: 8px; margin-top: 2px; }
 .lk-padd:hover { background: color-mix(in srgb, var(--pg-accent) 16%, transparent); }
 .lk-pswatches { display: flex; gap: 7px; flex-wrap: wrap; }
 .lk-pswatch { width: 26px; height: 26px; border-radius: 7px; cursor: pointer; border: 2px solid transparent; box-shadow: inset 0 0 0 1px var(--pg-border); }
@@ -677,26 +695,16 @@
 
 /* ── Board view top bar (design m-top) ── */
 .da-board-view {
-  /* Chrome (topbar etc.) is RELATIVE to the active Obsidian theme: surfaces,
-     text and borders come from Obsidian's own vars, so light/dark/custom
-     themes all match. Brand accent stays. The board surface (.lk-root) sets
-     its own paper tokens and is unaffected. */
-  --pg-accent: #5E8FB9; --pg-accent-ink: #fff; --pg-accent-soft: rgba(94,143,185,0.16);
-  --pg-bg: var(--background-secondary); --pg-surface: var(--background-primary); --pg-canvas: var(--background-primary);
-  --pg-text: var(--text-normal); --pg-text-muted: var(--text-muted); --pg-text-soft: var(--text-faint);
-  --pg-border: var(--background-modifier-border); --pg-border-strong: var(--background-modifier-border-hover); --pg-hover: var(--background-modifier-hover);
-  --sh-sm: 0 1px 2px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.06);
-  --sh-md: 0 4px 10px rgba(0,0,0,.10), 0 10px 24px rgba(0,0,0,.10);
-  --font-body: "Be Vietnam Pro", var(--font-interface, system-ui), sans-serif;
-  --font-heading: "Montserrat", var(--font-body);
-  background: var(--pg-bg);
+  /* Chrome (topbar etc.) uses Pie Flow's own tokens (shared rule above), not the
+     Obsidian theme; it turns dark only with the board's own dark mode. */
+  background: var(--pg-bg); color: var(--pg-text);
 }
 .da-topbar {
   display: flex; align-items: center; gap: 12px; flex: none;
   padding: 10px 14px; border-bottom: 1px solid var(--pg-border);
   background: var(--pg-surface); font-family: var(--font-body);
 }
-.da-tb-close {
+button.da-tb-close {
   display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
   font-size: 13px; font-weight: 600; color: var(--pg-text-muted);
   padding: 7px 11px 7px 8px; border-radius: 8px; border: 1px solid transparent; background: transparent;
@@ -711,14 +719,14 @@
 .da-tb-badge .svg-icon { width: 13px; height: 13px; }
 .da-tb-title { font-family: var(--font-heading); font-weight: 700; font-size: 16px; color: var(--pg-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .da-tb-grow { flex: 1; }
-.da-tb-ic {
+button.da-tb-ic {
   width: 32px; height: 32px; border-radius: 8px; border: none !important; background: transparent; box-shadow: none !important;
   display: grid; place-items: center; cursor: pointer; color: var(--pg-text-muted);
 }
 .da-tb-ic:hover { background: var(--pg-hover) !important; color: var(--pg-text); box-shadow: none !important; }
 .da-tb-ic .svg-icon { width: 17px; height: 17px; }
 .da-tb-divider { width: 1px; height: 22px; background: var(--pg-border); margin: 0 2px; }
-.da-tb-save {
+button.da-tb-save {
   display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
   font-size: 13px; font-weight: 700; padding: 8px 15px; border-radius: 999px; border: none;
   background: var(--pg-accent) !important; color: var(--pg-accent-ink) !important; box-shadow: var(--sh-sm);
@@ -1052,7 +1060,7 @@
   .da-topbar::-webkit-scrollbar { display: none; }
   .da-tb-title, .da-tb-grow { display: none; }
   .da-topbar > * { flex: 0 0 auto; }
-  .da-tb-ic { width: 40px; height: 40px; }
+  button.da-tb-ic { width: 40px; height: 40px; }
 
   /* 2. Context / edge toolbar: size to content (JS sets inline left/top and clamps
         within the viewport), just cap width and allow horizontal scroll if needed.
@@ -1060,7 +1068,7 @@
   .lk-context-bar { max-width: calc(100vw - 16px);
     overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .lk-context-bar::-webkit-scrollbar { display: none; }
-  .lk-cb-btn { min-width: 34px; height: 34px; }
+  button.lk-cb-btn { min-width: 34px; height: 34px; }
   .lk-edge-bar .lk-cb-btn { min-width: 30px; height: 34px; }
 
   /* 3. Hide chrome that doesn't suit touch. */
@@ -1069,10 +1077,10 @@
 
   /* 4. Safe-area + z-order so bottom controls and the props panel stay reachable. */
   .lk-zoomctl { bottom: calc(16px + env(safe-area-inset-bottom)); }
-  .lk-zoomctl .lk-ctrl-btn, .lk-ctrl-btn { min-width: 40px; height: 40px; }
+  .lk-zoomctl .lk-ctrl-btn, button.lk-ctrl-btn { min-width: 40px; height: 40px; }
   .lk-props { z-index: 60; bottom: calc(16px + env(safe-area-inset-bottom));
     width: calc(100vw - 32px); max-width: 340px; }
-  .lk-props-fab { width: 44px; height: 44px; z-index: 60; }
+  button.lk-props-fab { width: 44px; height: 44px; z-index: 60; }
 
   /* 5. Rail touch targets. */
   .lk-rail-item { width: 44px; height: 44px; }

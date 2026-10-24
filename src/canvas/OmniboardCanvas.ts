@@ -2602,6 +2602,8 @@ export class OmniboardCanvas {
     this.togglePropsPanel(false); // start collapsed → clean board
   }
 
+  openPropsPanel(): void { this.togglePropsPanel(true); }
+
   private togglePropsPanel(open: boolean) {
     this.propsPanel?.classList.toggle("open", open);
     if (this.propsFab) this.propsFab.style.display = open ? "none" : "grid";
@@ -2632,30 +2634,9 @@ export class OmniboardCanvas {
     };
   }
 
-  // Story 6.1 — Returns ALL selected node snapshots (empty array when none).
-  // PropertiesPanel uses this for multi-select UX. Single-cell callers should
-  // keep using getSelectedNodeSnapshot() for backwards compatibility.
-  getSelectedNodesSnapshot(): SelectedNodeSnapshot[] {
-    const nodes = this.graph.getSelectedCells().filter((c) => c.isNode()) as Node[];
-    return nodes.map((node) => {
-      const p = node.getPosition();
-      const s = node.getSize();
-      return {
-        id: node.id,
-        kind: this.nodeKind(node),
-        label: this.nodeLabel(node),
-        attrs: { ...(node.getData() ?? {}) },
-        style: this.nodeStyle(node),
-        position: { x: p.x, y: p.y },
-        size: { width: s.width, height: s.height },
-      };
-    });
-  }
-
   // Story 6.1 — Apply the same style patch to every cell in `ids` inside one
-  // X6 batch so undo treats it as a single step. Callers compute the patch
-  // (e.g. from PropertiesPanel) and we just iterate-and-write. Cells with
-  // unknown ids are silently skipped.
+  // X6 batch so undo treats it as a single step. Cells with unknown ids are
+  // silently skipped.
   // [Review][Patch P8] `setStyle` calls `onChange` + `rerender` per cell — N
   // cells × M keystrokes = N×M re-saves. Use silent in-place update + a single
   // onChange() at the end of the batch. Also skip onChange when zero patches
@@ -2681,32 +2662,6 @@ export class OmniboardCanvas {
     if (applied > 0) this.onChange();
   }
 
-  patchSelectedNode(patch: {
-    label?: string;
-    attrs?: Record<string, unknown>;
-    style?: Partial<NodeStyle>;
-    position?: Partial<{ x: number; y: number }>;
-    size?: Partial<{ width: number; height: number }>;
-  }): void {
-    const nodes = this.graph.getSelectedCells().filter((c) => c.isNode()) as Node[];
-    if (nodes.length !== 1) return;
-    const node = nodes[0];
-    if (patch.label !== undefined) node.setData({ ...node.getData(), label: patch.label }, { deep: false });
-    if (patch.attrs) node.setData({ ...node.getData(), ...patch.attrs }, { deep: false });
-    if (patch.style) this.setStyle(node, patch.style);
-    if (patch.position) {
-      const p = node.getPosition();
-      node.setPosition(patch.position.x ?? p.x, patch.position.y ?? p.y);
-    }
-    if (patch.size) {
-      const s = node.getSize();
-      node.resize(patch.size.width ?? s.width, patch.size.height ?? s.height);
-    }
-    this.rerender(node);
-    this.onChange();
-    this.refreshProps();
-    this.notifySelectionChanged();
-  }
 
   private refreshProps() {
     const body = this.propsBody;
@@ -2715,6 +2670,12 @@ export class OmniboardCanvas {
     const cells = this.graph.getSelectedCells();
     const nodes = cells.filter((c) => c.isNode()) as Node[];
     if (cells.length === 1 && cells[0].isEdge() && this.buildSequenceFlowEditor(cells[0] as Edge, body)) return;
+    if (nodes.length >= 2) {
+      const s = el("div", "lk-psec"); s.appendChild(el("div", "lk-psec-h", `Kiểu · ${nodes.length} phần tử`)); body.appendChild(s);
+      this.buildStyleFields(nodes, s);
+      this.notifySelectionChanged();
+      return;
+    }
     if (nodes.length !== 1) {
       const empty = el("div", "lk-props-empty");
       empty.innerHTML = `<div class="lk-props-empty-ic">◇</div>Chọn một phần tử trên canvas để chỉnh nội dung, màu và vị trí.`;
@@ -2732,8 +2693,6 @@ export class OmniboardCanvas {
       parent.appendChild(f);
     };
 
-    const st = this.nodeStyle(node);
-
     // Content
     const s1 = sec("Nội dung");
     const labelInput = el("input", "lk-pinput") as HTMLInputElement;
@@ -2748,31 +2707,7 @@ export class OmniboardCanvas {
     if (kind.startsWith("bpmn-")) this.buildBpmnPropsEditor(node, body);
 
     // Style
-    const s2 = sec("Kiểu");
-    const swatchRow = (key: "fill" | "stroke") => {
-      const row = el("div", "lk-pswatches");
-      for (const c of FILL_SWATCHES) {
-        const sw = el("div", "lk-pswatch");
-        sw.style.background = c === "transparent" ? "repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50%/8px 8px" : c;
-        if (st[key] === c) sw.classList.add("on");
-        sw.onclick = () => { this.setStyle(node, { [key]: c }); this.refreshProps(); };
-        row.appendChild(sw);
-      }
-      return row;
-    };
-    field(s2, "Màu nền", swatchRow("fill"));
-    field(s2, "Màu viền", swatchRow("stroke"));
-    const fontIn = el("input", "lk-pinput") as HTMLInputElement;
-    fontIn.type = "number"; fontIn.min = "6"; fontIn.max = "96"; fontIn.step = "1";
-    fontIn.value = String(st.fontSize || defaultFontSizeFor(node));
-    const applyFont = () => {
-      const v = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || defaultFontSizeFor(node)));
-      fontIn.value = String(v);
-      this.setStyle(node, { fontSize: v });
-    };
-    fontIn.oninput = () => { const n = Number(fontIn.value); if (Number.isFinite(n) && n >= 6 && n <= 96) this.setStyle(node, { fontSize: Math.round(n) }); };
-    fontIn.onblur = applyFont;
-    field(s2, "Cỡ chữ", fontIn);
+    this.buildStyleFields([node], sec("Kiểu"));
 
     // Position
     const s3 = sec("Vị trí & kích thước");
@@ -2790,6 +2725,52 @@ export class OmniboardCanvas {
     sizeRow.appendChild(mkNum(size.height, (v) => node.resize(node.getSize().width, v)));
     field(s3, "Rộng / Cao", sizeRow);
     this.notifySelectionChanged();
+  }
+
+  /** "Kiểu" fields for one node or several: a value the nodes don't share shows unselected / "—". */
+  private buildStyleFields(nodes: Node[], parent: HTMLElement): void {
+    const ids = nodes.map((n) => n.id);
+    const field = (label: string, control: HTMLElement) => {
+      const f = el("div", "lk-pfield"); f.appendChild(el("label", undefined, label)); f.appendChild(control); parent.appendChild(f);
+    };
+    const shared = <K extends keyof NodeStyle>(k: K): NodeStyle[K] | undefined => {
+      const v = this.nodeStyle(nodes[0])[k];
+      return nodes.every((n) => this.nodeStyle(n)[k] === v) ? v : undefined;
+    };
+    const apply = (patch: Partial<NodeStyle>) => { this.patchNodesBulk(ids, patch); this.refreshProps(); };
+    const swatchRow = (key: "fill" | "stroke") => {
+      const row = el("div", "lk-pswatches");
+      const cur = shared(key);
+      for (const c of FILL_SWATCHES) {
+        const sw = el("div", "lk-pswatch");
+        sw.style.background = c === "transparent" ? "repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50%/8px 8px" : c;
+        if (cur === c) sw.classList.add("on");
+        sw.onclick = () => apply({ [key]: c });
+        row.appendChild(sw);
+      }
+      // Any other colour — BPMN files bring their own (bioc:fill="#bbdefb").
+      const pick = el("input", "lk-pswatch lk-pswatch-pick") as HTMLInputElement;
+      pick.type = "color"; pick.title = "Màu khác";
+      if (cur && /^#[0-9a-f]{6}$/i.test(cur)) pick.value = cur;
+      if (cur && !FILL_SWATCHES.includes(cur)) pick.classList.add("on");
+      pick.onchange = () => apply({ [key]: pick.value });
+      row.appendChild(pick);
+      return row;
+    };
+    field("Màu nền", swatchRow("fill"));
+    field("Màu viền", swatchRow("stroke"));
+    const numIn = (key: "fontSize" | "borderWidth", min: number, max: number, fallback: number) => {
+      const i = el("input", "lk-pinput") as HTMLInputElement;
+      i.type = "number"; i.min = String(min); i.max = String(max); i.step = "1";
+      const cur = shared(key) ?? (nodes.length === 1 ? fallback : undefined);
+      i.value = cur != null ? String(cur) : ""; i.placeholder = "—";
+      const valid = () => { const n = Number(i.value); return i.value !== "" && n >= min && n <= max ? Math.round(n) : null; };
+      i.oninput = () => { const n = valid(); if (n != null) this.patchNodesBulk(ids, { [key]: n }); };
+      i.onblur = () => { if (valid() == null) i.value = cur != null ? String(cur) : ""; };
+      return i;
+    };
+    field("Cỡ chữ", numIn("fontSize", 6, 96, defaultFontSizeFor(nodes[0])));
+    field("Độ dày viền", numIn("borderWidth", 0, 20, 1));
   }
 
   // ── BPMN Properties editor (Phase D) ──────────────────────────────────────
@@ -2834,26 +2815,6 @@ export class OmniboardCanvas {
       node.setData({ ...node.getData(), ...patch }, { deep: false });
       this.rerender(node); this.onChange();
     };
-
-    // ── BPMN color ───────────────────────────────────────────────────────────
-    const bpmnFill = d.bpmnFill as string | undefined;
-    const bpmnStroke = d.bpmnStroke as string | undefined;
-    if (!kind.endsWith("-lane") && !kind.endsWith("-pool")) {
-      const sColor = sec("Màu BPMN");
-      const makeColor = (label: string, key: "bpmnFill" | "bpmnStroke", cur: string | undefined) => {
-        const wrap = el("div", "lk-prow2");
-        const inp = el("input", "lk-pinput lk-pcolor") as HTMLInputElement;
-        inp.type = "text"; inp.placeholder = "#ffffff"; inp.value = cur ?? "";
-        inp.oninput = () => { save({ [key]: inp.value.trim() || undefined }); };
-        const swatch = el("div", "lk-pswatch lk-pcolor-swatch");
-        swatch.style.background = cur ?? "transparent";
-        inp.addEventListener("input", () => { swatch.style.background = inp.value.trim() || "transparent"; });
-        wrap.appendChild(swatch); wrap.appendChild(inp);
-        field(sColor, label, wrap);
-      };
-      makeColor("Fill", "bpmnFill", bpmnFill);
-      makeColor("Stroke", "bpmnStroke", bpmnStroke);
-    }
 
     // ── Event trigger (for event nodes) ─────────────────────────────────────
     if (kind === "bpmn-event-start" || kind === "bpmn-event-intermediate" || kind === "bpmn-event-end") {
@@ -2933,41 +2894,61 @@ export class OmniboardCanvas {
     docTa.oninput = () => { save({ bpmnDoc: docTa.value.trim() || undefined }); };
     sDocs.appendChild(docTa);
 
-    // ── Camunda properties ───────────────────────────────────────────────────
+    // ── Camunda: extension attrs + camunda:property list (open when used) ─────
     const camunda = (d.camunda as Record<string, string> | undefined) ?? {};
     const CAMUNDA_FIELDS: Array<[string, string]> = [
       ["assignee", "Assignee"], ["candidateUsers", "Candidate users"], ["candidateGroups", "Candidate groups"],
       ["formKey", "Form key"], ["dueDate", "Due date"], ["priority", "Priority"],
     ];
-    const hasCamundaData = CAMUNDA_FIELDS.some(([k]) => camunda[k]);
-    if (hasCamundaData || kind === "bpmn-task-user") {
-      const sCam = sec("Camunda");
-      for (const [key, label] of CAMUNDA_FIELDS) {
-        const inp = el("input", "lk-pinput") as HTMLInputElement;
-        inp.value = camunda[key] ?? ""; inp.placeholder = label;
-        inp.oninput = () => {
-          const updated = { ...camunda, [key]: inp.value.trim() || undefined };
-          save({ camunda: Object.fromEntries(Object.entries(updated).filter(([, v]) => v !== undefined)) });
-        };
-        field(sCam, label, inp);
-      }
+    type Prop = { name: string; value: string };
+    const props = (): Prop[] => (node.getData()?.bpmnProps as Prop[] | undefined) ?? [];
+    const setProps = (next: Prop[]) => save({ bpmnProps: next.length ? next : undefined });
+    const fold = (title: string, open: boolean) => {
+      const s = el("details", "lk-psec lk-pfold") as HTMLDetailsElement; s.open = open;
+      s.appendChild(el("summary", "lk-psec-h", title)); body.appendChild(s); return s;
+    };
+    const sCam = fold("Camunda", kind === "bpmn-task-user" || CAMUNDA_FIELDS.some(([k]) => camunda[k]) || props().length > 0);
+    for (const [key, label] of CAMUNDA_FIELDS) {
+      const inp = el("input", "lk-pinput") as HTMLInputElement;
+      inp.value = camunda[key] ?? ""; inp.placeholder = label;
+      inp.oninput = () => {
+        const cur = (node.getData()?.camunda as Record<string, string> | undefined) ?? {};
+        const updated = { ...cur, [key]: inp.value.trim() || undefined };
+        const kept = Object.fromEntries(Object.entries(updated).filter(([, v]) => v !== undefined));
+        save({ camunda: Object.keys(kept).length ? kept : undefined });
+      };
+      field(sCam, label, inp);
     }
+    props().forEach((p, i) => {
+      const row = el("div", "lk-prow2");
+      const kIn = el("input", "lk-pinput") as HTMLInputElement; kIn.value = p.name; kIn.placeholder = "name";
+      // An emptied name drops the property once the field is left, not while typing.
+      kIn.onchange = () => { setProps(props().map((q, j) => (j === i ? { ...q, name: kIn.value.trim() } : q)).filter((q) => q.name)); this.refreshProps(); };
+      const vIn = el("input", "lk-pinput") as HTMLInputElement; vIn.value = p.value; vIn.placeholder = "value";
+      vIn.oninput = () => setProps(props().map((q, j) => (j === i ? { ...q, value: vIn.value } : q)));
+      row.appendChild(kIn); row.appendChild(vIn); sCam.appendChild(row);
+    });
+    const addProp = el("button", "lk-padd", "+ Thêm camunda:property");
+    addProp.onclick = () => { setProps([...props(), { name: "property", value: "" }]); this.refreshProps(); };
+    sCam.appendChild(addProp);
 
-    // ── Custom bpmnProps ─────────────────────────────────────────────────────
-    const bpmnProps = (d.bpmnProps as Array<{ name: string; value: string }> | undefined) ?? [];
-    if (bpmnProps.length) {
-      const sProps = sec("Properties");
-      for (const p of bpmnProps) {
-        const row = el("div", "lk-prow2");
-        const kIn = el("input", "lk-pinput") as HTMLInputElement; kIn.value = p.name; kIn.readOnly = true;
-        const vIn = el("input", "lk-pinput") as HTMLInputElement; vIn.value = p.value;
-        vIn.oninput = () => {
-          const updated = bpmnProps.map(q => q.name === p.name ? { ...q, value: vIn.value } : q);
-          save({ bpmnProps: updated });
-        };
-        row.appendChild(kIn); row.appendChild(vIn); sProps.appendChild(row);
+    // ── Raw metadata JSON (documentation + camunda + properties) ─────────────
+    const sRaw = fold("Metadata JSON", false);
+    const json = el("textarea", "lk-ptextarea") as HTMLTextAreaElement;
+    json.rows = 8;
+    json.value = JSON.stringify({ documentation: d.bpmnDoc ?? "", camunda, bpmnProps: props() }, null, 2);
+    json.onchange = () => {
+      try {
+        const parsed = JSON.parse(json.value) as { documentation?: string; camunda?: Record<string, string>; bpmnProps?: Prop[] };
+        const cam = Object.fromEntries(Object.entries(parsed.camunda ?? {}).filter(([, v]) => v));
+        const ps = (parsed.bpmnProps ?? []).filter((q) => q?.name);
+        save({ bpmnDoc: parsed.documentation || undefined, camunda: Object.keys(cam).length ? cam : undefined, bpmnProps: ps.length ? ps : undefined });
+        this.refreshProps();
+      } catch {
+        json.setCustomValidity("JSON không hợp lệ"); json.reportValidity(); json.setCustomValidity("");
       }
-    }
+    };
+    sRaw.appendChild(json);
   }
 
   // ── ERD column / UML member editors (right panel) ────────────────────────
@@ -5033,7 +5014,12 @@ export class OmniboardCanvas {
     this.graph.startBatch("load");
     for (const n of model.nodes) {
       const a = n.attrs ?? {};
-      const style = (a.style as NodeStyle) ?? {};
+      // Older boards kept the BPMN file's colour apart (bpmnFill/bpmnStroke); it is the node's colour now.
+      const style: NodeStyle = {
+        ...(a.bpmnFill ? { fill: a.bpmnFill as string } : {}),
+        ...(a.bpmnStroke ? { stroke: a.bpmnStroke as string } : {}),
+        ...((a.style as NodeStyle) ?? {}),
+      };
       const extra: NodeExtra = {
         cols: a.cols as ErdCol[] | undefined,
         fields: a.fields as string[] | undefined,
@@ -5061,8 +5047,6 @@ export class OmniboardCanvas {
       const phaseD: Record<string, unknown> = {};
       if (a.bpmnDoc) phaseD.bpmnDoc = a.bpmnDoc;
       if (a.calledElement) phaseD.calledElement = a.calledElement;
-      if (a.bpmnFill) phaseD.bpmnFill = a.bpmnFill;
-      if (a.bpmnStroke) phaseD.bpmnStroke = a.bpmnStroke;
       if (a.camunda) phaseD.camunda = a.camunda;
       if (a.bpmnProps) phaseD.bpmnProps = a.bpmnProps;
       if (Object.keys(phaseD).length) node.setData({ ...node.getData(), ...phaseD }, { deep: false });
@@ -5475,8 +5459,6 @@ export class OmniboardCanvas {
           // Phase D — BPMN metadata (live on node.data, not NodeExtra)
           bpmnDoc: n.getData()?.bpmnDoc,
           calledElement: n.getData()?.calledElement,
-          bpmnFill: n.getData()?.bpmnFill,
-          bpmnStroke: n.getData()?.bpmnStroke,
           camunda: n.getData()?.camunda,
           bpmnProps: n.getData()?.bpmnProps,
           __source: n.getData()?.__source,

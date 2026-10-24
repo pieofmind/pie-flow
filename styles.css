@@ -673,38 +673,16 @@ button.lk-padd { width: 100%; cursor: pointer; padding: 7px; font-size: 12px; fo
 .lk-pswatches { display: flex; gap: 7px; flex-wrap: wrap; }
 .lk-pswatch { width: 26px; height: 26px; border-radius: 7px; cursor: pointer; border: 2px solid transparent; box-shadow: inset 0 0 0 1px var(--pg-border); }
 .lk-pswatch.on { border-color: var(--pg-text); }
+.lk-pswatch-pick { padding: 0; background: none; -webkit-appearance: none; appearance: none; overflow: hidden; }
+.lk-pswatch-pick::-webkit-color-swatch-wrapper { padding: 0; }
+.lk-pswatch-pick::-webkit-color-swatch { border: none; border-radius: 5px; }
+.lk-pswatch-pick:not(.on)::-webkit-color-swatch { background: conic-gradient(#e5484d, #ffd966, #34a853, #5e8fb9, #8e51ff, #e5484d) !important; }
+.lk-pfold > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; margin-bottom: 0; }
+.lk-pfold > summary::-webkit-details-marker { display: none; }
+.lk-pfold > summary::before { content: "›"; font-size: 13px; transition: transform .15s; }
+.lk-pfold[open] > summary { margin-bottom: 10px; }
+.lk-pfold[open] > summary::before { transform: rotate(90deg); }
 
-/* Obsidian right-sidebar BPMN properties leaf */
-.omniboard-properties-view {
-  padding: 0;
-  overflow-y: auto;
-  background: var(--pg-surface);
-}
-.omniboard-properties-view .obp-title {
-  display: flex; flex-direction: column; gap: 4px;
-  padding: 16px; border-bottom: 1px solid var(--pg-border);
-}
-.omniboard-properties-view .obp-title strong {
-  font-size: 15px; color: var(--pg-text);
-}
-.omniboard-properties-view .obp-kind {
-  font-size: 10px; font-weight: 700; letter-spacing: .08em;
-  text-transform: uppercase; color: var(--pg-text-soft);
-}
-.omniboard-properties-view .obp-empty {
-  padding: 20px 16px; color: var(--pg-text-soft);
-  font-size: 13px; line-height: 1.5;
-}
-.omniboard-properties-view .obp-textarea {
-  resize: vertical; min-height: 90px;
-}
-.omniboard-properties-view .obp-invalid {
-  border-color: #d33 !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, #d33 20%, transparent) !important;
-}
-.omniboard-properties-view .obp-kv {
-  display: flex; flex-direction: column; gap: 8px; margin: 8px 0;
-}
 .omniboard-diagram-picker .obp-kv {
   display: flex; flex-direction: column; gap: 8px; margin: 8px 0;
 }

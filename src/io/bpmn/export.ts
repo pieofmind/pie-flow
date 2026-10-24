@@ -231,8 +231,6 @@ interface BpmnNodeAttrs {
   bpmnDoc?: string;
   camunda?: Record<string, string>;
   bpmnProps?: Array<{ name: string; value: string }>;
-  bpmnFill?: string;
-  bpmnStroke?: string;
 }
 
 /** BPMN edge kind tag → bpmn:* element type + container slot. Phase A. */
@@ -440,6 +438,27 @@ function normalizeModelIdsForBpmn(model: CanvasModel): CanvasModel {
       target: nodeMap.get(e.target) ?? e.target,
     })),
   };
+}
+
+/** The node's own fill/stroke ("Kiểu" on the Board) → bioc colours on its DI shape, which bpmn.io
+ *  renders. Moddle reads a file's bioc:fill into `di.fill`, so that copy is dropped too. */
+function applyNodeColours(di: ModdleElement, n: CanvasModel["nodes"][number]): void {
+  const style = (n.attrs as { style?: { fill?: string; stroke?: string } } | undefined)?.style;
+  const colour = (c?: string) => (c && c !== "transparent" ? c : undefined);
+  const d = di as ModdleElement & { fill?: string; stroke?: string };
+  delete d.fill; delete d.stroke;
+  const attrs = (di.$attrs ??= {});
+  for (const [key, value, spec] of [["bioc:fill", colour(style?.fill), "color:background-color"],
+    ["bioc:stroke", colour(style?.stroke), "color:border-color"]] as const) {
+    delete attrs[spec];
+    if (value) attrs[key] = value; else delete attrs[key];
+  }
+}
+
+/** bioc colours need their namespace declared (a file may not have had any colour). */
+function withBiocNamespace(xml: string): string {
+  if (!/\sbioc:/.test(xml) || /\sxmlns:bioc=/.test(xml)) return xml;
+  return xml.replace(/<bpmn:definitions\b([^>]*)>/, `<bpmn:definitions$1 xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0">`);
 }
 
 function patchCamundaXml(xml: string, model: CanvasModel): string {
@@ -724,15 +743,6 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       // Phase C — write isExpanded back from model.attrs.collapsed.
       const collapsed = (n.attrs as { collapsed?: boolean } | undefined)?.collapsed === true;
       (di as ModdleElement & { isExpanded?: boolean }).isExpanded = !collapsed;
-      // Phase D — bioc/color-spec colors: write from bpmnFill/bpmnStroke
-      // (set by the properties panel) back onto DI $attrs so bpmn.io renders them.
-      const bpmnFill = (n.attrs as BpmnNodeAttrs | undefined)?.bpmnFill;
-      const bpmnStroke = (n.attrs as BpmnNodeAttrs | undefined)?.bpmnStroke;
-      const shapeAttrs = (di.$attrs ??= {});
-      if (bpmnFill) shapeAttrs["bioc:fill"] = bpmnFill;
-      else { delete shapeAttrs["bioc:fill"]; delete shapeAttrs["color:background-color"]; }
-      if (bpmnStroke) shapeAttrs["bioc:stroke"] = bpmnStroke;
-      else { delete shapeAttrs["bioc:stroke"]; delete shapeAttrs["color:border-color"]; }
     } else {
       const fe = m.create(shapeToBpmnType(n.shape, n.attrs as BpmnNodeAttrs), n.shape === "bpmn-annotation" ? { id: n.id, text: n.label ?? "" } : n.shape === "bpmn-group" ? { id: n.id } : { id: n.id, name: n.label ?? "" }) as ModdleElement;
       applyBpmnExtras(m, fe, n.shape, (n.attrs ?? {}) as BpmnNodeAttrs);
@@ -747,6 +757,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       (mainPlane.planeElement ??= []).push(di);
       diShape.set(n.id, di);
     }
+    applyNodeColours(di, n);
     // Phase B — if the user moved this node to/from a subprocess, detach
     // from the old container and re-push into the new one. Only act when
     // the actual parent element differs from the desired container.
@@ -999,7 +1010,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
   placeOnPlanes(definitions, mainPlane, model, diShape, diEdge, flowById, m);
 
   const { xml } = await m.toXML(definitions as never, { format: true });
-  return patchCamundaXml(xml, model);
+  return patchCamundaXml(withBiocNamespace(xml), model);
 }
 
 /**
@@ -1559,6 +1570,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       ...(nLabel ? { label: m.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {}),
       ...(isCollapsed(n) ? { isExpanded: false } : {}),
     }) as ModdleElement;
+    applyNodeColours(di, n);
     plane.planeElement!.push(di);
     diShape.set(n.id, di);
   }
@@ -1584,5 +1596,5 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
   placeOnPlanes(defs, plane, model, diShape, diEdge, feById, m);
 
   const { xml } = await m.toXML(defs as never, { format: true });
-  return patchCamundaXml(xml, model);
+  return patchCamundaXml(withBiocNamespace(xml), model);
 }

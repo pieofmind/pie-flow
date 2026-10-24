@@ -21,20 +21,20 @@ const DOC_BIOC = H + `<bpmn:process id="P"><bpmn:task id="t" name="Pay"><bpmn:do
 const CAMUNDA_XML = '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" id="d" targetNamespace="x"><bpmn:process id="P"><bpmn:userTask id="t" name="Review" camunda:assignee="john" camunda:formKey="forms/review"><bpmn:extensionElements><camunda:properties><camunda:property name="priority" value="high"/></camunda:properties></bpmn:extensionElements></bpmn:userTask></bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="P"><bpmndi:BPMNShape bpmnElement="t"><dc:Bounds x="0" y="0" width="100" height="60"/></bpmndi:BPMNShape></bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>';
 
 async function runAll() {
-  await run('D1 import docs + bioc → bpmnDoc/Fill/Stroke in attrs', async () => {
+  await run('D1 import docs + bioc → bpmnDoc + node colour in attrs.style', async () => {
     const r = await window.__import.bpmn(DOC_BIOC);
     const m = window.__ob.getModel();
     const t = m.nodes.find(n=>n.id==='t');
     a(t?.attrs?.bpmnDoc === 'Pay invoice carefully.', `doc=${t?.attrs?.bpmnDoc}`);
-    a(t?.attrs?.bpmnFill === '#bbdefb', `fill=${t?.attrs?.bpmnFill}`);
-    a(t?.attrs?.bpmnStroke === '#1565c0', `stroke=${t?.attrs?.bpmnStroke}`);
+    a(t?.attrs?.style?.fill === '#bbdefb', `fill=${t?.attrs?.style?.fill}`);
+    a(t?.attrs?.style?.stroke === '#1565c0', `stroke=${t?.attrs?.style?.stroke}`);
     return `doc+bioc ok`;
   });
 
   await run('D2 bioc round-trip — user changes fill → XML gets bioc:fill', async () => {
     const r = await window.__import.bpmn(DOC_BIOC);
     const m = window.__ob.getModel();
-    m.nodes.find(n=>n.id==='t').attrs.bpmnFill = '#ff0000';
+    m.nodes.find(n=>n.id==='t').attrs.style = { fill: '#ff0000' };
     const xml = await window.__export.bpmn(m, r.sourceMeta);
     a(/bioc:fill="#ff0000"/.test(xml), `no bioc:fill in XML: ${xml.match(/bioc:[^"]+="[^"]*"/g)}`);
     return `bioc:fill="#ff0000" emitted`;
@@ -76,11 +76,57 @@ async function runAll() {
     const cell = ob.graph.getCellById('t');
     ob.graph.select(cell);
     await new Promise(r => setTimeout(r, 100));
-    // Check that the BPMN color section rendered
+    // One colour: no separate "Màu BPMN"; the file's bioc:fill shows in "Kiểu" as the picked colour
     const secHeaders = [...document.querySelectorAll('.lk-psec-h')].map(e=>e.textContent);
-    a(secHeaders.some(h => h?.includes('Màu BPMN')), `sections: ${secHeaders.join(',')}`);
+    a(!secHeaders.some(h => h?.includes('Màu BPMN')), `sections: ${secHeaders.join(',')}`);
     a(secHeaders.some(h => h?.includes('documentation')), `sections: ${secHeaders.join(',')}`);
-    return `sections: ${secHeaders.filter(h=>h?.includes('BPMN')||h?.includes('doc')).join(', ')}`;
+    a(secHeaders.includes('Camunda') && secHeaders.includes('Metadata JSON'), `sections: ${secHeaders.join(',')}`);
+    const pick = document.querySelector('.lk-props-body .lk-pswatch-pick.on');
+    a(pick?.value === '#bbdefb', `fill picker: ${pick?.value}`);
+    return `sections: ${secHeaders.join(', ')}`;
+  });
+
+  await run('D7 picking a colour in Kiểu exports it as bioc:fill', async () => {
+    const r = await window.__import.bpmn(DOC_BIOC);
+    await new Promise(r => setTimeout(r, 100));
+    window.__ob.graph.resetSelection([window.__ob.graph.getCellById('t')]);
+    await new Promise(r => setTimeout(r, 100));
+    const pick = document.querySelector('.lk-props-body .lk-pswatch-pick');
+    pick.value = '#00aa55'; pick.dispatchEvent(new Event('change'));
+    const m = window.__ob.getModel();
+    a(m.nodes.find(n=>n.id==='t').attrs.style.fill === '#00aa55', 'style.fill not set');
+    const xml = await window.__export.bpmn(m, r.sourceMeta);
+    a(/bioc:fill="#00aa55"/.test(xml) && !/bioc:fill="#bbdefb"/.test(xml), `xml: ${xml.match(/bioc:[^"]+="[^"]*"/g)}`);
+    return 'bioc:fill="#00aa55"';
+  });
+
+  await run('D8 several nodes selected: Kiểu applies to all of them', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'm1', shape: 'bpmn-task', x: 100, y: 100, width: 100, height: 80, label: 'A' },
+      { id: 'm2', shape: 'bpmn-gateway-xor', x: 300, y: 115, width: 50, height: 50 },
+    ], edges: [] });
+    await new Promise(r => setTimeout(r, 100));
+    const g = window.__ob.graph;
+    g.resetSelection([g.getCellById('m1'), g.getCellById('m2')]);
+    await new Promise(r => setTimeout(r, 100));
+    const h = document.querySelector('.lk-props-body .lk-psec-h')?.textContent;
+    a(h === 'Kiểu · 2 phần tử', `header: ${h}`);
+    document.querySelectorAll('.lk-props-body .lk-pswatches')[0].children[4].click();
+    const fills = window.__ob.getModel().nodes.map(n => n.attrs?.style?.fill);
+    a(fills.every(f => f === '#D6EFE0'), `fills: ${fills}`);
+    return 'both #D6EFE0';
+  });
+
+  await run('D9 + Thêm camunda:property adds a row that lands in the model', async () => {
+    await window.__import.bpmn(CAMUNDA_XML);
+    await new Promise(r => setTimeout(r, 100));
+    window.__ob.graph.resetSelection([window.__ob.graph.getCellById('t')]);
+    await new Promise(r => setTimeout(r, 100));
+    [...document.querySelectorAll('.lk-props-body .lk-padd')].find(b => b.textContent.includes('camunda:property')).click();
+    await new Promise(r => setTimeout(r, 50));
+    const props = window.__ob.getModel().nodes.find(n=>n.id==='t').attrs.bpmnProps;
+    a(props.length === 2 && props[1].name === 'property', `props: ${JSON.stringify(props)}`);
+    return JSON.stringify(props);
   });
 
   const passed = results.filter(r=>r.ok).length;

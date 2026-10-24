@@ -17,7 +17,7 @@ import { poolDropAnchor } from "./poolConnect";
 import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
-import { SUBPROCESS_KINDS, SUB_CLOSED, openLayout } from "./subprocessLayout";
+import { SUBPROCESS_KINDS, closedLayout, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
 import { findMatches, stepIndex } from "./search";
@@ -1541,18 +1541,13 @@ export class OmniboardCanvas {
     // dispatch to a specific child-label editor first, fall back to whole-node label.
     this.graph.on("node:dblclick", ({ node, e }) => {
       e.stopPropagation();
-      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle], [data-sub-drill]")) return;
+      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-drill]")) return;
       if (this.tryEditChildLabel(e.target as HTMLElement | null, node as Node)) return;
       this.editLabel(node as Node);
     });
     // X6 fires node:click on every click (incl. the one that selects it).
     // Open child-label editor only when the node was already selected BEFORE this click.
     this.graph.on("node:click", ({ node, e }) => {
-      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle]")) {
-        e.stopPropagation();
-        this.toggleSubprocess(node as Node);
-        return;
-      }
       if ((e.target as HTMLElement | null)?.closest?.("[data-sub-drill]")) {
         e.stopPropagation();
         this.enterSubprocess(node as Node);
@@ -3025,6 +3020,11 @@ export class OmniboardCanvas {
       this.contextBar.appendChild(mkBtn(
         `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="11" height="11"/><path d="M10 3h7v7M17 3l-7 7"/></svg>`,
         "Mở trang riêng", () => this.enterSubprocess(node)));
+      const closed = this.nodeKind(node) === "bpmn-task" || node.getData()?.collapsed === true;
+      this.contextBar.appendChild(mkBtn(closed
+        ? `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="15" height="11"/><path d="M7 10h6M10 7v6"/></svg>`
+        : `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="15" height="11"/><path d="M7 10h6"/></svg>`,
+        closed ? "Mở rộng tại chỗ (expanded)" : "Thu gọn (collapsed)", () => this.toggleSubprocess(node)));
     }
 
     // BPMN Pool — quick-action buttons (bpmn.io UX).
@@ -3682,10 +3682,12 @@ export class OmniboardCanvas {
     this.onChange();
   }
 
-  // ── Sub-process open / close in place ────────────────────────────────────
-  /** ⊞ / − on a sub-process: open it as a frame around its steps, or close it
-   *  to task size with the steps hidden. A task with the ⊞ marker opens as an
-   *  empty sub-process; one closed with no steps goes back to that task. */
+  // ── Sub-process expand / collapse (bpmn-js "change type") ──────────────
+  /** Expanded ⇄ collapsed sub-process, as bpmn-js's replace menu does it: an
+   *  expanded one shows its steps in a frame on the board; a collapsed one is
+   *  task-sized with ⊞ and its steps open on their own page (drill-down).
+   *  Nothing around it moves. A ⊞ task expands as an empty sub-process; one
+   *  collapsed with no steps goes back to that task. */
   private toggleSubprocess(node: Node): void {
     const opening = this.nodeKind(node) === "bpmn-task" || node.getData()?.collapsed === true;
     this.graph.startBatch("subprocess-toggle");
@@ -3700,17 +3702,18 @@ export class OmniboardCanvas {
     node.setData(this.nodeKind(node) === "bpmn-task"
       ? { ...d, kind: "bpmn-subprocess", markers: markers.length ? markers : undefined, collapsed: undefined }
       : { ...d, collapsed: undefined }, { deep: false });
+    // Notes live at process level (bpmn-js moves them out of the sub-process too).
+    for (const c of node.getChildren() ?? []) {
+      if (!c.isNode() || this.nodeKind(c) !== "bpmn-annotation") continue;
+      node.unembed(c);
+      node.getParent()?.embed(c);
+      c.setData({ ...c.getData(), parentId: node.getParent()?.id }, { deep: false });
+    }
     // Show the steps before moving them: arrows re-route only to visible ends.
     this.refreshSubprocessVisibility();
     const kids = (node.getChildren() ?? []).filter((c): c is Node => c.isNode());
-    const lay = openLayout(node.getPosition(), kids.map((k) => ({ ...k.getPosition(), ...k.getSize() })));
-    // Push the shapes right of / below the box away so the frame covers none of them.
-    const b = node.getBBox();
-    const room = { x: Math.max(0, lay.width - b.width), y: Math.max(0, lay.height - b.height) };
-    const skip = this.subtreeIds(node);
-    this.pushRoom("x", b.x + b.width, room.x, skip);
-    this.pushRoom("y", b.y + b.height, room.y, skip);
-    if (room.x || room.y) node.setData({ ...node.getData(), subRoom: room }, { deep: false });
+    const lay = openLayout(node.getBBox(), kids.map((k) => ({ ...k.getPosition(), ...k.getSize() })));
+    node.setPosition(lay.x, lay.y, { deep: false });
     kids.forEach((k) => k.translate(lay.dx, lay.dy));
     node.resize(lay.width, lay.height);
     node.setZIndex(frameZ(this.nodeKind(node), this.ancestorCount(node)));
@@ -3720,54 +3723,14 @@ export class OmniboardCanvas {
     const d = node.getData() ?? {};
     const empty = !(node.getChildren() ?? []).some((c) => c.isNode());
     const toTask = empty && this.nodeKind(node) === "bpmn-subprocess";
-    // Give back the room opening it pushed out (none when it came open from BPMN).
-    const room = d.subRoom as { x: number; y: number } | undefined;
-    if (room) {
-      const b = node.getBBox();
-      const skip = this.subtreeIds(node);
-      this.pushRoom("y", b.y + b.height, -room.y, skip);
-      this.pushRoom("x", b.x + b.width, -room.x, skip);
-    }
     node.setData(toTask
-      ? { ...d, kind: "bpmn-task", markers: [...((d.markers ?? []) as string[]), "subprocess"], collapsed: true, subRoom: undefined }
-      : { ...d, collapsed: true, subRoom: undefined }, { deep: false });
-    node.resize(SUB_CLOSED.width, SUB_CLOSED.height);
+      ? { ...d, kind: "bpmn-task", markers: [...((d.markers ?? []) as string[]), "subprocess"], collapsed: true }
+      : { ...d, collapsed: true }, { deep: false });
+    const b = closedLayout(node.getBBox());
+    node.setPosition(b.x, b.y, { deep: false });
+    node.resize(b.width, b.height);
     if (toTask) node.toFront();
     this.rerender(node);
-  }
-  private subtreeIds(node: Node): Set<string> {
-    return new Set([node.id, ...node.getDescendants().map((c) => c.id)]);
-  }
-  /** The space tool in one step: open (delta > 0) or close room at `line`,
-   *  leaving the `skip` shapes (and arrows touching them) where they are. */
-  private pushRoom(axis: Axis, line: number, delta: number, skip: Set<string>): void {
-    if (!delta) return;
-    const nodes = this.graph.getNodes().filter((n) => n.isVisible() && !skip.has(n.id));
-    const plan = planSpace(nodes.map((n) => {
-      const b = n.getBBox();
-      // A note the line crosses moves with its centre rather than stretching.
-      const frame = FRAME_KINDS.has(this.nodeKind(n)) && this.nodeKind(n) !== "bpmn-annotation";
-      return { id: n.id, x: b.x, y: b.y, w: b.width, h: b.height, frame, parentId: n.getParent()?.id };
-    }), axis, line);
-    const byId = new Map(nodes.map((n) => [n.id, n]));
-    for (const id of plan.move) byId.get(id)!.translate(axis === "x" ? delta : 0, axis === "y" ? delta : 0);
-    for (const id of plan.resize) {
-      const n = byId.get(id)!;
-      const z = n.getSize();
-      const ex = this.nodeExtra(n);
-      const horizontal = ex.poolHorizontal !== false;
-      // A pool cut along its stacking axis: the lane the line crosses takes the room.
-      if (this.nodeKind(n) === "bpmn-pool" && ex.lanes?.length && (horizontal ? "y" : "x") === axis) {
-        const grown = growLaneAt(asStackLanes(ex.lanes, horizontal), horizontal ? z.height : z.width, line - n.getPosition()[axis], delta);
-        n.setData({ ...n.getData(), lanes: fromStackLanesDeep(ex.lanes, grown, horizontal) }, { deep: false });
-      }
-      n.resize(z.width + (axis === "x" ? delta : 0), z.height + (axis === "y" ? delta : 0));
-      this.rerender(n);
-    }
-    for (const e of this.graph.getEdges()) {
-      if (skip.has(e.getSourceCellId()) || skip.has(e.getTargetCellId()) || !e.getVertices().length) continue;
-      e.setVertices(shiftVertices(e.getVertices(), axis, line, delta));
-    }
   }
   private ancestorCount(node: Node): number {
     let d = 0;
@@ -3871,7 +3834,8 @@ export class OmniboardCanvas {
    *  dragged out of it, it stops being one. */
   private adoptIntoSubprocess(node: Node): void {
     const kind = this.nodeKind(node);
-    if (kind === "bpmn-pool" || kind === "bpmn-lane" || !node.isVisible()) return;
+    // Notes stay at process level, as in bpmn-js.
+    if (kind === "bpmn-pool" || kind === "bpmn-lane" || kind === "bpmn-annotation" || !node.isVisible()) return;
     const c = node.getBBox().center;
     const own = new Set([node.id, ...node.getDescendants().map((x) => x.id), node.getData()?.attachedTo]);
     const host = this.graph.getNodes()
@@ -4944,7 +4908,6 @@ export class OmniboardCanvas {
       if (a.bpmnStroke) phaseD.bpmnStroke = a.bpmnStroke;
       if (a.camunda) phaseD.camunda = a.camunda;
       if (a.bpmnProps) phaseD.bpmnProps = a.bpmnProps;
-      if (a.subRoom) phaseD.subRoom = a.subRoom;
       if (Object.keys(phaseD).length) node.setData({ ...node.getData(), ...phaseD });
     }
     // Build a center-point index for auto port inference (used below).
@@ -5359,7 +5322,6 @@ export class OmniboardCanvas {
           bpmnStroke: n.getData()?.bpmnStroke,
           camunda: n.getData()?.camunda,
           bpmnProps: n.getData()?.bpmnProps,
-          subRoom: n.getData()?.subRoom,
           __source: n.getData()?.__source,
         },
       };

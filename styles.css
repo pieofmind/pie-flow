@@ -473,7 +473,14 @@ button.lk-mm-fab {
   position: absolute; z-index: 60;
   background: var(--pg-surface); border: 1px solid var(--pg-border);
   border-radius: 12px; box-shadow: var(--sh-md);
+  /* Never taller than the board: a long shape list scrolls inside the card. */
+  max-height: calc(100% - 16px); overflow-y: auto; overscroll-behavior: contain;
 }
+/* The layer is the card: a shape grid inside it draws no second card, and a
+   title stays on top while the list scrolls. */
+.lk-popup-layer .lk-shape-grid { background: none; border: 0; border-radius: 0; box-shadow: none; }
+.lk-popup-layer .lk-shape-popup .lk-shape-grid { padding-top: 0; }
+.lk-popup-layer .lk-flyout-title { position: sticky; top: 0; z-index: 1; background: var(--pg-surface); padding: 10px 12px 6px; }
 .lk-shape-grid {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 8px;
   background: var(--pg-surface); border: 1px solid var(--pg-border);

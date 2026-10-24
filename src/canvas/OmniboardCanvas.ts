@@ -307,6 +307,13 @@ function keepOrigin(d: string): { offsetX: number; offsetY: number } {
   const b = Path.parse(d).bbox();
   return b ? { offsetX: -b.width / 2 - b.x, offsetY: -b.height / 2 - b.y } : { offsetX: 0, offsetY: 0 };
 }
+/** A radius-4 circle on the marker axis as 4 cubic curves: X6 normalises
+ *  marker paths and mangles a two-arc circle into a partial one. */
+function circlePath(cx: number, r = 4): string {
+  const k = r * 0.5523;
+  return `M${cx + r} 0 C${cx + r} ${k} ${cx + k} ${r} ${cx} ${r} C${cx - k} ${r} ${cx - r} ${k} ${cx - r} 0 `
+    + `C${cx - r} ${-k} ${cx - k} ${-r} ${cx} ${-r} C${cx + k} ${-r} ${cx + r} ${-k} ${cx + r} 0`;
+}
 /** BPMN-style heads share the default arrow's size (12×9) so no flow type looks heavier. */
 function markerOf(kind: string | undefined, color: string): Record<string, unknown> | null {
   switch (kind) {
@@ -318,14 +325,15 @@ function markerOf(kind: string | undefined, color: string): Record<string, unkno
     case "diamond-o": return { name: "diamond", width: 14, height: 9, fill: "#fff", stroke: color, "stroke-width": 1.5 }; // thoi rỗng (aggregation)
     case "circle": return { name: "circle", r: 4.5, fill: "#fff", stroke: color, "stroke-width": 1.5 }; // tròn rỗng
     case "circle-f": return { name: "circle", r: 4.5, fill: color };                                 // tròn đặc
-    // ERD crow's foot — single path (fan / bar / combos). Base toward node at x=0.
-    case "crow": return { name: "path", d: "M14 -8 0 0 14 8 M14 0 0 0", fill: "none", stroke: color, "stroke-width": 1.5 };       // many (n)
+    // ERD crow's foot — single path (fan / bar / combos). Marker +x runs away from
+    // the node: the foot's prongs spread ON the node (x=0), the apex points back along the line.
+    case "crow": return { name: "path", d: "M0 -8 14 0 0 8 M0 0 14 0", fill: "none", stroke: color, "stroke-width": 1.5 };       // many (n)
     case "bar": return { name: "path", d: "M6 -8 6 8", fill: "none", stroke: color, "stroke-width": 1.5 };                         // one (1)
-    case "crow-bar": return { name: "path", d: "M16 -8 2 0 16 8 M16 0 2 0 M14 -8 14 8", fill: "none", stroke: color, "stroke-width": 1.5 }; // one-or-many (1..n)
+    case "crow-bar": return { name: "path", d: "M0 -8 14 0 0 8 M0 0 14 0 M18 -8 18 8", fill: "none", stroke: color, "stroke-width": 1.5 }; // one-or-many (1..n)
     case "bar-bar": return { name: "path", d: "M5 -8 5 8 M10 -8 10 8", fill: "none", stroke: color, "stroke-width": 1.5 };          // exactly one (1,1)
     // Story 2.4 — crow's foot zero-variants (DBML nullable FK).
-    case "circle-bar": return { name: "path", d: "M14 -8 14 8 M9 0 a4 4 0 1 0 -8 0 a4 4 0 1 0 8 0", fill: "none", stroke: color, "stroke-width": 1.5 }; // zero-or-one (0..1)
-    case "crow-circle": return { name: "path", d: "M18 -8 4 0 18 8 M18 0 4 0 M3 0 a3 3 0 1 0 -6 0 a3 3 0 1 0 6 0", fill: "none", stroke: color, "stroke-width": 1.5 }; // zero-or-many (0..n)
+    case "circle-bar": return { name: "path", d: `M6 -8 6 8 ${circlePath(15)}`, fill: "none", stroke: color, "stroke-width": 1.5 }; // zero-or-one (0..1)
+    case "crow-circle": return { name: "path", d: `M0 -8 14 0 0 8 M0 0 14 0 ${circlePath(19)}`, fill: "none", stroke: color, "stroke-width": 1.5 }; // zero-or-many (0..n)
     // BPMN Default Flow marker — diagonal slash at source end (Đợt C).
     case "def-slash": return { name: "path", d: "M2 -6 10 6", fill: "none", stroke: color, "stroke-width": 1.8 };
     case "none": default: return null;

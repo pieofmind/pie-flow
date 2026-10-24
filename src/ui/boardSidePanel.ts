@@ -32,7 +32,7 @@ export function boardOutline(model: CanvasModel): Array<{ title: string; note?: 
 
 /**
  * Left panel of the board tab: "Cấu trúc" (outline, click → fly to the step)
- * and "Lỗi BPMN" (same validator + rows as BpmnIssuesView). Plain DOM, rebuilt
+ * and "Lỗi BPMN" (validateBpmnModel rows). Plain DOM, rebuilt
  * on refresh() — boards are small enough that diffing isn't worth it.
  */
 export class BoardSidePanel {
@@ -97,6 +97,11 @@ export class BoardSidePanel {
       }
     }
     this.markSelected(this.selectedId);
+  }
+
+  showTab(tab: Tab): void {
+    this.tab = tab;
+    this.refresh();
   }
 
   /** Highlight the row of the node selected on the canvas. */

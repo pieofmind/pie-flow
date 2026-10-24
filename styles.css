@@ -177,16 +177,26 @@
    their own touch-action. */
 .lk-graph-mount { position: absolute; inset: 0; touch-action: none; }
 
-/* Board dark mode (n8n-style): the drawing gets its own neutral dark palette —
-   charcoal board, shapes one step lighter, bright outlines and text — instead of
-   an inverted light board. Colors the user picked are shown as picked; shapes
-   with their own fill keep dark text (rule below). Export stays light. */
-.lk-root.lk-dark { color-scheme: dark; background: #1b1b1b; }
+/* Board dark mode (n8n-style): ONE neutral dark palette (no warm/brown tint) for
+   the board AND its chrome — topbar, side panel, toolbars, menus. Set on the
+   .lk-root and on the board view that holds it, so every --pg-* consumer
+   inside follows; only the drawing overrides what differs (outlines, shadows).
+   Colors the user picked are shown as picked; shapes with their own fill keep
+   dark text (rule below). Export stays light. */
+.lk-root.lk-dark,
+.da-board-view:has(.lk-root.lk-dark) {
+  --pg-bg: #202020; --pg-canvas: #1b1b1b; --pg-surface: #282828; --pg-surface-2: #303030;
+  --pg-text: #f4f5f7; --pg-text-muted: #b5b7c1; --pg-text-soft: #8b8d96;
+  --pg-border: rgba(199,201,214,.16); --pg-border-strong: rgba(199,201,214,.28); --pg-hover: rgba(244,245,247,.08);
+  --pg-accent-soft: rgba(94,143,185,.24);
+  --sh-sm: 0 1px 2px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.3);
+  --sh-md: 0 4px 10px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.35);
+  --sh-lg: 0 12px 28px rgba(0,0,0,.5), 0 28px 64px rgba(0,0,0,.4);
+}
+.lk-root.lk-dark { color-scheme: dark; background: var(--pg-canvas); }
 .lk-root.lk-dark .lk-mm-svg { filter: invert(93%) hue-rotate(180deg); }
 .lk-root.lk-dark .lk-graph-mount,
 .lk-root.lk-dark .lk-html-layer {
-  --pg-canvas: #1b1b1b; --pg-surface: #282828; --pg-surface-2: #303030;
-  --pg-text: #f4f5f7; --pg-text-muted: #b5b7c1; --pg-text-soft: #8b8d96;
   --pg-border: rgba(199,201,214,.22); --pg-border-strong: #c7c9d6;
   --sh-sm: none; --sh-md: none; --sh-lg: none;
 }
@@ -202,7 +212,7 @@
 .lk-root.lk-dark .x6-edge [fill="#fff"] { fill: var(--pg-canvas); }
 /* A shape with its own fill (picked, or a sticky) is a light card: keep paper text. */
 .lk-root.lk-dark .hn [style*="background:"] {
-  --pg-text: #3B1F1A; --pg-text-muted: rgba(59,31,26,0.66); --pg-text-soft: rgba(59,31,26,0.42);
+  --pg-text: #1d1d1f; --pg-text-muted: rgba(29,29,31,.66); --pg-text-soft: rgba(29,29,31,.42);
 }
 /* ── Board tab: left side panel (Cấu trúc / Lỗi BPMN) — layout A of the prototype ── */
 .da-board-main { flex: 1; min-height: 0; display: flex; }
@@ -248,23 +258,11 @@ button.da-tb-pop-item { width: 100%; height: 34px; display: flex; align-items: c
 button.da-tb-pop-item:hover { background: var(--pg-hover); color: var(--pg-text); }
 .da-tb-pop-item .svg-icon { width: 16px; height: 16px; flex: none; }
 
-.lk-root.lk-dark > :not(.lk-graph-mount):not(.lk-html-layer),
-.da-board-view:has(.lk-root.lk-dark) > .da-topbar,
-.da-board-view:has(.lk-root.lk-dark) .da-side {
-  --pg-bg: #1b1917; --pg-surface: #262321; --pg-surface-2: #2e2a27;
-  --pg-text: #ece4da; --pg-text-muted: rgba(236,228,218,.68); --pg-text-soft: rgba(236,228,218,.45);
-  --pg-border: rgba(236,228,218,.14); --pg-border-strong: rgba(236,228,218,.24); --pg-hover: rgba(236,228,218,.08);
-  --sh-sm: 0 1px 2px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.3);
-  --sh-md: 0 4px 10px rgba(0,0,0,.45), 0 10px 24px rgba(0,0,0,.35);
-  --sh-lg: 0 12px 28px rgba(0,0,0,.5), 0 28px 64px rgba(0,0,0,.4);
-}
 /* Obsidian's own rules (button, input, select, scrollbar…) still reach elements
    inside the board and read the theme's vars — point those vars at Pie Flow
-   tokens so no theme colour leaks in. Re-declared on the dark chrome so it
-   resolves against the dark tokens there. */
-.da-board-view, .lk-root,
-.lk-root.lk-dark > :not(.lk-graph-mount):not(.lk-html-layer),
-.da-board-view:has(.lk-root.lk-dark) > .da-topbar {
+   tokens so no theme colour leaks in. Declared on the same elements as the dark
+   palette, so it resolves against the dark tokens in dark mode. */
+.da-board-view, .lk-root {
   --interactive-normal: transparent; --interactive-hover: var(--pg-hover);
   --interactive-accent: var(--pg-accent); --interactive-accent-hover: var(--pg-accent); --text-on-accent: var(--pg-accent-ink);
   --input-shadow: none; --input-shadow-hover: none;

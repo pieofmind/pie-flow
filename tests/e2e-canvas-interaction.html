@@ -189,11 +189,27 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
       const ta = [...document.querySelectorAll('.lk-label-input')].pop();
       const top = ta.getBoundingClientRect().top - root.top;
       const b = cell(id).getBBox();
-      const cs = getComputedStyle(ta); const look = { backgroundColor: cs.backgroundColor, fontSize: cs.fontSize }; const taskFont = id === 'lb_tk' ? getComputedStyle(document.querySelector('[data-cell-id="lb_tk"] .bp-task')).fontSize : '';
+      let caretBox = null;
+      if (id === 'lb_tk') {
+        ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); ta.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+        await tick(50);
+        const c = document.querySelector('.lk-thick-caret');
+        caretBox = c && getComputedStyle(c).display !== 'none' ? c.getBoundingClientRect() : null;
+      }
+      const cs = getComputedStyle(ta); const look = { backgroundColor: cs.backgroundColor, fontSize: cs.fontSize, lineHeight: cs.lineHeight }; const taskFont = id === 'lb_tk' ? getComputedStyle(document.querySelector('[data-cell-id="lb_tk"] .bp-task')).fontSize : '';
       ta.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
       await tick(50);
       if (id === 'lb_tk') {
         assert(Math.abs(top - b.y) < 3, 'task editor not on its box: ' + top);
+        assert(caretBox && caretBox.width === 2 && caretBox.left > root.left + b.x + b.width / 2 && caretBox.right < root.left + b.x + b.width, 'thick caret not after the text: ' + JSON.stringify(caretBox));
+        g().zoomTo(2); await tick(100);
+        window.__ob.editLabel(cell(id)); await tick(50);
+        const z = getComputedStyle([...document.querySelectorAll('.lk-label-input')].pop());
+        const zoomed = { lineHeight: z.lineHeight, fontSize: z.fontSize };
+        document.querySelector('.lk-label-input').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        g().zoomTo(1); await tick(50);
+        assert(parseFloat(zoomed.lineHeight) > parseFloat(zoomed.fontSize), 'editor lines overlap at zoom 2: line-height ' + zoomed.lineHeight + ' < font ' + zoomed.fontSize);
+        assert(!document.querySelector('.lk-thick-caret'), 'caret left behind after closing');
         assert(look.backgroundColor === 'rgba(0, 0, 0, 0)' && look.fontSize === taskFont, 'task editor should be in place: ' + look.backgroundColor + ' ' + look.fontSize + ' vs ' + taskFont);
       }
       else assert(top >= b.y + b.height, id + ' editor covers the icon: top ' + top + ' < ' + (b.y + b.height));

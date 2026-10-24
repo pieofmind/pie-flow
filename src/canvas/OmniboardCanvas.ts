@@ -5445,16 +5445,35 @@ export class OmniboardCanvas {
     if (!cell) return false;
     this.graph.resetSelection([cell]);
     if (cell.isNode()) {
-      const n = cell as Node;
-      const p = n.getPosition();
-      const s = n.getSize();
-      const cx = p.x + s.width / 2;
-      const cy = p.y + s.height / 2;
-      this.graph.centerPoint(cx, cy);
+      const b = (cell as Node).getBBox();
+      this.flyTo({ x: b.x - 160, y: b.y - 120, width: b.width + 320, height: b.height + 240 }, 1.2);
     }
     this.refreshContextBar();
     this.refreshProps();
     return true;
+  }
+
+  private flyAnim = 0;
+  /** Pan + zoom to a rect with an ease-out (≈460ms); a newer call cancels the running one. */
+  private flyTo(r: { x: number; y: number; width: number; height: number }, maxScale: number): void {
+    const box = this.graphMount.getBoundingClientRect();
+    const s1 = Math.max(0.1, Math.min(maxScale, (box.width - 120) / r.width, (box.height - 120) / r.height));
+    const a = this.graph.getGraphArea();
+    const s0 = this.graph.scale().sx;
+    const c0 = { x: a.x + a.width / 2, y: a.y + a.height / 2 };
+    const c1 = { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+    const id = ++this.flyAnim;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const t0 = performance.now();
+    const step = (now: number): void => {
+      if (id !== this.flyAnim) return;
+      const t = reduce ? 1 : 1 - Math.pow(1 - Math.min(1, (now - t0) / 460), 4);
+      this.graph.zoomTo(s0 + (s1 - s0) * t);
+      this.graph.centerPoint(c0.x + (c1.x - c0.x) * t, c0.y + (c1.y - c0.y) * t);
+      this.updateZoom();
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   /**

@@ -901,6 +901,8 @@
 .lk-root .bp-frame.bp-sub { position: relative; width: 100%; height: 100%; box-sizing: border-box; border: 1.6px solid var(--pg-border-strong); border-radius: 9px; background: color-mix(in srgb, var(--pg-accent) 4%, var(--pg-surface)); box-shadow: var(--sh-sm); }
 .lk-root .bp-frame-lbl { position: absolute; top: 8px; left: 0; right: 0; text-align: center; font-size: 12.5px; font-weight: 600; color: var(--pg-text); }
 .lk-root .bp-plus { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 15px; height: 15px; border: 1.4px solid var(--pg-text-muted); border-radius: 2px; display: grid; place-items: center; font-size: 12px; line-height: 1; color: var(--pg-text-muted); }
+.lk-root .bp-drill { position: absolute; bottom: 5px; right: 6px; width: 15px; height: 15px; display: grid; place-items: center; color: var(--pg-text-muted); cursor: pointer; border-radius: 2px; }
+.lk-root .bp-drill:hover, .lk-root .bp-plus:hover { color: var(--pg-accent); border-color: var(--pg-accent); }
 /* Đợt B — sibling Activity types (Transaction / Event sub-process / Call activity) */
 .lk-root .bp-frame.is-transaction { box-shadow: inset 0 0 0 2.5px var(--pg-surface), inset 0 0 0 4px var(--pg-border-strong), var(--sh-sm); }
 .lk-root .bp-frame.is-event-sub { border-style: dashed; }

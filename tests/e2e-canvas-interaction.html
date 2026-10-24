@@ -628,6 +628,42 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     window.__ob.setTool('select');
   });
 
+  await run('⊞ pushes the shapes right of / below the sub-process away, − puts them back; the drill arrow opens its page', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'pp', shape: 'bpmn-pool', x: 0, y: 0, width: 900, height: 400, label: 'P', attrs: { lanes: [{ id: 'l1', label: 'L1' }, { id: 'l2', label: 'L2' }] } },
+      { id: 'ps', shape: 'bpmn-subprocess', x: 200, y: 40, width: 120, height: 80, label: 'Sub', laneId: 'l1', attrs: { collapsed: true } },
+      { id: 'pa', shape: 'bpmn-task', x: 0, y: 0, width: 100, height: 80, label: 'A', parentId: 'ps' },
+      { id: 'pb', shape: 'bpmn-task', x: 300, y: 0, width: 100, height: 80, label: 'B', parentId: 'ps' },
+      { id: 'pr', shape: 'bpmn-task', x: 400, y: 40, width: 100, height: 80, label: 'Right', laneId: 'l1' },
+      { id: 'pd', shape: 'bpmn-task', x: 200, y: 260, width: 100, height: 80, label: 'Down', laneId: 'l2' },
+      { id: 'pn', shape: 'bpmn-annotation', x: 150, y: 130, width: 200, height: 40, label: 'Note', laneId: 'l1' },
+    ], edges: [{ id: 'pe', source: 'ps', target: 'pr' }] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(300);
+    // the shapes around it, and the pool lanes (ids only: growing gives them explicit heights)
+    const around = () => JSON.stringify(window.__ob.getModel().nodes.filter((n) => !['ps', 'pa', 'pb'].includes(n.id))
+      .map((n) => [n.id, n.x, n.y, n.width, n.height, (n.attrs?.lanes ?? []).map((l) => l.id)]));
+    const before = around();
+    clickToggle('ps');
+    await tick(200);
+    const f = mnode('ps');
+    const hit = ['pr', 'pd', 'pn'].filter((id) => { const n = mnode(id); return n.x < f.x + f.width && n.x + n.width > f.x && n.y < f.y + f.height && n.y + n.height > f.y; });
+    assert(!hit.length, 'frame covers ' + hit);
+    assert(mnode('pn').width === 200, 'note stretched: ' + mnode('pn').width);
+    assert(mnode('pp').width > 900 && mnode('pp').height > 400, 'pool did not grow: ' + [mnode('pp').width, mnode('pp').height]);
+    clickToggle('ps');
+    await tick(200);
+    const after = around();
+    assert(after === before, 'not put back:\n' + before + '\n' + after);
+    assert(!mnode('ps').attrs?.subRoom, 'room still recorded after closing');
+    const dr = document.querySelector('[data-cell-id="ps"] [data-sub-drill]');
+    assert(dr, 'no drill arrow on the closed sub-process');
+    const r = dr.getBoundingClientRect();
+    for (const t of ['mousedown', 'mouseup', 'click']) dr.dispatchEvent(new MouseEvent(t, { bubbles: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, button: 0 }));
+    await tick(300);
+    assert(cell('pa').isVisible() && !cell('pr').isVisible() && document.querySelector('.lk-crumbs'), 'drill arrow did not open the page');
+  });
+
   await run('find: Ctrl+F opens the box; typing selects the first match, Enter goes to the next, Esc closes', async () => {
     window.__ob.loadModel({ nodes: [
       { id: 'fa', shape: 'bpmn-task', x: 100, y: 100, width: 100, height: 60, label: 'Gọi khách hàng' },

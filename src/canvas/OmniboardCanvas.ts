@@ -1541,7 +1541,7 @@ export class OmniboardCanvas {
     // dispatch to a specific child-label editor first, fall back to whole-node label.
     this.graph.on("node:dblclick", ({ node, e }) => {
       e.stopPropagation();
-      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle]")) return;
+      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle], [data-sub-drill]")) return;
       if (this.tryEditChildLabel(e.target as HTMLElement | null, node as Node)) return;
       this.editLabel(node as Node);
     });
@@ -1551,6 +1551,11 @@ export class OmniboardCanvas {
       if ((e.target as HTMLElement | null)?.closest?.("[data-sub-toggle]")) {
         e.stopPropagation();
         this.toggleSubprocess(node as Node);
+        return;
+      }
+      if ((e.target as HTMLElement | null)?.closest?.("[data-sub-drill]")) {
+        e.stopPropagation();
+        this.enterSubprocess(node as Node);
         return;
       }
       if (this.lastSelectedAt.get(node.id) === undefined) return;
@@ -3699,6 +3704,13 @@ export class OmniboardCanvas {
     this.refreshSubprocessVisibility();
     const kids = (node.getChildren() ?? []).filter((c): c is Node => c.isNode());
     const lay = openLayout(node.getPosition(), kids.map((k) => ({ ...k.getPosition(), ...k.getSize() })));
+    // Push the shapes right of / below the box away so the frame covers none of them.
+    const b = node.getBBox();
+    const room = { x: Math.max(0, lay.width - b.width), y: Math.max(0, lay.height - b.height) };
+    const skip = this.subtreeIds(node);
+    this.pushRoom("x", b.x + b.width, room.x, skip);
+    this.pushRoom("y", b.y + b.height, room.y, skip);
+    if (room.x || room.y) node.setData({ ...node.getData(), subRoom: room }, { deep: false });
     kids.forEach((k) => k.translate(lay.dx, lay.dy));
     node.resize(lay.width, lay.height);
     node.setZIndex(frameZ(this.nodeKind(node), this.ancestorCount(node)));
@@ -3708,12 +3720,54 @@ export class OmniboardCanvas {
     const d = node.getData() ?? {};
     const empty = !(node.getChildren() ?? []).some((c) => c.isNode());
     const toTask = empty && this.nodeKind(node) === "bpmn-subprocess";
+    // Give back the room opening it pushed out (none when it came open from BPMN).
+    const room = d.subRoom as { x: number; y: number } | undefined;
+    if (room) {
+      const b = node.getBBox();
+      const skip = this.subtreeIds(node);
+      this.pushRoom("y", b.y + b.height, -room.y, skip);
+      this.pushRoom("x", b.x + b.width, -room.x, skip);
+    }
     node.setData(toTask
-      ? { ...d, kind: "bpmn-task", markers: [...((d.markers ?? []) as string[]), "subprocess"], collapsed: true }
-      : { ...d, collapsed: true }, { deep: false });
+      ? { ...d, kind: "bpmn-task", markers: [...((d.markers ?? []) as string[]), "subprocess"], collapsed: true, subRoom: undefined }
+      : { ...d, collapsed: true, subRoom: undefined }, { deep: false });
     node.resize(SUB_CLOSED.width, SUB_CLOSED.height);
     if (toTask) node.toFront();
     this.rerender(node);
+  }
+  private subtreeIds(node: Node): Set<string> {
+    return new Set([node.id, ...node.getDescendants().map((c) => c.id)]);
+  }
+  /** The space tool in one step: open (delta > 0) or close room at `line`,
+   *  leaving the `skip` shapes (and arrows touching them) where they are. */
+  private pushRoom(axis: Axis, line: number, delta: number, skip: Set<string>): void {
+    if (!delta) return;
+    const nodes = this.graph.getNodes().filter((n) => n.isVisible() && !skip.has(n.id));
+    const plan = planSpace(nodes.map((n) => {
+      const b = n.getBBox();
+      // A note the line crosses moves with its centre rather than stretching.
+      const frame = FRAME_KINDS.has(this.nodeKind(n)) && this.nodeKind(n) !== "bpmn-annotation";
+      return { id: n.id, x: b.x, y: b.y, w: b.width, h: b.height, frame, parentId: n.getParent()?.id };
+    }), axis, line);
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    for (const id of plan.move) byId.get(id)!.translate(axis === "x" ? delta : 0, axis === "y" ? delta : 0);
+    for (const id of plan.resize) {
+      const n = byId.get(id)!;
+      const z = n.getSize();
+      const ex = this.nodeExtra(n);
+      const horizontal = ex.poolHorizontal !== false;
+      // A pool cut along its stacking axis: the lane the line crosses takes the room.
+      if (this.nodeKind(n) === "bpmn-pool" && ex.lanes?.length && (horizontal ? "y" : "x") === axis) {
+        const grown = growLaneAt(asStackLanes(ex.lanes, horizontal), horizontal ? z.height : z.width, line - n.getPosition()[axis], delta);
+        n.setData({ ...n.getData(), lanes: fromStackLanesDeep(ex.lanes, grown, horizontal) }, { deep: false });
+      }
+      n.resize(z.width + (axis === "x" ? delta : 0), z.height + (axis === "y" ? delta : 0));
+      this.rerender(n);
+    }
+    for (const e of this.graph.getEdges()) {
+      if (skip.has(e.getSourceCellId()) || skip.has(e.getTargetCellId()) || !e.getVertices().length) continue;
+      e.setVertices(shiftVertices(e.getVertices(), axis, line, delta));
+    }
   }
   private ancestorCount(node: Node): number {
     let d = 0;
@@ -4890,6 +4944,7 @@ export class OmniboardCanvas {
       if (a.bpmnStroke) phaseD.bpmnStroke = a.bpmnStroke;
       if (a.camunda) phaseD.camunda = a.camunda;
       if (a.bpmnProps) phaseD.bpmnProps = a.bpmnProps;
+      if (a.subRoom) phaseD.subRoom = a.subRoom;
       if (Object.keys(phaseD).length) node.setData({ ...node.getData(), ...phaseD });
     }
     // Build a center-point index for auto port inference (used below).
@@ -5304,6 +5359,7 @@ export class OmniboardCanvas {
           bpmnStroke: n.getData()?.bpmnStroke,
           camunda: n.getData()?.camunda,
           bpmnProps: n.getData()?.bpmnProps,
+          subRoom: n.getData()?.subRoom,
           __source: n.getData()?.__source,
         },
       };

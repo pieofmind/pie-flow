@@ -432,8 +432,10 @@ function bpData(mod: string, shape: string, label: string, extra?: NodeExtra, cl
 function bpSub(mod: string, label: string, extra?: NodeExtra, tail = ""): string {
   const closed = extra?.collapsed === true;
   const toggle = `<span class="bp-plus" data-sub-toggle title="${closed ? "Mở sub-process" : "Thu gọn"}">${closed ? "+" : "−"}</span>`;
+  // Closed: also the bpmn-js drill-down arrow, opening its steps on their own page.
+  const drill = `<span class="bp-drill" data-sub-drill title="Mở trang riêng"><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 2h6v6M10 2 3 9"/></svg></span>`;
   return closed
-    ? `<div class="bp-task bp-sub-closed${mod}">${nl(label)}${toggle}${renderMarkers(extra?.markers)}${tail}</div>`
+    ? `<div class="bp-task bp-sub-closed${mod}">${nl(label)}${toggle}${drill}${renderMarkers(extra?.markers)}${tail}</div>`
     : `<div class="bp-frame bp-sub${mod}"><span class="bp-frame-lbl">${label}</span>${toggle}${renderMarkers(extra?.markers)}${tail}</div>`;
 }
 function bpTask(label: string, iconKey?: string, extra?: NodeExtra): string {

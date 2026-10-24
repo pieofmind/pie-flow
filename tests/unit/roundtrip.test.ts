@@ -779,11 +779,11 @@ describe("BPMN edge kinds — import + export round-trip", () => {
       .toBe("Process the payment carefully.");
   });
 
-  it("imports bioc:fill/stroke → node.attrs.bpmnFill/bpmnStroke", async () => {
+  it("imports bioc:fill/stroke as the node's own colour (attrs.style)", async () => {
     const { model } = await importBpmn(DOC_BIOC_XML);
     const a = model.nodes.find(n => n.id === "t")?.attrs as Record<string, unknown>;
-    expect(a.bpmnFill).toBe("#bbdefb");
-    expect(a.bpmnStroke).toBe("#1565c0");
+    expect(a.style).toEqual({ fill: "#bbdefb", stroke: "#1565c0" });
+    expect(a.bpmnFill).toBeUndefined();
   });
 
   it("exports documentation round-trip — bpmnDoc serialized to <bpmn:documentation>", async () => {
@@ -794,12 +794,32 @@ describe("BPMN edge kinds — import + export round-trip", () => {
     expect(xml).toMatch(/<bpmn:documentation>Updated doc\.<\/bpmn:documentation>/);
   });
 
-  it("exports bioc color round-trip — bpmnFill/bpmnStroke appear on BPMNShape", async () => {
+  it("exports bioc color round-trip — the node's style colour lands on BPMNShape", async () => {
     const { model, sourceMeta } = await importBpmn(DOC_BIOC_XML);
-    // User changes fill to red
-    (model.nodes.find(n => n.id === "t")!.attrs as Record<string, unknown>).bpmnFill = "#ff0000";
+    // User changes fill to red, clears the stroke
+    (model.nodes.find(n => n.id === "t")!.attrs as Record<string, unknown>).style = { fill: "#ff0000" };
     const xml = await exportBpmn(model, sourceMeta);
     expect(xml).toMatch(/bioc:fill="#ff0000"/);
+    expect(xml).not.toMatch(/bioc:stroke=/);
+  });
+
+  it("exports the colour of a node drawn on the Board (no DI shape in the file yet)", async () => {
+    const { model, sourceMeta } = await importBpmn(DOC_BIOC_XML);
+    model.nodes.push({ id: "t2", shape: "bpmn-task", x: 300, y: 100, width: 120, height: 60, label: "New",
+      attrs: { style: { fill: "#d6efe0", stroke: "transparent" } } } as never);
+    const xml = await exportBpmn(model, sourceMeta);
+    expect(xml).toMatch(/bpmnElement="t2"[^>]*bioc:fill="#d6efe0"|bioc:fill="#d6efe0"[^>]*bpmnElement="t2"/);
+    expect(xml).not.toMatch(/bioc:stroke="transparent"/);
+  });
+
+  it("a board drawn from scratch exports its colours with the bioc namespace", async () => {
+    const xml = await exportBpmn({ nodes: [
+      { id: "a", shape: "bpmn-task", x: 0, y: 0, width: 120, height: 60, label: "A", attrs: { style: { fill: "#fff3bf" } } },
+    ], edges: [] } as never);
+    expect(xml).toMatch(/xmlns:bioc="http:\/\/bpmn\.io\/schema\/bpmn\/biocolor\/1\.0"/);
+    expect(xml).toMatch(/bioc:fill="#fff3bf"/);
+    const { model } = await importBpmn(xml);
+    expect((model.nodes.find(n => n.id === "a")?.attrs as { style?: unknown }).style).toEqual({ fill: "#fff3bf" });
   });
 
   it("clears documentation when bpmnDoc is empty", async () => {

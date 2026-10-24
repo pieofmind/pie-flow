@@ -8,7 +8,6 @@ import { exportBpmn } from "../io/bpmn/export";
 import { importFromFile } from "../io/dispatcher";
 import { findById, FORMATS } from "../io/registry";
 import type { SourceMeta } from "../io/types";
-import { emitOmniboardSelectionChange, OMNIBOARD_PROPERTIES_VIEW_TYPE } from "../ui/PropertiesPanel";
 import { validateBpmnModel } from "../io/bpmn/validator";
 import type DiagramsPlugin from "../main";
 import { BoardEditor, type BoardEditorProps } from "../ui/BoardEditor";
@@ -286,7 +285,6 @@ export class BoardView extends TextFileView {
         try { canvas.loadModel(this.model); }
         finally { this.applyingDisk = false; }
         canvas.setSelectionChangeHandler(() => {
-          emitOmniboardSelectionChange();
           this.side?.markSelected(canvas.getSelectedNodeSnapshot()?.id ?? null);
         });
         this.side?.refresh();
@@ -319,7 +317,7 @@ export class BoardView extends TextFileView {
       onToggleSide: () => this.setSideOpen(!sideOpen),
       extraButtons: [
         { icon: "workflow", tip: "Chuyển sang BPMN Native", onClick: () => void this.switchToBpmnNativeView() },
-        { icon: "sliders-horizontal", tip: "BPMN properties", onClick: () => void this.openPropertiesLeaf(), inMenu: true },
+        { icon: "sliders-horizontal", tip: "Thuộc tính", onClick: () => this.showProperties(), inMenu: true },
         { icon: "alert-triangle", tip: "BPMN issues", onClick: () => this.showIssues(), inMenu: true },
         { icon: "file-text", tip: "Mở dưới dạng Markdown", onClick: () => void this.openAsMarkdown(), inMenu: true },
         { icon: "upload", tip: "Import (BPMN / DBML)", onClick: () => this.openImportPicker(), inMenu: true },
@@ -417,13 +415,8 @@ export class BoardView extends TextFileView {
     return this.canvas?.focusCellById(id) ?? false;
   }
 
-  private async openPropertiesLeaf(): Promise<void> {
-    const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_PROPERTIES_VIEW_TYPE)[0];
-    const leaf = existing ?? this.app.workspace.getRightLeaf(false);
-    if (!leaf) return;
-    await leaf.setViewState({ type: OMNIBOARD_PROPERTIES_VIEW_TYPE, active: true });
-    this.app.workspace.revealLeaf(leaf);
-    emitOmniboardSelectionChange();
+  showProperties(): void {
+    this.canvas?.openPropsPanel();
   }
 
   private setSideOpen(open: boolean): void {

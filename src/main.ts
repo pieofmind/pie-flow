@@ -6,7 +6,6 @@ import { renderModelToSvg, renderModelToCard, fitCardStage } from "./canvas/stat
 import { render, h } from "preact";
 import { AdapterRegistry } from "./core/registry";
 import { EmbedCard } from "./ui/EmbedCard";
-import { OMNIBOARD_PROPERTIES_VIEW_TYPE, OmniboardPropertiesView } from "./ui/PropertiesPanel";
 import type { DiagramAdapter } from "./core/adapter";
 import { DiagramsSettings, DEFAULT_SETTINGS, DiagramsSettingTab } from "./settings";
 import { BpmnNativeView, BPMN_NATIVE_VIEW_TYPE } from "./bpmn-native/BpmnNativeView";
@@ -54,12 +53,12 @@ export default class DiagramsPlugin extends Plugin {
     // ── Excalidraw-style board: shares the .md extension with Obsidian, but
     // auto-swaps to the board view when the file's frontmatter marks it as one.
     this.registerView(BOARD_VIEW_TYPE, (leaf) => new BoardView(leaf, this));
-    this.registerView(OMNIBOARD_PROPERTIES_VIEW_TYPE, (leaf) => new OmniboardPropertiesView(leaf));
-    // The right-sidebar "BPMN issues" view was replaced by the board's left
-    // panel tab; drop leaves an older version left in the saved workspace.
+    // The right-sidebar "BPMN issues" and "BPMN properties" views moved into the
+    // board (left panel tab / floating Thuộc tính panel); drop leaves an older
+    // version left in the saved workspace.
     this.app.workspace.onLayoutReady(() => {
       this.app.workspace.iterateAllLeaves((leaf) => {
-        if (leaf.getViewState().type === "omniboard-bpmn-issues") leaf.detach();
+        if (["omniboard-bpmn-issues", "omniboard-properties"].includes(leaf.getViewState().type)) leaf.detach();
       });
     });
     // ── BPMN Native Mode (spike): dedicated view for .bpmn files
@@ -179,12 +178,11 @@ export default class DiagramsPlugin extends Plugin {
     this.addCommand({
       id: "open-omniboard-properties",
       name: "Open Omniboard BPMN properties",
-      callback: async () => {
-        const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_PROPERTIES_VIEW_TYPE)[0];
-        const leaf = existing ?? this.app.workspace.getRightLeaf(false);
-        if (!leaf) return;
-        await leaf.setViewState({ type: OMNIBOARD_PROPERTIES_VIEW_TYPE, active: true });
-        this.app.workspace.revealLeaf(leaf);
+      checkCallback: (checking) => {
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf || leaf.view?.getViewType() !== BOARD_VIEW_TYPE) return false;
+        if (!checking) (leaf.view as BoardView).showProperties();
+        return true;
       },
     });
 

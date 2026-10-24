@@ -450,10 +450,6 @@ export async function importBpmn(raw: string, options?: ImportOptions): Promise<
       attrs: {
         // Phase C — preserve DI.isExpanded so collapse state survives round-trip.
         ...(di?.isExpanded === false ? { collapsed: true } : {}),
-        // Phase D — bioc/color-spec explicit fill/stroke stored separately so
-        // the panel can write back named DI attrs (not just canvas node style).
-        ...(fill ? { bpmnFill: fill } : {}),
-        ...(stroke ? { bpmnStroke: stroke } : {}),
         // Phase D — documentation text (first <bpmn:documentation> element body).
         ...((fn as unknown as BpmnElementShape).documentation?.[0]?.text
           ? { bpmnDoc: (fn as unknown as BpmnElementShape).documentation![0].text! }

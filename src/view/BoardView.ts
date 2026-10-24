@@ -9,7 +9,6 @@ import { importFromFile } from "../io/dispatcher";
 import { findById, FORMATS } from "../io/registry";
 import type { SourceMeta } from "../io/types";
 import { emitOmniboardSelectionChange, OMNIBOARD_PROPERTIES_VIEW_TYPE } from "../ui/PropertiesPanel";
-import { emitBpmnIssuesRefresh, OMNIBOARD_ISSUES_VIEW_TYPE } from "../ui/BpmnIssuesView";
 import { validateBpmnModel } from "../io/bpmn/validator";
 import type DiagramsPlugin from "../main";
 import { BoardEditor, type BoardEditorProps } from "../ui/BoardEditor";
@@ -290,7 +289,6 @@ export class BoardView extends TextFileView {
           emitOmniboardSelectionChange();
           this.side?.markSelected(canvas.getSelectedNodeSnapshot()?.id ?? null);
         });
-        emitBpmnIssuesRefresh();
         this.side?.refresh();
       },
     };
@@ -318,15 +316,11 @@ export class BoardView extends TextFileView {
       onClose: () => this.leaf.detach(),
       onSave: () => void (async () => { await this.save(); this.leaf.detach(); })(),
       onExport: (e) => this.showExportMenu(e),
-      onToggleSide: () => {
-        sideOpen = !sideOpen;
-        this.contentEl.toggleClass("da-side-hidden", !sideOpen);
-        if (sideOpen) this.side?.refresh();
-      },
+      onToggleSide: () => this.setSideOpen(!sideOpen),
       extraButtons: [
         { icon: "workflow", tip: "Chuyển sang BPMN Native", onClick: () => void this.switchToBpmnNativeView() },
         { icon: "sliders-horizontal", tip: "BPMN properties", onClick: () => void this.openPropertiesLeaf(), inMenu: true },
-        { icon: "alert-triangle", tip: "BPMN issues", onClick: () => void this.openIssuesLeaf(), inMenu: true },
+        { icon: "alert-triangle", tip: "BPMN issues", onClick: () => this.showIssues(), inMenu: true },
         { icon: "file-text", tip: "Mở dưới dạng Markdown", onClick: () => void this.openAsMarkdown(), inMenu: true },
         { icon: "upload", tip: "Import (BPMN / DBML)", onClick: () => this.openImportPicker(), inMenu: true },
       ],
@@ -344,7 +338,6 @@ export class BoardView extends TextFileView {
     if (this.applyingDisk) return;
     this.localEdits = true;
     this.requestSave();
-    emitBpmnIssuesRefresh();
   }
 
   /** Board model of a file's text, as a comparable string (null = unparseable). */
@@ -433,13 +426,16 @@ export class BoardView extends TextFileView {
     emitOmniboardSelectionChange();
   }
 
-  private async openIssuesLeaf(): Promise<void> {
-    const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_ISSUES_VIEW_TYPE)[0];
-    const leaf = existing ?? this.app.workspace.getRightLeaf(false);
-    if (!leaf) return;
-    await leaf.setViewState({ type: OMNIBOARD_ISSUES_VIEW_TYPE, active: true });
-    this.app.workspace.revealLeaf(leaf);
-    emitBpmnIssuesRefresh();
+  private setSideOpen(open: boolean): void {
+    sideOpen = open;
+    this.contentEl.toggleClass("da-side-hidden", !open);
+    if (open) this.side?.refresh();
+  }
+
+  /** BPMN issues live in the left side panel's "Lỗi BPMN" tab (menu "…" + command). */
+  showIssues(): void {
+    this.setSideOpen(true);
+    this.side?.showTab("issues");
   }
 
   private showExportMenu(e: MouseEvent): void {
@@ -539,7 +535,7 @@ export class BoardView extends TextFileView {
       if (JSON.stringify(parsed) === current) return;
       // A reload of the same file (outside change) keeps the user's zoom / pan.
       this.canvas.loadModel(this.model, { keepView: this.applyingDisk });
-      emitBpmnIssuesRefresh();
+      this.side?.refresh();
     }
   }
 
@@ -690,7 +686,7 @@ export class BoardView extends TextFileView {
         if (result.warnings.length) {
           for (const w of result.warnings.slice(0, 5)) notify("warn", w, 6000);
         }
-        emitBpmnIssuesRefresh();
+        this.side?.refresh();
       } catch (err) {
         notify("error", `Import lỗi: ${(err as Error).message}`, 8000);
       }
@@ -788,6 +784,5 @@ export class BoardView extends TextFileView {
       render(null, this.host);
     }
     this.canvas = null;
-    emitBpmnIssuesRefresh();
   }
 }

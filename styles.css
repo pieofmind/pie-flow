@@ -144,9 +144,9 @@
   --pg-accent: #5E8FB9;            /* muted productivity blue */
   --pg-accent-ink: #ffffff;
   --pg-accent-soft: rgba(94,143,185,0.16);
-  --pg-bg: #FFF4DE;                /* warm cream */
+  --pg-bg: #F4F5F7;                /* neutral light grey (inputs, chrome background) */
   --pg-surface: #FFFFFF;
-  --pg-surface-2: #FFFAF0;
+  --pg-surface-2: #F8F9FA;
   --pg-canvas: #FFFCF5;
   --pg-grid: rgba(59,31,26,0.07);
   --pg-text: #3B1F1A;             /* chocolate */

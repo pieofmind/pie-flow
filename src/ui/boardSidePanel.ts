@@ -1,3 +1,4 @@
+import { setIcon } from "obsidian";
 import { validateBpmnModel } from "../io/bpmn/validator";
 import { shapeIcon } from "../canvas/shapes/index";
 import type { CanvasModel } from "../canvas/types";
@@ -66,9 +67,11 @@ export class BoardSidePanel {
     this.paneEl.empty();
     if (!model) return;
     if (this.tab === "issues") {
-      if (!issues.length) this.paneEl.createDiv({ cls: "da-side-empty", text: "Không phát hiện lỗi semantic." });
+      // Same rows/classes as the BPMN issues sidebar view, just placed here.
+      const list = this.paneEl.createDiv({ cls: "da-side-issues omniboard-issues-view" });
+      if (!issues.length) list.createDiv({ cls: "da-side-empty", text: "Không phát hiện lỗi semantic." });
       for (const i of issues) {
-        const row = this.paneEl.createEl("button", { cls: `obi-row ${i.severity}`, attr: { "data-id": i.targetId } });
+        const row = list.createEl("button", { cls: `obi-row ${i.severity}`, attr: { "data-id": i.targetId } });
         row.createSpan({ cls: "obi-code", text: i.code });
         row.createSpan({ cls: "obi-msg", text: i.message });
       }
@@ -82,6 +85,7 @@ export class BoardSidePanel {
           const box = this.paneEl.createEl("details", { cls: "da-side-lane" });
           box.open = true;
           const sum = box.createEl("summary");
+          setIcon(sum, "chevron-right");
           sum.createSpan({ text: l.title || g.title });
           sum.createEl("em", { text: String(l.nodes.length) });
           for (const n of l.nodes) {

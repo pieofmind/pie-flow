@@ -1,4 +1,4 @@
-import { Menu, setIcon } from "obsidian";
+import { setIcon } from "obsidian";
 import type { OmniboardCanvas } from "../canvas/OmniboardCanvas";
 
 /**
@@ -94,15 +94,25 @@ export function buildBoardTopbar(
     const menuItems = opts.extraButtons.filter((eb) => eb.inMenu);
     for (const eb of opts.extraButtons) if (!eb.inMenu) iconBtn(eb.icon, eb.tip, eb.onClick);
     if (menuItems.length) {
-      const more = bar.createEl("button", { cls: "da-tb-ic" });
+      const wrap = bar.createDiv({ cls: "da-tb-more" });
+      const more = wrap.createEl("button", { cls: "da-tb-ic" });
       setIcon(more, "more-horizontal");
       more.setAttribute("aria-label", "Thêm");
       more.title = "Thêm";
+      const pop = wrap.createDiv({ cls: "da-tb-pop" });
+      const doc = bar.ownerDocument;
+      const close = (): void => { pop.removeClass("is-open"); doc.removeEventListener("pointerdown", outside, true); };
+      const outside = (e: Event): void => { if (!wrap.contains(e.target as Node)) close(); };
+      for (const eb of menuItems) {
+        const item = pop.createEl("button", { cls: "da-tb-pop-item" });
+        setIcon(item, eb.icon);
+        item.createSpan({ text: eb.tip });
+        item.onclick = () => { close(); eb.onClick(); };
+      }
       more.onclick = () => {
-        const menu = new Menu();
-        for (const eb of menuItems) menu.addItem((i) => i.setTitle(eb.tip).setIcon(eb.icon).onClick(eb.onClick));
-        const r = more.getBoundingClientRect();
-        menu.showAtPosition({ x: r.left, y: r.bottom + 4 });
+        if (pop.hasClass("is-open")) return close();
+        pop.addClass("is-open");
+        doc.addEventListener("pointerdown", outside, true);
       };
     }
   }

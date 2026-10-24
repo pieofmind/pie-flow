@@ -2905,7 +2905,7 @@ export class OmniboardCanvas {
     docTa.oninput = () => { save({ bpmnDoc: docTa.value.trim() || undefined }); };
     sDocs.appendChild(docTa);
 
-    // ── Camunda: extension attrs + camunda:property list (open when used) ─────
+    // ── Camunda: extension attrs + camunda:property list ─────────────────────
     const camunda = (d.camunda as Record<string, string> | undefined) ?? {};
     const CAMUNDA_FIELDS: Array<[string, string]> = [
       ["assignee", "Assignee"], ["candidateUsers", "Candidate users"], ["candidateGroups", "Candidate groups"],
@@ -2918,7 +2918,7 @@ export class OmniboardCanvas {
       const s = el("details", "lk-psec lk-pfold") as HTMLDetailsElement; s.open = open;
       s.appendChild(el("summary", "lk-psec-h", title)); body.appendChild(s); return s;
     };
-    const sCam = fold("Camunda", kind === "bpmn-task-user" || CAMUNDA_FIELDS.some(([k]) => camunda[k]) || props().length > 0);
+    const sCam = fold("Camunda", true);
     for (const [key, label] of CAMUNDA_FIELDS) {
       const inp = el("input", "lk-pinput") as HTMLInputElement;
       inp.value = camunda[key] ?? ""; inp.placeholder = label;

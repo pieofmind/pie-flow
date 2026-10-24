@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<!-- PROTOTYPE — vứt đi được. 4 phương án khung giao diện Pie Flow quanh canvas thật,
+     đổi bằng ?variant=A|B|C|D hoặc phím ← →. Chạy: npm run proto:ui -->
+<html lang="vi"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Pie Flow — prototype khung giao diện</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"/>
+<link rel="stylesheet" href="../styles.css"/>
+<link rel="stylesheet" href="./prototype-redesign.css"/>
+</head><body>
+<div id="app"></div>
+<div id="host" class="da-board-view"></div>
+<script>/* chỉ để kiểm khi tab bị ẩn */ if (location.search.includes("raf")) window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), 16);</script>
+<script src="./prototype-redesign.js"></script>
+</body></html>

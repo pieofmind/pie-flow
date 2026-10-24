@@ -552,6 +552,8 @@ button.lk-pad-fab { width: 22px; height: 22px; font-size: 15px; background: var(
 /* Mindmap variant uses the same rules (alias kept for backward compat) */
 .lk-label-textarea { padding: 6px 10px; }
 /* Vertical variant for Pool / Lane bands (text reads bottom-to-top, like the static label). */
+.lk-label-input.is-inbox { background: transparent; border: 0; box-shadow: none; color: var(--pg-text); }
+.lk-root .bp-task.is-label-editing { color: transparent; }
 .lk-label-input.is-vertical { writing-mode: vertical-rl; transform: rotate(180deg); transform-origin: center; padding: 6px 2px; font-weight: 700; }
 
 /* Minimap (overview navigator) — bottom-right */

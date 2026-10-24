@@ -46,7 +46,7 @@ export interface SelectedNodeSnapshot {
 // Row 1 = transparent + light surfaces/tints; Row 2 = brand cores + saturated extras.
 /** First entry = the default cream paper (stored as "no background"). */
 const BOARD_BG_SWATCHES = ["#FFFCF5", "#FFFFFF", "#F8F9FA", "#F5F0E6", "#EEF4FA", "#F3F0FA"];
-const BOARD_BG_SWATCHES_DARK = ["#1B1B1B", "#121212", "#1E2024", "#211E1B", "#1A2029", "#1F1C26"];
+const BOARD_BG_SWATCHES_DARK = ["#1B1B1B", "#121212", "#1E2024", "#242424", "#1A2029", "#1F1C26"];
 const GRID_DOT = { light: "#d4d0c8", dark: "#3a3a3a" };
 const ICON_SVG = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const ICON_MOON = ICON_SVG(`<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>`);

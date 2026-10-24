@@ -30,7 +30,7 @@ describe("paper board theme", () => {
     const block = /\n\.da-board-view\s*\{[^}]*\}/.exec(css)?.[0] ?? "";
     expect(block).not.toMatch(/var\(--background-primary|var\(--text-normal/);
     // Obsidian's own button/input rules read its theme vars → those vars point at Pie Flow tokens.
-    const shared = /\.da-board-view, \.lk-root,[^{]*\{[^}]*\}/.exec(css)?.[0] ?? "";
+    const shared = [...css.matchAll(/\.da-board-view, \.lk-root[^{]*\{[^}]*\}/g)].map((m) => m[0]).find((b) => b.includes("--interactive-normal")) ?? "";
     expect(shared).toMatch(/--background-primary:\s*var\(--pg-surface\)/);
     expect(shared).toMatch(/--text-normal:\s*var\(--pg-text\)/);
     expect(shared).toMatch(/--interactive-normal:\s*transparent/);

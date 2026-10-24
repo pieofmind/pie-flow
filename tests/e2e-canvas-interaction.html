@@ -15,6 +15,11 @@ body{margin:0;font-family:system-ui,sans-serif;background:#FFF4DE;}
 <script>
 // Multi-select drag moves each node once per tick; ports are easy to grab.
 // Serve the repo root (python3 -m http.server) and open tests/e2e-canvas-interaction.html.
+// A hidden / background tab never runs requestAnimationFrame, so the context bar
+// (drawn on the next frame) never shows and every button lookup fails. Frames on
+// a timer keep the suite independent of whether the page is on screen.
+window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), 16);
+window.cancelAnimationFrame = (id) => clearTimeout(id);
 const log = document.getElementById('log');
 const w = (s, cls='') => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = s; log.appendChild(d); };
 const results = [];

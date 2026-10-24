@@ -33566,6 +33566,26 @@
     }
   });
 
+  // src/io/bpmn/innerFlows.ts
+  function fixInnerMessageFlows(model) {
+    const parentOf = new Map(model.nodes.map((n2) => [n2.id, n2.parentId]));
+    const shapeOf = new Map(model.nodes.map((n2) => [n2.id, n2.shape]));
+    const isInner = (e2) => {
+      const p4 = parentOf.get(e2.source);
+      return !!p4 && p4 === parentOf.get(e2.target) && shapeOf.get(p4) !== "bpmn-pool";
+    };
+    if (!model.edges.some((e2) => e2.kind === "message" && isInner(e2))) return model;
+    return {
+      ...model,
+      edges: model.edges.map((e2) => {
+        if (e2.kind !== "message" || !isInner(e2)) return e2;
+        const { kind: _kind, style: style2, ...rest } = e2;
+        const keep = style2 && style2.flowType !== "message" ? { style: style2 } : {};
+        return { ...rest, ...keep };
+      })
+    };
+  }
+
   // ../../../../../../../Users/linhji/obsidian-dev/pie-flow/obsidian-omniboard/node_modules/@antv/x6-common/es/polyfill/index.js
   if (typeof window === "object" && window.NodeList && !NodeList.prototype.forEach) {
     NodeList.prototype.forEach = Array.prototype.forEach;
@@ -73065,15 +73085,15 @@
       case "arrow":
         return { name: "block", width: 12, height: 9, fill: color };
       case "arrow-open":
-        return { name: "path", d: "M 14 -7 0 0 14 7", fill: "none", stroke: color, "stroke-width": 1.8 };
+        return { name: "path", d: "M 12 -4.5 0 0 12 4.5", fill: "none", stroke: color, "stroke-width": 1.8 };
       case "triangle":
-        return { name: "block", width: 18, height: 15, fill: "#fff", stroke: color, "stroke-width": 1.5 };
+        return { name: "block", width: 12, height: 9, fill: "#fff", stroke: color, "stroke-width": 1.5 };
       case "triangle-f":
-        return { name: "block", width: 18, height: 15, fill: color };
+        return { name: "block", width: 12, height: 9, fill: color };
       case "diamond":
-        return { name: "diamond", width: 18, height: 11, fill: color };
+        return { name: "diamond", width: 14, height: 9, fill: color };
       case "diamond-o":
-        return { name: "diamond", width: 18, height: 11, fill: "#fff", stroke: color, "stroke-width": 1.5 };
+        return { name: "diamond", width: 14, height: 9, fill: "#fff", stroke: color, "stroke-width": 1.5 };
       case "circle":
         return { name: "circle", r: 4.5, fill: "#fff", stroke: color, "stroke-width": 1.5 };
       case "circle-f":
@@ -77821,7 +77841,7 @@
       this.drillRoot = null;
       this.drillViews = [];
       this.renderCrumbs();
-      model = this.dedupeLaneIdsAcrossPools(model);
+      model = fixInnerMessageFlows(this.dedupeLaneIdsAcrossPools(model));
       this.flushPendingRender();
       this.graph.clearCells();
       this.graph.startBatch("load");
@@ -85337,7 +85357,10 @@
       if (part.id && pr) ofPool.set(part.id, pr);
     }
     const pools = model.nodes.filter((n2) => n2.shape === "bpmn-pool" && ofPool.has(n2.id));
-    return (n2) => {
+    const byNode = new Map(model.nodes.map((x3) => [x3.id, x3]));
+    const owner = (n2, hops = 0) => {
+      const up = n2.parentId ? byNode.get(n2.parentId) : void 0;
+      if (up && hops < 20 && up.shape !== "bpmn-pool") return owner(up, hops + 1);
       const lane = n2.laneId ? ofLane.get(n2.laneId) : void 0;
       if (lane) return lane;
       const poolId = n2.attrs?.poolId;
@@ -85346,6 +85369,7 @@
       const pool = pools.find((p4) => cx >= p4.x && cx <= p4.x + p4.width && cy >= p4.y && cy <= p4.y + p4.height);
       return pool && ofPool.get(pool.id) || fallback;
     };
+    return (n2) => owner(n2);
   }
   function retype(m4, el2, type) {
     const next = m4.create(type, { id: el2.id });
@@ -85692,7 +85716,7 @@
   var LANE_HEADER = 30;
   var POOL_MARGIN = 40;
   async function exportBpmn(model, meta) {
-    const normalizedModel = normalizeModelIdsForBpmn(model);
+    const normalizedModel = normalizeModelIdsForBpmn(fixInnerMessageFlows(model));
     const m4 = moddle2();
     if (meta?.format === "bpmn") {
       const raw2 = String(meta.payload?.raw ?? "");
@@ -86364,6 +86388,8 @@
     const findOwningProcess = (n2) => {
       if (!multiPool) return process2;
       if (n2.parentId && processByPoolId.has(n2.parentId)) return processByPoolId.get(n2.parentId);
+      const up = n2.parentId ? model.nodes.find((x3) => x3.id === n2.parentId) : void 0;
+      if (up && up !== n2) return findOwningProcess(up);
       if (n2.laneId) {
         for (const pool of pools) {
           const ls = pool.attrs?.lanes ?? [];
@@ -86396,7 +86422,7 @@
     }
     const allProcesses = multiPool ? [...processByPoolId.values()] : [process2];
     for (const proc of allProcesses) {
-      const refsOf = (laneId) => model.nodes.filter((n2) => n2.laneId === laneId).map((n2) => feById.get(n2.id)).filter((fe3) => !!fe3);
+      const refsOf = (laneId) => model.nodes.filter((n2) => n2.laneId === laneId && findOwningProcess(n2) === proc).map((n2) => feById.get(n2.id)).filter((fe3) => !!fe3);
       for (const ls of proc.laneSets ?? []) fillLaneRefs(ls.lanes, refsOf);
     }
     const sfById = /* @__PURE__ */ new Map();

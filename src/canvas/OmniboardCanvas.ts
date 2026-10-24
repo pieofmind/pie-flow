@@ -298,14 +298,15 @@ function keepOrigin(d: string): { offsetX: number; offsetY: number } {
   const b = Path.parse(d).bbox();
   return b ? { offsetX: -b.width / 2 - b.x, offsetY: -b.height / 2 - b.y } : { offsetX: 0, offsetY: 0 };
 }
+/** BPMN-style heads share the default arrow's size (12×9) so no flow type looks heavier. */
 function markerOf(kind: string | undefined, color: string): Record<string, unknown> | null {
   switch (kind) {
     case "arrow": return { name: "block", width: 12, height: 9, fill: color };                       // mũi tên đặc
-    case "arrow-open": return { name: "path", d: "M 14 -7 0 0 14 7", fill: "none", stroke: color, "stroke-width": 1.8 }; // mũi tên hở
-    case "triangle": return { name: "block", width: 18, height: 15, fill: "#fff", stroke: color, "stroke-width": 1.5 }; // tam giác rỗng (kế thừa)
-    case "triangle-f": return { name: "block", width: 18, height: 15, fill: color };                 // tam giác đặc
-    case "diamond": return { name: "diamond", width: 18, height: 11, fill: color };                  // thoi đặc (composition)
-    case "diamond-o": return { name: "diamond", width: 18, height: 11, fill: "#fff", stroke: color, "stroke-width": 1.5 }; // thoi rỗng (aggregation)
+    case "arrow-open": return { name: "path", d: "M 12 -4.5 0 0 12 4.5", fill: "none", stroke: color, "stroke-width": 1.8 }; // mũi tên hở
+    case "triangle": return { name: "block", width: 12, height: 9, fill: "#fff", stroke: color, "stroke-width": 1.5 }; // tam giác rỗng (kế thừa)
+    case "triangle-f": return { name: "block", width: 12, height: 9, fill: color };                 // tam giác đặc
+    case "diamond": return { name: "diamond", width: 14, height: 9, fill: color };                  // thoi đặc (composition)
+    case "diamond-o": return { name: "diamond", width: 14, height: 9, fill: "#fff", stroke: color, "stroke-width": 1.5 }; // thoi rỗng (aggregation)
     case "circle": return { name: "circle", r: 4.5, fill: "#fff", stroke: color, "stroke-width": 1.5 }; // tròn rỗng
     case "circle-f": return { name: "circle", r: 4.5, fill: color };                                 // tròn đặc
     // ERD crow's foot — single path (fan / bar / combos). Base toward node at x=0.

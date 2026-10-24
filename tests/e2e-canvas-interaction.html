@@ -173,6 +173,28 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(Math.abs(sx - tx) < 0.5, 'task end moved: task end x ' + sx + ' vs pool end x ' + tx);
   });
 
+  await run('"Load more" in the insert-shape popup near the board bottom keeps it on the board, the rest scrolls', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'lm_tk', shape: 'bpmn-task', x: 100, y: 100, width: 100, height: 80, label: 'T' },
+    ], edges: [] });
+    g().zoomTo(1); g().translate(0, 0);
+    await tick(200);
+    const rootH = document.querySelector('.lk-root').clientHeight;
+    const e = g().addEdge({ source: { cell: 'lm_tk', port: 'bottom' }, target: { x: 150, y: rootH - 60 } });
+    assert(window.__ob.handleDragToBlank(e) === 'pending', 'picker did not open');
+    await tick(50);
+    const layer = window.__ob.popupLayer;
+    const more = layer.querySelector('.lk-flyout-more');
+    assert(more, 'no Load more button');
+    more.click();
+    await tick(50);
+    const top = parseFloat(layer.style.top), h = layer.offsetHeight;
+    const bottom = top + h, scrollH = layer.scrollHeight, overflow = getComputedStyle(layer).overflowY;
+    window.__ob.hidePopup();
+    assert(bottom <= rootH, 'popup cut off at the bottom: ' + bottom + ' > ' + rootH);
+    assert(overflow === 'auto' && scrollH >= h, 'popup should scroll: ' + overflow);
+  });
+
   await run('renaming an event / gateway / data store edits below the icon (bpmn-js), a task inside its box', async () => {
     window.__ob.loadModel({ nodes: [
       { id: 'lb_gw', shape: 'bpmn-gateway-x', x: 100, y: 100, width: 50, height: 50, label: '' },

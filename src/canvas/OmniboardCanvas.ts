@@ -833,6 +833,7 @@ export class OmniboardCanvas {
         for (const item of advanced) frag.appendChild(mkCell(item));
         more.parentElement?.insertBefore(frag, more);
         more.remove();
+        this.refitPopup(); // taller now: move up to stay on the board, the rest scrolls
       };
       grid.appendChild(more);
     }
@@ -925,6 +926,14 @@ export class OmniboardCanvas {
     const sc = this.graph.scale().sx; const tr = this.graph.translate();
     this.showPopupAt(wrap, pt.x * sc + tr.tx, pt.y * sc + tr.ty);
     return "pending";
+  }
+
+  /** Pull an open popup back inside the board after it grew (its CSS max-height
+   *  keeps it no taller than the board, so the overflow scrolls). */
+  private refitPopup(): void {
+    const top = parseFloat(this.popupLayer.style.top) || 0;
+    const maxTop = this.root.clientHeight - this.popupLayer.offsetHeight - 8;
+    if (top > maxTop) this.popupLayer.style.top = Math.max(8, maxTop) + "px";
   }
 
   /** Show the popup layer at a root-relative point (clamped into view). */

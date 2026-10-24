@@ -153,6 +153,26 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(src.cell === 'sp_other' && src.port === 'left', 'blank drop: ' + JSON.stringify(src));
   });
 
+  await run('a message flow end dropped on a pool lands straight above where the arrow leaves the task, not above its centre', async () => {
+    const load = () => window.__ob.loadModel({ nodes: [
+      { id: 'vp_khach', shape: 'bpmn-pool', x: 32, y: 0, width: 2350, height: 120, label: 'Khách', attrs: { blackBox: true } },
+      { id: 'vp_task', shape: 'bpmn-task-user', x: 1660, y: 1260, width: 100, height: 80, label: 'Nhắn Zalo' },
+    ], edges: [{ id: 'vp_m', source: 'vp_task', target: 'vp_khach', sourceAnchor: { dx: 90, dy: 0 }, targetAnchor: { dx: 1678, dy: 120 }, router: 'normal', kind: 'message' }] });
+    const mount = document.querySelector('.lk-graph-mount');
+    const xs = () => { const v = g().findViewByCell(cell('vp_m')); return [v.sourcePoint.x, v.targetPoint.x]; };
+    load(); await tick(300);
+    cell('vp_m').setTarget({ x: 1760, y: 110 });                 // pool end dragged onto the pool
+    mount.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+    await tick(150);
+    let [sx, tx] = xs();
+    assert(Math.abs(sx - tx) < 0.5, 'pool end dropped: task end x ' + sx + ' vs pool end x ' + tx);
+    load(); await tick(300);
+    cell('vp_m').setSource({ cell: 'vp_task', port: 'top-1' }); // task end moved to another port
+    await tick(150);
+    [sx, tx] = xs();
+    assert(Math.abs(sx - tx) < 0.5, 'task end moved: task end x ' + sx + ' vs pool end x ' + tx);
+  });
+
   // Does any segment of the edge's drawn route cross the box?
   const routeCrosses = (edgeId, box) => {
     const view = g().findViewByCell(cell(edgeId));

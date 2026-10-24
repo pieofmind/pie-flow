@@ -1466,6 +1466,14 @@ export class OmniboardCanvas {
     };
     this.graph.on("edge:change:source", onEndpointMoved);
     this.graph.on("edge:change:target", onEndpointMoved);
+    for (const end of ["source", "target"] as const) {
+      this.graph.on(`edge:change:${end}`, ({ edge, current }: { edge: Edge; current?: { cell?: string } }) => {
+        if (!current?.cell || this.graph.model.hasActiveBatch("load" as never)) return;
+        const changed = this.graph.getCellById(current.cell);
+        if (!changed?.isNode() || this.nodeKind(changed as Node) === "bpmn-pool") return;
+        this.realignPoolEnd(edge, end === "source" ? "target" : "source");
+      });
+    }
     // Reshape (segments tool) → reposition the bar so it tracks the new bbox.
     // A segment/vertex drag fires this continuously; rebuilding the whole edge
     // bar (innerHTML + ~10 SVG buttons + a getBoundingClientRect reflow) on every
@@ -4465,7 +4473,7 @@ export class OmniboardCanvas {
    *  allows to a participant). The topLeft anchor keeps its offset when the
    *  pool moves. */
   private endOnPool(edge: Edge, other: Node, pt: { x: number; y: number }, end: "source" | "target" = "target"): boolean {
-    const otherPt = (end === "target" ? edge.getSourcePoint() : edge.getTargetPoint()) ?? other.getBBox().center;
+    const otherPt = this.dockPoint(edge, end === "target" ? "source" : "target") ?? other.getBBox().center;
     const hit = this.poolAt(pt, otherPt, other.id);
     if (!hit) return false;
     const terminal = { cell: hit.pool.id, anchor: { name: "topLeft", args: hit.anchor }, connectionPoint: { name: "anchor" } };
@@ -4474,6 +4482,31 @@ export class OmniboardCanvas {
     this.applyFlowType(edge, "message");
     this.onChange();
     return true;
+  }
+
+  /** Where `end` of the arrow is drawn. (Edge.getSourcePoint() of a cell end
+   *  is the cell's centre, not the port / anchor the arrow leaves from.) */
+  private dockPoint(edge: Edge, end: "source" | "target"): { x: number; y: number } | null {
+    const view = this.graph.findViewByCell(edge) as EdgeView | null;
+    const p = end === "source" ? view?.sourcePoint : view?.targetPoint;
+    return p ? { x: p.x, y: p.y } : null;
+  }
+
+  /** bpmn-js keeps a message flow to a pool vertical: when the arrow's other end
+   *  moves to another port, slide the pool end along its border to stay above / below it. */
+  private realignPoolEnd(edge: Edge, poolEnd: "source" | "target"): void {
+    const term = (poolEnd === "source" ? edge.getSource() : edge.getTarget()) as { cell?: string; anchor?: { name?: string; args?: { dx: number; dy: number } } };
+    const pool = term.cell ? this.graph.getCellById(term.cell) : null;
+    if (!pool?.isNode() || this.nodeKind(pool as Node) !== "bpmn-pool" || term.anchor?.name !== "topLeft" || !term.anchor.args) return;
+    const view = this.graph.findViewByCell(edge) as EdgeView | null;
+    view?.confirmUpdate(view.getFlag(["source", "target", "update"]), {});   // X6 renders async: dock the moved end now
+    const other = this.dockPoint(edge, poolEnd === "source" ? "target" : "source");
+    if (!other) return;
+    const b = (pool as Node).getBBox();
+    const dx = Math.min(Math.max(other.x - b.x, 0), b.width);
+    if (Math.abs(dx - term.anchor.args.dx) < 0.5) return;
+    const next = { ...term, anchor: { ...term.anchor, args: { ...term.anchor.args, dx } } };
+    if (poolEnd === "source") edge.setSource(next as never); else edge.setTarget(next as never);
   }
 
   /** The (smallest) pool that takes an arrow end dropped at `pt`. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { boardOutline } from "./boardSidePanel";
+import { boardOutline, hasBpmn } from "./boardSidePanel";
 import type { CanvasModel } from "../canvas/types";
 
 const n = (id: string, x: number, extra: Partial<CanvasModel["nodes"][number]> = {}) =>
@@ -24,5 +24,21 @@ describe("boardOutline", () => {
     expect(out[0].lanes[0].nodes.map((x) => x.id)).toEqual(["a", "b"]);
     expect(out[1].note).toBe("Hộp đen · chỉ trao đổi tin");
     expect(out[2].lanes[0].nodes.map((x) => x.id)).toEqual(["free"]);
+  });
+
+  it("a board without pools groups its shapes by diagram type, not under \"Ngoài pool\"", () => {
+    const model = {
+      nodes: [
+        n("t2", 300, { shape: "erd-entity" }),
+        n("t1", 100, { shape: "erd-entity" }),
+        n("note", 50, { shape: "bs-sticky" }),
+      ],
+      edges: [],
+    } as CanvasModel;
+    const out = boardOutline(model);
+    expect(out.map((g) => g.title)).toEqual(["Cơ bản", "ERD"]);
+    expect(out[1].lanes[0].nodes.map((x) => x.id)).toEqual(["t1", "t2"]);
+    expect(hasBpmn(model)).toBe(false);
+    expect(hasBpmn({ nodes: [n("a", 0)], edges: [] } as CanvasModel)).toBe(true);
   });
 });

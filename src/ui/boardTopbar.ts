@@ -51,8 +51,8 @@ export function buildBoardTopbar(
   if (opts.onToggleSide) {
     const side = bar.createEl("button", { cls: "da-tb-ic da-tb-side" });
     setIcon(side, "panel-left");
-    side.setAttribute("aria-label", "Cấu trúc · Lỗi BPMN");
-    side.title = "Cấu trúc · Lỗi BPMN";
+    side.setAttribute("aria-label", "Cấu trúc");
+    side.title = "Cấu trúc";
     side.onclick = () => opts.onToggleSide!();
   }
 

@@ -237,9 +237,11 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
       await tick(200);
       const line = g().findViewByCell('cf_e').container.querySelector('path[marker-end]');
       const d = document.getElementById(line.getAttribute('marker-end').match(/#([^)]+)/)[1]).querySelector('path').getAttribute('d');
-      // marker space: +x runs away from the node; the foot's outer prongs (|y| = 8) must sit at the node (x = 0)
+      // marker space: +x runs away from the node; the foot's outer prongs must sit at the node (x = 0)
       const pts = [...d.matchAll(/(-?[\d.]+)[ ,]+(-?[\d.]+)/g)].map((m) => [+m[1], +m[2]]);
-      const prongs = pts.filter(([, y]) => Math.abs(y) === 8);
+      const half = Math.max(...pts.map(([, y]) => Math.abs(y)));
+      assert(half <= 6, kind + ': foot too big (half-spread ' + half + ')');
+      const prongs = pts.filter(([, y]) => Math.abs(y) === half);
       const footX = Math.min(...prongs.map(([x]) => x));
       const apexX = Math.max(...pts.filter(([, y]) => y === 0).map(([x]) => x));
       assert(footX === 0, kind + ': prongs not on the table: ' + d);

@@ -307,6 +307,13 @@ function keepOrigin(d: string): { offsetX: number; offsetY: number } {
   const b = Path.parse(d).bbox();
   return b ? { offsetX: -b.width / 2 - b.x, offsetY: -b.height / 2 - b.y } : { offsetX: 0, offsetY: 0 };
 }
+/** A radius-4 circle on the marker axis as 4 cubic curves: X6 normalises
+ *  marker paths and mangles a two-arc circle into a partial one. */
+function circlePath(cx: number, r = 4): string {
+  const k = r * 0.5523;
+  return `M${cx + r} 0 C${cx + r} ${k} ${cx + k} ${r} ${cx} ${r} C${cx - k} ${r} ${cx - r} ${k} ${cx - r} 0 `
+    + `C${cx - r} ${-k} ${cx - k} ${-r} ${cx} ${-r} C${cx + k} ${-r} ${cx + r} ${-k} ${cx + r} 0`;
+}
 /** BPMN-style heads share the default arrow's size (12×9) so no flow type looks heavier. */
 function markerOf(kind: string | undefined, color: string): Record<string, unknown> | null {
   switch (kind) {
@@ -318,14 +325,15 @@ function markerOf(kind: string | undefined, color: string): Record<string, unkno
     case "diamond-o": return { name: "diamond", width: 14, height: 9, fill: "#fff", stroke: color, "stroke-width": 1.5 }; // thoi rỗng (aggregation)
     case "circle": return { name: "circle", r: 4.5, fill: "#fff", stroke: color, "stroke-width": 1.5 }; // tròn rỗng
     case "circle-f": return { name: "circle", r: 4.5, fill: color };                                 // tròn đặc
-    // ERD crow's foot — single path (fan / bar / combos). Base toward node at x=0.
-    case "crow": return { name: "path", d: "M14 -8 0 0 14 8 M14 0 0 0", fill: "none", stroke: color, "stroke-width": 1.5 };       // many (n)
+    // ERD crow's foot — single path (fan / bar / combos). Marker +x runs away from
+    // the node: the foot's prongs spread ON the node (x=0), the apex points back along the line.
+    case "crow": return { name: "path", d: "M0 -8 14 0 0 8 M0 0 14 0", fill: "none", stroke: color, "stroke-width": 1.5 };       // many (n)
     case "bar": return { name: "path", d: "M6 -8 6 8", fill: "none", stroke: color, "stroke-width": 1.5 };                         // one (1)
-    case "crow-bar": return { name: "path", d: "M16 -8 2 0 16 8 M16 0 2 0 M14 -8 14 8", fill: "none", stroke: color, "stroke-width": 1.5 }; // one-or-many (1..n)
+    case "crow-bar": return { name: "path", d: "M0 -8 14 0 0 8 M0 0 14 0 M18 -8 18 8", fill: "none", stroke: color, "stroke-width": 1.5 }; // one-or-many (1..n)
     case "bar-bar": return { name: "path", d: "M5 -8 5 8 M10 -8 10 8", fill: "none", stroke: color, "stroke-width": 1.5 };          // exactly one (1,1)
     // Story 2.4 — crow's foot zero-variants (DBML nullable FK).
-    case "circle-bar": return { name: "path", d: "M14 -8 14 8 M9 0 a4 4 0 1 0 -8 0 a4 4 0 1 0 8 0", fill: "none", stroke: color, "stroke-width": 1.5 }; // zero-or-one (0..1)
-    case "crow-circle": return { name: "path", d: "M18 -8 4 0 18 8 M18 0 4 0 M3 0 a3 3 0 1 0 -6 0 a3 3 0 1 0 6 0", fill: "none", stroke: color, "stroke-width": 1.5 }; // zero-or-many (0..n)
+    case "circle-bar": return { name: "path", d: `M6 -8 6 8 ${circlePath(15)}`, fill: "none", stroke: color, "stroke-width": 1.5 }; // zero-or-one (0..1)
+    case "crow-circle": return { name: "path", d: `M0 -8 14 0 0 8 M0 0 14 0 ${circlePath(19)}`, fill: "none", stroke: color, "stroke-width": 1.5 }; // zero-or-many (0..n)
     // BPMN Default Flow marker — diagonal slash at source end (Đợt C).
     case "def-slash": return { name: "path", d: "M2 -6 10 6", fill: "none", stroke: color, "stroke-width": 1.8 };
     case "none": default: return null;
@@ -884,7 +892,7 @@ export class OmniboardCanvas {
     // smallest bbox so regular flow nodes win over big containers.
     const best = pickDropTarget(candidates.map((n) => ({ n, bbox: n.getBBox() })), pt)?.n;
     if (best) {
-      edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt)) as never);
+      edge.setTarget(portEndpoint(best.id, this.dropPort(best, pt)) as never);
       return "connected";
     }
     // Dropped on a pool (black-box: anywhere; with lanes: near its top /
@@ -1721,7 +1729,8 @@ export class OmniboardCanvas {
       const id = c.getAttribute("port") ?? "";
       const isFixed = FIXED_PORT_IDS.includes(id as FixedPortId);
       const isErdCol = id.startsWith("col:");
-      const allowed = isErd ? isErdCol : isFixed;
+      // ERD: a row port links a field, top / bottom centre link the whole table.
+      const allowed = isErd ? isErdCol || id === "top" || id === "bottom" : isFixed;
       const show = visible && canConnect && allowed;
       c.style.visibility = show ? "visible" : "hidden";
       if (isErdCol) {
@@ -4598,9 +4607,23 @@ export class OmniboardCanvas {
         .map((n) => ({ n, bbox: n.getBBox() })),
       pt,
     )?.n;
-    if (best) edge.setSource(portEndpoint(best.id, nearestFixedPort(best, pt)) as never);
+    if (best) edge.setSource(portEndpoint(best.id, this.dropPort(best, pt)) as never);
     else if (before) edge.setSource(before as never);
     this.onChange();
+  }
+
+  /** Port an arrow end dropped on `node` at `pt` docks to. An ERD table:
+   *  on a row → that field (nearer side); on the header / below the rows →
+   *  the table itself (top / bottom centre). Other shapes: nearest fixed port. */
+  private dropPort(node: Node, pt: { x: number; y: number }): string {
+    if (this.nodeKind(node) !== "erd-entity") return nearestFixedPort(node, pt);
+    const b = node.getBBox();
+    const side = pt.x < b.x + b.width / 2 ? "left" : "right";
+    const rows = node.getPorts().filter((p) => p.id?.startsWith("col:") && p.id.endsWith(`-${side}`));
+    const ROW_HALF = 27 / 2;
+    const row = rows.find((p) => Math.abs(b.y + Number((p.args as { y?: number } | undefined)?.y) - pt.y) <= ROW_HALF);
+    if (row?.id) return row.id;
+    return pt.y < b.y + b.height / 2 ? "top" : "bottom";
   }
 
   /** Set an edge's BPMN flow type: visual preset + semantic kind / attrs. */

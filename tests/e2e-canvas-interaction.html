@@ -195,6 +195,48 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(overflow === 'auto' && scrollH >= h, 'popup should scroll: ' + overflow);
   });
 
+  await run('ERD: an arrow dropped on a row links that field, on the header links the whole table', async () => {
+    const cols = [{ k: 'PK', name: 'id', type: 'int' }, { k: 'FK', name: 'ref_id', type: 'int' }, { k: '', name: 'name', type: 'varchar' }];
+    window.__ob.loadModel({ nodes: [
+      { id: 'tt_a', shape: 'erd-entity', x: 0, y: 0, width: 200, height: 131, label: 'A', attrs: { cols } },
+      { id: 'tt_b', shape: 'erd-entity', x: 400, y: 0, width: 200, height: 131, label: 'B', attrs: { cols } },
+    ], edges: [] });
+    await tick(200);
+    const drop = (x, y) => {
+      const e = g().addEdge({ source: { cell: 'tt_a', port: 'col:id-right' }, target: { x, y } });
+      window.__ob.handleDragToBlank(e);
+      return e.getTarget().port;
+    };
+    const header = drop(500, 18);           // header band (38px)
+    const row = drop(410, 38 + 27 + 13);      // 2nd row, left half
+    assert(header === 'top', 'header drop should link the table: ' + header);
+    assert(row === 'col:ref_id-left', 'row drop should link the field: ' + row);
+    window.__ob.togglePorts(cell('tt_b'), true);
+    const shown = [...g().findViewByCell('tt_b').container.querySelectorAll('.x6-port circle')]
+      .filter((c) => c.style.visibility === 'visible').map((c) => c.getAttribute('port'));
+    window.__ob.togglePorts(cell('tt_b'), false);
+    assert(shown.includes('top') && shown.includes('bottom') && shown.includes('col:name-right'), 'ports shown: ' + shown);
+  });
+
+  await run("an ERD crow's foot spreads onto the table it touches (not an arrowhead into it)", async () => {
+    for (const kind of ['crow', 'crow-bar', 'crow-circle']) {
+      window.__ob.loadModel({ nodes: [
+        { id: 'cf_a', shape: 'rect', x: 0, y: 0, width: 100, height: 60, label: 'A' },
+        { id: 'cf_b', shape: 'rect', x: 300, y: 0, width: 100, height: 60, label: 'B' },
+      ], edges: [{ id: 'cf_e', source: 'cf_a', target: 'cf_b', sourcePort: 'right', targetPort: 'left', style: { start: 'none', end: kind } }] });
+      await tick(200);
+      const line = g().findViewByCell('cf_e').container.querySelector('path[marker-end]');
+      const d = document.getElementById(line.getAttribute('marker-end').match(/#([^)]+)/)[1]).querySelector('path').getAttribute('d');
+      // marker space: +x runs away from the node; the foot's outer prongs (|y| = 8) must sit at the node (x = 0)
+      const pts = [...d.matchAll(/(-?[\d.]+)[ ,]+(-?[\d.]+)/g)].map((m) => [+m[1], +m[2]]);
+      const prongs = pts.filter(([, y]) => Math.abs(y) === 8);
+      const footX = Math.min(...prongs.map(([x]) => x));
+      const apexX = Math.max(...pts.filter(([, y]) => y === 0).map(([x]) => x));
+      assert(footX === 0, kind + ': prongs not on the table: ' + d);
+      assert(apexX > footX, kind + ': no apex away from the table: ' + d);
+    }
+  });
+
   await run('renaming an event / gateway / data store edits below the icon (bpmn-js), a task inside its box', async () => {
     window.__ob.loadModel({ nodes: [
       { id: 'lb_gw', shape: 'bpmn-gateway-x', x: 100, y: 100, width: 50, height: 50, label: '' },

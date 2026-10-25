@@ -1,6 +1,6 @@
 import { setIcon } from "obsidian";
 import { validateBpmnModel } from "../io/bpmn/validator";
-import { shapeIcon } from "../canvas/shapes/index";
+import { SHAPE_CATEGORIES, shapeIcon } from "../canvas/shapes/index";
 import type { CanvasModel } from "../canvas/types";
 
 type Node = CanvasModel["nodes"][number];
@@ -14,7 +14,14 @@ export interface BoardSidePanelOptions {
 
 const label = (n: Node): string => (n.label || n.id).replace(/\s+/g, " ").trim();
 
-/** Pool → lanes → steps (left to right). Nodes outside any pool are listed under "Ngoài pool". */
+const categoryOf = (shape: string): string =>
+  SHAPE_CATEGORIES.find((c) => c.items.some((i) => i.shape === shape))?.title ?? "Khác";
+
+/** The board draws BPMN (worth a "Lỗi BPMN" tab). */
+export const hasBpmn = (model: CanvasModel): boolean => model.nodes.some((n) => n.shape.startsWith("bpmn-"));
+
+/** Pool → lanes → steps (left to right). Shapes outside any pool are grouped by diagram
+ *  type (ERD, UML…); loose BPMN shapes on a board with pools go under "Ngoài pool". */
 export function boardOutline(model: CanvasModel): Array<{ title: string; note?: string; lanes: Array<{ title: string; nodes: Node[] }> }> {
   const steps = model.nodes.filter((n) => n.shape !== "bpmn-pool" && n.shape !== "bpmn-annotation" && !n.parentId);
   const byX = (a: Node, b: Node) => a.x - b.x;
@@ -27,7 +34,13 @@ export function boardOutline(model: CanvasModel): Array<{ title: string; note?: 
     return { title: label(p), note: lanes.length ? undefined : "Hộp đen · chỉ trao đổi tin", lanes };
   });
   const loose = steps.filter((n) => !n.laneId || !laneIds.has(n.laneId)).sort(byX);
-  return loose.length ? [...pools, { title: "Ngoài pool", lanes: [{ title: "", nodes: loose }] }] : pools;
+  const titles = [...SHAPE_CATEGORIES.map((c) => c.title), "Khác"];
+  const groups = titles.flatMap((cat) => {
+    const nodes = loose.filter((n) => categoryOf(n.shape) === cat);
+    const title = cat === "BPMN" && pools.length ? "Ngoài pool" : cat;
+    return nodes.length ? [{ title, lanes: [{ title: "", nodes }] }] : [];
+  });
+  return [...pools, ...groups];
 }
 
 /**
@@ -61,8 +74,11 @@ export class BoardSidePanel {
       if (count !== undefined) b.createEl("b", { text: String(count) });
       b.onclick = () => { this.tab = t; this.refresh(); };
     };
+    // Issues are BPMN checks: only a board that draws BPMN gets the tab.
+    const showIssues = !!model && (hasBpmn(model) || issues.length > 0);
+    if (!showIssues) this.tab = "tree";
     tabBtn("tree", "Cấu trúc");
-    tabBtn("issues", "Lỗi BPMN", issues.length);
+    if (showIssues) tabBtn("issues", "Lỗi BPMN", issues.length);
 
     this.paneEl.empty();
     if (!model) return;
@@ -77,7 +93,7 @@ export class BoardSidePanel {
       }
     } else {
       const groups = boardOutline(model);
-      if (!groups.length) this.paneEl.createDiv({ cls: "da-side-empty", text: "Board chưa có Pool hay bước nào." });
+      if (!groups.length) this.paneEl.createDiv({ cls: "da-side-empty", text: "Board chưa có hình nào." });
       for (const g of groups) {
         this.paneEl.createDiv({ cls: "da-side-pool", text: g.title });
         if (g.note) this.paneEl.createDiv({ cls: "da-side-empty", text: g.note });

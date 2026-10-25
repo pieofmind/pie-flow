@@ -1596,6 +1596,10 @@ export class OmniboardCanvas {
       const s = node.getSize();
       if (s.width !== ACT_WIDTH) node.resize(ACT_WIDTH, s.height);
     });
+    // An ERD table is exactly as tall as its rows: a resize or the space tool only changes its width.
+    this.graph.on("node:change:size", ({ node }) => {
+      if (this.nodeKind(node) === "erd-entity") this.autoHeight(node);
+    });
     this.graph.on("scale", () => { this.refreshMindmapFabs(); this.refreshContextPad(); this.refreshMinimap(); });
     this.graph.on("translate", () => { this.refreshMindmapFabs(); this.refreshContextPad(); this.refreshMinimap(); });
     // Keep the minimap in sync with content changes.
@@ -3550,6 +3554,7 @@ export class OmniboardCanvas {
         }
         node.addPorts(colPorts);
       }
+      this.autoHeight(node);   // boards saved too tall load fitted to their rows
     }
     return node;
   }

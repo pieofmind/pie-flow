@@ -218,6 +218,16 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(shown.includes('top') && shown.includes('bottom') && shown.includes('col:name-right'), 'ports shown: ' + shown);
   });
 
+  await run('an ERD table stays exactly as tall as its rows when resized (width still changes)', async () => {
+    const cols = [{ k: 'PK', name: 'id', type: 'int' }, { k: 'FK', name: 'ref_id', type: 'int' }];
+    window.__ob.loadModel({ nodes: [{ id: 'th_a', shape: 'erd-entity', x: 0, y: 0, width: 200, height: 300, label: 'A', attrs: { cols } }], edges: [] });
+    await tick(200);
+    const n = cell('th_a');
+    assert(n.getSize().height === 104, 'loaded too tall: ' + n.getSize().height);
+    n.resize(320, 260);
+    assert(n.getSize().width === 320 && n.getSize().height === 104, 'after resize: ' + JSON.stringify(n.getSize()));
+  });
+
   await run("an ERD crow's foot spreads onto the table it touches (not an arrowhead into it)", async () => {
     for (const kind of ['crow', 'crow-bar', 'crow-circle']) {
       window.__ob.loadModel({ nodes: [

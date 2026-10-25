@@ -18,15 +18,16 @@ const ROW_H = 27;
 export interface ErdColPort {
   id: string;
   group: string;
-  args: { x: number; y: number };
+  args: { x: number | string; y: number };
 }
 
 /** Produce 2 ports per column (left + right edge), absolutely positioned at
- *  the row's vertical centre. Width is the node width; height is derived from
- *  cols.length to keep the math consistent with addHtmlNode.
+ *  the row's vertical centre. Right ports sit at x="100%" so they follow the
+ *  right edge when the node is resized; height is derived from cols.length to
+ *  keep the math consistent with addHtmlNode.
  *
  *  Returns an empty array for empty cols (degenerate case — edge case AC). */
-export function buildErdColumnPorts(cols: ErdCol[], width: number): ErdColPort[] {
+export function buildErdColumnPorts(cols: ErdCol[]): ErdColPort[] {
   if (!cols || cols.length === 0) return [];
   const ports: ErdColPort[] = [];
   // Disambiguate duplicate column names — X6 throws "Duplicated port id" if any
@@ -49,7 +50,7 @@ export function buildErdColumnPorts(cols: ErdCol[], width: number): ErdColPort[]
     ports.push({
       id: `col:${portName}-right`,
       group: "erdColRight",
-      args: { x: width, y },
+      args: { x: "100%", y },
     });
   }
   return ports;

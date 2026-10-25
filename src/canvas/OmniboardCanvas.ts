@@ -4755,7 +4755,17 @@ export class OmniboardCanvas {
     // X6 routePoints are the router's bends only (endpoints are sourcePoint / targetPoint).
     const route = view?.routePoints;
     if (Array.isArray(route) && route.length > 0) {
-      return route.map((p: any) => ({ x: p.x, y: p.y }));
+      const pts = route.map((p: any) => ({ x: p.x, y: p.y }));
+      // Manhattan rounds bends to 0.1px; a port can sit between (940.75 vs 940.8). Fed back
+      // as vertices that sliver makes the router jog to reach the port, so put the end bends on it.
+      const snap = (p: { x: number; y: number }, end?: { x: number; y: number }) => {
+        if (!end) return;
+        if (Math.abs(p.y - end.y) < 1) p.y = end.y;
+        else if (Math.abs(p.x - end.x) < 1) p.x = end.x;
+      };
+      snap(pts[0], view.sourcePoint);
+      snap(pts[pts.length - 1], view.targetPoint);
+      return pts;
     }
 
     const source = edge.getSourcePoint();

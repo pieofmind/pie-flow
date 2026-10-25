@@ -232,17 +232,28 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     window.__ob.loadModel({ nodes: [
       { id: 'sr_a', shape: 'rect', x: 0, y: 0, width: 100, height: 60, label: 'A' },
       { id: 'sr_b', shape: 'rect', x: 400, y: 300, width: 100, height: 60, label: 'B' },
-    ], edges: [{ id: 'sr_e', source: 'sr_a', target: 'sr_b', sourcePort: 'right', targetPort: 'top', router: 'orth' }] });
+      // Ports off the 0.1px grid + a shape in the way: the avoid router falls back to
+      // X6 manhattan, whose bends are rounded to 0.1px (940.8 vs a port at 940.75).
+      { id: 'sr_c', shape: 'rect', x: 315, y: 888.75, width: 220, height: 104, label: 'C' },
+      { id: 'sr_d', shape: 'rect', x: 935, y: 1016.75, width: 220, height: 239, label: 'D' },
+      { id: 'sr_o', shape: 'rect', x: 700, y: 1000, width: 60, height: 80, label: 'O' },
+    ], edges: [
+      { id: 'sr_e', source: 'sr_a', target: 'sr_b', sourcePort: 'right', targetPort: 'top', router: 'orth' },
+      { id: 'sr_f', source: 'sr_c', target: 'sr_d', sourcePort: 'right', targetPort: 'left', router: 'avoid' },
+    ] });
     await tick(200);
-    const d = () => g().findViewByCell('sr_e').container.querySelector('path[marker-end], path').getAttribute('d');
-    const before = d();
-    g().select(cell('sr_e'));
-    await tick(100);
-    const during = d();
-    g().unselect(cell('sr_e'));
-    await tick(100);
-    assert(during === before, 'route changed on select:\n' + before + '\n' + during);
-    assert(d() === before, 'route changed after unselect');
+    for (const id of ['sr_e', 'sr_f']) {
+      const d = () => g().findViewByCell(id).container.querySelector('path').getAttribute('d');
+      const segs = (path) => (path.match(/[LC]/g) || []).length;   // sub-pixel curve drift is fine, a new jog is not
+      const before = d();
+      g().select(cell(id));
+      await tick(100);
+      const during = d();
+      g().unselect(cell(id));
+      await tick(100);
+      assert(segs(during) === segs(before), id + ': route changed on select:\n' + before + '\n' + during);
+      assert(d() === before, id + ': route changed after unselect');
+    }
   });
 
   await run("an ERD crow's foot spreads onto the table it touches (not an arrowhead into it)", async () => {

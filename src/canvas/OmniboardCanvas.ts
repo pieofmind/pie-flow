@@ -4752,9 +4752,10 @@ export class OmniboardCanvas {
 
   private materializeEditableBends(edge: Edge): Array<{ x: number; y: number }> {
     const view = this.graph.findViewByCell(edge) as any;
+    // X6 routePoints are the router's bends only (endpoints are sourcePoint / targetPoint).
     const route = view?.routePoints;
-    if (Array.isArray(route) && route.length > 2) {
-      return route.slice(1, -1).map((p: any) => ({ x: p.x, y: p.y }));
+    if (Array.isArray(route) && route.length > 0) {
+      return route.map((p: any) => ({ x: p.x, y: p.y }));
     }
 
     const source = edge.getSourcePoint();

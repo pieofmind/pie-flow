@@ -228,6 +228,23 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(n.getSize().width === 320 && n.getSize().height === 104, 'after resize: ' + JSON.stringify(n.getSize()));
   });
 
+  await run('selecting an orthogonal edge keeps its route (no new bends while selected)', async () => {
+    window.__ob.loadModel({ nodes: [
+      { id: 'sr_a', shape: 'rect', x: 0, y: 0, width: 100, height: 60, label: 'A' },
+      { id: 'sr_b', shape: 'rect', x: 400, y: 300, width: 100, height: 60, label: 'B' },
+    ], edges: [{ id: 'sr_e', source: 'sr_a', target: 'sr_b', sourcePort: 'right', targetPort: 'top', router: 'orth' }] });
+    await tick(200);
+    const d = () => g().findViewByCell('sr_e').container.querySelector('path[marker-end], path').getAttribute('d');
+    const before = d();
+    g().select(cell('sr_e'));
+    await tick(100);
+    const during = d();
+    g().unselect(cell('sr_e'));
+    await tick(100);
+    assert(during === before, 'route changed on select:\n' + before + '\n' + during);
+    assert(d() === before, 'route changed after unselect');
+  });
+
   await run("an ERD crow's foot spreads onto the table it touches (not an arrowhead into it)", async () => {
     for (const kind of ['crow', 'crow-bar', 'crow-circle']) {
       window.__ob.loadModel({ nodes: [

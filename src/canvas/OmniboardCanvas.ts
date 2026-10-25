@@ -3538,7 +3538,7 @@ export class OmniboardCanvas {
     // Story 2.2 — ERD per-column ports. Add absolute-positioned col:NAME-left/-right
     // ports on top of the 12 cardinal ports so edges can dock at row Y.
     if (kind === "erd-entity" && ex.cols?.length) {
-      const colPorts = buildErdColumnPorts(ex.cols, w);
+      const colPorts = buildErdColumnPorts(ex.cols);
       if (colPorts.length) {
         // setPorts merges groups + items; existing 12 cardinal ports from
         // makePorts() are preserved (no group-name collision).
@@ -3730,8 +3730,7 @@ export class OmniboardCanvas {
     // once avoids the intermediate invalid state entirely.
     const allCurrent = node.getPorts();
     const nonCol = allCurrent.filter((p) => !(typeof p.id === "string" && p.id.startsWith("col:")));
-    const w = node.getSize().width;
-    const newColPorts = newCols.length ? buildErdColumnPorts(newCols, w) : [];
+    const newColPorts = newCols.length ? buildErdColumnPorts(newCols) : [];
     (node as never as { setPropByPath: (path: string, val: unknown, opts?: { rewrite?: boolean }) => void })
       .setPropByPath("ports/items", [...nonCol, ...newColPorts], { rewrite: true });
     // STEP C — Re-attach saved edges. Strategy depends on the change kind:

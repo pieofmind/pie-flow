@@ -195,6 +195,29 @@ const t = (id, x, y) => ({ id, shape: 'bpmn-task-user', x, y, width: 100, height
     assert(overflow === 'auto' && scrollH >= h, 'popup should scroll: ' + overflow);
   });
 
+  await run('ERD: an arrow dropped on a row links that field, on the header links the whole table', async () => {
+    const cols = [{ k: 'PK', name: 'id', type: 'int' }, { k: 'FK', name: 'ref_id', type: 'int' }, { k: '', name: 'name', type: 'varchar' }];
+    window.__ob.loadModel({ nodes: [
+      { id: 'tt_a', shape: 'erd-entity', x: 0, y: 0, width: 200, height: 131, label: 'A', attrs: { cols } },
+      { id: 'tt_b', shape: 'erd-entity', x: 400, y: 0, width: 200, height: 131, label: 'B', attrs: { cols } },
+    ], edges: [] });
+    await tick(200);
+    const drop = (x, y) => {
+      const e = g().addEdge({ source: { cell: 'tt_a', port: 'col:id-right' }, target: { x, y } });
+      window.__ob.handleDragToBlank(e);
+      return e.getTarget().port;
+    };
+    const header = drop(500, 18);           // header band (38px)
+    const row = drop(410, 38 + 27 + 13);      // 2nd row, left half
+    assert(header === 'top', 'header drop should link the table: ' + header);
+    assert(row === 'col:ref_id-left', 'row drop should link the field: ' + row);
+    window.__ob.togglePorts(cell('tt_b'), true);
+    const shown = [...g().findViewByCell('tt_b').container.querySelectorAll('.x6-port circle')]
+      .filter((c) => c.style.visibility === 'visible').map((c) => c.getAttribute('port'));
+    window.__ob.togglePorts(cell('tt_b'), false);
+    assert(shown.includes('top') && shown.includes('bottom') && shown.includes('col:name-right'), 'ports shown: ' + shown);
+  });
+
   await run("an ERD crow's foot spreads onto the table it touches (not an arrowhead into it)", async () => {
     for (const kind of ['crow', 'crow-bar', 'crow-circle']) {
       window.__ob.loadModel({ nodes: [

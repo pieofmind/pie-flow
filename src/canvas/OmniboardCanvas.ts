@@ -892,7 +892,7 @@ export class OmniboardCanvas {
     // smallest bbox so regular flow nodes win over big containers.
     const best = pickDropTarget(candidates.map((n) => ({ n, bbox: n.getBBox() })), pt)?.n;
     if (best) {
-      edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt)) as never);
+      edge.setTarget(portEndpoint(best.id, this.dropPort(best, pt)) as never);
       return "connected";
     }
     // Dropped on a pool (black-box: anywhere; with lanes: near its top /
@@ -1729,7 +1729,8 @@ export class OmniboardCanvas {
       const id = c.getAttribute("port") ?? "";
       const isFixed = FIXED_PORT_IDS.includes(id as FixedPortId);
       const isErdCol = id.startsWith("col:");
-      const allowed = isErd ? isErdCol : isFixed;
+      // ERD: a row port links a field, top / bottom centre link the whole table.
+      const allowed = isErd ? isErdCol || id === "top" || id === "bottom" : isFixed;
       const show = visible && canConnect && allowed;
       c.style.visibility = show ? "visible" : "hidden";
       if (isErdCol) {
@@ -4606,9 +4607,23 @@ export class OmniboardCanvas {
         .map((n) => ({ n, bbox: n.getBBox() })),
       pt,
     )?.n;
-    if (best) edge.setSource(portEndpoint(best.id, nearestFixedPort(best, pt)) as never);
+    if (best) edge.setSource(portEndpoint(best.id, this.dropPort(best, pt)) as never);
     else if (before) edge.setSource(before as never);
     this.onChange();
+  }
+
+  /** Port an arrow end dropped on `node` at `pt` docks to. An ERD table:
+   *  on a row → that field (nearer side); on the header / below the rows →
+   *  the table itself (top / bottom centre). Other shapes: nearest fixed port. */
+  private dropPort(node: Node, pt: { x: number; y: number }): string {
+    if (this.nodeKind(node) !== "erd-entity") return nearestFixedPort(node, pt);
+    const b = node.getBBox();
+    const side = pt.x < b.x + b.width / 2 ? "left" : "right";
+    const rows = node.getPorts().filter((p) => p.id?.startsWith("col:") && p.id.endsWith(`-${side}`));
+    const ROW_HALF = 27 / 2;
+    const row = rows.find((p) => Math.abs(b.y + Number((p.args as { y?: number } | undefined)?.y) - pt.y) <= ROW_HALF);
+    if (row?.id) return row.id;
+    return pt.y < b.y + b.height / 2 ? "top" : "bottom";
   }
 
   /** Set an edge's BPMN flow type: visual preset + semantic kind / attrs. */

@@ -63,3 +63,17 @@ describe("chip trên bản xuất tĩnh", () => {
     expect(svg.match(/bp-who/g)).toHaveLength(1);
   });
 });
+
+describe("giới hạn chip skill", () => {
+  const sk = (...names: string[]) => ({ skills: names.map((name) => ({ name })) });
+  it("2 skill: hiện đủ cả hai", () => {
+    const h = stepChipsHtml(sk("pom-reel", "pom-reel-review"));
+    expect(h.match(/class="bp-skill"/g)).toHaveLength(2);
+    expect(h).not.toContain("+");
+  });
+  it("4 skill: 1 chip + \"+3\", title liệt kê phần ẩn", () => {
+    const h = stepChipsHtml({ skills: [{ name: "a" }, { name: "b" }, { name: "c", missing: "X chưa có skill này" }, { name: "d" }] });
+    expect(h).toContain(">a<");
+    expect(h).toContain('class="bp-skill is-missing is-more" title="b\nc (X chưa có skill này)\nd">+3<');
+  });
+});

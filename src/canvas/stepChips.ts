@@ -63,13 +63,24 @@ export function readSquad(): SquadInfo | null {
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
+/** Most chips in the skill row, "+n" included. */
+const MAX_SKILL_CHIPS = 2;
+
 export function stepChipsHtml(c: StepChips): string {
   const who = c.who
     ? `<span class="bp-who${c.who.fromLane ? " is-lane" : ""}${c.who.approve ? " is-approve" : ""}" title="${esc(c.who.name)}">`
       + `<span class="bp-ava">${esc([...c.who.name][0]?.toUpperCase() ?? "")}</span>${c.who.approve ? "duyệt" : esc(c.who.name)}</span>`
     : "";
+  const chip = (text: string, title: string, missing: boolean, more = false) =>
+    `<span class="bp-skill${missing ? " is-missing" : ""}${more ? " is-more" : ""}" title="${esc(title)}">${esc(text)}</span>`;
+  // One row only (never taller than the box): the rest fold into a "+n" chip.
+  const shown = c.skills.length > MAX_SKILL_CHIPS ? c.skills.slice(0, MAX_SKILL_CHIPS - 1) : c.skills;
+  const hidden = c.skills.slice(shown.length);
+  const more = hidden.length
+    ? chip(`+${hidden.length}`, hidden.map((s) => (s.missing ? `${s.name} (${s.missing})` : s.name)).join("\n"), hidden.some((s) => s.missing), true)
+    : "";
   const skills = c.skills.length
-    ? `<span class="bp-skills">${c.skills.map((s) => `<span class="bp-skill${s.missing ? " is-missing" : ""}" title="${esc(s.missing ?? s.name)}">${esc(s.name)}</span>`).join("")}</span>`
+    ? `<span class="bp-skills">${shown.map((s) => chip(s.name, s.missing ?? s.name, !!s.missing)).join("")}${more}</span>`
     : "";
   return who + skills;
 }

@@ -882,6 +882,13 @@ button.da-tb-save {
 .lk-root .bp-task { width: 100%; height: 100%; border-radius: 9px; background: var(--pg-surface); border: 1.6px solid var(--pg-border-strong); box-shadow: var(--sh-sm); display: grid; place-items: center; text-align: center; font-size: 9px; font-weight: 600; color: var(--pg-text); padding: 8px 10px; line-height: 1.3; position: relative; box-sizing: border-box; }
 /* color, not opacity<1 (opacity makes the icon a WebKit compositing layer → 0,0 on iOS) */
 .lk-root .bp-task .ticon { position: absolute; top: 6px; left: 7px; color: var(--pg-text-soft); } .lk-root .bp-task .ticon svg { width: 14px; height: 14px; }
+/* Step chips (who + skill of a BPMN task, from lane/assignee + camunda:property skill) */
+.lk-root .bp-task .bp-who { position: absolute; top: 4px; right: 5px; max-width: calc(100% - 28px); display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px 1px 1px; border-radius: 999px; background: var(--pg-accent-soft); color: var(--pg-text); font-size: 7px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+.lk-root .bp-task .bp-who.is-lane { opacity: .6; font-weight: 600; }
+.lk-root .bp-task .bp-ava { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--pg-accent); color: var(--pg-accent-ink); display: grid; place-items: center; font-size: 6px; }
+.lk-root .bp-task .bp-skills { position: absolute; left: 4px; right: 4px; bottom: 4px; display: flex; justify-content: center; gap: 2px; }
+.lk-root .bp-task .bp-skill { min-width: 0; padding: 0 4px; border: 1px solid var(--pg-border); border-radius: 4px; background: var(--pg-surface); color: var(--pg-text-muted); font-size: 6.5px; font-weight: 600; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+.lk-root .bp-task .bp-skill.is-missing { border-color: var(--color-orange, #e8590c); color: var(--color-orange, #e8590c); }
 .lk-root .bp-gw { width: 100%; height: 100%; display: grid; place-items: center; position: relative; }
 .lk-root .bp-gw .gwbox { width: 72%; height: 72%; transform: rotate(45deg); background: color-mix(in srgb, #E2B23A 22%, var(--pg-surface)); border: 1.8px solid #C99A2E; border-radius: 8px; display: grid; place-items: center; box-shadow: var(--sh-sm); }
 .lk-root .bp-gw .x { transform: rotate(-45deg); color: #B07F1E; font-weight: 800; font-size: 15px; line-height: 1; }

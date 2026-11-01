@@ -18,6 +18,7 @@ import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import { attachThickCaret } from "./thickCaret";
+import { stepChips, stepChipsHtml, type SquadInfo, type StepData } from "./stepChips";
 import { SUBPROCESS_KINDS, closedLayout, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
@@ -382,6 +383,11 @@ type ConnectedEndpointEvent = {
 };
 
 /** The lane `id` at any nesting depth. */
+/** Pie Squad's public API v1 (pie-squad plugin/src/api.js) — read at runtime, never imported. */
+interface PieSquadApi { version: number; owner(): string; agents(): SquadInfo["agents"]; onChange(cb: () => void): () => void }
+/** A task shorter than this on screen (zoomed out) hides its step chips. */
+const STEP_CHIPS_MIN_PX = 56;
+
 function findLaneDeep<T extends { id: string; lanes?: T[] }>(lanes: readonly T[], id: string): T | undefined {
   for (const ln of lanes) {
     if (ln.id === id) return ln;
@@ -505,6 +511,7 @@ export class OmniboardCanvas {
     this.refreshProps();
     this.setTool("select");   // wire the touch select/move handlers
     this.initHtmlOverlay();   // mobile-only: real-div node rendering (no-op on desktop)
+    this.initStepChips();
   }
 
   // ── Graph ──────────────────────────────────────────────────────────────
@@ -3609,6 +3616,47 @@ export class OmniboardCanvas {
       blackBox: d.blackBox,
     };
   }
+  // ── Step chips: who does a BPMN task + its skills (Pie Squad, read at runtime) ──
+  private stepChipsRaf = 0;
+  private squadOff: (() => void) | null = null;
+  private initStepChips(): void {
+    ["node:added", "node:removed", "node:moved", "node:resized", "node:change:data", "scale"]
+      .forEach((ev) => this.graph.on(ev, () => this.scheduleStepChips()));
+    const off = this.squadApi()?.onChange(() => this.scheduleStepChips());
+    this.squadOff = typeof off === "function" ? off : null;
+  }
+  private squadApi(): PieSquadApi | null {
+    const api = (globalThis as { app?: { plugins?: { plugins?: Record<string, { api?: PieSquadApi }> } } })
+      .app?.plugins?.plugins?.["pie-squad"]?.api;
+    return api?.version === 1 ? api : null;
+  }
+  private squadInfo(): SquadInfo | null {
+    const api = this.squadApi();
+    if (!api) return null;
+    try { return { owner: String(api.owner()), agents: api.agents() }; }
+    catch (e) { console.error("[omniboard] pie-squad api", e); return null; }
+  }
+  private scheduleStepChips(): void {
+    if (this.stepChipsRaf) return;
+    this.stepChipsRaf = requestAnimationFrame(() => { this.stepChipsRaf = 0; this.refreshStepChips(); });
+  }
+  private refreshStepChips(): void {
+    const squad = this.squadInfo();
+    const laneOf = new Map(this.getModel().nodes.map((m) => [m.id, m.laneId]));   // fresh laneIds from positions
+    const poolLanes = this.graph.getNodes().filter((p) => this.nodeKind(p) === "bpmn-pool").map((p) => this.nodeExtra(p).lanes ?? []);
+    const zoom = this.graph.zoom();
+    for (const n of this.graph.getNodes()) {
+      if (!this.nodeKind(n).startsWith("bpmn-task")) continue;
+      const box = this.graph.findViewByCell(n)?.container.querySelector(".bp-task");
+      if (!box) continue;
+      box.querySelectorAll(":scope > .bp-who, :scope > .bp-skills").forEach((c) => c.remove());
+      if (n.getSize().height * zoom < STEP_CHIPS_MIN_PX) continue;   // too small on screen: keep the box clean
+      const d = { ...(n.getData() as StepData | undefined), laneId: laneOf.get(n.id) };
+      const lanes = d.laneId ? poolLanes.find((ls) => findLaneDeep(ls, d.laneId!)) : undefined;
+      box.insertAdjacentHTML("beforeend", stepChipsHtml(stepChips(d, lanes, squad)));
+    }
+  }
+
   private rerender(n: Node) {
     // Render now (async: false): the HTML is replaced, and event / gateway /
     // data labels lose the side refreshBpmnEventLabels put them on — re-apply
@@ -3622,6 +3670,7 @@ export class OmniboardCanvas {
       this.scheduleMindmapAutoGrow(n);
     }
     this.upsertHtmlNode(n);   // keep the mobile HTML overlay in sync (no-op on desktop)
+    this.scheduleStepChips();
   }
 
   // ── Mobile HTML overlay (real <div> mirror of node content) ──────────────
@@ -5972,6 +6021,8 @@ export class OmniboardCanvas {
     for (const { type, fn } of this.docListeners) document.removeEventListener(type, fn, true);
     this.docListeners = [];
     if (this.edgeBarDebounce != null) { window.clearTimeout(this.edgeBarDebounce); this.edgeBarDebounce = null; }
+    this.squadOff?.(); this.squadOff = null;
+    if (this.stepChipsRaf) cancelAnimationFrame(this.stepChipsRaf);
     this.graph.dispose();
   }
 }

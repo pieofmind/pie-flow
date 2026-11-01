@@ -1,6 +1,7 @@
 import { Graph } from "@antv/x6";
 import { makePorts } from "./shapes/ports";
 import { asStackLanes, laneWeights } from "./laneLayout";
+import { stepChipsHtml, type StepChips } from "./stepChips";
 
 const XHTML = "http://www.w3.org/1999/xhtml";
 
@@ -87,6 +88,10 @@ export interface NodeExtra {
    *  true (default) → render frame with children in-place. false → render as a
    *  task-sized collapsed box with a [+] marker. Round-trips to BPMNShape.isExpanded. */
   collapsed?: boolean;
+  /** Task step chips (Pie Squad ADR 0001), derived each render from lane /
+   *  camunda:assignee / skill properties — never saved. */
+  agent?: StepChips["who"];
+  skills?: StepChips["skills"];
 }
 
 export type BpmnTrigger =
@@ -436,7 +441,8 @@ function bpSub(mod: string, label: string, extra?: NodeExtra, tail = ""): string
 }
 function bpTask(label: string, iconKey?: string, extra?: NodeExtra): string {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
-  return `<div class="bp-task">${icon}${nl(label)}${renderMarkers(extra?.markers)}</div>`;
+  const chips = stepChipsHtml({ who: extra?.agent, skills: extra?.skills ?? [] });
+  return `<div class="bp-task">${icon}${nl(label)}${renderMarkers(extra?.markers)}${chips}</div>`;
 }
 function bpGateway(mark: string, label: string, extra?: NodeExtra): string {
   return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div><div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;

@@ -1,5 +1,5 @@
 import { nodeHtml, type NodeStyle, type NodeExtra, type ErdCol, type PoolLaneExtra } from "./htmlNode";
-import { readSquad, stepChips, stepChipsHtml, type SquadInfo, type StepData } from "./stepChips";
+import { readSquad, stepChips, type SquadInfo, type StepData } from "./stepChips";
 import type { CanvasModel } from "./types";
 import { hostSide } from "./boundaryLayout";
 
@@ -115,6 +115,8 @@ function nodeInnerHtml(n: ModelNode, byId: Map<string, ModelNode>, lanes: PoolLa
   const a = (n.attrs ?? {}) as Record<string, unknown>;
   const host = typeof a.attachedTo === "string" ? byId.get(a.attachedTo) : undefined;
   const style = (a.style as NodeStyle) ?? {};
+  const chips = n.shape.startsWith("bpmn-task")
+    ? stepChips({ ...(a as StepData), kind: n.shape, laneId: n.laneId }, lanes, squad) : undefined;
   const extra: NodeExtra = {
     cols: a.cols as ErdCol[] | undefined,
     fields: a.fields as string[] | undefined,
@@ -130,14 +132,11 @@ function nodeInnerHtml(n: ModelNode, byId: Map<string, ModelNode>, lanes: PoolLa
     attachedTo: a.attachedTo as NodeExtra["attachedTo"],
     markers: a.markers as NodeExtra["markers"],
     collapsed: a.collapsed as NodeExtra["collapsed"],
+    agent: chips?.who, skills: chips?.skills,
     // Boundary event: label outside its host, like the live canvas.
     ...(host ? { labelSide: hostSide(n, host) } : {}),
   };
-  const html = nodeHtml(n.shape, n.label, style, extra);
-  if (!n.shape.startsWith("bpmn-task")) return html;
-  // Step chips go inside the .bp-task box (its closing tag ends the string).
-  const chips = stepChipsHtml(stepChips({ ...(a as StepData), laneId: n.laneId }, lanes, squad));
-  return chips ? html.replace(/<\/div>$/, `${chips}</div>`) : html;
+  return nodeHtml(n.shape, n.label, style, extra);
 }
 
 /** Lanes of every pool (lane ids are unique across pools). */

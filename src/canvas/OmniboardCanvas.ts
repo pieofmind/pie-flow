@@ -18,7 +18,7 @@ import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import { attachThickCaret } from "./thickCaret";
-import { laneNameSuggestions, pieSquadApi, readSquad, skillSuggestions, skillsOf, stepChips, stepChipsHtml, stepWho, withSkills, type StepData } from "./stepChips";
+import { laneNameSuggestions, onSquadChange, pieSquadApi, readSquad, skillSuggestions, skillsOf, stepChips, stepWho, withSkills, type PieSquadApi, type SquadInfo, type StepChips, type StepData } from "./stepChips";
 import { SUBPROCESS_KINDS, closedLayout, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
@@ -382,10 +382,10 @@ type ConnectedEndpointEvent = {
   currentPort?: string | null;
 };
 
-/** The lane `id` at any nesting depth. */
-/** A task shorter than this on screen (zoomed out) hides its step chips. */
+/** A default-size task (80px tall) shorter than this on screen hides its step chips. */
 const STEP_CHIPS_MIN_PX = 56;
 
+/** The lane `id` at any nesting depth. */
 function findLaneDeep<T extends { id: string; lanes?: T[] }>(lanes: readonly T[], id: string): T | undefined {
   for (const ln of lanes) {
     if (ln.id === id) return ln;
@@ -3646,16 +3646,35 @@ export class OmniboardCanvas {
       collapsed: d.collapsed,
       poolHorizontal: d.poolHorizontal,
       blackBox: d.blackBox,
+      agent: this.stepChipsOf.get(n.id)?.who, skills: this.stepChipsOf.get(n.id)?.skills,
     };
   }
   // ── Step chips: who does a BPMN task + its skills (Pie Squad, read at runtime) ──
   private stepChipsRaf = 0;
-  private squadOff: (() => void) | null = null;
+  /** Chips last drawn per task id; nodeExtra() reads them so every renderer draws the same. */
+  private stepChipsOf = new Map<string, StepChips>();
+  /** Undo/redo can restore an old node HTML: repaint every task once, even if its chips look unchanged. */
+  private stepChipsStale = false;
+  private squad: SquadInfo | null = null;
+  private squadApi: PieSquadApi | null = null;
+  private squadOff: () => void = () => {};
   private initStepChips(): void {
-    ["node:added", "node:removed", "node:moved", "node:resized", "node:change:data", "scale"]
+    ["node:added", "node:removed", "node:moved", "node:resized", "node:change:data"]
       .forEach((ev) => this.graph.on(ev, () => this.scheduleStepChips()));
-    const off = pieSquadApi()?.onChange(() => this.scheduleStepChips());
-    this.squadOff = typeof off === "function" ? off : null;
+    ["history:undo", "history:redo"].forEach((ev) => this.graph.on(ev, () => { this.stepChipsStale = true; this.scheduleStepChips(); }));
+    const zoom = () => this.root.classList.toggle("lk-chips-off", this.graph.zoom() * 80 < STEP_CHIPS_MIN_PX);
+    this.graph.on("scale", zoom); zoom();
+    this.syncSquad();
+    this.scheduleStepChips();
+  }
+  /** Re-read Pie Squad when its api object changed (enabled, disabled or reloaded since last look). */
+  private syncSquad(): void {
+    const api = pieSquadApi();
+    if (api === this.squadApi) return;
+    this.squadOff();
+    this.squadApi = api;
+    this.squadOff = onSquadChange(api, () => { this.squad = readSquad(api); this.scheduleStepChips(); });
+    this.squad = readSquad(api);
   }
   private scheduleStepChips(): void {
     if (this.stepChipsRaf) return;
@@ -3671,17 +3690,18 @@ export class OmniboardCanvas {
     };
   }
   private refreshStepChips(): void {
-    const squad = readSquad();
+    this.syncSquad();
     const ctx = this.stepContext();
-    const zoom = this.graph.zoom();
     for (const n of this.graph.getNodes()) {
       if (!this.nodeKind(n).startsWith("bpmn-task")) continue;
-      const box = this.graph.findViewByCell(n)?.container.querySelector(".bp-task");
-      if (!box) continue;
-      box.querySelectorAll(":scope > .bp-who, :scope > .bp-skills").forEach((c) => c.remove());
-      if (n.getSize().height * zoom < STEP_CHIPS_MIN_PX) continue;   // too small on screen: keep the box clean
-      box.insertAdjacentHTML("beforeend", stepChipsHtml(stepChips(...ctx(n), squad)));
+      const chips = stepChips(...ctx(n), this.squad);
+      if (!this.stepChipsStale && JSON.stringify(chips) === JSON.stringify(this.stepChipsOf.get(n.id))) continue;
+      this.stepChipsOf.set(n.id, chips);
+      // dryrun: a chip repaint is derived from data, not an undo step of its own
+      n.attr("content/html", nodeHtml(this.nodeKind(n), this.nodeLabel(n), this.nodeStyle(n), this.nodeExtra(n)), { async: false, dryrun: true });
+      this.upsertHtmlNode(n);
     }
+    this.stepChipsStale = false;
   }
 
   private rerender(n: Node) {
@@ -6072,7 +6092,7 @@ export class OmniboardCanvas {
     for (const { type, fn } of this.docListeners) document.removeEventListener(type, fn, true);
     this.docListeners = [];
     if (this.edgeBarDebounce != null) { window.clearTimeout(this.edgeBarDebounce); this.edgeBarDebounce = null; }
-    this.squadOff?.(); this.squadOff = null;
+    this.squadOff(); this.squadOff = () => {};
     if (this.stepChipsRaf) cancelAnimationFrame(this.stepChipsRaf);
     this.graph.dispose();
   }

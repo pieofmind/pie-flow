@@ -1,20 +1,23 @@
 /**
  * Who does a BPMN step and with which skill — the chips the Board draws on a
  * task (Pie Squad ADR 0001: lane = agent, camunda:assignee = per-step owner,
- * camunda:property name="skill" = skill, the owner's lane = approval gate).
+ * camunda:property name="skill" = skill, approval gate = the owner's lane or a
+ * userTask done by someone who is not an agent).
  */
 import type { PoolLaneExtra } from "./htmlNode";
 
 export interface SquadAgent { name: string; skills: string[] }
 /** What Pie Squad tells us; null = not installed / other API version. */
-export interface SquadInfo { owner: string; agents: SquadAgent[] }
+export interface SquadInfo { owner: string | null; agents: SquadAgent[] }
 export interface StepData {
+  kind?: string;
   camunda?: Record<string, string>;
   bpmnProps?: Array<{ name: string; value: string }>;
   laneId?: string;
 }
 export interface StepChips {
-  who?: { name: string; fromLane: boolean; approve: boolean };
+  /** agent: name matches a Pie Squad agent; undefined without Pie Squad (plain chip). */
+  who?: { name: string; agent?: boolean; approve: boolean };
   skills: Array<{ name: string; missing?: string }>;
 }
 
@@ -32,7 +35,10 @@ export function stepWho(d: StepData, poolLanes: readonly PoolLaneExtra[] | undef
   const assignee = d.camunda?.assignee?.trim();
   const lane = !assignee && d.laneId && poolLanes ? laneLabel(poolLanes, d.laneId)?.trim() : undefined;
   const name = assignee || lane;
-  return name ? { name, fromLane: !assignee, approve: !!squad && name === squad.owner } : undefined;
+  if (!name) return undefined;
+  if (!squad) return { name, approve: false };
+  const agent = squad.agents.some((a) => a.name === name);
+  return { name, agent, approve: name === squad.owner || (d.kind === "bpmn-task-user" && !agent) };
 }
 
 export function stepChips(d: StepData, poolLanes: readonly PoolLaneExtra[] | undefined, squad: SquadInfo | null): StepChips {
@@ -66,21 +72,35 @@ export function skillSuggestions(squad: SquadInfo | null, agent: string | undefi
 
 /** Names to offer when naming a lane: the owner (approval lane) then each agent. Empty without Pie Squad. */
 export function laneNameSuggestions(squad: SquadInfo | null): string[] {
-  return squad ? [...new Set([squad.owner, ...squad.agents.map((a) => a.name)])] : [];
+  return squad ? [...new Set([...(squad.owner ? [squad.owner] : []), ...squad.agents.map((a) => a.name)])] : [];
 }
 
 /** Pie Squad's public API v1 (pie-squad plugin/src/api.js) — read at runtime, never imported. */
-export interface PieSquadApi { version: number; owner(): string; agents(): SquadAgent[]; onChange(cb: () => void): () => void }
+export interface PieSquadApi { version: number; owner(): string | null; agents(): unknown; onChange(cb: () => void): unknown }
 export function pieSquadApi(): PieSquadApi | null {
   const api = (globalThis as { app?: { plugins?: { plugins?: Record<string, { api?: PieSquadApi }> } } })
     .app?.plugins?.plugins?.["pie-squad"]?.api;
   return api?.version === 1 ? api : null;
 }
-export function readSquad(): SquadInfo | null {
-  const api = pieSquadApi();
+/** Pie Squad's owner + agents, validated (bad agent entries dropped); null when absent or broken. */
+export function readSquad(api = pieSquadApi()): SquadInfo | null {
   if (!api) return null;
-  try { return { owner: String(api.owner()), agents: api.agents() }; }
-  catch (e) { console.error("[omniboard] pie-squad api", e); return null; }
+  try {
+    const owner = api.owner(), raw = api.agents();
+    if (!Array.isArray(raw)) throw new Error("agents() is not an array");
+    const agents = raw.flatMap((a: Partial<SquadAgent> | null) =>
+      typeof a?.name === "string" && Array.isArray(a.skills) && a.skills.every((s) => typeof s === "string")
+        ? [{ name: a.name, skills: [...a.skills] }] : []);
+    return { owner: typeof owner === "string" ? owner : null, agents };
+  } catch (e) { console.error("[omniboard] pie-squad api", e); return null; }
+}
+/** Subscribe to Pie Squad's change signal; a missing or throwing API gives a no-op unsubscribe. */
+export function onSquadChange(api: PieSquadApi | null, cb: () => void): () => void {
+  try {
+    const off = api?.onChange(cb);
+    if (typeof off === "function") return () => { try { off(); } catch (e) { console.error("[omniboard] pie-squad off", e); } };
+  } catch (e) { console.error("[omniboard] pie-squad onChange", e); }
+  return () => {};
 }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
@@ -90,7 +110,7 @@ const MAX_SKILL_CHIPS = 2;
 
 export function stepChipsHtml(c: StepChips): string {
   const who = c.who
-    ? `<span class="bp-who${c.who.fromLane ? " is-lane" : ""}${c.who.approve ? " is-approve" : ""}" title="${esc(c.who.name)}">`
+    ? `<span class="bp-who${c.who.approve ? " is-approve" : c.who.agent ? " is-agent" : c.who.agent === false ? " is-faint" : ""}" title="${esc(c.who.name)}">`
       + `<span class="bp-ava">${esc([...c.who.name][0]?.toUpperCase() ?? "")}</span>${c.who.approve ? "duyệt" : esc(c.who.name)}</span>`
     : "";
   const chip = (text: string, title: string, missing: boolean, more = false) =>

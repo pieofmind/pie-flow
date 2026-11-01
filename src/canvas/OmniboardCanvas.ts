@@ -18,7 +18,7 @@ import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import { attachThickCaret } from "./thickCaret";
-import { pieSquadApi, readSquad, stepChips, stepChipsHtml, stepWho, type StepData } from "./stepChips";
+import { laneNameSuggestions, pieSquadApi, readSquad, stepChips, stepChipsHtml, stepWho, type StepData } from "./stepChips";
 import { SUBPROCESS_KINDS, closedLayout, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
@@ -4212,6 +4212,8 @@ export class OmniboardCanvas {
     allowEmpty?: boolean;
     /** Edit in place inside this element (bpmn-js): same font, centred, transparent, its text hidden meanwhile. */
     inBox?: HTMLElement;
+    /** Names offered in a pick list beside the editor (filtered by what's typed). Free typing still works. */
+    suggest?: string[];
     onCommit: (next: string) => void;
   }): void {
     this.commitLabel(); // close any previous editor
@@ -4258,11 +4260,32 @@ export class OmniboardCanvas {
         if (v || opts.allowEmpty) opts.onCommit(v);
       }
       this.graph.off("scale", abort); this.graph.off("translate", abort);
-      ta.remove(); this.labelInput = null;
+      ta.remove(); list?.remove(); this.labelInput = null;
       box?.classList.remove("is-label-editing");
       if (this.isMobile) this.setEditingChrome(false);   // restore the "+" pads
     };
     const abort = () => finish(true); // commit on viewport change so editor never drifts
+    let list: HTMLElement | null = null;
+    const renderList = () => {
+      if (!list || !opts.suggest) return;
+      const q = ta.value === opts.value ? "" : ta.value.trim().toLowerCase();   // untouched name: offer every one
+      const hits = opts.suggest.filter((n) => n.toLowerCase().includes(q));
+      list.replaceChildren(...hits.map((n) => {
+        const b = el("button", "lk-suggest-item", n);
+        // mousedown, not click: keep the textarea focused so blur doesn't commit first
+        b.addEventListener("mousedown", (e) => { e.preventDefault(); ta.value = n; finish(true); });
+        return b;
+      }));
+      list.style.display = hits.length ? "" : "none";
+    };
+    if (opts.suggest?.length) {
+      list = el("div", "lk-suggest");
+      list.style.left = opts.left + opts.width + 4 + "px";
+      list.style.top = opts.top + "px";
+      this.root.appendChild(list);
+      renderList();
+      ta.addEventListener("input", renderList);
+    }
     ta.addEventListener("input", autoGrow);
     ta.addEventListener("keydown", ((e: KeyboardEvent) => {
       e.stopPropagation();
@@ -4291,6 +4314,7 @@ export class OmniboardCanvas {
     this.inlineEdit({
       left: r.left - rr.left, top: r.top - rr.top, width: r.width, height: r.height,
       value: current.label, vertical: ex.poolHorizontal !== false,
+      suggest: laneNameSuggestions(readSquad()),
       onCommit: (v) => {
         node.setData({ ...node.getData(), lanes: relabel(lanes, v) }, { deep: false });
         this.rerender(node);

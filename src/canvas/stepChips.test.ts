@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { stepChips, stepChipsHtml, stepWho } from "./stepChips";
+import { laneNameSuggestions, stepChips, stepChipsHtml, stepWho } from "./stepChips";
 
 const lanes = [
   { id: "nguyen", label: "Nguyên" },
@@ -75,5 +75,12 @@ describe("giới hạn chip skill", () => {
     const h = stepChipsHtml({ skills: [{ name: "a" }, { name: "b" }, { name: "c", missing: "X chưa có skill này" }, { name: "d" }] });
     expect(h).toContain(">a<");
     expect(h).toContain('class="bp-skill is-missing is-more" title="b\nc (X chưa có skill này)\nd">+3<');
+  });
+});
+
+describe("gợi ý tên lane", () => {
+  it("chủ trước, rồi các agent; không Pie Squad thì rỗng", () => {
+    expect(laneNameSuggestions(squad)).toEqual(["Nguyên", "Video Editor", "Copywriter"]);
+    expect(laneNameSuggestions(null)).toEqual([]);
   });
 });

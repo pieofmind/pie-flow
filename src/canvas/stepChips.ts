@@ -47,6 +47,11 @@ export function stepChips(d: StepData, poolLanes: readonly PoolLaneExtra[] | und
   return { who, skills };
 }
 
+/** Names to offer when naming a lane: the owner (approval lane) then each agent. Empty without Pie Squad. */
+export function laneNameSuggestions(squad: SquadInfo | null): string[] {
+  return squad ? [...new Set([squad.owner, ...squad.agents.map((a) => a.name)])] : [];
+}
+
 /** Pie Squad's public API v1 (pie-squad plugin/src/api.js) — read at runtime, never imported. */
 export interface PieSquadApi { version: number; owner(): string; agents(): SquadAgent[]; onChange(cb: () => void): () => void }
 export function pieSquadApi(): PieSquadApi | null {

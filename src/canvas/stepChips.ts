@@ -38,13 +38,30 @@ export function stepWho(d: StepData, poolLanes: readonly PoolLaneExtra[] | undef
 export function stepChips(d: StepData, poolLanes: readonly PoolLaneExtra[] | undefined, squad: SquadInfo | null): StepChips {
   const who = stepWho(d, poolLanes, squad);
   const agent = who && squad?.agents.find((a) => a.name === who.name);
-  const skills = (d.bpmnProps ?? [])
-    .filter((p) => p.name === "skill" && p.value?.trim())
-    .map((p) => {
-      const s = p.value.trim();
-      return agent && !agent.skills.includes(s) ? { name: s, missing: `${agent.name} chưa có skill này` } : { name: s };
-    });
+  const skills = skillsOf(d.bpmnProps)
+    .map((s) => (agent && !agent.skills.includes(s) ? { name: s, missing: `${agent.name} chưa có skill này` } : { name: s }));
   return { who, skills };
+}
+
+type Prop = { name: string; value: string };
+/** The step's skills (camunda:property name="skill"), in order. */
+export const skillsOf = (props: readonly Prop[] | undefined): string[] =>
+  (props ?? []).filter((p) => p.name === "skill" && p.value?.trim()).map((p) => p.value.trim());
+
+/** Replace the skill properties with `skills`, in place of the first one (or at the end); other properties untouched. */
+export function withSkills(props: readonly Prop[] | undefined, skills: readonly string[]): Prop[] {
+  const list = props ?? [];
+  const at = list.findIndex((p) => p.name === "skill");
+  const rest = list.filter((p) => p.name !== "skill");
+  const pos = at < 0 ? rest.length : list.slice(0, at).filter((p) => p.name !== "skill").length;
+  return [...rest.slice(0, pos), ...skills.map((value) => ({ name: "skill", value })), ...rest.slice(pos)];
+}
+
+/** Skills to offer: the step's agent's skills first, then every other agent's; minus the ones already picked. */
+export function skillSuggestions(squad: SquadInfo | null, agent: string | undefined, picked: readonly string[]): string[] {
+  if (!squad) return [];
+  const own = squad.agents.find((a) => a.name === agent)?.skills ?? [];
+  return [...new Set([...own, ...squad.agents.flatMap((a) => a.skills)])].filter((s) => !picked.includes(s));
 }
 
 /** Names to offer when naming a lane: the owner (approval lane) then each agent. Empty without Pie Squad. */

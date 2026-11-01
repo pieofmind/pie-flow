@@ -18,7 +18,7 @@ import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import { attachThickCaret } from "./thickCaret";
-import { laneNameSuggestions, pieSquadApi, readSquad, stepChips, stepChipsHtml, stepWho, type StepData } from "./stepChips";
+import { laneNameSuggestions, pieSquadApi, readSquad, skillSuggestions, skillsOf, stepChips, stepChipsHtml, stepWho, withSkills, type StepData } from "./stepChips";
 import { SUBPROCESS_KINDS, closedLayout, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
@@ -2926,7 +2926,7 @@ export class OmniboardCanvas {
     // ── Camunda: extension attrs + camunda:property list ─────────────────────
     const camunda = (d.camunda as Record<string, string> | undefined) ?? {};
     const CAMUNDA_FIELDS: Array<[string, string]> = [
-      ["assignee", "Assignee"], ["candidateUsers", "Candidate users"], ["candidateGroups", "Candidate groups"],
+      ["assignee", "Người làm riêng"], ["candidateUsers", "Candidate users"], ["candidateGroups", "Candidate groups"],
       ["formKey", "Form key"], ["dueDate", "Due date"], ["priority", "Priority"],
     ];
     type Prop = { name: string; value: string };
@@ -2937,6 +2937,30 @@ export class OmniboardCanvas {
       s.appendChild(el("summary", "lk-psec-h", title)); body.appendChild(s); return s;
     };
     const sCam = fold("Camunda", true);
+    // Skill of the step = the camunda:property rows named "skill" (Pie Squad ADR 0001).
+    if (kind.startsWith("bpmn-task")) {
+      const squad = readSquad();
+      const skills = skillsOf(props());
+      const setSkills = (next: string[]) => { setProps(withSkills(props(), next)); this.refreshProps(); };
+      const box = el("div", "lk-pskills");
+      skills.forEach((sk, i) => {
+        const chip = el("span", "lk-pskill"); chip.textContent = sk;
+        const x = el("button", "lk-pskill-x", "×"); x.title = "Bỏ skill này";
+        x.onclick = () => setSkills(skills.filter((_, j) => j !== i));
+        chip.appendChild(x); box.appendChild(chip);
+      });
+      const add = el("input", "lk-pinput") as HTMLInputElement; add.placeholder = "Thêm skill…";
+      const list = el("datalist"); list.id = `lk-skill-list-${node.id}`;
+      const [sd, sl] = this.stepContext()(node);
+      for (const sk of skillSuggestions(squad, stepWho(sd, sl, squad)?.name, skills)) {
+        const o = el("option"); o.value = sk; list.appendChild(o);
+      }
+      add.setAttribute("list", list.id);
+      // change = picked from the list, or typed then Enter / left the field
+      add.onchange = () => { const v = add.value.trim(); add.value = ""; if (v && !skills.includes(v)) setSkills([...skills, v]); };
+      box.append(add, list);
+      field(sCam, "Skill", box);
+    }
     for (const [key, label] of CAMUNDA_FIELDS) {
       const inp = el("input", "lk-pinput") as HTMLInputElement;
       inp.value = camunda[key] ?? ""; inp.placeholder = label;

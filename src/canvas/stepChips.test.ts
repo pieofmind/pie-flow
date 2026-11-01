@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { laneNameSuggestions, stepChips, stepChipsHtml, stepWho } from "./stepChips";
+import { laneNameSuggestions, skillSuggestions, skillsOf, withSkills, stepChips, stepChipsHtml, stepWho } from "./stepChips";
 
 const lanes = [
   { id: "nguyen", label: "Nguyên" },
@@ -82,5 +82,26 @@ describe("gợi ý tên lane", () => {
   it("chủ trước, rồi các agent; không Pie Squad thì rỗng", () => {
     expect(laneNameSuggestions(squad)).toEqual(["Nguyên", "Video Editor", "Copywriter"]);
     expect(laneNameSuggestions(null)).toEqual([]);
+  });
+});
+
+describe("ô Skill trong bảng Thuộc tính", () => {
+  const props = [{ name: "a", value: "1" }, { name: "skill", value: "x" }, { name: "b", value: "2" }, { name: "skill", value: "y" }];
+  it("đọc skill theo thứ tự", () => expect(skillsOf(props)).toEqual(["x", "y"]));
+  it("ghi lại skill vào chỗ skill đầu, giữ property khác", () => {
+    expect(withSkills(props, ["y", "z"])).toEqual([
+      { name: "a", value: "1" }, { name: "skill", value: "y" }, { name: "skill", value: "z" }, { name: "b", value: "2" },
+    ]);
+  });
+  it("chưa có skill: thêm vào cuối; xoá hết: chỉ còn property khác", () => {
+    expect(withSkills([{ name: "a", value: "1" }], ["x"])).toEqual([{ name: "a", value: "1" }, { name: "skill", value: "x" }]);
+    expect(withSkills(props, [])).toEqual([{ name: "a", value: "1" }, { name: "b", value: "2" }]);
+    expect(withSkills(undefined, [])).toEqual([]);
+  });
+  it("gợi ý skill của agent bước trước, bỏ skill đã chọn", () => {
+    const sq = { owner: "N", agents: [{ name: "A", skills: ["s1"] }, { name: "B", skills: ["s2", "s1"] }] };
+    expect(skillSuggestions(sq, "B", ["s1"])).toEqual(["s2"]);
+    expect(skillSuggestions(sq, "A", [])).toEqual(["s1", "s2"]);
+    expect(skillSuggestions(null, "A", [])).toEqual([]);
   });
 });

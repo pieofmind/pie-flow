@@ -27,11 +27,16 @@ function laneLabel(lanes: readonly PoolLaneExtra[], id: string): string | undefi
   return undefined;
 }
 
-export function stepChips(d: StepData, poolLanes: readonly PoolLaneExtra[] | undefined, squad: SquadInfo | null): StepChips {
+/** Who does the step: its own camunda:assignee, else the label of the lane it sits in. */
+export function stepWho(d: StepData, poolLanes: readonly PoolLaneExtra[] | undefined, squad: SquadInfo | null): StepChips["who"] {
   const assignee = d.camunda?.assignee?.trim();
   const lane = !assignee && d.laneId && poolLanes ? laneLabel(poolLanes, d.laneId)?.trim() : undefined;
   const name = assignee || lane;
-  const who = name ? { name, fromLane: !assignee, approve: !!squad && name === squad.owner } : undefined;
+  return name ? { name, fromLane: !assignee, approve: !!squad && name === squad.owner } : undefined;
+}
+
+export function stepChips(d: StepData, poolLanes: readonly PoolLaneExtra[] | undefined, squad: SquadInfo | null): StepChips {
+  const who = stepWho(d, poolLanes, squad);
   const agent = who && squad?.agents.find((a) => a.name === who.name);
   const skills = (d.bpmnProps ?? [])
     .filter((p) => p.name === "skill" && p.value?.trim())

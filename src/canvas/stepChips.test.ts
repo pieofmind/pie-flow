@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { stepChips, stepChipsHtml } from "./stepChips";
+import { stepChips, stepChipsHtml, stepWho } from "./stepChips";
 
 const lanes = [
   { id: "nguyen", label: "Nguyên" },
@@ -35,5 +35,17 @@ describe("stepChips", () => {
   });
   it("escape tên", () => {
     expect(stepChipsHtml(stepChips({ camunda: { assignee: "<b>" } }, undefined, null))).not.toContain("<b>");
+  });
+});
+
+describe("stepWho (ô Người làm riêng)", () => {
+  it("không assignee: tên lane, cờ fromLane", () => {
+    expect(stepWho({ laneId: "ve", camunda: { assignee: " " } }, lanes, null)).toEqual({ name: "Video Editor", fromLane: true, approve: false });
+  });
+  it("có assignee: tên riêng", () => {
+    expect(stepWho({ laneId: "ve", camunda: { assignee: "Copywriter" } }, lanes, null)?.fromLane).toBe(false);
+  });
+  it("không lane, không assignee: không có ai", () => {
+    expect(stepWho({ laneId: "khong-co" }, lanes, null)).toBeUndefined();
   });
 });

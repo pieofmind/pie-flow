@@ -9,7 +9,7 @@ import { Transform } from "@antv/x6-plugin-transform";
 import type { PaletteItem, ShapeCategory, CanvasModel, BoardAppState } from "./types";
 import { shapeIcon } from "./shapes/index";
 import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type FixedPortId } from "./shapes/ports";
-import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
+import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol, type PoolLaneExtra } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
 import { addChildLane, allLaneIds, asStackLanes, fromStackLanes, fromStackLanesDeep, growLaneAt, laneBandOf, laneHeights, leafLaneAt, leafLaneSize, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, setSiblings, splitLane } from "./laneLayout";
@@ -18,7 +18,7 @@ import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import { attachThickCaret } from "./thickCaret";
-import { stepChips, stepChipsHtml, type SquadInfo, type StepData } from "./stepChips";
+import { stepChips, stepChipsHtml, stepWho, type SquadInfo, type StepData } from "./stepChips";
 import { SUBPROCESS_KINDS, closedLayout, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
@@ -2942,6 +2942,10 @@ export class OmniboardCanvas {
     for (const [key, label] of CAMUNDA_FIELDS) {
       const inp = el("input", "lk-pinput") as HTMLInputElement;
       inp.value = camunda[key] ?? ""; inp.placeholder = label;
+      // Empty assignee: show who does the step by its lane (data stays empty).
+      const [sd, sl] = key === "assignee" ? this.stepContext()(node) : [{}, undefined];
+      const laneWho = key === "assignee" ? stepWho({ ...sd, camunda: {} }, sl, null) : undefined;
+      if (laneWho) inp.placeholder = laneWho.name;
       inp.oninput = () => {
         const cur = (node.getData()?.camunda as Record<string, string> | undefined) ?? {};
         const updated = { ...cur, [key]: inp.value.trim() || undefined };
@@ -2949,6 +2953,12 @@ export class OmniboardCanvas {
         save({ camunda: Object.keys(kept).length ? kept : undefined });
       };
       field(sCam, label, inp);
+      if (laneWho) {
+        const hint = el("span", "lk-phint", " · theo lane");
+        const sync = () => { hint.style.display = inp.value.trim() ? "none" : ""; };
+        sCam.lastElementChild?.querySelector("label")?.appendChild(hint);
+        inp.addEventListener("input", sync); sync();
+      }
     }
     props().forEach((p, i) => {
       const row = el("div", "lk-prow2");
@@ -3640,10 +3650,18 @@ export class OmniboardCanvas {
     if (this.stepChipsRaf) return;
     this.stepChipsRaf = requestAnimationFrame(() => { this.stepChipsRaf = 0; this.refreshStepChips(); });
   }
+  /** Step data with a fresh laneId (from position) + the lanes of the pool holding that lane. */
+  private stepContext(): (n: Node) => [StepData, PoolLaneExtra[] | undefined] {
+    const laneOf = new Map(this.getModel().nodes.map((m) => [m.id, m.laneId]));
+    const poolLanes = this.graph.getNodes().filter((p) => this.nodeKind(p) === "bpmn-pool").map((p) => this.nodeExtra(p).lanes ?? []);
+    return (n) => {
+      const d = { ...(n.getData() as StepData | undefined), laneId: laneOf.get(n.id) };
+      return [d, d.laneId ? poolLanes.find((ls) => findLaneDeep(ls, d.laneId!)) : undefined];
+    };
+  }
   private refreshStepChips(): void {
     const squad = this.squadInfo();
-    const laneOf = new Map(this.getModel().nodes.map((m) => [m.id, m.laneId]));   // fresh laneIds from positions
-    const poolLanes = this.graph.getNodes().filter((p) => this.nodeKind(p) === "bpmn-pool").map((p) => this.nodeExtra(p).lanes ?? []);
+    const ctx = this.stepContext();
     const zoom = this.graph.zoom();
     for (const n of this.graph.getNodes()) {
       if (!this.nodeKind(n).startsWith("bpmn-task")) continue;
@@ -3651,9 +3669,7 @@ export class OmniboardCanvas {
       if (!box) continue;
       box.querySelectorAll(":scope > .bp-who, :scope > .bp-skills").forEach((c) => c.remove());
       if (n.getSize().height * zoom < STEP_CHIPS_MIN_PX) continue;   // too small on screen: keep the box clean
-      const d = { ...(n.getData() as StepData | undefined), laneId: laneOf.get(n.id) };
-      const lanes = d.laneId ? poolLanes.find((ls) => findLaneDeep(ls, d.laneId!)) : undefined;
-      box.insertAdjacentHTML("beforeend", stepChipsHtml(stepChips(d, lanes, squad)));
+      box.insertAdjacentHTML("beforeend", stepChipsHtml(stepChips(...ctx(n), squad)));
     }
   }
 

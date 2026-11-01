@@ -18,7 +18,7 @@ import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import { attachThickCaret } from "./thickCaret";
-import { stepChips, stepChipsHtml, stepWho, type SquadInfo, type StepData } from "./stepChips";
+import { pieSquadApi, readSquad, stepChips, stepChipsHtml, stepWho, type StepData } from "./stepChips";
 import { SUBPROCESS_KINDS, closedLayout, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
@@ -383,8 +383,6 @@ type ConnectedEndpointEvent = {
 };
 
 /** The lane `id` at any nesting depth. */
-/** Pie Squad's public API v1 (pie-squad plugin/src/api.js) — read at runtime, never imported. */
-interface PieSquadApi { version: number; owner(): string; agents(): SquadInfo["agents"]; onChange(cb: () => void): () => void }
 /** A task shorter than this on screen (zoomed out) hides its step chips. */
 const STEP_CHIPS_MIN_PX = 56;
 
@@ -3632,19 +3630,8 @@ export class OmniboardCanvas {
   private initStepChips(): void {
     ["node:added", "node:removed", "node:moved", "node:resized", "node:change:data", "scale"]
       .forEach((ev) => this.graph.on(ev, () => this.scheduleStepChips()));
-    const off = this.squadApi()?.onChange(() => this.scheduleStepChips());
+    const off = pieSquadApi()?.onChange(() => this.scheduleStepChips());
     this.squadOff = typeof off === "function" ? off : null;
-  }
-  private squadApi(): PieSquadApi | null {
-    const api = (globalThis as { app?: { plugins?: { plugins?: Record<string, { api?: PieSquadApi }> } } })
-      .app?.plugins?.plugins?.["pie-squad"]?.api;
-    return api?.version === 1 ? api : null;
-  }
-  private squadInfo(): SquadInfo | null {
-    const api = this.squadApi();
-    if (!api) return null;
-    try { return { owner: String(api.owner()), agents: api.agents() }; }
-    catch (e) { console.error("[omniboard] pie-squad api", e); return null; }
   }
   private scheduleStepChips(): void {
     if (this.stepChipsRaf) return;
@@ -3660,7 +3647,7 @@ export class OmniboardCanvas {
     };
   }
   private refreshStepChips(): void {
-    const squad = this.squadInfo();
+    const squad = readSquad();
     const ctx = this.stepContext();
     const zoom = this.graph.zoom();
     for (const n of this.graph.getNodes()) {

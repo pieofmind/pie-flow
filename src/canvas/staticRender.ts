@@ -1,4 +1,5 @@
-import { nodeHtml, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
+import { nodeHtml, type NodeStyle, type NodeExtra, type ErdCol, type PoolLaneExtra } from "./htmlNode";
+import { readSquad, stepChips, stepChipsHtml, type SquadInfo, type StepData } from "./stepChips";
 import type { CanvasModel } from "./types";
 import { hostSide } from "./boundaryLayout";
 
@@ -110,7 +111,7 @@ function edgesMarkup(edges: CanvasModel["edges"], byId: Map<string, ModelNode>):
  *  OmniboardCanvas.nodeExtra() so static renders emit the SAME BPMN glyphs /
  *  activity markers / lanes as the live canvas (otherwise events render as empty
  *  rings and pools lose their lane bands). */
-function nodeInnerHtml(n: ModelNode, byId: Map<string, ModelNode>): string {
+function nodeInnerHtml(n: ModelNode, byId: Map<string, ModelNode>, lanes: PoolLaneExtra[], squad: SquadInfo | null): string {
   const a = (n.attrs ?? {}) as Record<string, unknown>;
   const host = typeof a.attachedTo === "string" ? byId.get(a.attachedTo) : undefined;
   const style = (a.style as NodeStyle) ?? {};
@@ -132,7 +133,16 @@ function nodeInnerHtml(n: ModelNode, byId: Map<string, ModelNode>): string {
     // Boundary event: label outside its host, like the live canvas.
     ...(host ? { labelSide: hostSide(n, host) } : {}),
   };
-  return nodeHtml(n.shape, n.label, style, extra);
+  const html = nodeHtml(n.shape, n.label, style, extra);
+  if (!n.shape.startsWith("bpmn-task")) return html;
+  // Step chips go inside the .bp-task box (its closing tag ends the string).
+  const chips = stepChipsHtml(stepChips({ ...(a as StepData), laneId: n.laneId }, lanes, squad));
+  return chips ? html.replace(/<\/div>$/, `${chips}</div>`) : html;
+}
+
+/** Lanes of every pool (lane ids are unique across pools). */
+function poolLanesOf(nodes: ModelNode[]): PoolLaneExtra[] {
+  return nodes.filter((n) => n.shape === "bpmn-pool").flatMap((n) => (n.attrs as { lanes?: PoolLaneExtra[] } | undefined)?.lanes ?? []);
 }
 
 /** Boundary events (attachedTo) paint after every other node so their host
@@ -152,11 +162,12 @@ const ARROW_DEF = `<marker id="da-arrow" markerWidth="11" markerHeight="8" refX=
 export function renderModelToSvg(model: CanvasModel, css: string, pad = 24, bg = "#ffffff"): string {
   const nodes = model.nodes ?? [];
   const byId = new Map(nodes.map((n) => [n.id, n]));
+  const lanes = poolLanesOf(nodes), squad = readSquad();
   const { x, y, w, h } = computeBounds(nodes, pad);
 
   const edgeSvg = edgesMarkup(model.edges, byId);
   const nodeSvg = paintOrder(nodes).map((n) => {
-    const inner = nodeInnerHtml(n, byId);
+    const inner = nodeInnerHtml(n, byId, lanes, squad);
     return `<foreignObject x="${num(n.x)}" y="${num(n.y)}" width="${num(n.width)}" height="${num(n.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
   }).join("");
 
@@ -188,6 +199,7 @@ export function renderModelToSvg(model: CanvasModel, css: string, pad = 24, bg =
 export function renderModelToCard(model: CanvasModel, pad = 16, bg = "transparent"): string {
   const nodes = model.nodes ?? [];
   const byId = new Map(nodes.map((n) => [n.id, n]));
+  const lanes = poolLanesOf(nodes), squad = readSquad();
   const { x, y, w, h } = computeBounds(nodes, pad);
 
   const edgeSvg = `<svg xmlns="${SVGNS}" class="ob-card-edges" width="${w}" height="${h}" viewBox="${x} ${y} ${w} ${h}" `
@@ -195,7 +207,7 @@ export function renderModelToCard(model: CanvasModel, pad = 16, bg = "transparen
     + `<defs>${ARROW_DEF}</defs>${edgesMarkup(model.edges, byId)}</svg>`;
 
   const nodeDivs = paintOrder(nodes).map((n) => {
-    const inner = nodeInnerHtml(n, byId);
+    const inner = nodeInnerHtml(n, byId, lanes, squad);
     // Offset into stage-local coordinates (stage origin = bounds top-left).
     const left = num(n.x) - x, top = num(n.y) - y;
     return `<div class="hn" style="position:absolute;left:${left}px;top:${top}px;width:${num(n.width)}px;height:${num(n.height)}px">${inner}</div>`;

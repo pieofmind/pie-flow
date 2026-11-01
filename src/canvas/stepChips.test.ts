@@ -49,3 +49,17 @@ describe("stepWho (ô Người làm riêng)", () => {
     expect(stepWho({ laneId: "khong-co" }, lanes, null)).toBeUndefined();
   });
 });
+
+describe("chip trên bản xuất tĩnh", () => {
+  it("renderModelToSvg có chip người làm và skill trong ô task", async () => {
+    const { renderModelToSvg } = await import("./staticRender");
+    const svg = renderModelToSvg({ edges: [], nodes: [
+      { id: "p", shape: "bpmn-pool", x: 0, y: 0, width: 600, height: 200, label: "Pool", attrs: { lanes } },
+      { id: "t", shape: "bpmn-task", x: 50, y: 50, width: 100, height: 80, label: "Dựng", laneId: "ve",
+        attrs: { bpmnProps: [{ name: "skill", value: "pom-reel" }] } },
+      { id: "g", shape: "bpmn-gateway-x", x: 200, y: 50, width: 40, height: 40, label: "", laneId: "ve" },
+    ] }, "");
+    expect(svg).toMatch(/class="bp-task">Dựng<span class="bp-who is-lane"[^]*Video Editor[^]*bp-skill[^>]*>pom-reel<\/span><\/span><\/div>/);
+    expect(svg.match(/bp-who/g)).toHaveLength(1);
+  });
+});

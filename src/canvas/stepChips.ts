@@ -47,6 +47,20 @@ export function stepChips(d: StepData, poolLanes: readonly PoolLaneExtra[] | und
   return { who, skills };
 }
 
+/** Pie Squad's public API v1 (pie-squad plugin/src/api.js) — read at runtime, never imported. */
+export interface PieSquadApi { version: number; owner(): string; agents(): SquadAgent[]; onChange(cb: () => void): () => void }
+export function pieSquadApi(): PieSquadApi | null {
+  const api = (globalThis as { app?: { plugins?: { plugins?: Record<string, { api?: PieSquadApi }> } } })
+    .app?.plugins?.plugins?.["pie-squad"]?.api;
+  return api?.version === 1 ? api : null;
+}
+export function readSquad(): SquadInfo | null {
+  const api = pieSquadApi();
+  if (!api) return null;
+  try { return { owner: String(api.owner()), agents: api.agents() }; }
+  catch (e) { console.error("[omniboard] pie-squad api", e); return null; }
+}
+
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
 export function stepChipsHtml(c: StepChips): string {

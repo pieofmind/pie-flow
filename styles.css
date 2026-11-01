@@ -896,6 +896,8 @@ button.da-tb-save {
 .lk-root .lk-phint { color: var(--pg-text-muted); font-weight: 400; }
 /* Step chips (who + skill of a BPMN task, from lane/assignee + camunda:property skill) */
 .lk-root .bp-task .bp-who { position: absolute; top: 4px; right: 5px; max-width: calc(100% - 28px); display: inline-flex; align-items: center; gap: 3px; padding: 1px 5px 1px 1px; border-radius: 999px; background: var(--pg-accent-soft); color: var(--pg-text); font-size: 7px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-sizing: border-box; }
+.lk-root .bp-task:has(> .bp-who) { padding-top: 16px; }   /* keep a long label clear of the chips */
+.lk-root .bp-task:has(> .bp-skills) { padding-bottom: 15px; }
 .lk-root .bp-task .bp-who.is-lane { opacity: .6; font-weight: 600; }
 .lk-root .bp-task .bp-ava { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--pg-accent); color: var(--pg-accent-ink); display: grid; place-items: center; font-size: 6px; }
 .lk-root .bp-task .bp-skills { position: absolute; left: 1.5px; right: 1.5px; bottom: 4px; display: flex; justify-content: center; gap: 1px; }

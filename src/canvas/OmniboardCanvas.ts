@@ -4271,7 +4271,7 @@ export class OmniboardCanvas {
       const q = ta.value === opts.value ? "" : ta.value.trim().toLowerCase();   // untouched name: offer every one
       const hits = opts.suggest.filter((n) => n.toLowerCase().includes(q));
       list.replaceChildren(...hits.map((n) => {
-        const b = el("button", "lk-suggest-item", n);
+        const b = el("button", "lk-suggest-item"); b.textContent = n;   // names come from vault notes: text, not HTML
         // mousedown, not click: keep the textarea focused so blur doesn't commit first
         b.addEventListener("mousedown", (e) => { e.preventDefault(); ta.value = n; finish(true); });
         return b;

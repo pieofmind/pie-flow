@@ -604,7 +604,7 @@ export async function exportBpmn(model: CanvasModel, meta?: SourceMeta | null): 
         // Safety net: malformed/partial raw XML (or unsupported legacy DI bits)
         // should not block export entirely. Fall back to minimal emit so users
         // still get a valid BPMN document instead of a hard crash.
-        console.warn("[omniboard:bpmn] patchExisting failed; falling back to minimal export", err);
+        console.warn("[pie-flow:bpmn] patchExisting failed; falling back to minimal export", err);
       }
     }
   }
@@ -931,7 +931,7 @@ async function patchExisting(raw: string, model: CanvasModel, m: BpmnModdle, dia
       const sourceFe = refOf(e.source);
       const targetFe = refOf(e.target);
       if (!sourceFe || !targetFe) {
-        console.warn(`[omniboard:bpmn] dropped ${kind} flow "${e.id}": endpoint has no BPMN element (${e.source} → ${e.target})`);
+        console.warn(`[pie-flow:bpmn] dropped ${kind} flow "${e.id}": endpoint has no BPMN element (${e.source} → ${e.target})`);
         continue;
       }
       // No collaboration → a MessageFlow has no valid host: write it as a
@@ -1340,7 +1340,7 @@ function nodeLabelBoundsFromModel(
 async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
   const defs = m.create("bpmn:Definitions", {
     id: "Definitions_Export",
-    targetNamespace: "http://omniboard.local/bpmn",
+    targetNamespace: "http://pie-flow.local/bpmn",
   }) as ModdleElement;
   const pools = model.nodes.filter((n) =>
     n.shape === "bpmn-pool" ||
@@ -1522,7 +1522,7 @@ async function emitMinimal(model: CanvasModel, m: BpmnModdle): Promise<string> {
       targetRef: refOf(e.target),
     }) as ModdleElement;
     if (!sf.sourceRef || !sf.targetRef) {
-      console.warn(`[omniboard:bpmn] dropped ${typeStr} "${e.id}": endpoint has no BPMN element (${e.source} → ${e.target})`);
+      console.warn(`[pie-flow:bpmn] dropped ${typeStr} "${e.id}": endpoint has no BPMN element (${e.source} → ${e.target})`);
       continue;
     }
     const extrasKind = (typeStr === "bpmn:MessageFlow")

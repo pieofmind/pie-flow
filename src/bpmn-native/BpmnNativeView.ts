@@ -18,8 +18,8 @@ const isObsidianMobile = (): boolean =>
 import { BpmnNativeController } from "./BpmnNativeController";
 import type DiagramsPlugin from "../main";
 import {
-  OMNIBOARD_SUFFIX,
-  isOmniboardMarkdown,
+  isBoardPath,
+  isPieFlowMarkdown,
   deserializeBoard,
   deserializeBpmnXml,
   deserializeSourceMeta,
@@ -43,10 +43,10 @@ const MINIMAL_BPMN_FALLBACK = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
-                  id="defs_omniboard" targetNamespace="http://example.com/omniboard">
-  <bpmn:process id="p_omniboard" isExecutable="false"/>
-  <bpmndi:BPMNDiagram id="d_omniboard">
-    <bpmndi:BPMNPlane id="pl_omniboard" bpmnElement="p_omniboard"/>
+                  id="defs_pie_flow" targetNamespace="http://example.com/pie-flow">
+  <bpmn:process id="p_pie_flow" isExecutable="false"/>
+  <bpmndi:BPMNDiagram id="d_pie_flow">
+    <bpmndi:BPMNPlane id="pl_pie_flow" bpmnElement="p_pie_flow"/>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
 
@@ -142,8 +142,8 @@ export class BpmnNativeView extends TextFileView {
     // Wrapper detection: an Omniboard markdown wrapper rather than a raw `.bpmn`.
     // We pivot to canvas-master mode: the markdown is the file-of-record, we
     // only edit its derived BPMN block via the modeler.
-    const wrapperByExt = this.file?.path?.endsWith(OMNIBOARD_SUFFIX) ?? false;
-    const wrapperByMarker = isOmniboardMarkdown(data);
+    const wrapperByExt = (this.file ? isBoardPath(this.file.path) : false);
+    const wrapperByMarker = isPieFlowMarkdown(data);
     // H2: extension alone is NOT authoritative — a user-created `*.omniboard.md`
     // without the plugin marker AND without a valid omniboard-data block must
     // not be treated as a wrapper, else the first BPMN edit rewrites the file
@@ -682,8 +682,8 @@ export class BpmnNativeView extends TextFileView {
     if (this.isWrapper) {
       const switchBtn = bar.createEl("button", { cls: "da-tb-ic" });
       setIcon(switchBtn, "shapes");
-      switchBtn.setAttribute("aria-label", "Switch to Omniboard view");
-      switchBtn.title = "Switch to Omniboard view";
+      switchBtn.setAttribute("aria-label", "Switch to Pie Flow view");
+      switchBtn.title = "Switch to Pie Flow view";
       switchBtn.onclick = () => void this.switchToBoardView();
     }
 

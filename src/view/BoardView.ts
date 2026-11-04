@@ -76,7 +76,7 @@ class DiagramPickerModal extends Modal {
   }
   onOpen(): void {
     const { contentEl } = this;
-    this.modalEl.addClass("omniboard-diagram-picker");
+    this.modalEl.addClass("pie-flow-diagram-picker");
     contentEl.empty();
     contentEl.createEl("h3", { text: "Select BPMN Diagram" });
     contentEl.createEl("p", { text: `This file contains ${this.diagrams.length} diagrams. Pick one to import.` });
@@ -152,8 +152,10 @@ async function saveToLocal(
   return suggestedName;
 }
 
-export const BOARD_VIEW_TYPE = "omniboard-board";
-export const BOARD_EXTENSION = "omniboard.md";
+export const BOARD_VIEW_TYPE = "pie-flow-board";
+/** View type saved in workspaces before the Omniboard → Pie Flow rename. */
+export const LEGACY_BOARD_VIEW_TYPE = "omniboard-board";
+export const BOARD_EXTENSION = "pieflow.md";
 
 const EMPTY_MODEL: CanvasModel = { nodes: [], edges: [] };
 
@@ -170,7 +172,7 @@ const EMPTY_MODEL: CanvasModel = { nodes: [], edges: [] };
 const BOARD_TAB_STUB_ADAPTER: DiagramAdapter<CanvasModel> = {
   id: "flowchart",
   displayName: "Board",
-  codeBlockLanguage: "omniboard",
+  codeBlockLanguage: "pie-flow",
   icon: "shapes",
   parse: () => EMPTY_MODEL,
   serialize: () => "",
@@ -451,7 +453,7 @@ export class BoardView extends TextFileView {
   }
 
   private suggestedName(suffix: string): string {
-    return (this.file?.basename ?? "Omniboard") + suffix;
+    return (this.file?.basename ?? "Pie Flow") + suffix;
   }
 
   private async handleExportPdf(): Promise<void> {
@@ -512,7 +514,7 @@ export class BoardView extends TextFileView {
       void this.backupInvalid(data);
       notify(
         "warn",
-        "File .omniboard.md không đúng định dạng — drawing block thiếu/hỏng. File được giữ nguyên, đã tạo bản sao lưu .bak cạnh file.",
+        "File board không đúng định dạng — drawing block thiếu/hỏng. File được giữ nguyên, đã tạo bản sao lưu .bak cạnh file.",
         10000
       );
       return;
@@ -562,11 +564,11 @@ export class BoardView extends TextFileView {
         this.cachedBpmnXml = xml;
       } catch (err) {
         this.cachedBpmnXml = ""; // explicitly drop the stale derived block
-        console.warn("[omniboard] BPMN regen failed; dropping derived block", err);
+        console.warn("[pie-flow] BPMN regen failed; dropping derived block", err);
       }
       const elapsed = performance.now() - start;
       if (elapsed > 100) {
-        console.warn(`[omniboard] BPMN regen took ${elapsed.toFixed(1)}ms`);
+        console.warn(`[pie-flow] BPMN regen took ${elapsed.toFixed(1)}ms`);
       }
     }
     // Never write over a disk change we haven't seen: load it or ask first.
@@ -612,7 +614,7 @@ export class BoardView extends TextFileView {
     } catch (err) {
       this.diskModel = expected;
       this.localEdits = true;
-      console.error("[omniboard] save failed", err);
+      console.error("[pie-flow] save failed", err);
       notify("error", `Lưu board lỗi: ${(err as Error).message}`);
     } finally {
       this.boardSaving = false;

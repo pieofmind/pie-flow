@@ -84,7 +84,7 @@ export class BoardSidePanel {
     if (!model) return;
     if (this.tab === "issues") {
       // Same rows/classes as the BPMN issues sidebar view, just placed here.
-      const list = this.paneEl.createDiv({ cls: "da-side-issues omniboard-issues-view" });
+      const list = this.paneEl.createDiv({ cls: "da-side-issues pie-flow-issues-view" });
       if (!issues.length) list.createDiv({ cls: "da-side-empty", text: "Không phát hiện lỗi semantic." });
       for (const i of issues) {
         const row = list.createEl("button", { cls: `obi-row ${i.severity}`, attr: { "data-id": i.targetId } });

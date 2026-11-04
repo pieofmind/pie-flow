@@ -1,26 +1,30 @@
 import pako from "pako";
 import type { CanvasModel } from "../canvas/types";
 
-export const OMNIBOARD_EXT = "omniboard.md";
-export const OMNIBOARD_SUFFIX = `.${OMNIBOARD_EXT}`;
-const DATA_LANG = "omniboard-data";
-const META_LANG = "omniboard-source-meta";
-const BPMN_LANG = "omniboard-bpmn-xml";
-const REQUIRED_FM_KEY = "omniboard-plugin";
+export const BOARD_EXT = "pieflow.md";
+export const BOARD_SUFFIX = `.${BOARD_EXT}`;
+/** Pre-rename (Omniboard) suffix: still opened, never written for new boards. */
+export const LEGACY_BOARD_SUFFIX = ".omniboard.md";
+export function isBoardPath(path: string): boolean {
+  return path.endsWith(BOARD_SUFFIX) || path.endsWith(LEGACY_BOARD_SUFFIX);
+}
+const DATA_LANG = "pie-flow-data";
+const META_LANG = "pie-flow-source-meta";
+const BPMN_LANG = "pie-flow-bpmn-xml";
+export const REQUIRED_FM_KEY = "pie-flow-plugin";
+const LEGACY_FM_KEY = "omniboard-plugin";
 const REQUIRED_FM_VAL = "parsed";
+/** Readers accept both the current `pie-flow-*` and pre-rename `omniboard-*` names. */
+const LANG_PREFIX = "(?:pie-flow|omniboard)";
+const FM_KEY_RE = "(?:pie-flow|omniboard)-plugin";
+const BOARD_TAG = "pie-flow";
 
-const DRAWING_RE = new RegExp(
-  "```" + DATA_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
-  "m"
-);
-const META_RE = new RegExp(
-  "```" + META_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
-  "m"
-);
-const BPMN_RE = new RegExp(
-  "```" + BPMN_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
-  "m"
-);
+function blockRe(suffix: string): RegExp {
+  return new RegExp("```" + LANG_PREFIX + "-" + suffix + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```", "m");
+}
+const DRAWING_RE = blockRe("data");
+const META_RE = blockRe("source-meta");
+const BPMN_RE = blockRe("bpmn-xml");
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
 
 interface ParsedFrontmatter {
@@ -53,18 +57,26 @@ function parseFrontmatter(raw: string): ParsedFrontmatter {
   return { raw: out, order };
 }
 
+/** Keep the user's tags; swap the legacy `omniboard` tag for `pie-flow`, add it if missing. */
+export function boardTags(tags: string | undefined): string {
+  if (!tags) return `[${BOARD_TAG}]`;
+  const swapped = tags.replace(/(^|[\s,\[])omniboard(?=$|[\s,\]])/g, `$1${BOARD_TAG}`);
+  if (new RegExp(`(^|[\\s,\\[])${BOARD_TAG}($|[\\s,\\]])`).test(swapped)) return swapped;
+  const inline = /^\[(.*)\]$/.exec(swapped.trim());
+  if (inline) return inline[1].trim() ? `[${BOARD_TAG}, ${inline[1].trim()}]` : `[${BOARD_TAG}]`;
+  if (swapped.startsWith("\n")) return `${swapped}\n- ${BOARD_TAG}`;
+  return `[${BOARD_TAG}, ${swapped}]`;
+}
+
 function emitFrontmatter(fm: ParsedFrontmatter): string {
   const keys = new Set(fm.order);
   // Ensure required keys are present and stamped first.
   const lines: string[] = ["---"];
   lines.push(`${REQUIRED_FM_KEY}: ${REQUIRED_FM_VAL}`);
   keys.delete(REQUIRED_FM_KEY);
+  keys.delete(LEGACY_FM_KEY);
 
-  if (!fm.raw.tags || !/\bomniboard\b/.test(fm.raw.tags)) {
-    lines.push(`tags: [omniboard]`);
-  } else {
-    lines.push(`tags: ${fm.raw.tags}`);
-  }
+  lines.push(`tags: ${boardTags(fm.raw.tags)}`);
   keys.delete("tags");
 
   for (const k of fm.order) {
@@ -120,7 +132,7 @@ function escapeMd(s: string): string {
 }
 
 /**
- * Serialize a canvas model as a `.omniboard.md` document. Existing frontmatter
+ * Serialize a canvas model as a `.pieflow.md` document. Existing frontmatter
  * (passed via `previousRaw`) is preserved so user-added fields survive a save.
  */
 /** Read the source-meta block (from a previous import) or null if absent. */
@@ -170,9 +182,9 @@ export function serializeBoard(
   const parts: string[] = [];
   parts.push(emitFrontmatter(fm));
   parts.push("");
-  parts.push("==⚠ Switch to OMNIBOARD VIEW in the MORE OPTIONS menu of this document. ⚠==");
+  parts.push("==⚠ Switch to PIE FLOW VIEW in the MORE OPTIONS menu of this document. ⚠==");
   parts.push("");
-  parts.push("# Omniboard");
+  parts.push("# Pie Flow");
   parts.push("");
 
   parts.push("## Text Elements");
@@ -222,11 +234,11 @@ export function serializeBoard(
 }
 
 /**
- * Parse a `.omniboard.md` document back to a CanvasModel. Returns null if the
+ * Parse a `.pieflow.md` document back to a CanvasModel. Returns null if the
  * drawing block is missing or corrupt (caller should preserve the raw data and
  * surface an error rather than overwriting).
  *
- * Supports two formats for the omniboard-data block:
+ * Supports two formats for the pie-flow-data block:
  *  1. Gzip + Base64 (normal plugin output) — decompressed via `decompress()`.
  *  2. Plain JSON — written directly by AI agents that cannot Gzip. The plugin
  *     will re-compress on the next save automatically.
@@ -241,8 +253,8 @@ export function deserializeBoard(raw: string): CanvasModel | null {
 }
 
 /** Quick check for the marker frontmatter without a full parse. */
-export function isOmniboardMarkdown(raw: string): boolean {
+export function isPieFlowMarkdown(raw: string): boolean {
   const m = FRONTMATTER_RE.exec(raw);
   if (!m) return false;
-  return new RegExp(`^${REQUIRED_FM_KEY}\\s*:\\s*${REQUIRED_FM_VAL}\\b`, "m").test(m[1]);
+  return new RegExp(`^${FM_KEY_RE}\\s*:\\s*["']?${REQUIRED_FM_VAL}\\b`, "m").test(m[1]);
 }

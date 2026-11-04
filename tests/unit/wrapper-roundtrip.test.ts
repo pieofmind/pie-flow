@@ -3,7 +3,7 @@ import {
   serializeBoard,
   deserializeBoard,
   deserializeBpmnXml,
-  isOmniboardMarkdown,
+  isPieFlowMarkdown,
 } from "../../src/view/boardSerde";
 import { exportBpmn } from "../../src/io/bpmn/export";
 import { importBpmn } from "../../src/io/bpmn/import";
@@ -57,7 +57,7 @@ describe("Wrapper round-trip pipeline (Story 4.5)", () => {
     const xml1 = await exportBpmn(canvasWithSticky, sourceMeta);
     const file1 = serializeBoard(canvasWithSticky, "", sourceMeta, { bpmnXml: xml1 });
 
-    expect(isOmniboardMarkdown(file1)).toBe(true);
+    expect(isPieFlowMarkdown(file1)).toBe(true);
     expect(deserializeBpmnXml(file1)).toBeTruthy();
 
     // 2. BPMN-view opens the wrapper

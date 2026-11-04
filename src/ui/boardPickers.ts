@@ -1,6 +1,6 @@
 import { App, FuzzySuggestModal, SuggestModal, TFile, setIcon } from "obsidian";
 import type { DiagramAdapter } from "../core/adapter";
-import { OMNIBOARD_SUFFIX } from "../view/boardSerde";
+import { isBoardPath } from "../view/boardSerde";
 
 /** One entry in the "new board" type picker. `adapter === null` → blank board. */
 export interface BoardTypeChoice {
@@ -31,10 +31,10 @@ export class BoardTypePicker extends SuggestModal<BoardTypeChoice> {
   }
 
   renderSuggestion(choice: BoardTypeChoice, el: HTMLElement): void {
-    el.addClass("omniboard-type-suggestion");
-    const icon = el.createSpan({ cls: "omniboard-type-suggestion-icon" });
+    el.addClass("pie-flow-type-suggestion");
+    const icon = el.createSpan({ cls: "pie-flow-type-suggestion-icon" });
     setIcon(icon, choice.icon);
-    el.createSpan({ cls: "omniboard-type-suggestion-label", text: choice.label });
+    el.createSpan({ cls: "pie-flow-type-suggestion-label", text: choice.label });
   }
 
   onChooseSuggestion(choice: BoardTypeChoice): void {
@@ -58,7 +58,7 @@ export class ExistingBoardPicker extends FuzzySuggestModal<TFile> {
   getItems(): TFile[] {
     return this.app.vault
       .getFiles()
-      .filter((f) => f.path.endsWith(OMNIBOARD_SUFFIX))
+      .filter((f) => isBoardPath(f.path))
       .sort((a, b) => b.stat.mtime - a.stat.mtime);
   }
 

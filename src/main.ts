@@ -1,6 +1,6 @@
 import { Plugin, MarkdownView, Editor, Menu, Notice, TFile, WorkspaceLeaf, normalizePath, setIcon } from "obsidian";
-import { BoardView, BOARD_VIEW_TYPE } from "./view/BoardView";
-import { serializeBoard, deserializeBoard, OMNIBOARD_SUFFIX } from "./view/boardSerde";
+import { BoardView, BOARD_VIEW_TYPE, LEGACY_BOARD_VIEW_TYPE } from "./view/BoardView";
+import { serializeBoard, deserializeBoard, BOARD_SUFFIX, isBoardPath, REQUIRED_FM_KEY } from "./view/boardSerde";
 import { importBpmn } from "./io/bpmn/import";
 import { renderModelToSvg, renderModelToCard, fitCardStage } from "./canvas/staticRender";
 import { render, h } from "preact";
@@ -58,7 +58,10 @@ export default class DiagramsPlugin extends Plugin {
     // version left in the saved workspace.
     this.app.workspace.onLayoutReady(() => {
       this.app.workspace.iterateAllLeaves((leaf) => {
-        if (["omniboard-bpmn-issues", "omniboard-properties"].includes(leaf.getViewState().type)) leaf.detach();
+        const vs = leaf.getViewState();
+        if (["omniboard-bpmn-issues", "omniboard-properties"].includes(vs.type)) leaf.detach();
+        // Tabs saved before the Omniboard → Pie Flow rename keep the old view type.
+        else if (vs.type === LEGACY_BOARD_VIEW_TYPE) void leaf.setViewState({ ...vs, type: BOARD_VIEW_TYPE });
       });
     });
     // ── BPMN Native Mode (spike): dedicated view for .bpmn files
@@ -72,16 +75,16 @@ export default class DiagramsPlugin extends Plugin {
       })
     );
 
-    // Add "Open as Omniboard" entry to the file's More-options menu (and
-    // File Explorer context menu) for any *.omniboard.md file.
+    // Add "Open as Pie Flow" entry to the file's More-options menu (and
+    // File Explorer context menu) for any board file.
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file, source) => {
-        if (!(file instanceof TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        if (!(file instanceof TFile) || !isBoardPath(file.path)) return;
         const leaf = this.findLeafForFile(file);
         const inBoardView = leaf?.view?.getViewType() === BOARD_VIEW_TYPE;
         menu.addItem((item) => {
           item
-            .setTitle(inBoardView ? "Open as Markdown" : "Open as Omniboard")
+            .setTitle(inBoardView ? "Open as Markdown" : "Open as Pie Flow")
             .setIcon(inBoardView ? "file-text" : "shapes")
             .setSection?.("pane")
             .onClick(async () => {
@@ -168,7 +171,7 @@ export default class DiagramsPlugin extends Plugin {
         const leaf = this.app.workspace.activeLeaf;
         if (!leaf || leaf.view?.getViewType() !== "markdown") return false;
         const file = (leaf.view as MarkdownView).file;
-        if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return false;
+        if (!file || !isBoardPath(file.path)) return false;
         if (checking) return true;
         void leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
         return true;
@@ -176,8 +179,8 @@ export default class DiagramsPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "open-omniboard-properties",
-      name: "Open Omniboard BPMN properties",
+      id: "open-pie-flow-properties",
+      name: "Open Pie Flow BPMN properties",
       checkCallback: (checking) => {
         const leaf = this.app.workspace.activeLeaf;
         if (!leaf || leaf.view?.getViewType() !== BOARD_VIEW_TYPE) return false;
@@ -199,8 +202,8 @@ export default class DiagramsPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "open-omniboard-bpmn-issues",
-      name: "Open Omniboard BPMN issues",
+      id: "open-pie-flow-bpmn-issues",
+      name: "Open Pie Flow BPMN issues",
       checkCallback: (checking) => {
         const leaf = this.app.workspace.activeLeaf;
         if (!leaf || leaf.view?.getViewType() !== BOARD_VIEW_TYPE) return false;
@@ -247,7 +250,7 @@ export default class DiagramsPlugin extends Plugin {
         const leaf = this.app.workspace.activeLeaf;
         if (!leaf || leaf.view?.getViewType() !== BOARD_VIEW_TYPE) return false;
         const file = (leaf.view as BoardView).file;
-        if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return false;
+        if (!file || !isBoardPath(file.path)) return false;
         if (checking) return true;
         void (leaf.view as BoardView).switchToBpmnNativeView();
         return true;
@@ -256,7 +259,7 @@ export default class DiagramsPlugin extends Plugin {
 
     this.addCommand({
       id: "switch-to-board",
-      name: "Switch to Omniboard view",
+      name: "Switch to Pie Flow view",
       checkCallback: (checking) => {
         const leaf = this.app.workspace.activeLeaf;
         if (!leaf || leaf.view?.getViewType() !== BPMN_NATIVE_VIEW_TYPE) return false;
@@ -270,7 +273,7 @@ export default class DiagramsPlugin extends Plugin {
 
     this.addCommand({
       id: "convert-bpmn-to-wrapper",
-      name: "Convert .bpmn to Omniboard wrapper (.omniboard.md)",
+      name: "Convert .bpmn to Pie Flow wrapper (.pieflow.md)",
       checkCallback: (checking) => {
         const leaf = this.app.workspace.activeLeaf;
         if (!leaf) return false;
@@ -310,9 +313,9 @@ export default class DiagramsPlugin extends Plugin {
   }
 
   /** Is this embed `src` an omniboard board file? */
-  private isOmniboardEmbedSrc(src: string): boolean {
+  private isBoardEmbedSrc(src: string): boolean {
     const path = src.replace(/#.*$/, "");
-    return path.endsWith(OMNIBOARD_SUFFIX) || path.endsWith(".omniboard");
+    return isBoardPath(path) || path.endsWith(".pieflow") || path.endsWith(".omniboard");
   }
 
   /**
@@ -335,7 +338,7 @@ export default class DiagramsPlugin extends Plugin {
       );
       nodes.forEach((node) => {
         const src = node.getAttribute("src") ?? "";
-        if (!this.isOmniboardEmbedSrc(src)) return;
+        if (!this.isBoardEmbedSrc(src)) return;
         void this.renderBoardEmbed(node, sourcePath);
       });
     };
@@ -365,7 +368,7 @@ export default class DiagramsPlugin extends Plugin {
       const basename = bpmnFile.basename;
       const dir = bpmnFile.parent?.path ?? "";
       const wrapperPath = normalizePath(
-        (dir ? dir + "/" : "") + `${basename}${OMNIBOARD_SUFFIX}`,
+        (dir ? dir + "/" : "") + `${basename}${BOARD_SUFFIX}`,
       );
       const content = serializeBoard(model, "", sourceMeta, {
         compressDrawingData: this.settings.compressDrawingData,
@@ -386,8 +389,8 @@ export default class DiagramsPlugin extends Plugin {
       try {
         wrapperFile = await this.app.vault.create(wrapperPath, content);
       } catch (createErr) {
-        console.error("[omniboard] vault.create failed for wrapper", createErr);
-        new Notice("Không tạo được file wrapper .omniboard.md (xem console).");
+        console.error("[pie-flow] vault.create failed for wrapper", createErr);
+        new Notice("Không tạo được file wrapper .pieflow.md (xem console).");
         return;
       }
       const leaf = this.app.workspace.getLeaf(false);
@@ -398,7 +401,7 @@ export default class DiagramsPlugin extends Plugin {
       await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: wrapperFile.path } });
       new Notice(`Đã tạo wrapper: ${wrapperFile.path}`);
     } catch (err) {
-      console.error("[omniboard] convertBpmnToWrapper failed", err);
+      console.error("[pie-flow] convertBpmnToWrapper failed", err);
       new Notice("Convert BPMN → wrapper thất bại. Xem console để biết chi tiết.");
     }
   }
@@ -416,9 +419,9 @@ export default class DiagramsPlugin extends Plugin {
     const d = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
     const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-    const name = (baseName?.trim() || `Omniboard ${stamp}`).replace(/[\\/:*?"<>|]/g, "-");
+    const name = (baseName?.trim() || `Pie Flow ${stamp}`).replace(/[\\/:*?"<>|]/g, "-");
     const dir = await this.ensureBoardFolder();
-    const path = normalizePath((dir ? dir + "/" : "") + `${name}${OMNIBOARD_SUFFIX}`);
+    const path = normalizePath((dir ? dir + "/" : "") + `${name}${BOARD_SUFFIX}`);
     const content = serializeBoard(seedModel ?? { nodes: [], edges: [] }, "", undefined, {
       compressDrawingData: this.settings.compressDrawingData,
     });
@@ -427,7 +430,7 @@ export default class DiagramsPlugin extends Plugin {
     } catch {
       const existing = this.app.vault.getAbstractFileByPath(path);
       if (existing instanceof TFile) return existing;
-      new Notice("Không tạo được file omniboard.");
+      new Notice("Không tạo được file Pie Flow.");
       return null;
     }
   }
@@ -475,7 +478,7 @@ export default class DiagramsPlugin extends Plugin {
         const session = await adapter.toEditor(adapter.emptyTemplate());
         return session.model;
       } catch (e) {
-        console.warn("[omniboard] seedModelForChoice toEditor failed", e);
+        console.warn("[pie-flow] seedModelForChoice toEditor failed", e);
       }
     }
     return { nodes: [], edges: [] };
@@ -502,14 +505,14 @@ export default class DiagramsPlugin extends Plugin {
   }
 
   /**
-   * When Obsidian opens a `.omniboard.md` file in the default markdown view,
+   * When Obsidian opens a `board file in the default markdown view,
    * swap the leaf over to the dedicated board view. Lookup goes through
    * metadataCache so a manual edit removing the marker frontmatter cleanly
    * falls back to the markdown view.
    */
   private async maybeSwapToBoardView(file: TFile | null): Promise<void> {
-    if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
-    const ok = await this.hasOmniboardFrontmatter(file);
+    if (!file || !isBoardPath(file.path)) return;
+    const ok = await this.hasBoardFrontmatter(file);
     if (!ok) return;
     const leaf = this.findLeafForFile(file);
     if (!leaf || leaf.view?.getViewType() === BOARD_VIEW_TYPE) return;
@@ -526,18 +529,19 @@ export default class DiagramsPlugin extends Plugin {
 
   /** Resolve the marker frontmatter. metadataCache may not have indexed the
    *  file yet (freshly created / vault sync), so fall back to a quick raw read. */
-  private async hasOmniboardFrontmatter(file: TFile): Promise<boolean> {
+  private async hasBoardFrontmatter(file: TFile): Promise<boolean> {
     const cache = this.app.metadataCache.getFileCache(file);
-    const cached = cache?.frontmatter?.["omniboard-plugin"];
+    const fm = cache?.frontmatter;
+    const cached = fm?.[REQUIRED_FM_KEY] ?? fm?.["omniboard-plugin"];
     if (cached === "parsed") return true;
     if (cached !== undefined) return false; // metadataCache present but doesn't have the marker
     try {
       const raw = await this.app.vault.cachedRead(file);
       const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw);
       if (!m) return false;
-      // Accept bare or quoted YAML value: `omniboard-plugin: parsed` /
-      // `omniboard-plugin: "parsed"` / `omniboard-plugin: 'parsed'`.
-      return /^omniboard-plugin\s*:\s*["']?parsed["']?\s*$/m.test(m[1]);
+      // Accept bare or quoted YAML value, current or pre-rename key:
+      // `pie-flow-plugin: parsed` / `omniboard-plugin: "parsed"` / ...
+      return /^(?:pie-flow|omniboard)-plugin\s*:\s*["']?parsed["']?\s*$/m.test(m[1]);
     } catch {
       return false;
     }
@@ -570,15 +574,15 @@ export default class DiagramsPlugin extends Plugin {
    * markdown (that native content is hidden by CSS; see styles.css).
    */
   private async renderBoardEmbed(host: HTMLElement, sourcePath: string): Promise<void> {
-    if (host.querySelector(":scope > .omniboard-embed-cardwrap")) return;
+    if (host.querySelector(":scope > .pie-flow-embed-cardwrap")) return;
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
     if (!(file instanceof TFile)) return;
-    host.addClass("omniboard-embed-processed");
+    host.addClass("pie-flow-embed-processed");
     // Mark the native chrome (title/link) as hidden but keep it in the DOM so
     // Obsidian's embed bookkeeping stays intact. Our card goes in a fresh wrap.
-    const wrap = host.createDiv({ cls: "omniboard-embed-cardwrap" });
+    const wrap = host.createDiv({ cls: "pie-flow-embed-cardwrap" });
 
     // Render the <EmbedCard> into the wrapper (the MutationObserver drives this
     // for both Reading mode and Live Preview).
@@ -591,7 +595,7 @@ export default class DiagramsPlugin extends Plugin {
       const raw = await this.app.vault.cachedRead(file);
       model = deserializeBoard(raw);
       if (!model) {
-        errorMessage = "File không đúng định dạng Omniboard.";
+        errorMessage = "File không đúng định dạng Pie Flow.";
       } else {
         nodeCount = model.nodes?.length ?? 0;
         edgeCount = model.edges?.length ?? 0;
@@ -645,7 +649,7 @@ export default class DiagramsPlugin extends Plugin {
         const saved = await fn();
         if (saved) new Notice(`Đã export: ${saved}`);
       } catch (err) {
-        console.warn("[omniboard] board export failed", err);
+        console.warn("[pie-flow] board export failed", err);
         new Notice("Export thất bại — xem console.");
       }
     };
@@ -737,13 +741,16 @@ export default class DiagramsPlugin extends Plugin {
       await this.app.vault.modify(host, next);
       new Notice("Đã gỡ board khỏi note.");
     } catch (e) {
-      console.error("[omniboard] removeEmbedFromNote failed", e);
+      console.error("[pie-flow] removeEmbedFromNote failed", e);
       new Notice("Gỡ board khỏi note thất bại — xem console.");
     }
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const saved = await this.loadData();
+    // The pre-rename default folder follows the Omniboard → Pie Flow rename.
+    if (saved?.boardFolder === "Omniboards") saved.boardFolder = DEFAULT_SETTINGS.boardFolder;
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
   }
 
   async saveSettings(): Promise<void> {

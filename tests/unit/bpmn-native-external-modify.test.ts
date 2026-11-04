@@ -57,7 +57,7 @@ async function openNative(initial: CanvasModel) {
   const { BpmnNativeView } = await import("../../src/bpmn-native/BpmnNativeView");
   const wrapper = async (m: CanvasModel) => serializeBoard(m, "", undefined, { bpmnXml: await exportBpmn(m) });
   const vault = new FakeVault();
-  const file = { path: "Omniboards/x.omniboard.md", basename: "x" };
+  const file = { path: "Pie Flow/x.pieflow.md", basename: "x" };
   vault.text = await wrapper(initial);
   const view = new BpmnNativeView({ detach() {} } as never, { settings: { compressDrawingData: false } } as never) as unknown as View;
   view.file = file;

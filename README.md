@@ -1,10 +1,10 @@
-# OmniBoard
+# Pie Flow
 
 > All-in-one diagram board for Obsidian — **Flowchart, BPMN, ERD, UML, Sequence, State and Mindmap** in one board file.
 
-OmniBoard turns Obsidian into a WYSIWYG diagram editor. Click the ribbon, get a full-screen canvas (Excalidraw-style), drag shapes, connect them with smart routed arrows, and edit text inline — all saved to a plain-JSON `.board` file that stays git-friendly and searchable.
+Pie Flow turns Obsidian into a WYSIWYG diagram editor. Click the ribbon, get a full-screen canvas (Excalidraw-style), drag shapes, connect them with smart routed arrows, and edit text inline — all saved to a plain-JSON `.board` file that stays git-friendly and searchable.
 
-![OmniBoard editor](assets/hero.png)
+![Pie Flow editor](assets/hero.png)
 
 ---
 
@@ -56,10 +56,10 @@ Double-click to edit, **Enter** to commit, **Shift+Enter** for a new line, **Esc
 **Manual:**
 
 1. Download `main.js`, `manifest.json` and `styles.css` from a release (or build them — see below).
-2. Copy them into `<your-vault>/.obsidian/plugins/omniboard/`.
-3. Reload Obsidian → **Settings → Community plugins** → enable **OmniBoard**.
+2. Copy them into `<your-vault>/.obsidian/plugins/pie-flow/`.
+3. Reload Obsidian → **Settings → Community plugins** → enable **Pie Flow**.
 
-**BRAT (beta):** add `pieofmind/obsidian-omniboard` in the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
+**BRAT (beta):** add `pieofmind/pie-flow` in the [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin.
 
 ---
 
@@ -80,17 +80,17 @@ Embed a board into a note with `![[Board ….board]]`.
 
 ## 💾 Save format
 
-A board is a single `.omniboard.md` file — plain Markdown so Obsidian's link graph, search and read-mode all keep working. The plugin reads/writes three optional fenced code blocks inside a `%%`-comment fold:
+A board is a single `.pieflow.md` file (boards made before the rename, `.omniboard.md` with `omniboard-*` blocks, are still read and are rewritten in the new format on save) — plain Markdown so Obsidian's link graph, search and read-mode all keep working. The plugin reads/writes three optional fenced code blocks inside a `%%`-comment fold:
 
 | Block | Role | Contents |
 |---|---|---|
-| ```` ```omniboard-data ```` | **Master** | `CanvasModel { nodes, edges }` (pako-compressed JSON). The source of truth — every save regenerates other blocks from this one. |
-| ```` ```omniboard-bpmn-xml ```` | **Derived** | Raw BPMN 2.0 XML, regenerated eagerly on each save when the canvas is BPMN-shaped. Enables the BPMN Native view to open the same wrapper file without converting to a separate `.bpmn` file. |
-| ```` ```omniboard-source-meta ```` | Optional | Side data preserved from an original import (e.g. unmapped BPMN elements). |
+| ```` ```pie-flow-data ```` | **Master** | `CanvasModel { nodes, edges }` (pako-compressed JSON). The source of truth — every save regenerates other blocks from this one. |
+| ```` ```pie-flow-bpmn-xml ```` | **Derived** | Raw BPMN 2.0 XML, regenerated eagerly on each save when the canvas is BPMN-shaped. Enables the BPMN Native view to open the same wrapper file without converting to a separate `.bpmn` file. |
+| ```` ```pie-flow-source-meta ```` | Optional | Side data preserved from an original import (e.g. unmapped BPMN elements). |
 
-**Master rule:** `omniboard-data` always wins. If you hand-edit the raw `omniboard-bpmn-xml` block in a text editor, your edits are discarded the next time the BoardView saves — the canvas master is re-exported into that block. Treat the XML block as a cache.
+**Master rule:** `pie-flow-data` always wins. If you hand-edit the raw `pie-flow-bpmn-xml` block in a text editor, your edits are discarded the next time the BoardView saves — the canvas master is re-exported into that block. Treat the XML block as a cache.
 
-**Switching views.** Open a `.omniboard.md` in BoardView and click the "Switch to BPMN Native view" toolbar button (or run the `Omniboard: Switch to BPMN Native view` command) to flip the same leaf to the BPMN modeler — no file conversion, no second file. The reverse button appears in the BPMN Native toolbar only when viewing a wrapper file. Raw `.bpmn` files keep their existing one-view behaviour, and the `Omniboard: Convert .bpmn to Omniboard wrapper` command pairs an existing `.bpmn` into a fresh `<name>.omniboard.md`.
+**Switching views.** Open a `.pieflow.md` in BoardView and click the "Switch to BPMN Native view" toolbar button (or run the `Pie Flow: Switch to BPMN Native view` command) to flip the same leaf to the BPMN modeler — no file conversion, no second file. The reverse button appears in the BPMN Native toolbar only when viewing a wrapper file. Raw `.bpmn` files keep their existing one-view behaviour, and the `Pie Flow: Convert .bpmn to Pie Flow wrapper` command pairs an existing `.bpmn` into a fresh `<name>.pieflow.md`.
 
 ---
 
@@ -106,7 +106,7 @@ npm test           # vitest round-trip suite
 To test in Obsidian, symlink (or copy) this repo into a vault's plugins folder:
 
 ```bash
-ln -s "$(pwd)" "<your-vault>/.obsidian/plugins/omniboard"
+ln -s "$(pwd)" "<your-vault>/.obsidian/plugins/pie-flow"
 ```
 
 **Visual harness** (iterate UI without launching Obsidian):

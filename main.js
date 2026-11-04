@@ -75400,6 +75400,102 @@ function pickDropTarget(items, pt2) {
 
 // src/canvas/htmlNode.ts
 init_laneLayout();
+
+// src/canvas/stepChips.ts
+function laneLabel(lanes, id) {
+  for (const ln3 of lanes) {
+    if (ln3.id === id) return ln3.label;
+    const hit = ln3.lanes ? laneLabel(ln3.lanes, id) : void 0;
+    if (hit !== void 0) return hit;
+  }
+  return void 0;
+}
+function stepWho(d4, poolLanes, squad) {
+  var _a3, _b2, _c;
+  const assignee = (_b2 = (_a3 = d4.camunda) == null ? void 0 : _a3.assignee) == null ? void 0 : _b2.trim();
+  const lane = !assignee && d4.laneId && poolLanes ? (_c = laneLabel(poolLanes, d4.laneId)) == null ? void 0 : _c.trim() : void 0;
+  const name2 = assignee || lane;
+  if (!name2) return void 0;
+  if (!squad) return { name: name2, approve: false };
+  const agent = squad.agents.some((a5) => a5.name === name2);
+  return { name: name2, agent, approve: name2 === squad.owner || d4.kind === "bpmn-task-user" && !agent };
+}
+function stepChips(d4, poolLanes, squad) {
+  const who = stepWho(d4, poolLanes, squad);
+  const agent = who && (squad == null ? void 0 : squad.agents.find((a5) => a5.name === who.name));
+  const skills = skillsOf(d4.bpmnProps).map((s5) => agent && !agent.skills.includes(s5) ? { name: s5, missing: `${agent.name} ch\u01B0a c\xF3 skill n\xE0y` } : { name: s5 });
+  return { who, skills };
+}
+var skillsOf = (props) => (props != null ? props : []).filter((p6) => {
+  var _a3;
+  return p6.name === "skill" && ((_a3 = p6.value) == null ? void 0 : _a3.trim());
+}).map((p6) => p6.value.trim());
+function withSkills(props, skills) {
+  const list = props != null ? props : [];
+  const at3 = list.findIndex((p6) => p6.name === "skill");
+  const rest = list.filter((p6) => p6.name !== "skill");
+  const pos = at3 < 0 ? rest.length : list.slice(0, at3).filter((p6) => p6.name !== "skill").length;
+  return [...rest.slice(0, pos), ...skills.map((value) => ({ name: "skill", value })), ...rest.slice(pos)];
+}
+function skillSuggestions(squad, agent, picked) {
+  var _a3, _b2;
+  if (!squad) return [];
+  const own = (_b2 = (_a3 = squad.agents.find((a5) => a5.name === agent)) == null ? void 0 : _a3.skills) != null ? _b2 : [];
+  return [.../* @__PURE__ */ new Set([...own, ...squad.agents.flatMap((a5) => a5.skills)])].filter((s5) => !picked.includes(s5));
+}
+function laneNameSuggestions(squad) {
+  return squad ? [.../* @__PURE__ */ new Set([...squad.owner ? [squad.owner] : [], ...squad.agents.map((a5) => a5.name)])] : [];
+}
+function pieSquadApi() {
+  var _a3, _b2, _c, _d;
+  const api = (_d = (_c = (_b2 = (_a3 = globalThis.app) == null ? void 0 : _a3.plugins) == null ? void 0 : _b2.plugins) == null ? void 0 : _c["pie-squad"]) == null ? void 0 : _d.api;
+  return (api == null ? void 0 : api.version) === 1 ? api : null;
+}
+function readSquad(api = pieSquadApi()) {
+  if (!api) return null;
+  try {
+    const owner = api.owner(), raw2 = api.agents();
+    if (!Array.isArray(raw2)) throw new Error("agents() is not an array");
+    const agents = raw2.flatMap((a5) => typeof (a5 == null ? void 0 : a5.name) === "string" && Array.isArray(a5.skills) && a5.skills.every((s5) => typeof s5 === "string") ? [{ name: a5.name, skills: [...a5.skills] }] : []);
+    return { owner: typeof owner === "string" ? owner : null, agents };
+  } catch (e5) {
+    console.error("[pie-flow] pie-squad api", e5);
+    return null;
+  }
+}
+function onSquadChange(api, cb) {
+  try {
+    const off = api == null ? void 0 : api.onChange(cb);
+    if (typeof off === "function") return () => {
+      try {
+        off();
+      } catch (e5) {
+        console.error("[pie-flow] pie-squad off", e5);
+      }
+    };
+  } catch (e5) {
+    console.error("[pie-flow] pie-squad onChange", e5);
+  }
+  return () => {
+  };
+}
+var esc = (s5) => s5.replace(/[&<>"']/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c6]);
+var MAX_SKILL_CHIPS = 2;
+function stepChipsHtml(c6) {
+  var _a3, _b2;
+  const who = c6.who ? `<span class="bp-who${c6.who.approve ? " is-approve" : c6.who.agent ? " is-agent" : c6.who.agent === false ? " is-faint" : ""}" title="${esc(c6.who.name)}"><span class="bp-ava">${esc((_b2 = (_a3 = [...c6.who.name][0]) == null ? void 0 : _a3.toUpperCase()) != null ? _b2 : "")}</span>${c6.who.approve ? "duy\u1EC7t" : esc(c6.who.name)}</span>` : "";
+  const chip = (text4, title2, missing, more2 = false) => `<span class="bp-skill${missing ? " is-missing" : ""}${more2 ? " is-more" : ""}" title="${esc(title2)}">${esc(text4)}</span>`;
+  const shown = c6.skills.length > MAX_SKILL_CHIPS ? c6.skills.slice(0, MAX_SKILL_CHIPS - 1) : c6.skills;
+  const hidden = c6.skills.slice(shown.length);
+  const more = hidden.length ? chip(`+${hidden.length}`, hidden.map((s5) => s5.missing ? `${s5.name} (${s5.missing})` : s5.name).join("\n"), hidden.some((s5) => s5.missing), true) : "";
+  const skills = c6.skills.length ? `<span class="bp-skills">${shown.map((s5) => {
+    var _a4;
+    return chip(s5.name, (_a4 = s5.missing) != null ? _a4 : s5.name, !!s5.missing);
+  }).join("")}${more}</span>` : "";
+  return who + skills;
+}
+
+// src/canvas/htmlNode.ts
 var XHTML = "http://www.w3.org/1999/xhtml";
 var registered = false;
 var BPMN_DEFAULT_FONT_SIZE = 9;
@@ -75425,7 +75521,7 @@ function registerHtmlNode() {
     ports: makePorts()
   }, true);
 }
-var esc = (s5) => String(s5 != null ? s5 : "").replace(/[&<>"']/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c6]);
+var esc2 = (s5) => String(s5 != null ? s5 : "").replace(/[&<>"']/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c6]);
 var cssSafe = (v6) => String(v6 != null ? v6 : "").replace(/["'<>\\]/g, "");
 var px = (v6) => Number(v6) || 0;
 var nl = (s5) => s5.replace(/\n/g, "<br>");
@@ -75528,26 +75624,26 @@ function nodeHtml(kind, label2, ov, extra) {
 function erdHtml(label2, cols, headerColor) {
   const rows = cols.map((c6, i6) => {
     const k5 = c6.k === "PK" || c6.k === "FK" ? c6.k : "";
-    return `<div class="erd-col" data-col-idx="${i6}" data-col-name="${esc(c6.name)}"><span class="kk ${k5.toLowerCase()}">${k5}</span><span class="cname">${esc(c6.name)}</span><span class="ctype">${esc(c6.type)}</span></div>`;
+    return `<div class="erd-col" data-col-idx="${i6}" data-col-name="${esc2(c6.name)}"><span class="kk ${k5.toLowerCase()}">${k5}</span><span class="cname">${esc2(c6.name)}</span><span class="ctype">${esc2(c6.type)}</span></div>`;
   }).join("");
   const headerStyle = headerColor ? ` style="background:${cssSafe(headerColor)}"` : "";
-  return `<div class="erd-table"><div class="erd-th"${headerStyle}>${KEY}${esc(label2) || "Table"}</div>${rows}</div>`;
+  return `<div class="erd-table"><div class="erd-th"${headerStyle}>${KEY}${esc2(label2) || "Table"}</div>${rows}</div>`;
 }
 function umlLine(s5, comp, idx) {
   const m7 = String(s5).match(/^\s*([+\-#~])\s*(.*)$/);
-  return m7 ? `<div class="ln" data-line-comp="${comp}" data-line-idx="${idx}"><span class="vis">${esc(m7[1])}</span>${esc(m7[2])}</div>` : `<div class="ln" data-line-comp="${comp}" data-line-idx="${idx}">${esc(s5)}</div>`;
+  return m7 ? `<div class="ln" data-line-comp="${comp}" data-line-idx="${idx}"><span class="vis">${esc2(m7[1])}</span>${esc2(m7[2])}</div>` : `<div class="ln" data-line-comp="${comp}" data-line-idx="${idx}">${esc2(s5)}</div>`;
 }
 function umlComp(lines, comp) {
   return `<div class="uml-comp">${lines.map((s5, i6) => umlLine(s5, comp, i6)).join("")}</div>`;
 }
 function umlHtml(label2, fields, methods, stereo) {
-  const name2 = `<div class="uml-name">${stereo ? `<span class="stereo">${stereo}</span>` : ""}${esc(label2) || "ClassName"}</div>`;
+  const name2 = `<div class="uml-name">${stereo ? `<span class="stereo">${stereo}</span>` : ""}${esc2(label2) || "ClassName"}</div>`;
   const comps = stereo ? umlComp(methods, "methods") : (fields.length ? umlComp(fields, "fields") : "") + (methods.length ? umlComp(methods, "methods") : "");
   return `<div class="uml">${name2}${comps}</div>`;
 }
 function nodeHtmlBase(kind, label2, extra) {
   var _a3, _b2, _c, _d, _e3, _f;
-  const L4 = esc(label2);
+  const L4 = esc2(label2);
   switch (kind) {
     case "bs-rect":
       return `<div class="fc rect">${L4}</div>`;
@@ -75630,7 +75726,7 @@ function nodeHtmlBase(kind, label2, extra) {
       return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${ACTOR}</div><div class="sq-actor-lbl">${L4 || "Actor"}</div></div>${SQ_LINE}</div>`;
     case "sq-participant": {
       const who = (_f = extra == null ? void 0 : extra.who) != null ? _f : "";
-      return `<div class="sq-life"><div class="sq-head sq-pill">${L4 || "Participant"}${who ? `<span class="sq-who">${esc(who)}</span>` : ""}</div>${SQ_LINE}</div>`;
+      return `<div class="sq-life"><div class="sq-head sq-pill">${L4 || "Participant"}${who ? `<span class="sq-who">${esc2(who)}</span>` : ""}</div>${SQ_LINE}</div>`;
     }
     case "sq-activation":
       return `<div class="sq-act"></div>`;
@@ -75739,10 +75835,10 @@ var SQ_BOUNDARY = svg(`<circle cx="14" cy="9" r="5"/><path d="M5 4v10M5 9h4"/>`)
 var SQ_CONTROL = svg(`<circle cx="12" cy="10" r="5"/><path d="M12 5l-2.5 1.5L12 7"/>`);
 var SQ_ENTITY = svg(`<circle cx="12" cy="8" r="5"/><path d="M7 15h10"/>`);
 function seqLife(icon, label2) {
-  return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${icon}</div><div class="sq-actor-lbl">${esc(label2)}</div></div>${SQ_LINE}</div>`;
+  return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${icon}</div><div class="sq-actor-lbl">${esc2(label2)}</div></div>${SQ_LINE}</div>`;
 }
 function seqFrag(tag, label2, divider) {
-  return `<div class="sq-frag"><span class="sq-frag-tab">${esc(tag)}</span>${label2 ? `<span class="sq-frag-cond">[${esc(label2)}]</span>` : ""}${divider ? `<div class="sq-frag-div"></div>` : ""}</div>`;
+  return `<div class="sq-frag"><span class="sq-frag-tab">${esc2(tag)}</span>${label2 ? `<span class="sq-frag-cond">[${esc2(label2)}]</span>` : ""}${divider ? `<div class="sq-frag-div"></div>` : ""}</div>`;
 }
 function lblStyle(extra) {
   const o5 = extra == null ? void 0 : extra.labelOffset;
@@ -75781,8 +75877,10 @@ function bpSub(mod3, label2, extra, tail = "") {
   return `<div class="bp-task bp-sub-closed${mod3}">${nl(label2)}${plus}${drill}${renderMarkers(extra == null ? void 0 : extra.markers)}${tail}</div>`;
 }
 function bpTask(label2, iconKey, extra) {
+  var _a3;
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
-  return `<div class="bp-task">${icon}${nl(label2)}${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
+  const chips = stepChipsHtml({ who: extra == null ? void 0 : extra.agent, skills: (_a3 = extra == null ? void 0 : extra.skills) != null ? _a3 : [] });
+  return `<div class="bp-task">${icon}${nl(label2)}${renderMarkers(extra == null ? void 0 : extra.markers)}${chips}</div>`;
 }
 function bpGateway(mark, label2, extra) {
   return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div><div class="bp-elabel"${lblStyle(extra)}>${nl(label2)}</div></div>`;
@@ -75791,7 +75889,7 @@ function bpPool(label2, extra) {
   var _a3;
   if (extra == null ? void 0 : extra.blackBox) {
     const orient2 = extra.poolHorizontal === false ? " is-vertical" : "";
-    return `<div class="bp-pool is-blackbox${orient2}"><div class="bp-pool-head">${esc(label2) || "Pool"}</div><div class="bp-pool-blackbox-body"><span>Black-box participant</span></div></div>`;
+    return `<div class="bp-pool is-blackbox${orient2}"><div class="bp-pool-head">${esc2(label2) || "Pool"}</div><div class="bp-pool-blackbox-body"><span>Black-box participant</span></div></div>`;
   }
   const lanes = ((_a3 = extra == null ? void 0 : extra.lanes) == null ? void 0 : _a3.length) ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
   const orient = (extra == null ? void 0 : extra.poolHorizontal) === false ? " is-vertical" : "";
@@ -75805,11 +75903,11 @@ function bpPool(label2, extra) {
       const divider = i6 < list.length - 1 ? `<div class="bp-pool-lane-divider" ${at3}></div>` : "";
       const body = ((_a4 = ln3.lanes) == null ? void 0 : _a4.length) ? `<div class="bp-pool-sublanes">${laneList(ln3.lanes, [...path2, i6])}</div>` : `<div class="bp-pool-lane-body"></div>`;
       const cls = path2.length ? "bp-pool-lane is-child" : "bp-pool-lane";
-      return `<div class="${cls}" data-lane-id="${esc(ln3.id)}"${flex}><div class="bp-pool-lane-head">${esc(ln3.label)}</div>${body}${divider}</div>`;
+      return `<div class="${cls}" data-lane-id="${esc2(ln3.id)}"${flex}><div class="bp-pool-lane-head">${esc2(ln3.label)}</div>${body}${divider}</div>`;
     }).join("");
   };
   const laneHtml = laneList(lanes);
-  return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc(label2) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
+  return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc2(label2) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
 }
 
 // src/canvas/shapes/index.ts
@@ -83033,7 +83131,7 @@ function edgePath(s5, sPort, t6, tPort) {
   const bend = horizFirst ? { x: p22.x, y: p1.y } : { x: p1.x, y: p22.y };
   return `M ${s5.x} ${s5.y} L ${p1.x} ${p1.y} L ${bend.x} ${bend.y} L ${p22.x} ${p22.y} L ${t6.x} ${t6.y}`;
 }
-var esc2 = (s5) => String(s5 != null ? s5 : "").replace(/[&<>"]/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c6]);
+var esc3 = (s5) => String(s5 != null ? s5 : "").replace(/[&<>"]/g, (c6) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c6]);
 var num = (v6) => Number(v6) || 0;
 function computeBounds(nodes, pad) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -83063,15 +83161,16 @@ function edgesMarkup(edges, byId) {
     const s5 = anchor2(sn2, e5.sourcePort), t6 = anchor2(tn2, e5.targetPort);
     const d4 = edgePath(s5, e5.sourcePort, t6, e5.targetPort);
     const line2 = `<path d="${d4}" fill="none" stroke="${EDGE_STROKE}" stroke-width="1.8" marker-end="url(#da-arrow)"/>`;
-    const label2 = e5.label ? `<text x="${(s5.x + t6.x) / 2}" y="${(s5.y + t6.y) / 2 - 4}" text-anchor="middle" font-size="12" fill="#1f2329" style="font-family:var(--font-body,system-ui)">${esc2(e5.label)}</text>` : "";
+    const label2 = e5.label ? `<text x="${(s5.x + t6.x) / 2}" y="${(s5.y + t6.y) / 2 - 4}" text-anchor="middle" font-size="12" fill="#1f2329" style="font-family:var(--font-body,system-ui)">${esc3(e5.label)}</text>` : "";
     return line2 + label2;
   }).join("");
 }
-function nodeInnerHtml(n4, byId) {
+function nodeInnerHtml(n4, byId, lanes, squad) {
   var _a3, _b2;
   const a5 = (_a3 = n4.attrs) != null ? _a3 : {};
   const host = typeof a5.attachedTo === "string" ? byId.get(a5.attachedTo) : void 0;
   const style2 = (_b2 = a5.style) != null ? _b2 : {};
+  const chips = n4.shape.startsWith("bpmn-task") ? stepChips({ ...a5, kind: n4.shape, laneId: n4.laneId }, lanes, squad) : void 0;
   const extra = {
     cols: a5.cols,
     fields: a5.fields,
@@ -83087,10 +83186,18 @@ function nodeInnerHtml(n4, byId) {
     attachedTo: a5.attachedTo,
     markers: a5.markers,
     collapsed: a5.collapsed,
+    agent: chips == null ? void 0 : chips.who,
+    skills: chips == null ? void 0 : chips.skills,
     // Boundary event: label outside its host, like the live canvas.
     ...host ? { labelSide: hostSide(n4, host) } : {}
   };
   return nodeHtml(n4.shape, n4.label, style2, extra);
+}
+function poolLanesOf(nodes) {
+  return nodes.filter((n4) => n4.shape === "bpmn-pool").flatMap((n4) => {
+    var _a3, _b2;
+    return (_b2 = (_a3 = n4.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
+  });
 }
 function paintOrder(nodes) {
   const isBoundary = (n4) => {
@@ -83104,10 +83211,11 @@ function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
   var _a3;
   const nodes = (_a3 = model.nodes) != null ? _a3 : [];
   const byId = new Map(nodes.map((n4) => [n4.id, n4]));
+  const lanes = poolLanesOf(nodes), squad = readSquad();
   const { x: x5, y: y5, w: w5, h: h5 } = computeBounds(nodes, pad);
   const edgeSvg = edgesMarkup(model.edges, byId);
   const nodeSvg = paintOrder(nodes).map((n4) => {
-    const inner = nodeInnerHtml(n4, byId);
+    const inner = nodeInnerHtml(n4, byId, lanes, squad);
     return `<foreignObject x="${num(n4.x)}" y="${num(n4.y)}" width="${num(n4.width)}" height="${num(n4.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
   }).join("");
   return `<svg xmlns="${SVGNS}" class="lk-root" width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}"><defs>${ARROW_DEF}</defs><style>foreignObject{overflow:visible}${css2}</style>` + (bg && bg !== "transparent" ? `<rect x="${x5}" y="${y5}" width="${w5}" height="${h5}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
@@ -83116,10 +83224,11 @@ function renderModelToCard(model, pad = 16, bg = "transparent") {
   var _a3;
   const nodes = (_a3 = model.nodes) != null ? _a3 : [];
   const byId = new Map(nodes.map((n4) => [n4.id, n4]));
+  const lanes = poolLanesOf(nodes), squad = readSquad();
   const { x: x5, y: y5, w: w5, h: h5 } = computeBounds(nodes, pad);
   const edgeSvg = `<svg xmlns="${SVGNS}" class="ob-card-edges" width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}" style="position:absolute;left:0;top:0;width:${w5}px;height:${h5}px;overflow:visible;pointer-events:none"><defs>${ARROW_DEF}</defs>${edgesMarkup(model.edges, byId)}</svg>`;
   const nodeDivs = paintOrder(nodes).map((n4) => {
-    const inner = nodeInnerHtml(n4, byId);
+    const inner = nodeInnerHtml(n4, byId, lanes, squad);
     const left4 = num(n4.x) - x5, top4 = num(n4.y) - y5;
     return `<div class="hn" style="position:absolute;left:${left4}px;top:${top4}px;width:${num(n4.width)}px;height:${num(n4.height)}px">${inner}</div>`;
   }).join("");
@@ -84242,6 +84351,7 @@ function arrowPreview(style2) {
   const head = style2.end === "none" ? "" : style2.end === "arrow-open" ? `<path d="M20 4 27 9 20 14" fill="none" stroke="currentColor" stroke-width="1.8"/>` : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
   return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
 }
+var STEP_CHIPS_MIN_PX = 56;
 function findLaneDeep(lanes, id) {
   for (const ln3 of lanes) {
     if (ln3.id === id) return ln3;
@@ -84467,6 +84577,16 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.searchBox = null;
     this.contextBarRaf = null;
     this.styleClipboard = null;
+    // ── Step chips: who does a BPMN task + its skills (Pie Squad, read at runtime) ──
+    this.stepChipsRaf = 0;
+    /** Chips last drawn per task id; nodeExtra() reads them so every renderer draws the same. */
+    this.stepChipsOf = /* @__PURE__ */ new Map();
+    /** Undo/redo can restore an old node HTML: repaint every task once, even if its chips look unchanged. */
+    this.stepChipsStale = false;
+    this.squad = null;
+    this.squadApi = null;
+    this.squadOff = () => {
+    };
     /** Sub-process whose steps are shown on their own page (null = the whole process). */
     this.drillRoot = null;
     this.crumbs = null;
@@ -84521,6 +84641,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.refreshProps();
     this.setTool("select");
     this.initHtmlOverlay();
+    this.initStepChips();
   }
   // ── Graph ──────────────────────────────────────────────────────────────
   initGraph() {
@@ -86803,7 +86924,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     return true;
   }
   buildBpmnPropsEditor(node3, body) {
-    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j;
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m;
     const kind = this.nodeKind(node3);
     const ex = this.nodeExtra(node3);
     const d4 = (_a3 = node3.getData()) != null ? _a3 : {};
@@ -86915,7 +87036,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     sDocs.appendChild(docTa);
     const camunda = (_h = d4.camunda) != null ? _h : {};
     const CAMUNDA_FIELDS = [
-      ["assignee", "Assignee"],
+      ["assignee", "Ng\u01B0\u1EDDi l\xE0m ri\xEAng"],
       ["candidateUsers", "Candidate users"],
       ["candidateGroups", "Candidate groups"],
       ["formKey", "Form key"],
@@ -86935,10 +87056,49 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       return s5;
     };
     const sCam = fold2("Camunda", true);
+    if (kind.startsWith("bpmn-task")) {
+      const squad = readSquad();
+      const skills = skillsOf(props());
+      const setSkills = (next) => {
+        setProps(withSkills(props(), next));
+        this.refreshProps();
+      };
+      const box = el("div", "lk-pskills");
+      skills.forEach((sk, i6) => {
+        const chip = el("span", "lk-pskill");
+        chip.textContent = sk;
+        const x5 = el("button", "lk-pskill-x", "\xD7");
+        x5.title = "B\u1ECF skill n\xE0y";
+        x5.onclick = () => setSkills(skills.filter((_6, j5) => j5 !== i6));
+        chip.appendChild(x5);
+        box.appendChild(chip);
+      });
+      const add3 = el("input", "lk-pinput");
+      add3.placeholder = "Th\xEAm skill\u2026";
+      const list = el("datalist");
+      list.id = `lk-skill-list-${node3.id}`;
+      const [sd, sl] = this.stepContext()(node3);
+      for (const sk of skillSuggestions(squad, (_i = stepWho(sd, sl, squad)) == null ? void 0 : _i.name, skills)) {
+        const o5 = el("option");
+        o5.value = sk;
+        list.appendChild(o5);
+      }
+      add3.setAttribute("list", list.id);
+      add3.onchange = () => {
+        const v6 = add3.value.trim();
+        add3.value = "";
+        if (v6 && !skills.includes(v6)) setSkills([...skills, v6]);
+      };
+      box.append(add3, list);
+      field(sCam, "Skill", box);
+    }
     for (const [key, label2] of CAMUNDA_FIELDS) {
       const inp = el("input", "lk-pinput");
-      inp.value = (_i = camunda[key]) != null ? _i : "";
+      inp.value = (_j = camunda[key]) != null ? _j : "";
       inp.placeholder = label2;
+      const [sd, sl] = key === "assignee" ? this.stepContext()(node3) : [{}, void 0];
+      const laneWho = key === "assignee" ? stepWho({ ...sd, camunda: {} }, sl, null) : void 0;
+      if (laneWho) inp.placeholder = laneWho.name;
       inp.oninput = () => {
         var _a4, _b3;
         const cur = (_b3 = (_a4 = node3.getData()) == null ? void 0 : _a4.camunda) != null ? _b3 : {};
@@ -86947,6 +87107,15 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         save({ camunda: Object.keys(kept).length ? kept : void 0 });
       };
       field(sCam, label2, inp);
+      if (laneWho) {
+        const hint = el("span", "lk-phint", " \xB7 theo lane");
+        const sync = () => {
+          hint.style.display = inp.value.trim() ? "none" : "";
+        };
+        (_l = (_k = sCam.lastElementChild) == null ? void 0 : _k.querySelector("label")) == null ? void 0 : _l.appendChild(hint);
+        inp.addEventListener("input", sync);
+        sync();
+      }
     }
     props().forEach((p6, i6) => {
       const row = el("div", "lk-prow2");
@@ -86974,7 +87143,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const sRaw = fold2("Metadata JSON", false);
     const json = el("textarea", "lk-ptextarea");
     json.rows = 8;
-    json.value = JSON.stringify({ documentation: (_j = d4.bpmnDoc) != null ? _j : "", camunda, bpmnProps: props() }, null, 2);
+    json.value = JSON.stringify({ documentation: (_m = d4.bpmnDoc) != null ? _m : "", camunda, bpmnProps: props() }, null, 2);
     json.onchange = () => {
       var _a4, _b3;
       try {
@@ -87741,7 +87910,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     return (_b2 = (_a3 = n4.getData()) == null ? void 0 : _a3.style) != null ? _b2 : {};
   }
   nodeExtra(n4) {
-    var _a3;
+    var _a3, _b2, _c;
     const d4 = (_a3 = n4.getData()) != null ? _a3 : {};
     return {
       cols: d4.cols,
@@ -87757,8 +87926,66 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       markers: d4.markers,
       collapsed: d4.collapsed,
       poolHorizontal: d4.poolHorizontal,
-      blackBox: d4.blackBox
+      blackBox: d4.blackBox,
+      agent: (_b2 = this.stepChipsOf.get(n4.id)) == null ? void 0 : _b2.who,
+      skills: (_c = this.stepChipsOf.get(n4.id)) == null ? void 0 : _c.skills
     };
+  }
+  initStepChips() {
+    ["node:added", "node:removed", "node:moved", "node:resized", "node:change:data"].forEach((ev) => this.graph.on(ev, () => this.scheduleStepChips()));
+    ["history:undo", "history:redo"].forEach((ev) => this.graph.on(ev, () => {
+      this.stepChipsStale = true;
+      this.scheduleStepChips();
+    }));
+    const zoom2 = () => this.root.classList.toggle("lk-chips-off", this.graph.zoom() * 80 < STEP_CHIPS_MIN_PX);
+    this.graph.on("scale", zoom2);
+    zoom2();
+    this.syncSquad();
+    this.scheduleStepChips();
+  }
+  /** Re-read Pie Squad when its api object changed (enabled, disabled or reloaded since last look). */
+  syncSquad() {
+    const api = pieSquadApi();
+    if (api === this.squadApi) return;
+    this.squadOff();
+    this.squadApi = api;
+    this.squadOff = onSquadChange(api, () => {
+      this.squad = readSquad(api);
+      this.scheduleStepChips();
+    });
+    this.squad = readSquad(api);
+  }
+  scheduleStepChips() {
+    if (this.stepChipsRaf) return;
+    this.stepChipsRaf = requestAnimationFrame(() => {
+      this.stepChipsRaf = 0;
+      this.refreshStepChips();
+    });
+  }
+  /** Step data with a fresh laneId (from position) + the lanes of the pool holding that lane. */
+  stepContext() {
+    const laneOf = new Map(this.getModel().nodes.map((m7) => [m7.id, m7.laneId]));
+    const poolLanes = this.graph.getNodes().filter((p6) => this.nodeKind(p6) === "bpmn-pool").map((p6) => {
+      var _a3;
+      return (_a3 = this.nodeExtra(p6).lanes) != null ? _a3 : [];
+    });
+    return (n4) => {
+      const d4 = { ...n4.getData(), laneId: laneOf.get(n4.id) };
+      return [d4, d4.laneId ? poolLanes.find((ls) => findLaneDeep(ls, d4.laneId)) : void 0];
+    };
+  }
+  refreshStepChips() {
+    this.syncSquad();
+    const ctx = this.stepContext();
+    for (const n4 of this.graph.getNodes()) {
+      if (!this.nodeKind(n4).startsWith("bpmn-task")) continue;
+      const chips = stepChips(...ctx(n4), this.squad);
+      if (!this.stepChipsStale && JSON.stringify(chips) === JSON.stringify(this.stepChipsOf.get(n4.id))) continue;
+      this.stepChipsOf.set(n4.id, chips);
+      n4.attr("content/html", nodeHtml(this.nodeKind(n4), this.nodeLabel(n4), this.nodeStyle(n4), this.nodeExtra(n4)), { async: false, dryrun: true });
+      this.upsertHtmlNode(n4);
+    }
+    this.stepChipsStale = false;
   }
   rerender(n4) {
     n4.attr("content/html", nodeHtml(this.nodeKind(n4), this.nodeLabel(n4), this.nodeStyle(n4), this.nodeExtra(n4)), { async: false });
@@ -87768,6 +87995,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.scheduleMindmapAutoGrow(n4);
     }
     this.upsertHtmlNode(n4);
+    this.scheduleStepChips();
   }
   // ── Mobile HTML overlay (real <div> mirror of node content) ──────────────
   initHtmlOverlay() {
@@ -88294,6 +88522,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    * never floats free of its anchor.
    */
   inlineEdit(opts) {
+    var _a3;
     this.commitLabel();
     if (this.isMobile) this.setEditingChrome(true);
     const ta = el("textarea", "lk-label-input" + (opts.vertical ? " is-vertical" : ""));
@@ -88348,11 +88577,37 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.graph.off("scale", abort);
       this.graph.off("translate", abort);
       ta.remove();
+      list == null ? void 0 : list.remove();
       this.labelInput = null;
       box == null ? void 0 : box.classList.remove("is-label-editing");
       if (this.isMobile) this.setEditingChrome(false);
     };
     const abort = () => finish(true);
+    let list = null;
+    const renderList = () => {
+      if (!list || !opts.suggest) return;
+      const q5 = ta.value === opts.value ? "" : ta.value.trim().toLowerCase();
+      const hits = opts.suggest.filter((n4) => n4.toLowerCase().includes(q5));
+      list.replaceChildren(...hits.map((n4) => {
+        const b4 = el("button", "lk-suggest-item");
+        b4.textContent = n4;
+        b4.addEventListener("mousedown", (e5) => {
+          e5.preventDefault();
+          ta.value = n4;
+          finish(true);
+        });
+        return b4;
+      }));
+      list.style.display = hits.length ? "" : "none";
+    };
+    if ((_a3 = opts.suggest) == null ? void 0 : _a3.length) {
+      list = el("div", "lk-suggest");
+      list.style.left = opts.left + opts.width + 4 + "px";
+      list.style.top = opts.top + "px";
+      this.root.appendChild(list);
+      renderList();
+      ta.addEventListener("input", renderList);
+    }
     ta.addEventListener("input", autoGrow);
     ta.addEventListener("keydown", (e5) => {
       e5.stopPropagation();
@@ -88392,6 +88647,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       height: r5.height,
       value: current.label,
       vertical: ex.poolHorizontal !== false,
+      suggest: laneNameSuggestions(readSquad()),
       onCommit: (v6) => {
         node3.setData({ ...node3.getData(), lanes: relabel(lanes, v6) }, { deep: false });
         this.rerender(node3);
@@ -90057,9 +90313,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const safeId = (raw2, i6) => "n" + (raw2.replace(/[^a-zA-Z0-9]/g, "") || String(i6));
     const idMap = /* @__PURE__ */ new Map();
     model.nodes.forEach((n4, i6) => idMap.set(n4.id, safeId(n4.id, i6)));
-    const esc3 = (s5) => `"${(s5 || " ").replace(/"/g, "&quot;").replace(/\n/g, " ")}"`;
+    const esc4 = (s5) => `"${(s5 || " ").replace(/"/g, "&quot;").replace(/\n/g, " ")}"`;
     const wrap = (kind, label2) => {
-      const t6 = esc3(label2);
+      const t6 = esc4(label2);
       if (kind === "fc-start" || kind === "fc-end" || kind === "st-initial" || kind === "st-final") return `([${t6}])`;
       if (kind === "fc-decision" || kind === "bs-diamond" || kind === "st-choice" || kind.startsWith("bpmn-gateway")) return `{${t6}}`;
       if (kind === "fc-io") return `[/${t6}/]`;
@@ -90072,7 +90328,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     for (const e5 of model.edges) {
       const s5 = idMap.get(e5.source), t6 = idMap.get(e5.target);
       if (!s5 || !t6) continue;
-      lines.push(e5.label ? `  ${s5} -->|${esc3(e5.label)}| ${t6}` : `  ${s5} --> ${t6}`);
+      lines.push(e5.label ? `  ${s5} -->|${esc4(e5.label)}| ${t6}` : `  ${s5} --> ${t6}`);
     }
     return lines.join("\n");
   }
@@ -90091,6 +90347,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       window.clearTimeout(this.edgeBarDebounce);
       this.edgeBarDebounce = null;
     }
+    this.squadOff();
+    this.squadOff = () => {
+    };
+    if (this.stepChipsRaf) cancelAnimationFrame(this.stepChipsRaf);
     this.graph.dispose();
   }
 };

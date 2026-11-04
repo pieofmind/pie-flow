@@ -9,7 +9,7 @@ import { Transform } from "@antv/x6-plugin-transform";
 import type { PaletteItem, ShapeCategory, CanvasModel, BoardAppState } from "./types";
 import { shapeIcon } from "./shapes/index";
 import { FIXED_PORT_IDS, fixedPort, nearestFixedPortInBox, pickDropTarget, type FixedPortId } from "./shapes/ports";
-import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol } from "./htmlNode";
+import { nodeHtml, defaultErdCols, defaultUml, BPMN_DEFAULT_FONT_SIZE, type NodeStyle, type NodeExtra, type ErdCol, type PoolLaneExtra } from "./htmlNode";
 import { buildErdColumnPorts, ERD_COL_PORT_GROUPS } from "./erdPorts";
 import { collectPluginCss } from "./staticRender";
 import { addChildLane, allLaneIds, asStackLanes, fromStackLanes, fromStackLanesDeep, growLaneAt, laneBandOf, laneHeights, leafLaneAt, leafLaneSize, mergeChildLanes, removeChildLane, resizeLaneBoundary, resizePoolLanes, setSiblings, splitLane } from "./laneLayout";
@@ -18,6 +18,7 @@ import { AVOID_ROUTER, registerAvoidRouter } from "./avoidRouter";
 import { layoutInLanes, type LayoutNode, type LayoutPool } from "./laneAwareLayout";
 import { hasExternalLabel } from "../io/bpmn/labelGeometry";
 import { attachThickCaret } from "./thickCaret";
+import { laneNameSuggestions, onSquadChange, pieSquadApi, readSquad, skillSuggestions, skillsOf, stepChips, stepWho, withSkills, type PieSquadApi, type SquadInfo, type StepChips, type StepData } from "./stepChips";
 import { SUBPROCESS_KINDS, closedLayout, openLayout } from "./subprocessLayout";
 import { triggerChoices } from "../io/bpmn/eventTriggers";
 import { clampDelta, planSpace, shiftVertices, type Axis, type SpaceBox } from "./spaceTool";
@@ -381,6 +382,9 @@ type ConnectedEndpointEvent = {
   currentPort?: string | null;
 };
 
+/** A default-size task (80px tall) shorter than this on screen hides its step chips. */
+const STEP_CHIPS_MIN_PX = 56;
+
 /** The lane `id` at any nesting depth. */
 function findLaneDeep<T extends { id: string; lanes?: T[] }>(lanes: readonly T[], id: string): T | undefined {
   for (const ln of lanes) {
@@ -505,6 +509,7 @@ export class OmniboardCanvas {
     this.refreshProps();
     this.setTool("select");   // wire the touch select/move handlers
     this.initHtmlOverlay();   // mobile-only: real-div node rendering (no-op on desktop)
+    this.initStepChips();
   }
 
   // ── Graph ──────────────────────────────────────────────────────────────
@@ -2921,7 +2926,7 @@ export class OmniboardCanvas {
     // ── Camunda: extension attrs + camunda:property list ─────────────────────
     const camunda = (d.camunda as Record<string, string> | undefined) ?? {};
     const CAMUNDA_FIELDS: Array<[string, string]> = [
-      ["assignee", "Assignee"], ["candidateUsers", "Candidate users"], ["candidateGroups", "Candidate groups"],
+      ["assignee", "Người làm riêng"], ["candidateUsers", "Candidate users"], ["candidateGroups", "Candidate groups"],
       ["formKey", "Form key"], ["dueDate", "Due date"], ["priority", "Priority"],
     ];
     type Prop = { name: string; value: string };
@@ -2932,9 +2937,37 @@ export class OmniboardCanvas {
       s.appendChild(el("summary", "lk-psec-h", title)); body.appendChild(s); return s;
     };
     const sCam = fold("Camunda", true);
+    // Skill of the step = the camunda:property rows named "skill" (Pie Squad ADR 0001).
+    if (kind.startsWith("bpmn-task")) {
+      const squad = readSquad();
+      const skills = skillsOf(props());
+      const setSkills = (next: string[]) => { setProps(withSkills(props(), next)); this.refreshProps(); };
+      const box = el("div", "lk-pskills");
+      skills.forEach((sk, i) => {
+        const chip = el("span", "lk-pskill"); chip.textContent = sk;
+        const x = el("button", "lk-pskill-x", "×"); x.title = "Bỏ skill này";
+        x.onclick = () => setSkills(skills.filter((_, j) => j !== i));
+        chip.appendChild(x); box.appendChild(chip);
+      });
+      const add = el("input", "lk-pinput") as HTMLInputElement; add.placeholder = "Thêm skill…";
+      const list = el("datalist"); list.id = `lk-skill-list-${node.id}`;
+      const [sd, sl] = this.stepContext()(node);
+      for (const sk of skillSuggestions(squad, stepWho(sd, sl, squad)?.name, skills)) {
+        const o = el("option"); o.value = sk; list.appendChild(o);
+      }
+      add.setAttribute("list", list.id);
+      // change = picked from the list, or typed then Enter / left the field
+      add.onchange = () => { const v = add.value.trim(); add.value = ""; if (v && !skills.includes(v)) setSkills([...skills, v]); };
+      box.append(add, list);
+      field(sCam, "Skill", box);
+    }
     for (const [key, label] of CAMUNDA_FIELDS) {
       const inp = el("input", "lk-pinput") as HTMLInputElement;
       inp.value = camunda[key] ?? ""; inp.placeholder = label;
+      // Empty assignee: show who does the step by its lane (data stays empty).
+      const [sd, sl] = key === "assignee" ? this.stepContext()(node) : [{}, undefined];
+      const laneWho = key === "assignee" ? stepWho({ ...sd, camunda: {} }, sl, null) : undefined;
+      if (laneWho) inp.placeholder = laneWho.name;
       inp.oninput = () => {
         const cur = (node.getData()?.camunda as Record<string, string> | undefined) ?? {};
         const updated = { ...cur, [key]: inp.value.trim() || undefined };
@@ -2942,6 +2975,12 @@ export class OmniboardCanvas {
         save({ camunda: Object.keys(kept).length ? kept : undefined });
       };
       field(sCam, label, inp);
+      if (laneWho) {
+        const hint = el("span", "lk-phint", " · theo lane");
+        const sync = () => { hint.style.display = inp.value.trim() ? "none" : ""; };
+        sCam.lastElementChild?.querySelector("label")?.appendChild(hint);
+        inp.addEventListener("input", sync); sync();
+      }
     }
     props().forEach((p, i) => {
       const row = el("div", "lk-prow2");
@@ -3607,8 +3646,64 @@ export class OmniboardCanvas {
       collapsed: d.collapsed,
       poolHorizontal: d.poolHorizontal,
       blackBox: d.blackBox,
+      agent: this.stepChipsOf.get(n.id)?.who, skills: this.stepChipsOf.get(n.id)?.skills,
     };
   }
+  // ── Step chips: who does a BPMN task + its skills (Pie Squad, read at runtime) ──
+  private stepChipsRaf = 0;
+  /** Chips last drawn per task id; nodeExtra() reads them so every renderer draws the same. */
+  private stepChipsOf = new Map<string, StepChips>();
+  /** Undo/redo can restore an old node HTML: repaint every task once, even if its chips look unchanged. */
+  private stepChipsStale = false;
+  private squad: SquadInfo | null = null;
+  private squadApi: PieSquadApi | null = null;
+  private squadOff: () => void = () => {};
+  private initStepChips(): void {
+    ["node:added", "node:removed", "node:moved", "node:resized", "node:change:data"]
+      .forEach((ev) => this.graph.on(ev, () => this.scheduleStepChips()));
+    ["history:undo", "history:redo"].forEach((ev) => this.graph.on(ev, () => { this.stepChipsStale = true; this.scheduleStepChips(); }));
+    const zoom = () => this.root.classList.toggle("lk-chips-off", this.graph.zoom() * 80 < STEP_CHIPS_MIN_PX);
+    this.graph.on("scale", zoom); zoom();
+    this.syncSquad();
+    this.scheduleStepChips();
+  }
+  /** Re-read Pie Squad when its api object changed (enabled, disabled or reloaded since last look). */
+  private syncSquad(): void {
+    const api = pieSquadApi();
+    if (api === this.squadApi) return;
+    this.squadOff();
+    this.squadApi = api;
+    this.squadOff = onSquadChange(api, () => { this.squad = readSquad(api); this.scheduleStepChips(); });
+    this.squad = readSquad(api);
+  }
+  private scheduleStepChips(): void {
+    if (this.stepChipsRaf) return;
+    this.stepChipsRaf = requestAnimationFrame(() => { this.stepChipsRaf = 0; this.refreshStepChips(); });
+  }
+  /** Step data with a fresh laneId (from position) + the lanes of the pool holding that lane. */
+  private stepContext(): (n: Node) => [StepData, PoolLaneExtra[] | undefined] {
+    const laneOf = new Map(this.getModel().nodes.map((m) => [m.id, m.laneId]));
+    const poolLanes = this.graph.getNodes().filter((p) => this.nodeKind(p) === "bpmn-pool").map((p) => this.nodeExtra(p).lanes ?? []);
+    return (n) => {
+      const d = { ...(n.getData() as StepData | undefined), laneId: laneOf.get(n.id) };
+      return [d, d.laneId ? poolLanes.find((ls) => findLaneDeep(ls, d.laneId!)) : undefined];
+    };
+  }
+  private refreshStepChips(): void {
+    this.syncSquad();
+    const ctx = this.stepContext();
+    for (const n of this.graph.getNodes()) {
+      if (!this.nodeKind(n).startsWith("bpmn-task")) continue;
+      const chips = stepChips(...ctx(n), this.squad);
+      if (!this.stepChipsStale && JSON.stringify(chips) === JSON.stringify(this.stepChipsOf.get(n.id))) continue;
+      this.stepChipsOf.set(n.id, chips);
+      // dryrun: a chip repaint is derived from data, not an undo step of its own
+      n.attr("content/html", nodeHtml(this.nodeKind(n), this.nodeLabel(n), this.nodeStyle(n), this.nodeExtra(n)), { async: false, dryrun: true });
+      this.upsertHtmlNode(n);
+    }
+    this.stepChipsStale = false;
+  }
+
   private rerender(n: Node) {
     // Render now (async: false): the HTML is replaced, and event / gateway /
     // data labels lose the side refreshBpmnEventLabels put them on — re-apply
@@ -3622,6 +3717,7 @@ export class OmniboardCanvas {
       this.scheduleMindmapAutoGrow(n);
     }
     this.upsertHtmlNode(n);   // keep the mobile HTML overlay in sync (no-op on desktop)
+    this.scheduleStepChips();
   }
 
   // ── Mobile HTML overlay (real <div> mirror of node content) ──────────────
@@ -4160,6 +4256,8 @@ export class OmniboardCanvas {
     allowEmpty?: boolean;
     /** Edit in place inside this element (bpmn-js): same font, centred, transparent, its text hidden meanwhile. */
     inBox?: HTMLElement;
+    /** Names offered in a pick list beside the editor (filtered by what's typed). Free typing still works. */
+    suggest?: string[];
     onCommit: (next: string) => void;
   }): void {
     this.commitLabel(); // close any previous editor
@@ -4206,11 +4304,32 @@ export class OmniboardCanvas {
         if (v || opts.allowEmpty) opts.onCommit(v);
       }
       this.graph.off("scale", abort); this.graph.off("translate", abort);
-      ta.remove(); this.labelInput = null;
+      ta.remove(); list?.remove(); this.labelInput = null;
       box?.classList.remove("is-label-editing");
       if (this.isMobile) this.setEditingChrome(false);   // restore the "+" pads
     };
     const abort = () => finish(true); // commit on viewport change so editor never drifts
+    let list: HTMLElement | null = null;
+    const renderList = () => {
+      if (!list || !opts.suggest) return;
+      const q = ta.value === opts.value ? "" : ta.value.trim().toLowerCase();   // untouched name: offer every one
+      const hits = opts.suggest.filter((n) => n.toLowerCase().includes(q));
+      list.replaceChildren(...hits.map((n) => {
+        const b = el("button", "lk-suggest-item"); b.textContent = n;   // names come from vault notes: text, not HTML
+        // mousedown, not click: keep the textarea focused so blur doesn't commit first
+        b.addEventListener("mousedown", (e) => { e.preventDefault(); ta.value = n; finish(true); });
+        return b;
+      }));
+      list.style.display = hits.length ? "" : "none";
+    };
+    if (opts.suggest?.length) {
+      list = el("div", "lk-suggest");
+      list.style.left = opts.left + opts.width + 4 + "px";
+      list.style.top = opts.top + "px";
+      this.root.appendChild(list);
+      renderList();
+      ta.addEventListener("input", renderList);
+    }
     ta.addEventListener("input", autoGrow);
     ta.addEventListener("keydown", ((e: KeyboardEvent) => {
       e.stopPropagation();
@@ -4239,6 +4358,7 @@ export class OmniboardCanvas {
     this.inlineEdit({
       left: r.left - rr.left, top: r.top - rr.top, width: r.width, height: r.height,
       value: current.label, vertical: ex.poolHorizontal !== false,
+      suggest: laneNameSuggestions(readSquad()),
       onCommit: (v) => {
         node.setData({ ...node.getData(), lanes: relabel(lanes, v) }, { deep: false });
         this.rerender(node);
@@ -5972,6 +6092,8 @@ export class OmniboardCanvas {
     for (const { type, fn } of this.docListeners) document.removeEventListener(type, fn, true);
     this.docListeners = [];
     if (this.edgeBarDebounce != null) { window.clearTimeout(this.edgeBarDebounce); this.edgeBarDebounce = null; }
+    this.squadOff(); this.squadOff = () => {};
+    if (this.stepChipsRaf) cancelAnimationFrame(this.stepChipsRaf);
     this.graph.dispose();
   }
 }

@@ -92,14 +92,14 @@ export function readSquad(api = pieSquadApi()): SquadInfo | null {
       typeof a?.name === "string" && Array.isArray(a.skills) && a.skills.every((s) => typeof s === "string")
         ? [{ name: a.name, skills: [...a.skills] }] : []);
     return { owner: typeof owner === "string" ? owner : null, agents };
-  } catch (e) { console.error("[omniboard] pie-squad api", e); return null; }
+  } catch (e) { console.error("[pie-flow] pie-squad api", e); return null; }
 }
 /** Subscribe to Pie Squad's change signal; a missing or throwing API gives a no-op unsubscribe. */
 export function onSquadChange(api: PieSquadApi | null, cb: () => void): () => void {
   try {
     const off = api?.onChange(cb);
-    if (typeof off === "function") return () => { try { off(); } catch (e) { console.error("[omniboard] pie-squad off", e); } };
-  } catch (e) { console.error("[omniboard] pie-squad onChange", e); }
+    if (typeof off === "function") return () => { try { off(); } catch (e) { console.error("[pie-flow] pie-squad off", e); } };
+  } catch (e) { console.error("[pie-flow] pie-squad onChange", e); }
   return () => {};
 }
 

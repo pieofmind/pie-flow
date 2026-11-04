@@ -4110,7 +4110,7 @@ export class OmniboardCanvas {
       return { ...n, attrs: { ...(n.attrs ?? {}), lanes: newLanes } };
     });
     if (!changed) return model;
-    console.info("[omniboard] dedupeLaneIdsAcrossPools: renamed duplicate lane ids on load");
+    console.info("[pie-flow] dedupeLaneIdsAcrossPools: renamed duplicate lane ids on load");
     return { ...model, nodes: newNodes };
   }
 
@@ -5027,7 +5027,7 @@ export class OmniboardCanvas {
     q.flushJobs = () => {
       try { flush(); }
       catch (err) {
-        console.error("[omniboard] X6 render job failed; rendering continues", err);
+        console.error("[pie-flow] X6 render job failed; rendering continues", err);
         q.isFlushing = false;
         if (q.queue.length) q.queueFlush();
       }

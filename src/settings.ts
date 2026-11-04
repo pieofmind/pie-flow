@@ -17,7 +17,7 @@ export const DEFAULT_SETTINGS: DiagramsSettings = {
   defaultLayout: "LR",
   validateBpmnBeforeExport: true,
   compressDrawingData: false,
-  boardFolder: "Omniboards",
+  boardFolder: "Pie Flow",
 };
 
 export class DiagramsSettingTab extends PluginSettingTab {
@@ -77,12 +77,12 @@ export class DiagramsSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Board folder")
       .setDesc(
-        "Folder where new board files (.omniboard.md) are created when you insert a board into a note. " +
+        "Folder where new board files (.pieflow.md) are created when you insert a board into a note. " +
         "Leave empty to create them at the vault root."
       )
       .addText((t) =>
         t
-          .setPlaceholder("Omniboards")
+          .setPlaceholder("Pie Flow")
           .setValue(this.plugin.settings.boardFolder)
           .onChange(async (v) => {
             this.plugin.settings.boardFolder = v.trim();

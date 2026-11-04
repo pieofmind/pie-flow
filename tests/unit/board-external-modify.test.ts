@@ -49,7 +49,7 @@ async function openBoard(initial: CanvasModel) {
   const { BoardView } = await import("../../src/view/BoardView");
   const { FakeVault } = await import("./_helpers/obsidian-faithful");
   const vault = new FakeVault();
-  const file = { path: "Omniboards/x.omniboard.md", basename: "x" };
+  const file = { path: "Pie Flow/x.pieflow.md", basename: "x" };
   vault.text = serializeBoard(initial, "", undefined, {});
   const view = new BoardView({} as never, { settings: { compressDrawingData: false } } as never) as unknown as
     InstanceType<typeof BoardView> & { file: unknown; app: unknown; loadFileInternal(f: unknown, c: boolean): Promise<void>; handleCanvasChange(): void; askExternalConflict(): Promise<"reload" | "keep"> };

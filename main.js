@@ -4384,14 +4384,24 @@ var init_pako_esm = __esm({
 // src/view/boardSerde.ts
 var boardSerde_exports = {};
 __export(boardSerde_exports, {
-  OMNIBOARD_EXT: () => OMNIBOARD_EXT,
-  OMNIBOARD_SUFFIX: () => OMNIBOARD_SUFFIX,
+  BOARD_EXT: () => BOARD_EXT,
+  BOARD_SUFFIX: () => BOARD_SUFFIX,
+  LEGACY_BOARD_SUFFIX: () => LEGACY_BOARD_SUFFIX,
+  REQUIRED_FM_KEY: () => REQUIRED_FM_KEY,
+  boardTags: () => boardTags,
   deserializeBoard: () => deserializeBoard,
   deserializeBpmnXml: () => deserializeBpmnXml,
   deserializeSourceMeta: () => deserializeSourceMeta,
-  isOmniboardMarkdown: () => isOmniboardMarkdown,
+  isBoardPath: () => isBoardPath,
+  isPieFlowMarkdown: () => isPieFlowMarkdown,
   serializeBoard: () => serializeBoard
 });
+function isBoardPath(path2) {
+  return path2.endsWith(BOARD_SUFFIX) || path2.endsWith(LEGACY_BOARD_SUFFIX);
+}
+function blockRe(suffix) {
+  return new RegExp("```" + LANG_PREFIX + "-" + suffix + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```", "m");
+}
 function parseFrontmatter(raw2) {
   const m7 = FRONTMATTER_RE.exec(raw2);
   if (!m7) return { raw: {}, order: [] };
@@ -4417,16 +4427,23 @@ function parseFrontmatter(raw2) {
   }
   return { raw: out, order };
 }
+function boardTags(tags) {
+  if (!tags) return `[${BOARD_TAG}]`;
+  const swapped = tags.replace(/(^|[\s,\[])omniboard(?=$|[\s,\]])/g, `$1${BOARD_TAG}`);
+  if (new RegExp(`(^|[\\s,\\[])${BOARD_TAG}($|[\\s,\\]])`).test(swapped)) return swapped;
+  const inline = /^\[(.*)\]$/.exec(swapped.trim());
+  if (inline) return inline[1].trim() ? `[${BOARD_TAG}, ${inline[1].trim()}]` : `[${BOARD_TAG}]`;
+  if (swapped.startsWith("\n")) return `${swapped}
+- ${BOARD_TAG}`;
+  return `[${BOARD_TAG}, ${swapped}]`;
+}
 function emitFrontmatter(fm) {
   const keys3 = new Set(fm.order);
   const lines = ["---"];
   lines.push(`${REQUIRED_FM_KEY}: ${REQUIRED_FM_VAL}`);
   keys3.delete(REQUIRED_FM_KEY);
-  if (!fm.raw.tags || !/\bomniboard\b/.test(fm.raw.tags)) {
-    lines.push(`tags: [omniboard]`);
-  } else {
-    lines.push(`tags: ${fm.raw.tags}`);
-  }
+  keys3.delete(LEGACY_FM_KEY);
+  lines.push(`tags: ${boardTags(fm.raw.tags)}`);
   keys3.delete("tags");
   for (const k5 of fm.order) {
     if (!keys3.has(k5)) continue;
@@ -4496,9 +4513,9 @@ function serializeBoard(model, previousRaw = "", sourceMeta, opts) {
   const parts = [];
   parts.push(emitFrontmatter(fm));
   parts.push("");
-  parts.push("==\u26A0 Switch to OMNIBOARD VIEW in the MORE OPTIONS menu of this document. \u26A0==");
+  parts.push("==\u26A0 Switch to PIE FLOW VIEW in the MORE OPTIONS menu of this document. \u26A0==");
   parts.push("");
-  parts.push("# Omniboard");
+  parts.push("# Pie Flow");
   parts.push("");
   parts.push("## Text Elements");
   const seenIds = /* @__PURE__ */ new Set();
@@ -4551,35 +4568,31 @@ function deserializeBoard(raw2) {
   if (parsed && Array.isArray(parsed.nodes) && Array.isArray(parsed.edges)) return parsed;
   return null;
 }
-function isOmniboardMarkdown(raw2) {
+function isPieFlowMarkdown(raw2) {
   const m7 = FRONTMATTER_RE.exec(raw2);
   if (!m7) return false;
-  return new RegExp(`^${REQUIRED_FM_KEY}\\s*:\\s*${REQUIRED_FM_VAL}\\b`, "m").test(m7[1]);
+  return new RegExp(`^${FM_KEY_RE}\\s*:\\s*["']?${REQUIRED_FM_VAL}\\b`, "m").test(m7[1]);
 }
-var OMNIBOARD_EXT, OMNIBOARD_SUFFIX, DATA_LANG, META_LANG, BPMN_LANG, REQUIRED_FM_KEY, REQUIRED_FM_VAL, DRAWING_RE, META_RE, BPMN_RE, FRONTMATTER_RE;
+var BOARD_EXT, BOARD_SUFFIX, LEGACY_BOARD_SUFFIX, DATA_LANG, META_LANG, BPMN_LANG, REQUIRED_FM_KEY, LEGACY_FM_KEY, REQUIRED_FM_VAL, LANG_PREFIX, FM_KEY_RE, BOARD_TAG, DRAWING_RE, META_RE, BPMN_RE, FRONTMATTER_RE;
 var init_boardSerde = __esm({
   "src/view/boardSerde.ts"() {
     "use strict";
     init_pako_esm();
-    OMNIBOARD_EXT = "omniboard.md";
-    OMNIBOARD_SUFFIX = `.${OMNIBOARD_EXT}`;
-    DATA_LANG = "omniboard-data";
-    META_LANG = "omniboard-source-meta";
-    BPMN_LANG = "omniboard-bpmn-xml";
-    REQUIRED_FM_KEY = "omniboard-plugin";
+    BOARD_EXT = "pieflow.md";
+    BOARD_SUFFIX = `.${BOARD_EXT}`;
+    LEGACY_BOARD_SUFFIX = ".omniboard.md";
+    DATA_LANG = "pie-flow-data";
+    META_LANG = "pie-flow-source-meta";
+    BPMN_LANG = "pie-flow-bpmn-xml";
+    REQUIRED_FM_KEY = "pie-flow-plugin";
+    LEGACY_FM_KEY = "omniboard-plugin";
     REQUIRED_FM_VAL = "parsed";
-    DRAWING_RE = new RegExp(
-      "```" + DATA_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
-      "m"
-    );
-    META_RE = new RegExp(
-      "```" + META_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
-      "m"
-    );
-    BPMN_RE = new RegExp(
-      "```" + BPMN_LANG + "\\s*\\r?\\n([\\s\\S]*?)\\r?\\n```",
-      "m"
-    );
+    LANG_PREFIX = "(?:pie-flow|omniboard)";
+    FM_KEY_RE = "(?:pie-flow|omniboard)-plugin";
+    BOARD_TAG = "pie-flow";
+    DRAWING_RE = blockRe("data");
+    META_RE = blockRe("source-meta");
+    BPMN_RE = blockRe("bpmn-xml");
     FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
   }
 });
@@ -11449,7 +11462,7 @@ async function exportBpmn(model, meta) {
       try {
         return await patchExisting(raw2, normalizedModel, m7, Number.isFinite(diagramIndex) ? diagramIndex : 0);
       } catch (err2) {
-        console.warn("[omniboard:bpmn] patchExisting failed; falling back to minimal export", err2);
+        console.warn("[pie-flow:bpmn] patchExisting failed; falling back to minimal export", err2);
       }
     }
   }
@@ -11713,7 +11726,7 @@ async function patchExisting(raw2, model, m7, diagramIndex = 0) {
       const sourceFe = refOf2(e5.source);
       const targetFe = refOf2(e5.target);
       if (!sourceFe || !targetFe) {
-        console.warn(`[omniboard:bpmn] dropped ${kind} flow "${e5.id}": endpoint has no BPMN element (${e5.source} \u2192 ${e5.target})`);
+        console.warn(`[pie-flow:bpmn] dropped ${kind} flow "${e5.id}": endpoint has no BPMN element (${e5.source} \u2192 ${e5.target})`);
         continue;
       }
       const orphanMessage = kind === "message" && !collaboration;
@@ -12049,7 +12062,7 @@ async function emitMinimal(model, m7) {
   var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A;
   const defs = m7.create("bpmn:Definitions", {
     id: "Definitions_Export",
-    targetNamespace: "http://omniboard.local/bpmn"
+    targetNamespace: "http://pie-flow.local/bpmn"
   });
   const pools = model.nodes.filter(
     (n4) => {
@@ -12203,7 +12216,7 @@ async function emitMinimal(model, m7) {
       targetRef: refOf2(e5.target)
     });
     if (!sf.sourceRef || !sf.targetRef) {
-      console.warn(`[omniboard:bpmn] dropped ${typeStr} "${e5.id}": endpoint has no BPMN element (${e5.source} \u2192 ${e5.target})`);
+      console.warn(`[pie-flow:bpmn] dropped ${typeStr} "${e5.id}": endpoint has no BPMN element (${e5.source} \u2192 ${e5.target})`);
       continue;
     }
     const extrasKind = typeStr === "bpmn:MessageFlow" ? "sequence" : kind === "message" && !collaborationRoot ? "sequence" : kind;
@@ -88242,7 +88255,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       return { ...n4, attrs: { ...(_c = n4.attrs) != null ? _c : {}, lanes: newLanes } };
     });
     if (!changed) return model;
-    console.info("[omniboard] dedupeLaneIdsAcrossPools: renamed duplicate lane ids on load");
+    console.info("[pie-flow] dedupeLaneIdsAcrossPools: renamed duplicate lane ids on load");
     return { ...model, nodes: newNodes };
   }
   addLaneToPool(node3, where) {
@@ -89233,7 +89246,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       try {
         flush();
       } catch (err2) {
-        console.error("[omniboard] X6 render job failed; rendering continues", err2);
+        console.error("[pie-flow] X6 render job failed; rendering continues", err2);
         q5.isFlushing = false;
         if (q5.queue.length) q5.queueFlush();
       }
@@ -90503,7 +90516,7 @@ var BoardSidePanel = class {
     this.paneEl.empty();
     if (!model) return;
     if (this.tab === "issues") {
-      const list = this.paneEl.createDiv({ cls: "da-side-issues omniboard-issues-view" });
+      const list = this.paneEl.createDiv({ cls: "da-side-issues pie-flow-issues-view" });
       if (!issues.length) list.createDiv({ cls: "da-side-empty", text: "Kh\xF4ng ph\xE1t hi\u1EC7n l\u1ED7i semantic." });
       for (const i6 of issues) {
         const row = list.createEl("button", { cls: `obi-row ${i6.severity}`, attr: { "data-id": i6.targetId } });
@@ -90620,7 +90633,7 @@ var DiagramPickerModal = class extends import_obsidian5.Modal {
   }
   onOpen() {
     const { contentEl } = this;
-    this.modalEl.addClass("omniboard-diagram-picker");
+    this.modalEl.addClass("pie-flow-diagram-picker");
     contentEl.empty();
     contentEl.createEl("h3", { text: "Select BPMN Diagram" });
     contentEl.createEl("p", { text: `This file contains ${this.diagrams.length} diagrams. Pick one to import.` });
@@ -90701,12 +90714,13 @@ async function saveToLocal(data2, suggestedName, mimeType) {
   setTimeout(() => URL.revokeObjectURL(url), 1e3);
   return suggestedName;
 }
-var BOARD_VIEW_TYPE = "omniboard-board";
+var BOARD_VIEW_TYPE = "pie-flow-board";
+var LEGACY_BOARD_VIEW_TYPE = "omniboard-board";
 var EMPTY_MODEL = { nodes: [], edges: [] };
 var BOARD_TAB_STUB_ADAPTER = {
   id: "flowchart",
   displayName: "Board",
-  codeBlockLanguage: "omniboard",
+  codeBlockLanguage: "pie-flow",
   icon: "shapes",
   parse: () => EMPTY_MODEL,
   serialize: () => "",
@@ -90974,7 +90988,7 @@ var BoardView = class _BoardView extends import_obsidian5.TextFileView {
   }
   suggestedName(suffix) {
     var _a3, _b2;
-    return ((_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Omniboard") + suffix;
+    return ((_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Pie Flow") + suffix;
   }
   async handleExportPdf() {
     if (!this.canvas || !this.file) return;
@@ -91028,7 +91042,7 @@ var BoardView = class _BoardView extends import_obsidian5.TextFileView {
       void this.backupInvalid(data2);
       notify(
         "warn",
-        "File .omniboard.md kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 drawing block thi\u1EBFu/h\u1ECFng. File \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn, \u0111\xE3 t\u1EA1o b\u1EA3n sao l\u01B0u .bak c\u1EA1nh file.",
+        "File board kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng \u2014 drawing block thi\u1EBFu/h\u1ECFng. File \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn, \u0111\xE3 t\u1EA1o b\u1EA3n sao l\u01B0u .bak c\u1EA1nh file.",
         1e4
       );
       return;
@@ -91074,11 +91088,11 @@ var BoardView = class _BoardView extends import_obsidian5.TextFileView {
         this.cachedBpmnXml = xml3;
       } catch (err2) {
         this.cachedBpmnXml = "";
-        console.warn("[omniboard] BPMN regen failed; dropping derived block", err2);
+        console.warn("[pie-flow] BPMN regen failed; dropping derived block", err2);
       }
       const elapsed = performance.now() - start;
       if (elapsed > 100) {
-        console.warn(`[omniboard] BPMN regen took ${elapsed.toFixed(1)}ms`);
+        console.warn(`[pie-flow] BPMN regen took ${elapsed.toFixed(1)}ms`);
       }
     }
     if (this.conflict) return;
@@ -91132,7 +91146,7 @@ var BoardView = class _BoardView extends import_obsidian5.TextFileView {
     } catch (err2) {
       this.diskModel = expected;
       this.localEdits = true;
-      console.error("[omniboard] save failed", err2);
+      console.error("[pie-flow] save failed", err2);
       notify("error", `L\u01B0u board l\u1ED7i: ${err2.message}`);
     } finally {
       this.boardSaving = false;
@@ -91513,7 +91527,7 @@ var DEFAULT_SETTINGS = {
   defaultLayout: "LR",
   validateBpmnBeforeExport: true,
   compressDrawingData: false,
-  boardFolder: "Omniboards"
+  boardFolder: "Pie Flow"
 };
 var DiagramsSettingTab = class extends import_obsidian6.PluginSettingTab {
   constructor(app, plugin) {
@@ -91545,9 +91559,9 @@ var DiagramsSettingTab = class extends import_obsidian6.PluginSettingTab {
       })
     );
     new import_obsidian6.Setting(containerEl).setName("Board folder").setDesc(
-      "Folder where new board files (.omniboard.md) are created when you insert a board into a note. Leave empty to create them at the vault root."
+      "Folder where new board files (.pieflow.md) are created when you insert a board into a note. Leave empty to create them at the vault root."
     ).addText(
-      (t6) => t6.setPlaceholder("Omniboards").setValue(this.plugin.settings.boardFolder).onChange(async (v6) => {
+      (t6) => t6.setPlaceholder("Pie Flow").setValue(this.plugin.settings.boardFolder).onChange(async (v6) => {
         this.plugin.settings.boardFolder = v6.trim();
         await this.plugin.saveSettings();
       })
@@ -124205,10 +124219,10 @@ var MINIMAL_BPMN_FALLBACK = `<?xml version="1.0" encoding="UTF-8"?>
 <bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
                   xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
                   xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
-                  id="defs_omniboard" targetNamespace="http://example.com/omniboard">
-  <bpmn:process id="p_omniboard" isExecutable="false"/>
-  <bpmndi:BPMNDiagram id="d_omniboard">
-    <bpmndi:BPMNPlane id="pl_omniboard" bpmnElement="p_omniboard"/>
+                  id="defs_pie_flow" targetNamespace="http://example.com/pie-flow">
+  <bpmn:process id="p_pie_flow" isExecutable="false"/>
+  <bpmndi:BPMNDiagram id="d_pie_flow">
+    <bpmndi:BPMNPlane id="pl_pie_flow" bpmnElement="p_pie_flow"/>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
 var BpmnNativeView = class extends import_obsidian7.TextFileView {
@@ -124279,7 +124293,7 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
     return this.data;
   }
   async setViewData(data2, clear3) {
-    var _a3, _b2, _c, _d, _e3;
+    var _a3, _b2;
     if (clear3 && this.dirty && this.controller.isMounted) {
       await this.persistXml();
     }
@@ -124288,8 +124302,8 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
     this.data = data2;
     this.knownDisk = data2;
     this.dirty = false;
-    const wrapperByExt = (_c = (_b2 = (_a3 = this.file) == null ? void 0 : _a3.path) == null ? void 0 : _b2.endsWith(OMNIBOARD_SUFFIX)) != null ? _c : false;
-    const wrapperByMarker = isOmniboardMarkdown(data2);
+    const wrapperByExt = this.file ? isBoardPath(this.file.path) : false;
+    const wrapperByMarker = isPieFlowMarkdown(data2);
     const parsedCanvas = deserializeBoard(data2);
     this.isWrapper = wrapperByMarker || wrapperByExt && parsedCanvas !== null;
     let xmlToMount = data2;
@@ -124297,13 +124311,13 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
       this.wrapperRaw = data2;
       const canvas = parsedCanvas != null ? parsedCanvas : { nodes: [], edges: [] };
       this.wrapperCanvas = canvas;
-      this.wrapperSourceMeta = (_d = deserializeSourceMeta(data2)) != null ? _d : null;
+      this.wrapperSourceMeta = (_a3 = deserializeSourceMeta(data2)) != null ? _a3 : null;
       const existingXml = deserializeBpmnXml(data2);
       if (existingXml && existingXml.trim().length) {
         xmlToMount = existingXml;
       } else {
         try {
-          xmlToMount = await exportBpmn(canvas, (_e3 = this.wrapperSourceMeta) != null ? _e3 : void 0);
+          xmlToMount = await exportBpmn(canvas, (_b2 = this.wrapperSourceMeta) != null ? _b2 : void 0);
         } catch (err2) {
           console.warn("[BpmnNative] Lazy regen failed; falling back to empty BPMN", err2);
           xmlToMount = MINIMAL_BPMN_FALLBACK;
@@ -124692,8 +124706,8 @@ var BpmnNativeView = class extends import_obsidian7.TextFileView {
     if (this.isWrapper) {
       const switchBtn = bar.createEl("button", { cls: "da-tb-ic" });
       (0, import_obsidian7.setIcon)(switchBtn, "shapes");
-      switchBtn.setAttribute("aria-label", "Switch to Omniboard view");
-      switchBtn.title = "Switch to Omniboard view";
+      switchBtn.setAttribute("aria-label", "Switch to Pie Flow view");
+      switchBtn.title = "Switch to Pie Flow view";
       switchBtn.onclick = () => void this.switchToBoardView();
     }
     bar.createDiv({ cls: "da-tb-divider" });
@@ -125524,7 +125538,7 @@ var FileBoardModal = class extends import_obsidian10.Modal {
       return;
     }
     if (!model) {
-      hint.setText("File kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng Omniboard.");
+      hint.setText("File kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng Pie Flow.");
       return;
     }
     if (!contentEl.isConnected) return;
@@ -125570,7 +125584,7 @@ var FileBoardModal = class extends import_obsidian10.Modal {
       );
       await this.app.vault.modify(this.file, content5);
     } catch (e5) {
-      console.error("[omniboard] FileBoardModal save failed", e5);
+      console.error("[pie-flow] FileBoardModal save failed", e5);
       new import_obsidian10.Notice("L\u01B0u board th\u1EA5t b\u1EA1i \u2014 xem console.");
     }
   }
@@ -125599,10 +125613,10 @@ var BoardTypePicker = class extends import_obsidian11.SuggestModal {
     return this.choices.filter((c6) => c6.label.toLowerCase().includes(q5));
   }
   renderSuggestion(choice, el3) {
-    el3.addClass("omniboard-type-suggestion");
-    const icon = el3.createSpan({ cls: "omniboard-type-suggestion-icon" });
+    el3.addClass("pie-flow-type-suggestion");
+    const icon = el3.createSpan({ cls: "pie-flow-type-suggestion-icon" });
     (0, import_obsidian11.setIcon)(icon, choice.icon);
-    el3.createSpan({ cls: "omniboard-type-suggestion-label", text: choice.label });
+    el3.createSpan({ cls: "pie-flow-type-suggestion-label", text: choice.label });
   }
   onChooseSuggestion(choice) {
     this.onChoose(choice);
@@ -125615,7 +125629,7 @@ var ExistingBoardPicker = class extends import_obsidian11.FuzzySuggestModal {
     this.setPlaceholder("T\xECm board \u0111\xE3 c\xF3\u2026");
   }
   getItems() {
-    return this.app.vault.getFiles().filter((f6) => f6.path.endsWith(OMNIBOARD_SUFFIX)).sort((a5, b4) => b4.stat.mtime - a5.stat.mtime);
+    return this.app.vault.getFiles().filter((f6) => isBoardPath(f6.path)).sort((a5, b4) => b4.stat.mtime - a5.stat.mtime);
   }
   getItemText(file) {
     return file.path;
@@ -127021,7 +127035,9 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     this.registerView(BOARD_VIEW_TYPE, (leaf) => new BoardView(leaf, this));
     this.app.workspace.onLayoutReady(() => {
       this.app.workspace.iterateAllLeaves((leaf) => {
-        if (["omniboard-bpmn-issues", "omniboard-properties"].includes(leaf.getViewState().type)) leaf.detach();
+        const vs = leaf.getViewState();
+        if (["omniboard-bpmn-issues", "omniboard-properties"].includes(vs.type)) leaf.detach();
+        else if (vs.type === LEGACY_BOARD_VIEW_TYPE) void leaf.setViewState({ ...vs, type: BOARD_VIEW_TYPE });
       });
     });
     this.registerView(BPMN_NATIVE_VIEW_TYPE, (leaf) => new BpmnNativeView(leaf, this));
@@ -127036,12 +127052,12 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file, source) => {
         var _a3;
-        if (!(file instanceof import_obsidian12.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        if (!(file instanceof import_obsidian12.TFile) || !isBoardPath(file.path)) return;
         const leaf = this.findLeafForFile(file);
         const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE;
         menu.addItem((item) => {
           var _a4, _b2;
-          (_b2 = (_a4 = item.setTitle(inBoardView ? "Open as Markdown" : "Open as Omniboard").setIcon(inBoardView ? "file-text" : "shapes")).setSection) == null ? void 0 : _b2.call(_a4, "pane").onClick(async () => {
+          (_b2 = (_a4 = item.setTitle(inBoardView ? "Open as Markdown" : "Open as Pie Flow").setIcon(inBoardView ? "file-text" : "shapes")).setSection) == null ? void 0 : _b2.call(_a4, "pane").onClick(async () => {
             const target = leaf != null ? leaf : this.app.workspace.getLeaf("tab");
             if (!leaf) await target.openFile(file);
             await target.setViewState({
@@ -127115,15 +127131,15 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
         const leaf = this.app.workspace.activeLeaf;
         if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== "markdown") return false;
         const file = leaf.view.file;
-        if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return false;
+        if (!file || !isBoardPath(file.path)) return false;
         if (checking) return true;
         void leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
         return true;
       }
     });
     this.addCommand({
-      id: "open-omniboard-properties",
-      name: "Open Omniboard BPMN properties",
+      id: "open-pie-flow-properties",
+      name: "Open Pie Flow BPMN properties",
       checkCallback: (checking) => {
         var _a3;
         const leaf = this.app.workspace.activeLeaf;
@@ -127144,8 +127160,8 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       }
     });
     this.addCommand({
-      id: "open-omniboard-bpmn-issues",
-      name: "Open Omniboard BPMN issues",
+      id: "open-pie-flow-bpmn-issues",
+      name: "Open Pie Flow BPMN issues",
       checkCallback: (checking) => {
         var _a3;
         const leaf = this.app.workspace.activeLeaf;
@@ -127190,7 +127206,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
         const leaf = this.app.workspace.activeLeaf;
         if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== BOARD_VIEW_TYPE) return false;
         const file = leaf.view.file;
-        if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return false;
+        if (!file || !isBoardPath(file.path)) return false;
         if (checking) return true;
         void leaf.view.switchToBpmnNativeView();
         return true;
@@ -127198,7 +127214,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     });
     this.addCommand({
       id: "switch-to-board",
-      name: "Switch to Omniboard view",
+      name: "Switch to Pie Flow view",
       checkCallback: (checking) => {
         var _a3;
         const leaf = this.app.workspace.activeLeaf;
@@ -127212,7 +127228,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     });
     this.addCommand({
       id: "convert-bpmn-to-wrapper",
-      name: "Convert .bpmn to Omniboard wrapper (.omniboard.md)",
+      name: "Convert .bpmn to Pie Flow wrapper (.pieflow.md)",
       checkCallback: (checking) => {
         var _a3;
         const leaf = this.app.workspace.activeLeaf;
@@ -127238,9 +127254,9 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     this.embedObserver = null;
   }
   /** Is this embed `src` an omniboard board file? */
-  isOmniboardEmbedSrc(src) {
+  isBoardEmbedSrc(src) {
     const path2 = src.replace(/#.*$/, "");
-    return path2.endsWith(OMNIBOARD_SUFFIX) || path2.endsWith(".omniboard");
+    return isBoardPath(path2) || path2.endsWith(".pieflow") || path2.endsWith(".omniboard");
   }
   /**
    * Watch the workspace for `.internal-embed` elements pointing at an omniboard
@@ -127260,7 +127276,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       nodes.forEach((node3) => {
         var _a4;
         const src = (_a4 = node3.getAttribute("src")) != null ? _a4 : "";
-        if (!this.isOmniboardEmbedSrc(src)) return;
+        if (!this.isBoardEmbedSrc(src)) return;
         void this.renderBoardEmbed(node3, sourcePath);
       });
     };
@@ -127290,7 +127306,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       const basename = bpmnFile.basename;
       const dir = (_b2 = (_a3 = bpmnFile.parent) == null ? void 0 : _a3.path) != null ? _b2 : "";
       const wrapperPath = (0, import_obsidian12.normalizePath)(
-        (dir ? dir + "/" : "") + `${basename}${OMNIBOARD_SUFFIX}`
+        (dir ? dir + "/" : "") + `${basename}${BOARD_SUFFIX}`
       );
       const content5 = serializeBoard(model, "", sourceMeta, {
         compressDrawingData: this.settings.compressDrawingData,
@@ -127308,8 +127324,8 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       try {
         wrapperFile = await this.app.vault.create(wrapperPath, content5);
       } catch (createErr) {
-        console.error("[omniboard] vault.create failed for wrapper", createErr);
-        new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
+        console.error("[pie-flow] vault.create failed for wrapper", createErr);
+        new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .pieflow.md (xem console).");
         return;
       }
       const leaf = this.app.workspace.getLeaf(false);
@@ -127320,7 +127336,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: wrapperFile.path } });
       new import_obsidian12.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
     } catch (err2) {
-      console.error("[omniboard] convertBpmnToWrapper failed", err2);
+      console.error("[pie-flow] convertBpmnToWrapper failed", err2);
       new import_obsidian12.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
@@ -127334,9 +127350,9 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     const d4 = /* @__PURE__ */ new Date();
     const pad = (n4) => String(n4).padStart(2, "0");
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
-    const name2 = ((baseName == null ? void 0 : baseName.trim()) || `Omniboard ${stamp}`).replace(/[\\/:*?"<>|]/g, "-");
+    const name2 = ((baseName == null ? void 0 : baseName.trim()) || `Pie Flow ${stamp}`).replace(/[\\/:*?"<>|]/g, "-");
     const dir = await this.ensureBoardFolder();
-    const path2 = (0, import_obsidian12.normalizePath)((dir ? dir + "/" : "") + `${name2}${OMNIBOARD_SUFFIX}`);
+    const path2 = (0, import_obsidian12.normalizePath)((dir ? dir + "/" : "") + `${name2}${BOARD_SUFFIX}`);
     const content5 = serializeBoard(seedModel != null ? seedModel : { nodes: [], edges: [] }, "", void 0, {
       compressDrawingData: this.settings.compressDrawingData
     });
@@ -127345,7 +127361,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     } catch (e5) {
       const existing = this.app.vault.getAbstractFileByPath(path2);
       if (existing instanceof import_obsidian12.TFile) return existing;
-      new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
+      new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file Pie Flow.");
       return null;
     }
   }
@@ -127388,7 +127404,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
         const session = await adapter.toEditor(adapter.emptyTemplate());
         return session.model;
       } catch (e5) {
-        console.warn("[omniboard] seedModelForChoice toEditor failed", e5);
+        console.warn("[pie-flow] seedModelForChoice toEditor failed", e5);
       }
     }
     return { nodes: [], edges: [] };
@@ -127414,15 +127430,15 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
     new FileBoardModal(this.app, this, file).open();
   }
   /**
-   * When Obsidian opens a `.omniboard.md` file in the default markdown view,
+   * When Obsidian opens a `board file in the default markdown view,
    * swap the leaf over to the dedicated board view. Lookup goes through
    * metadataCache so a manual edit removing the marker frontmatter cleanly
    * falls back to the markdown view.
    */
   async maybeSwapToBoardView(file) {
     var _a3;
-    if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
-    const ok = await this.hasOmniboardFrontmatter(file);
+    if (!file || !isBoardPath(file.path)) return;
+    const ok = await this.hasBoardFrontmatter(file);
     if (!ok) return;
     const leaf = this.findLeafForFile(file);
     if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE) return;
@@ -127438,17 +127454,18 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
   }
   /** Resolve the marker frontmatter. metadataCache may not have indexed the
    *  file yet (freshly created / vault sync), so fall back to a quick raw read. */
-  async hasOmniboardFrontmatter(file) {
+  async hasBoardFrontmatter(file) {
     var _a3;
     const cache = this.app.metadataCache.getFileCache(file);
-    const cached = (_a3 = cache == null ? void 0 : cache.frontmatter) == null ? void 0 : _a3["omniboard-plugin"];
+    const fm = cache == null ? void 0 : cache.frontmatter;
+    const cached = (_a3 = fm == null ? void 0 : fm[REQUIRED_FM_KEY]) != null ? _a3 : fm == null ? void 0 : fm["omniboard-plugin"];
     if (cached === "parsed") return true;
     if (cached !== void 0) return false;
     try {
       const raw2 = await this.app.vault.cachedRead(file);
       const m7 = /^---\r?\n([\s\S]*?)\r?\n---/.exec(raw2);
       if (!m7) return false;
-      return /^omniboard-plugin\s*:\s*["']?parsed["']?\s*$/m.test(m7[1]);
+      return /^(?:pie-flow|omniboard)-plugin\s*:\s*["']?parsed["']?\s*$/m.test(m7[1]);
     } catch (e5) {
       return false;
     }
@@ -127480,13 +127497,13 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
    */
   async renderBoardEmbed(host, sourcePath) {
     var _a3, _b2, _c, _d;
-    if (host.querySelector(":scope > .omniboard-embed-cardwrap")) return;
+    if (host.querySelector(":scope > .pie-flow-embed-cardwrap")) return;
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
     if (!(file instanceof import_obsidian12.TFile)) return;
-    host.addClass("omniboard-embed-processed");
-    const wrap = host.createDiv({ cls: "omniboard-embed-cardwrap" });
+    host.addClass("pie-flow-embed-processed");
+    const wrap = host.createDiv({ cls: "pie-flow-embed-cardwrap" });
     let nodeCount = 0;
     let edgeCount = 0;
     let svg3 = void 0;
@@ -127496,7 +127513,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       const raw2 = await this.app.vault.cachedRead(file);
       model = deserializeBoard(raw2);
       if (!model) {
-        errorMessage = "File kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng Omniboard.";
+        errorMessage = "File kh\xF4ng \u0111\xFAng \u0111\u1ECBnh d\u1EA1ng Pie Flow.";
       } else {
         nodeCount = (_b2 = (_a3 = model.nodes) == null ? void 0 : _a3.length) != null ? _b2 : 0;
         edgeCount = (_d = (_c = model.edges) == null ? void 0 : _c.length) != null ? _d : 0;
@@ -127533,7 +127550,7 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
         const saved = await fn2();
         if (saved) new import_obsidian12.Notice(`\u0110\xE3 export: ${saved}`);
       } catch (err2) {
-        console.warn("[omniboard] board export failed", err2);
+        console.warn("[pie-flow] board export failed", err2);
         new import_obsidian12.Notice("Export th\u1EA5t b\u1EA1i \u2014 xem console.");
       }
     };
@@ -127619,12 +127636,14 @@ var DiagramsPlugin = class extends import_obsidian12.Plugin {
       await this.app.vault.modify(host, next);
       new import_obsidian12.Notice("\u0110\xE3 g\u1EE1 board kh\u1ECFi note.");
     } catch (e5) {
-      console.error("[omniboard] removeEmbedFromNote failed", e5);
+      console.error("[pie-flow] removeEmbedFromNote failed", e5);
       new import_obsidian12.Notice("G\u1EE1 board kh\u1ECFi note th\u1EA5t b\u1EA1i \u2014 xem console.");
     }
   }
   async loadSettings() {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const saved = await this.loadData();
+    if ((saved == null ? void 0 : saved.boardFolder) === "Omniboards") saved.boardFolder = DEFAULT_SETTINGS.boardFolder;
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
   }
   async saveSettings() {
     await this.saveData(this.settings);

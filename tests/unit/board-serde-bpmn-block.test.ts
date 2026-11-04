@@ -25,10 +25,10 @@ const sampleBpmnXml =
   </bpmn:process>
 </bpmn:definitions>`;
 
-describe("boardSerde — omniboard-bpmn-xml block", () => {
+describe("boardSerde — pie-flow-bpmn-xml block", () => {
   it("round-trips a board file that contains a BPMN block", () => {
     const raw = serializeBoard(sampleModel, "", undefined, { bpmnXml: sampleBpmnXml });
-    expect(raw).toContain("```omniboard-bpmn-xml");
+    expect(raw).toContain("```pie-flow-bpmn-xml");
     expect(raw).toContain("<bpmn:definitions");
 
     const parsedModel = deserializeBoard(raw);
@@ -42,7 +42,7 @@ describe("boardSerde — omniboard-bpmn-xml block", () => {
 
   it("parses legacy files (no BPMN block) without crashing", () => {
     const legacyRaw = serializeBoard(sampleModel);
-    expect(legacyRaw).not.toContain("omniboard-bpmn-xml");
+    expect(legacyRaw).not.toContain("bpmn-xml");
 
     const parsedModel = deserializeBoard(legacyRaw);
     const parsedXml = deserializeBpmnXml(legacyRaw);

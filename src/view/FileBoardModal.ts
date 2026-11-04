@@ -60,7 +60,7 @@ export class FileBoardModal extends Modal {
       return;
     }
     if (!model) {
-      hint.setText("File không đúng định dạng Omniboard.");
+      hint.setText("File không đúng định dạng Pie Flow.");
       return;
     }
     // The modal may have been closed while the async read ran.
@@ -109,7 +109,7 @@ export class FileBoardModal extends Modal {
       );
       await this.app.vault.modify(this.file, content);
     } catch (e: unknown) {
-      console.error("[omniboard] FileBoardModal save failed", e);
+      console.error("[pie-flow] FileBoardModal save failed", e);
       new Notice("Lưu board thất bại — xem console.");
     }
   }

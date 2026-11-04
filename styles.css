@@ -243,8 +243,8 @@ button.da-side-tab.is-active { background: var(--pg-hover); color: var(--pg-text
 .da-side-ico { display: inline-grid; place-items: center; width: 18px; height: 18px; flex: none; }
 .da-side-ico svg { width: 18px; height: 18px; }
 .da-side-issues { padding: 4px 2px; }
-.da-side-issues.omniboard-issues-view .obi-row { margin: 6px 0; width: 100%; background: var(--pg-surface); }
-.da-side-issues.omniboard-issues-view .obi-row:hover { background: var(--pg-hover); }
+.da-side-issues.pie-flow-issues-view .obi-row { margin: 6px 0; width: 100%; background: var(--pg-surface); }
+.da-side-issues.pie-flow-issues-view .obi-row:hover { background: var(--pg-hover); }
 
 /* "…" topbar popover (replaces Obsidian's native menu so it animates like the prototype) */
 .da-tb-more { position: relative; }
@@ -683,10 +683,10 @@ button.lk-padd { width: 100%; cursor: pointer; padding: 7px; font-size: 12px; fo
 .lk-pfold[open] > summary { margin-bottom: 10px; }
 .lk-pfold[open] > summary::before { transform: rotate(90deg); }
 
-.omniboard-diagram-picker .obp-kv {
+.pie-flow-diagram-picker .obp-kv {
   display: flex; flex-direction: column; gap: 8px; margin: 8px 0;
 }
-.omniboard-diagram-picker .obi-row {
+.pie-flow-diagram-picker .obi-row {
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
@@ -699,21 +699,21 @@ button.lk-padd { width: 100%; cursor: pointer; padding: 7px; font-size: 12px; fo
   text-align: left;
   cursor: pointer;
 }
-.omniboard-diagram-picker .obi-row:hover {
+.pie-flow-diagram-picker .obi-row:hover {
   background: var(--pg-hover);
   border-color: var(--pg-border-strong);
 }
-.omniboard-diagram-picker .obi-row .obi-code {
+.pie-flow-diagram-picker .obi-row .obi-code {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--pg-text-soft);
 }
-.omniboard-diagram-picker .obi-row .obi-msg {
+.pie-flow-diagram-picker .obi-row .obi-msg {
   font-size: 12px;
 }
-.omniboard-issues-view .obi-row {
+.pie-flow-issues-view .obi-row {
   height: auto; align-items: stretch; justify-content: flex-start; box-shadow: none; font-weight: 400;
   white-space: normal; overflow-wrap: anywhere;
   width: calc(100% - 24px);
@@ -729,16 +729,16 @@ button.lk-padd { width: 100%; cursor: pointer; padding: 7px; font-size: 12px; fo
   text-align: left;
   cursor: pointer;
 }
-.omniboard-issues-view .obi-row.warn { border-color: #d29a25; }
-.omniboard-issues-view .obi-row.error { border-color: #cb4b4b; }
-.omniboard-issues-view .obi-row .obi-code {
+.pie-flow-issues-view .obi-row.warn { border-color: #d29a25; }
+.pie-flow-issues-view .obi-row.error { border-color: #cb4b4b; }
+.pie-flow-issues-view .obi-row .obi-code {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--pg-text-soft);
 }
-.omniboard-issues-view .obi-row .obi-msg {
+.pie-flow-issues-view .obi-row .obi-msg {
   font-size: 12px;
 }
 
@@ -1849,57 +1849,67 @@ body.is-mobile .diagrams-card-header {
   will-change: transform;
 }
 /* Host attached by CM6 widget — flex so the card stretches naturally */
-.omniboard-embed-host {
+.pie-flow-embed-host {
   display: block;
   margin: 8px 0;
 }
 
 /* ── Board type picker (Cmd+P "Chèn/Tạo board mới") ── */
-.omniboard-type-suggestion {
+.pie-flow-type-suggestion {
   display: flex;
   align-items: center;
   gap: 10px;
 }
-.omniboard-type-suggestion-icon {
+.pie-flow-type-suggestion-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
 }
-.omniboard-type-suggestion-icon .svg-icon {
+.pie-flow-type-suggestion-icon .svg-icon {
   width: 16px;
   height: 16px;
 }
-.omniboard-type-suggestion-label {
+.pie-flow-type-suggestion-label {
   font-weight: 500;
 }
 
-/* ── Omniboard embeds: suppress Obsidian's native markdown rendering ──
-   `.omniboard.md` has a `.md` extension, so Obsidian renders the file's raw
+/* ── Pie Flow embeds: suppress Obsidian's native markdown rendering ──
+   `.pieflow.md` (and legacy `.omniboard.md`) has a `.md` extension, so Obsidian renders the file's raw
    markdown (warning callout + "Text Elements" list) as a normal embed. We
    replace it with <EmbedCard>; these rules guarantee the native content never
    leaks, whether or not our JS has processed the element yet. */
+.internal-embed[src$=".pieflow.md"],
 .internal-embed[src$=".omniboard.md"],
+.internal-embed[src$=".pieflow"],
 .internal-embed[src$=".omniboard"] {
   border: none !important;
   background: transparent !important;
   padding: 0 !important;
 }
+.internal-embed[src$=".pieflow.md"] .markdown-embed-content,
 .internal-embed[src$=".omniboard.md"] .markdown-embed-content,
+.internal-embed[src$=".pieflow.md"] .markdown-embed-title,
 .internal-embed[src$=".omniboard.md"] .markdown-embed-title,
+.internal-embed[src$=".pieflow.md"] .embed-title,
 .internal-embed[src$=".omniboard.md"] .embed-title,
+.internal-embed[src$=".pieflow.md"] .markdown-embed-link,
 .internal-embed[src$=".omniboard.md"] .markdown-embed-link,
+.internal-embed[src$=".pieflow"] .markdown-embed-content,
 .internal-embed[src$=".omniboard"] .markdown-embed-content,
+.internal-embed[src$=".pieflow"] .markdown-embed-title,
 .internal-embed[src$=".omniboard"] .markdown-embed-title,
+.internal-embed[src$=".pieflow"] .embed-title,
 .internal-embed[src$=".omniboard"] .embed-title,
+.internal-embed[src$=".pieflow"] .markdown-embed-link,
 .internal-embed[src$=".omniboard"] .markdown-embed-link {
   display: none !important;
 }
 /* Once processed, ONLY our card wrapper is visible inside the embed. */
-.omniboard-embed-processed > :not(.omniboard-embed-cardwrap) {
+.pie-flow-embed-processed > :not(.pie-flow-embed-cardwrap) {
   display: none !important;
 }
-.omniboard-embed-cardwrap {
+.pie-flow-embed-cardwrap {
   display: block;
 }
 

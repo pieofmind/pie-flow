@@ -36,6 +36,187 @@ var __toESM = (mod3, isNodeMode, target) => (target = mod3 != null ? __create(__
 var __toCommonJS = (mod3) => __copyProps(__defProp({}, "__esModule", { value: true }), mod3);
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
+// src/canvas/laneLayout.ts
+function laneWeights(lanes) {
+  const known = lanes.filter(hasHeight);
+  if (!known.length) return null;
+  const avg = known.reduce((s5, ln3) => s5 + ln3.height, 0) / known.length;
+  return lanes.map((ln3) => hasHeight(ln3) ? ln3.height : avg);
+}
+function laneHeights(lanes, poolH) {
+  if (!lanes.length) return [];
+  const w5 = laneWeights(lanes);
+  if (!w5) return lanes.map(() => poolH / lanes.length);
+  const total = w5.reduce((s5, h5) => s5 + h5, 0);
+  return w5.map((h5) => h5 * poolH / total);
+}
+function laneIndexAt(lanes, poolH, relY) {
+  const hs = laneHeights(lanes, poolH);
+  let acc = 0;
+  for (let i6 = 0; i6 < hs.length; i6++) {
+    acc += hs[i6];
+    if (relY < acc) return i6;
+  }
+  return hs.length - 1;
+}
+function resizeLaneBoundary(lanes, poolH, index4, dy, minHeight) {
+  const hs = laneHeights(lanes, poolH);
+  if (index4 < 0 || index4 >= hs.length - 1) return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(hs[i6]) }));
+  const pair = hs[index4] + hs[index4 + 1];
+  const upper = Math.min(Math.max(hs[index4] + dy, minHeight), pair - minHeight);
+  const next = hs.map((h5, i6) => i6 === index4 ? upper : i6 === index4 + 1 ? pair - upper : h5);
+  return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(next[i6]) }));
+}
+function resizePoolLanes(lanes, prevH, newH, edge, minHeight = 30) {
+  const hs = laneHeights(lanes, prevH);
+  const order = hs.map((_6, i6) => i6);
+  if (edge === "bottom") order.reverse();
+  let delta2 = newH - prevH;
+  if (delta2 > 0) hs[order[0]] += delta2;
+  for (const i6 of order) {
+    if (delta2 >= 0) break;
+    const take = Math.min(-delta2, Math.max(0, hs[i6] - minHeight));
+    hs[i6] -= take;
+    delta2 += take;
+  }
+  return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(hs[i6]) }));
+}
+function asStackLanes(lanes, horizontal) {
+  return horizontal ? [...lanes] : lanes.map((ln3) => {
+    var _a3;
+    return {
+      id: ln3.id,
+      label: ln3.label,
+      height: ln3.width,
+      ...((_a3 = ln3.lanes) == null ? void 0 : _a3.length) ? { lanes: asStackLanes(ln3.lanes, false) } : {}
+    };
+  });
+}
+function fromStackLanes(lanes, sized, horizontal) {
+  return lanes.map((ln3, i6) => {
+    var _a3, _b2;
+    return horizontal ? { ...ln3, height: (_a3 = sized[i6]) == null ? void 0 : _a3.height } : { ...ln3, width: (_b2 = sized[i6]) == null ? void 0 : _b2.height };
+  });
+}
+function leafLaneAt(lanes, extent, rel) {
+  var _a3;
+  if (!lanes.length) return void 0;
+  const hs = laneHeights(lanes, extent);
+  const i6 = laneIndexAt(lanes, extent, rel);
+  const lane = lanes[i6];
+  if (!((_a3 = lane.lanes) == null ? void 0 : _a3.length)) return lane.id;
+  const start = hs.slice(0, i6).reduce((a5, b4) => a5 + b4, 0);
+  return leafLaneAt(lane.lanes, hs[i6], rel - start);
+}
+function allLaneIds(lanes) {
+  return lanes.flatMap((ln3) => {
+    var _a3;
+    return [ln3.id, ...allLaneIds((_a3 = ln3.lanes) != null ? _a3 : [])];
+  });
+}
+function laneBandOf(lanes, id, extent) {
+  var _a3;
+  const index4 = lanes.findIndex((ln3) => ln3.id === id);
+  if (index4 >= 0) return { siblings: [...lanes], index: index4, extent };
+  const hs = laneHeights(lanes, extent);
+  for (let i6 = 0; i6 < lanes.length; i6++) {
+    const kids = lanes[i6].lanes;
+    const hit = (kids == null ? void 0 : kids.length) ? laneBandOf(kids, id, hs[i6]) : void 0;
+    if (hit) return { ...hit, parent: (_a3 = hit.parent) != null ? _a3 : lanes[i6] };
+  }
+  return void 0;
+}
+function setSiblings(lanes, parentId, fn2) {
+  if (parentId === null) return fn2([...lanes]);
+  return mapLane(lanes, parentId, (ln3) => {
+    var _a3;
+    return { ...ln3, lanes: fn2((_a3 = ln3.lanes) != null ? _a3 : []) };
+  });
+}
+function splitLane(lanes, laneId, ids3) {
+  return mapLane(lanes, laneId, (ln3) => {
+    var _a3, _b2;
+    return {
+      ...ln3,
+      lanes: [{ id: ids3[0], label: `${(_a3 = ln3.label) != null ? _a3 : "Lane"} 1` }, { id: ids3[1], label: `${(_b2 = ln3.label) != null ? _b2 : "Lane"} 2` }]
+    };
+  });
+}
+function mergeChildLanes(lanes, laneId) {
+  return mapLane(lanes, laneId, (ln3) => {
+    const { lanes: _children, ...rest } = ln3;
+    return rest;
+  });
+}
+function addChildLane(lanes, afterId, newId) {
+  return lanes.map((ln3) => {
+    var _a3;
+    const kids = (_a3 = ln3.lanes) != null ? _a3 : [];
+    const i6 = kids.findIndex((c6) => c6.id === afterId);
+    if (i6 >= 0) {
+      const children2 = [...kids];
+      children2.splice(i6 + 1, 0, { id: newId, label: `Lane ${children2.length + 1}` });
+      return { ...ln3, lanes: children2 };
+    }
+    return kids.length ? { ...ln3, lanes: addChildLane(kids, afterId, newId) } : ln3;
+  });
+}
+function removeChildLane(lanes, childId) {
+  return lanes.map((ln3) => {
+    var _a3;
+    const kids = (_a3 = ln3.lanes) != null ? _a3 : [];
+    if (kids.some((c6) => c6.id === childId)) {
+      const children2 = kids.filter((c6) => c6.id !== childId);
+      if (children2.length < 2) {
+        const { lanes: _children, ...rest } = ln3;
+        return rest;
+      }
+      return { ...ln3, lanes: children2 };
+    }
+    return kids.length ? { ...ln3, lanes: removeChildLane(kids, childId) } : ln3;
+  });
+}
+function growLaneAt(lanes, extent, rel, delta2) {
+  const hs = laneHeights(lanes, extent);
+  const at3 = laneIndexAt(lanes, extent, rel);
+  const start = hs.slice(0, Math.max(at3, 0)).reduce((a5, b4) => a5 + b4, 0);
+  return lanes.map((ln3, k5) => {
+    var _a3;
+    const h5 = hs[k5] + (k5 === at3 ? delta2 : 0);
+    const kids = k5 === at3 && ((_a3 = ln3.lanes) == null ? void 0 : _a3.length) ? growLaneAt(ln3.lanes, hs[k5], rel - start, delta2) : ln3.lanes;
+    return { ...ln3, height: Math.round(h5), ...kids ? { lanes: kids } : {} };
+  });
+}
+function leafLaneSize(lanes, extent, rel) {
+  var _a3;
+  if (!lanes.length) return extent;
+  const hs = laneHeights(lanes, extent);
+  const at3 = laneIndexAt(lanes, extent, rel);
+  const lane = lanes[at3];
+  if (!((_a3 = lane.lanes) == null ? void 0 : _a3.length)) return hs[at3];
+  return leafLaneSize(lane.lanes, hs[at3], rel - hs.slice(0, at3).reduce((a5, b4) => a5 + b4, 0));
+}
+function fromStackLanesDeep(lanes, sized, horizontal) {
+  return lanes.map((ln3, i6) => {
+    var _a3;
+    const sz = sized[i6];
+    const kids = ((_a3 = ln3.lanes) == null ? void 0 : _a3.length) && (sz == null ? void 0 : sz.lanes) ? fromStackLanesDeep(ln3.lanes, sz.lanes, horizontal) : ln3.lanes;
+    return { ...ln3, ...horizontal ? { height: sz == null ? void 0 : sz.height } : { width: sz == null ? void 0 : sz.height }, ...kids ? { lanes: kids } : {} };
+  });
+}
+var hasHeight, mapLane;
+var init_laneLayout = __esm({
+  "src/canvas/laneLayout.ts"() {
+    "use strict";
+    hasHeight = (ln3) => typeof ln3.height === "number" && Number.isFinite(ln3.height) && ln3.height > 0;
+    mapLane = (lanes, id, fn2) => lanes.map((ln3) => {
+      var _a3;
+      if (ln3.id === id) return fn2(ln3);
+      return ((_a3 = ln3.lanes) == null ? void 0 : _a3.length) ? { ...ln3, lanes: mapLane(ln3.lanes, id, fn2) } : ln3;
+    });
+  }
+});
+
 // node_modules/pako/dist/pako.esm.mjs
 function zero$1(buf) {
   let len = buf.length;
@@ -4322,11 +4503,11 @@ function serializeBoard(model, previousRaw = "", sourceMeta, opts) {
   parts.push("## Text Elements");
   const seenIds = /* @__PURE__ */ new Set();
   for (const n4 of model.nodes) {
-    const label = n4.label ? escapeMd(n4.label) : "";
-    if (!label) continue;
+    const label2 = n4.label ? escapeMd(n4.label) : "";
+    if (!label2) continue;
     if (seenIds.has(n4.id)) continue;
     seenIds.add(n4.id);
-    parts.push(`${label} ^${n4.id}`);
+    parts.push(`${label2} ^${n4.id}`);
   }
   parts.push("");
   const labeledEdges = model.edges.filter((e5) => e5.label && e5.label.trim());
@@ -4400,6 +4581,67 @@ var init_boardSerde = __esm({
       "m"
     );
     FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;
+  }
+});
+
+// src/io/bpmn/innerFlows.ts
+function fixInnerMessageFlows(model) {
+  const parentOf = new Map(model.nodes.map((n4) => [n4.id, n4.parentId]));
+  const shapeOf = new Map(model.nodes.map((n4) => [n4.id, n4.shape]));
+  const isInner = (e5) => {
+    const p6 = parentOf.get(e5.source);
+    return !!p6 && p6 === parentOf.get(e5.target) && shapeOf.get(p6) !== "bpmn-pool";
+  };
+  if (!model.edges.some((e5) => e5.kind === "message" && isInner(e5))) return model;
+  return {
+    ...model,
+    edges: model.edges.map((e5) => {
+      if (e5.kind !== "message" || !isInner(e5)) return e5;
+      const { kind: _kind, style: style2, ...rest } = e5;
+      const keep = style2 && style2.flowType !== "message" ? { style: style2 } : {};
+      return { ...rest, ...keep };
+    })
+  };
+}
+var init_innerFlows = __esm({
+  "src/io/bpmn/innerFlows.ts"() {
+    "use strict";
+  }
+});
+
+// src/io/bpmn/diagramScope.ts
+function foreignIds(topPlanes, shown) {
+  var _a3, _b2;
+  const mine = /* @__PURE__ */ new Set();
+  for (const pl of shown) for (const pe3 of (_a3 = pl.planeElement) != null ? _a3 : []) {
+    const id = refOf(pe3);
+    if (id) mine.add(id);
+  }
+  const out = /* @__PURE__ */ new Set();
+  for (const pl of topPlanes) {
+    if (shown.includes(pl)) continue;
+    for (const pe3 of (_b2 = pl.planeElement) != null ? _b2 : []) {
+      const id = refOf(pe3);
+      if (id && !mine.has(id)) out.add(id);
+    }
+  }
+  return out;
+}
+function addForeignFlows(foreign, flows) {
+  const idOf = (r5) => typeof r5 === "string" ? r5 : r5 == null ? void 0 : r5.id;
+  for (const f6 of flows) {
+    const a5 = idOf(f6.sourceRef), b4 = idOf(f6.targetRef);
+    if (f6.id && a5 && b4 && foreign.has(a5) && foreign.has(b4)) foreign.add(f6.id);
+  }
+}
+var refOf;
+var init_diagramScope = __esm({
+  "src/io/bpmn/diagramScope.ts"() {
+    "use strict";
+    refOf = (pe3) => {
+      var _a3;
+      return typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a3 = pe3.bpmnElement) == null ? void 0 : _a3.id;
+    };
   }
 });
 
@@ -4495,8 +4737,8 @@ function without(arr, matcher) {
   }
   ensureArray(arr);
   const matchFn = toMatcher(matcher);
-  return arr.filter(function(el4, idx) {
-    return !matchFn(el4, idx);
+  return arr.filter(function(el3, idx) {
+    return !matchFn(el3, idx);
   });
 }
 function reduce(collection, iterator, result) {
@@ -4571,9 +4813,9 @@ function sortBy2(collection, extractor) {
   return map(sorted, (e5) => e5.v);
 }
 function matchPattern(pattern) {
-  return function(el4) {
+  return function(el3) {
     return every(pattern, function(val, key) {
-      return el4[key] === val;
+      return el3[key] === val;
     });
   };
 }
@@ -6732,12 +6974,12 @@ var init_dist4 = __esm({
     };
     ElementSerializer.prototype.parseGenericAttributes = function(element, attributes) {
       var self2 = this;
-      forEach(attributes, function(attr4) {
+      forEach(attributes, function(attr5) {
         try {
-          self2.addAttribute(self2.nsAttributeName(attr4.name), attr4.value);
+          self2.addAttribute(self2.nsAttributeName(attr5.name), attr5.value);
         } catch (e5) {
           typeof console !== "undefined" && console.warn(
-            `missing namespace information for <${attr4.name}=${attr4.value}> on`,
+            `missing namespace information for <${attr5.name}=${attr5.value}> on`,
             element,
             e5
           );
@@ -6860,11 +7102,11 @@ var init_dist4 = __esm({
       var idx = findIndex(attrs, function(element) {
         return element.name.localName === name2.localName && element.name.uri === name2.uri && element.name.prefix === name2.prefix;
       });
-      var attr4 = { name: name2, value };
+      var attr5 = { name: name2, value };
       if (idx !== -1) {
-        attrs.splice(idx, 1, attr4);
+        attrs.splice(idx, 1, attr5);
       } else {
-        attrs.push(attr4);
+        attrs.push(attr5);
       }
     };
     ElementSerializer.prototype.serializeAttributes = function(writer) {
@@ -6898,7 +7140,7 @@ var init_dist4 = __esm({
     inherits(TypeSerializer, ElementSerializer);
     TypeSerializer.prototype.parseNsAttributes = function(element) {
       var attributes = ElementSerializer.prototype.parseNsAttributes.call(this, element).filter(
-        (attr4) => attr4.name !== this.serialization
+        (attr5) => attr5.name !== this.serialization
       );
       var descriptor = element.$descriptor;
       if (descriptor.name === this.propertyDescriptor.type) {
@@ -10718,6 +10960,1349 @@ var init_labelGeometry = __esm({
   }
 });
 
+// src/io/bpmn/eventTriggers.ts
+function allowedTriggers(kind, attrs) {
+  if (kind === "bpmn-event-start") return START;
+  if (kind === "bpmn-event-end") return END;
+  if (attrs.attachedTo) return BOUNDARY;
+  return attrs.throwing === true ? THROW : CATCH;
+}
+function isThrowingEvent(attrs) {
+  const t6 = attrs.trigger && attrs.trigger !== "none" ? attrs.trigger : void 0;
+  if (!t6 || THROW_ONLY.has(t6)) return true;
+  if (CATCH_ONLY.has(t6)) return false;
+  return attrs.throwing === true;
+}
+function triggerChoices(kind, attrs) {
+  const allowed = allowedTriggers(kind, attrs);
+  const cur = attrs.trigger;
+  return cur && !allowed.includes(cur) ? [...allowed, cur] : allowed;
+}
+var START, END, CATCH, THROW, BOUNDARY, THROW_ONLY, CATCH_ONLY;
+var init_eventTriggers = __esm({
+  "src/io/bpmn/eventTriggers.ts"() {
+    "use strict";
+    START = ["none", "message", "timer", "conditional", "signal", "multiple", "parallel-multiple", "error", "escalation", "compensation"];
+    END = ["none", "message", "escalation", "error", "cancel", "compensation", "signal", "terminate", "multiple"];
+    CATCH = ["none", "message", "timer", "conditional", "link", "signal", "multiple", "parallel-multiple"];
+    THROW = ["none", "message", "escalation", "link", "compensation", "signal", "multiple"];
+    BOUNDARY = ["message", "timer", "escalation", "conditional", "error", "cancel", "signal", "compensation", "multiple", "parallel-multiple"];
+    THROW_ONLY = /* @__PURE__ */ new Set(["escalation", "compensation"]);
+    CATCH_ONLY = /* @__PURE__ */ new Set(["timer", "conditional", "parallel-multiple"]);
+  }
+});
+
+// src/io/bpmn/export.ts
+function moddle() {
+  if (!moddleSingleton) moddleSingleton = new SimpleBpmnModdle();
+  return moddleSingleton;
+}
+function shapeToBpmnType(shape, attrs) {
+  var _a3, _b2, _c;
+  if (shape === "bpmn-event-intermediate" && (attrs == null ? void 0 : attrs.attachedTo)) return "bpmn:BoundaryEvent";
+  if (shape === "bpmn-event-intermediate") return isThrowingEvent(attrs != null ? attrs : {}) ? "bpmn:IntermediateThrowEvent" : "bpmn:IntermediateCatchEvent";
+  if (((_a3 = attrs == null ? void 0 : attrs.markers) == null ? void 0 : _a3.includes("subprocess")) && ((_b2 = SHAPE_TO_BPMN[shape]) != null ? _b2 : "task") === "task") return "bpmn:SubProcess";
+  const tag = (_c = SHAPE_TO_BPMN[shape]) != null ? _c : "task";
+  return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
+}
+function collapsedOwner(byId, id) {
+  var _a3, _b2, _c;
+  const seen = /* @__PURE__ */ new Set();
+  for (let p6 = (_a3 = byId.get(id)) == null ? void 0 : _a3.parentId; p6 && !seen.has(p6); p6 = (_b2 = byId.get(p6)) == null ? void 0 : _b2.parentId) {
+    seen.add(p6);
+    if (isCollapsed((_c = byId.get(p6)) != null ? _c : {})) return p6;
+  }
+  return void 0;
+}
+function processOwner(model, processes, collaboration, fallback = processes[0]) {
+  var _a3, _b2;
+  const byId = new Map(processes.map((p6) => [p6.id, p6]));
+  const ofLane = /* @__PURE__ */ new Map();
+  const walk = (lanes, pr) => {
+    var _a4;
+    for (const ln3 of lanes != null ? lanes : []) {
+      if (ln3.id) ofLane.set(ln3.id, pr);
+      walk((_a4 = ln3.childLaneSet) == null ? void 0 : _a4.lanes, pr);
+    }
+  };
+  for (const pr of processes) for (const ls of (_a3 = pr.laneSets) != null ? _a3 : []) walk(ls.lanes, pr);
+  const ofPool = /* @__PURE__ */ new Map();
+  for (const part of (_b2 = collaboration == null ? void 0 : collaboration.participants) != null ? _b2 : []) {
+    const ref2 = part.processRef;
+    const pr = byId.get(typeof ref2 === "string" ? ref2 : ref2 == null ? void 0 : ref2.id);
+    if (part.id && pr) ofPool.set(part.id, pr);
+  }
+  const pools = model.nodes.filter((n4) => n4.shape === "bpmn-pool" && ofPool.has(n4.id));
+  const byNode = new Map(model.nodes.map((x5) => [x5.id, x5]));
+  const owner = (n4, hops = 0) => {
+    var _a4;
+    const up = n4.parentId ? byNode.get(n4.parentId) : void 0;
+    if (up && hops < 20 && up.shape !== "bpmn-pool") return owner(up, hops + 1);
+    const lane = n4.laneId ? ofLane.get(n4.laneId) : void 0;
+    if (lane) return lane;
+    const poolId = (_a4 = n4.attrs) == null ? void 0 : _a4.poolId;
+    if (poolId && ofPool.has(poolId)) return ofPool.get(poolId);
+    const cx = n4.x + n4.width / 2, cy = n4.y + n4.height / 2;
+    const pool = pools.find((p6) => cx >= p6.x && cx <= p6.x + p6.width && cy >= p6.y && cy <= p6.y + p6.height);
+    return pool && ofPool.get(pool.id) || fallback;
+  };
+  return (n4) => owner(n4);
+}
+function retype(m7, el3, type) {
+  var _a3, _b2;
+  const next = m7.create(type, { id: el3.id });
+  const allowed = new Set(m7.getElementDescriptor(next).properties.map((p6) => p6.name));
+  for (const [k5, v6] of Object.entries(el3)) {
+    if (k5 !== "$type" && allowed.has(k5)) next[k5] = v6;
+  }
+  Object.assign((_a3 = next.$attrs) != null ? _a3 : {}, (_b2 = el3.$attrs) != null ? _b2 : {});
+  return next;
+}
+function addToContainer(m7, defs, container, n4, fe3) {
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
+  if (isArtifactShape(n4.shape)) {
+    ((_a3 = container.artifacts) != null ? _a3 : container.artifacts = []).push(fe3);
+    if (n4.shape === "bpmn-group") setGroupLabel(m7, defs, fe3, (_b2 = n4.label) != null ? _b2 : "");
+    return;
+  }
+  if (n4.shape === "bpmn-data-input" || n4.shape === "bpmn-data-output") {
+    const c6 = container;
+    const io = (_c = c6.ioSpecification) != null ? _c : c6.ioSpecification = m7.create("bpmn:InputOutputSpecification", { id: `${container.id}_io`, dataInputs: [], dataOutputs: [] });
+    if (n4.shape === "bpmn-data-input") ((_d = io.dataInputs) != null ? _d : io.dataInputs = []).push(fe3);
+    else ((_e3 = io.dataOutputs) != null ? _e3 : io.dataOutputs = []).push(fe3);
+    io.inputSets = [m7.create("bpmn:InputSet", { dataInputRefs: (_f = io.dataInputs) != null ? _f : [] })];
+    io.outputSets = [m7.create("bpmn:OutputSet", { dataOutputRefs: (_g = io.dataOutputs) != null ? _g : [] })];
+    return;
+  }
+  if (n4.shape === "bpmn-data-object" || n4.shape === "bpmn-data-collection") {
+    const dataObject = m7.create("bpmn:DataObject", { id: `${n4.id}_object`, ...n4.shape === "bpmn-data-collection" ? { isCollection: true } : {} });
+    fe3.dataObjectRef = dataObject;
+    ((_h = container.flowElements) != null ? _h : container.flowElements = []).push(dataObject);
+  }
+  ((_i = container.flowElements) != null ? _i : container.flowElements = []).push(fe3);
+}
+function setGroupLabel(m7, defs, group, label2) {
+  var _a3;
+  const g4 = group;
+  if (g4.categoryValueRef) {
+    g4.categoryValueRef.value = label2;
+    return;
+  }
+  if (!label2) return;
+  const cv = m7.create("bpmn:CategoryValue", { id: `${group.id}_value`, value: label2 });
+  const cat = m7.create("bpmn:Category", { id: `${group.id}_category`, categoryValue: [cv] });
+  ((_a3 = defs.rootElements) != null ? _a3 : defs.rootElements = []).push(cat);
+  g4.categoryValueRef = cv;
+}
+function placeOnPlanes(defs, mainPlane, model, diShape, diEdge, feById, m7) {
+  var _a3, _b2;
+  const byId = new Map(model.nodes.map((n4) => [n4.id, n4]));
+  const subPlanes = /* @__PURE__ */ new Map();
+  for (const d4 of (_a3 = defs.diagrams) != null ? _a3 : []) {
+    const ref2 = diRefId(d4.plane);
+    if (d4.plane !== mainPlane && ref2 && isSubPlane(d4.plane)) subPlanes.set(ref2, d4.plane);
+  }
+  const planeFor = (owner) => {
+    var _a4;
+    if (!owner) return mainPlane;
+    let pl = subPlanes.get(owner);
+    if (!pl) {
+      pl = m7.create("bpmndi:BPMNPlane", { id: `${owner}_plane`, bpmnElement: feById.get(owner), planeElement: [] });
+      ((_a4 = defs.diagrams) != null ? _a4 : defs.diagrams = []).push(m7.create("bpmndi:BPMNDiagram", { id: `${owner}_diagram`, plane: pl }));
+      subPlanes.set(owner, pl);
+    }
+    return pl;
+  };
+  const put = (di, plane) => {
+    var _a4, _b3;
+    for (const pl of [mainPlane, ...subPlanes.values()]) {
+      if (pl !== plane && ((_a4 = pl.planeElement) == null ? void 0 : _a4.includes(di))) pl.planeElement = pl.planeElement.filter((x5) => x5 !== di);
+    }
+    if (!((_b3 = plane.planeElement) != null ? _b3 : plane.planeElement = []).includes(di)) plane.planeElement.push(di);
+  };
+  for (const n4 of model.nodes) {
+    const di = diShape.get(n4.id);
+    if (di) put(di, planeFor(collapsedOwner(byId, n4.id)));
+  }
+  for (const e5 of model.edges) {
+    const de3 = diEdge.get(e5.id);
+    if (!de3) continue;
+    const owner = collapsedOwner(byId, e5.source);
+    put(de3, planeFor(owner === collapsedOwner(byId, e5.target) ? owner : void 0));
+  }
+  defs.diagrams = ((_b2 = defs.diagrams) != null ? _b2 : []).filter((d4) => {
+    var _a4, _b3;
+    return !isSubPlane(d4.plane) || ((_b3 = (_a4 = d4.plane.planeElement) == null ? void 0 : _a4.length) != null ? _b3 : 0) > 0;
+  });
+}
+function isBlackBoxPool(pool) {
+  var _a3;
+  return ((_a3 = pool.attrs) == null ? void 0 : _a3.blackBox) === true;
+}
+function edgeKindOf(e5) {
+  var _a3;
+  return (_a3 = e5.kind) != null ? _a3 : "sequence";
+}
+function bpmnTypeForEdgeKind(kind) {
+  if (kind === "message") return "bpmn:MessageFlow";
+  if (kind === "association") return "bpmn:Association";
+  return "bpmn:SequenceFlow";
+}
+function applyEdgeExtras(m7, fe3, kind, attrs) {
+  if (kind === "sequence") {
+    if (attrs == null ? void 0 : attrs.condition) {
+      const ce3 = fe3.conditionExpression;
+      if (ce3) ce3.body = attrs.condition;
+      else fe3.conditionExpression = m7.create("bpmn:FormalExpression", { body: attrs.condition });
+    } else {
+      delete fe3.conditionExpression;
+    }
+  }
+  if (kind === "association") {
+    if (attrs == null ? void 0 : attrs.associationDirection) {
+      fe3.associationDirection = attrs.associationDirection;
+    } else {
+      delete fe3.associationDirection;
+    }
+  }
+}
+function findCollaboration(defs) {
+  var _a3;
+  for (const root2 of (_a3 = defs.rootElements) != null ? _a3 : []) {
+    if (root2.$type === "bpmn:Collaboration") return root2;
+  }
+  return null;
+}
+function applyBpmnExtras(m7, fe3, shape, attrs) {
+  var _a3, _b2, _c, _d, _e3, _f, _g;
+  const el3 = fe3;
+  if (/^bpmn-event-(start|intermediate|end)/.test(shape)) {
+    const multi = attrs.trigger === "multiple" || attrs.trigger === "parallel-multiple";
+    const defName = attrs.trigger ? TRIGGER_TO_EVENT_DEF[attrs.trigger] : void 0;
+    const defType = defName ? "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1) : void 0;
+    const isMulti = ((_b2 = (_a3 = el3.eventDefinitions) == null ? void 0 : _a3.length) != null ? _b2 : 0) > 1;
+    if (multi) {
+      if (!isMulti) el3.eventDefinitions = [m7.create("bpmn:MessageEventDefinition", {}), m7.create("bpmn:SignalEventDefinition", {})];
+    } else if (!defType) delete el3.eventDefinitions;
+    else if (isMulti || ((_d = (_c = el3.eventDefinitions) == null ? void 0 : _c[0]) == null ? void 0 : _d.$type) !== defType) el3.eventDefinitions = [m7.create(defType, {})];
+    const pm = fe3;
+    if (attrs.trigger === "parallel-multiple") pm.parallelMultiple = true;
+    else delete pm.parallelMultiple;
+  }
+  if (shape === "bpmn-call-activity") {
+    const call3 = fe3;
+    if (attrs.calledElement) call3.calledElement = attrs.calledElement;
+    else delete call3.calledElement;
+  }
+  const markers = (_e3 = attrs.markers) != null ? _e3 : [];
+  const loopType = markers.includes("mi-par") || markers.includes("mi-seq") ? "bpmn:MultiInstanceLoopCharacteristics" : markers.includes("loop") ? "bpmn:StandardLoopCharacteristics" : void 0;
+  if (!loopType) delete el3.loopCharacteristics;
+  else if (((_f = el3.loopCharacteristics) == null ? void 0 : _f.$type) !== loopType) el3.loopCharacteristics = m7.create(loopType, {});
+  if (loopType === "bpmn:MultiInstanceLoopCharacteristics") {
+    if (markers.includes("mi-seq")) el3.loopCharacteristics.isSequential = true;
+    else delete el3.loopCharacteristics.isSequential;
+  }
+  if (markers.includes("compensation")) el3.isForCompensation = true;
+  else delete el3.isForCompensation;
+  if (shape === "bpmn-event-start") {
+    if (attrs.interrupting === false) el3.isInterrupting = false;
+    else delete el3.isInterrupting;
+  } else if (shape === "bpmn-event-intermediate") {
+    if (attrs.interrupting === false && attrs.attachedTo) el3.cancelActivity = false;
+    else delete el3.cancelActivity;
+  }
+  if (attrs.attachedTo) {
+    fe3.attachedToRef = { id: attrs.attachedTo };
+  }
+  if (shape === "bpmn-event-subprocess") {
+    fe3.triggeredByEvent = true;
+  }
+  const dataObject = fe3.dataObjectRef;
+  if (dataObject && typeof dataObject === "object") {
+    if (shape === "bpmn-data-collection") dataObject.isCollection = true;
+    else if (shape === "bpmn-data-object") delete dataObject.isCollection;
+  }
+  const docEl = fe3;
+  const rest = ((_g = docEl.documentation) != null ? _g : []).slice(1);
+  const text4 = typeof attrs.bpmnDoc === "string" ? attrs.bpmnDoc.trim() : "";
+  const first = text4 ? [m7.create("bpmn:Documentation", { text: text4 })] : [];
+  if (first.length || rest.length) docEl.documentation = [...first, ...rest];
+  else delete docEl.documentation;
+  if (attrs.camunda && Object.keys(attrs.camunda).length) {
+    const existing = fe3.extensionElements;
+    if (existing == null ? void 0 : existing.values) {
+      for (const v6 of existing.values) {
+        for (const [k5, val] of Object.entries(attrs.camunda)) {
+          if (k5 in v6) v6[k5] = val;
+        }
+      }
+    }
+  }
+}
+function escAttr(value) {
+  return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[ch]);
+}
+function normalizeBpmnId(raw2, prefix2, used) {
+  const seed = String(raw2 != null ? raw2 : "").trim();
+  let base = seed ? seed.replace(BPMN_ID_CHAR_RE, "_") : prefix2;
+  if (!base) base = prefix2;
+  if (!BPMN_ID_START_RE.test(base)) base = `${prefix2}_${base}`;
+  let out = base;
+  let n4 = 1;
+  while (used.has(out)) out = `${base}_${++n4}`;
+  used.add(out);
+  return out;
+}
+function normalizeModelIdsForBpmn(model) {
+  var _a3, _b2;
+  const used = /* @__PURE__ */ new Set();
+  const nodeMap = /* @__PURE__ */ new Map();
+  const edgeMap = /* @__PURE__ */ new Map();
+  const laneMap = /* @__PURE__ */ new Map();
+  for (const n4 of model.nodes) nodeMap.set(n4.id, normalizeBpmnId(n4.id, "N", used));
+  for (const e5 of model.edges) edgeMap.set(e5.id, normalizeBpmnId(e5.id, "E", used));
+  for (const n4 of model.nodes) {
+    const lanes = (_b2 = (_a3 = n4.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
+    for (const id of allLaneIds(lanes)) {
+      if (!id || laneMap.has(id)) continue;
+      laneMap.set(id, normalizeBpmnId(id, "L", used));
+    }
+  }
+  for (const n4 of model.nodes) {
+    if (!n4.laneId || laneMap.has(n4.laneId)) continue;
+    laneMap.set(n4.laneId, normalizeBpmnId(n4.laneId, "L", used));
+  }
+  return {
+    nodes: model.nodes.map((n4) => {
+      var _a4, _b3, _c, _d, _e3;
+      const renameLanes = (list) => list.map((ln3) => {
+        var _a5;
+        return {
+          ...ln3,
+          id: (_a5 = laneMap.get(ln3.id)) != null ? _a5 : ln3.id,
+          ...ln3.lanes ? { lanes: renameLanes(ln3.lanes) } : {}
+        };
+      });
+      const lanes = ((_a4 = n4.attrs) == null ? void 0 : _a4.lanes) ? renameLanes(n4.attrs.lanes) : void 0;
+      return {
+        ...n4,
+        id: (_b3 = nodeMap.get(n4.id)) != null ? _b3 : n4.id,
+        ...n4.parentId ? { parentId: (_c = nodeMap.get(n4.parentId)) != null ? _c : n4.parentId } : {},
+        ...n4.laneId ? { laneId: (_d = laneMap.get(n4.laneId)) != null ? _d : n4.laneId } : {},
+        attrs: lanes ? { ...(_e3 = n4.attrs) != null ? _e3 : {}, lanes } : n4.attrs
+      };
+    }),
+    edges: model.edges.map((e5) => {
+      var _a4, _b3, _c;
+      return {
+        ...e5,
+        id: (_a4 = edgeMap.get(e5.id)) != null ? _a4 : e5.id,
+        source: (_b3 = nodeMap.get(e5.source)) != null ? _b3 : e5.source,
+        target: (_c = nodeMap.get(e5.target)) != null ? _c : e5.target
+      };
+    })
+  };
+}
+function applyNodeColours(di, n4) {
+  var _a3, _b2;
+  const style2 = (_a3 = n4.attrs) == null ? void 0 : _a3.style;
+  const colour = (c6) => c6 && c6 !== "transparent" ? c6 : void 0;
+  const d4 = di;
+  delete d4.fill;
+  delete d4.stroke;
+  const attrs = (_b2 = di.$attrs) != null ? _b2 : di.$attrs = {};
+  for (const [key, value, spec] of [
+    ["bioc:fill", colour(style2 == null ? void 0 : style2.fill), "color:background-color"],
+    ["bioc:stroke", colour(style2 == null ? void 0 : style2.stroke), "color:border-color"]
+  ]) {
+    delete attrs[spec];
+    if (value) attrs[key] = value;
+    else delete attrs[key];
+  }
+}
+function withBiocNamespace(xml3) {
+  if (!/\sbioc:/.test(xml3) || /\sxmlns:bioc=/.test(xml3)) return xml3;
+  return xml3.replace(/<bpmn:definitions\b([^>]*)>/, `<bpmn:definitions$1 xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0">`);
+}
+function patchCamundaXml(xml3, model) {
+  var _a3, _b2, _c, _d;
+  const nodes = model.nodes.filter((n4) => {
+    var _a4, _b3, _c2;
+    const attrs = (_a4 = n4.attrs) != null ? _a4 : {};
+    return attrs.camunda && Object.keys(attrs.camunda).length > 0 || ((_c2 = (_b3 = attrs.bpmnProps) == null ? void 0 : _b3.length) != null ? _c2 : 0) > 0;
+  });
+  if (!nodes.length) return xml3;
+  let out = xml3;
+  if (!/\sxmlns:camunda=/.test(out)) {
+    out = out.replace(/<bpmn:definitions\b([^>]*)>/, `<bpmn:definitions$1 xmlns:camunda="http://camunda.org/schema/1.0/bpmn">`);
+  }
+  for (const n4 of nodes) {
+    const attrs = (_a3 = n4.attrs) != null ? _a3 : {};
+    const camunda = (_b2 = attrs.camunda) != null ? _b2 : {};
+    const props = (_d = (_c = attrs.bpmnProps) == null ? void 0 : _c.filter((p6) => p6.name)) != null ? _d : [];
+    const id = escAttr(n4.id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const tagRe = new RegExp(`<bpmn:([A-Za-z]+)\\b([^>]*)\\bid="${id}"([^>]*)>`);
+    const match = tagRe.exec(out);
+    if (!match) continue;
+    const [full, tagName2, beforeId, afterId] = match;
+    let open4 = full;
+    for (const [key, value] of Object.entries(camunda)) {
+      if (!value) continue;
+      const attrName = `camunda:${key}`;
+      const attrRe = new RegExp(`\\s${attrName}="[^"]*"`);
+      const encoded = ` ${attrName}="${escAttr(String(value))}"`;
+      open4 = attrRe.test(open4) ? open4.replace(attrRe, encoded) : open4.replace(/\/?>$/, `${encoded}$&`);
+    }
+    if (open4 !== full) out = out.slice(0, match.index) + open4 + out.slice(match.index + full.length);
+    if (!props.length) continue;
+    const rematch = new RegExp(`<bpmn:${tagName2}\\b[^>]*\\bid="${id}"[^>]*>`).exec(out);
+    if (!rematch) continue;
+    const currentOpen = rematch[0];
+    const propsXml = `<camunda:properties>${props.map((p6) => {
+      var _a4;
+      return `<camunda:property name="${escAttr(p6.name)}" value="${escAttr((_a4 = p6.value) != null ? _a4 : "")}" />`;
+    }).join("")}</camunda:properties>`;
+    if (currentOpen.endsWith("/>")) {
+      const expanded = currentOpen.replace(/\s*\/>$/, `><bpmn:extensionElements>${propsXml}</bpmn:extensionElements></bpmn:${tagName2}>`);
+      out = out.slice(0, rematch.index) + expanded + out.slice(rematch.index + currentOpen.length);
+      continue;
+    }
+    const closeRe = new RegExp(`</bpmn:${tagName2}>`);
+    const close = closeRe.exec(out.slice(rematch.index + currentOpen.length));
+    if (!close) continue;
+    const blockStart = rematch.index;
+    const blockEnd = rematch.index + currentOpen.length + close.index + close[0].length;
+    const block2 = out.slice(blockStart, blockEnd);
+    let nextBlock;
+    if (/<bpmn:extensionElements\b[\s\S]*?<\/bpmn:extensionElements>/.test(block2)) {
+      nextBlock = block2.replace(
+        /<camunda:properties\b[\s\S]*?<\/camunda:properties>/,
+        propsXml
+      );
+      if (nextBlock === block2) {
+        nextBlock = block2.replace(/<bpmn:extensionElements\b[^>]*>/, (m0) => `${m0}${propsXml}`);
+      }
+    } else {
+      nextBlock = block2.replace(currentOpen, `${currentOpen}<bpmn:extensionElements>${propsXml}</bpmn:extensionElements>`);
+    }
+    out = out.slice(0, blockStart) + nextBlock + out.slice(blockEnd);
+  }
+  return out;
+}
+function findParticipant(defs, id) {
+  var _a3, _b2;
+  for (const root2 of (_a3 = defs.rootElements) != null ? _a3 : []) {
+    if (root2.$type !== "bpmn:Collaboration") continue;
+    const found = ((_b2 = root2.participants) != null ? _b2 : []).find((p6) => p6.id === id);
+    if (found) return found;
+  }
+  return void 0;
+}
+function findLane(process2, id) {
+  var _a3;
+  const inLanes = (lanes) => {
+    var _a4;
+    for (const l5 of lanes != null ? lanes : []) {
+      if (l5.id === id) return l5;
+      const hit = inLanes((_a4 = l5.childLaneSet) == null ? void 0 : _a4.lanes);
+      if (hit) return hit;
+    }
+    return void 0;
+  };
+  for (const ls of (_a3 = process2.laneSets) != null ? _a3 : []) {
+    const found = inLanes(ls.lanes);
+    if (found) return found;
+  }
+  return void 0;
+}
+function createLaneEl(m7, ln3, idOf = (id) => id) {
+  var _a3, _b2;
+  const el3 = m7.create("bpmn:Lane", { id: idOf(ln3.id), name: (_a3 = ln3.label) != null ? _a3 : ln3.id });
+  if ((_b2 = ln3.lanes) == null ? void 0 : _b2.length) {
+    el3.childLaneSet = m7.create("bpmn:LaneSet", {
+      id: `LaneSet_${el3.id}`,
+      lanes: ln3.lanes.map((c6) => createLaneEl(m7, c6, idOf))
+    });
+  }
+  return el3;
+}
+function fillLaneRefs(lanes, refsOf) {
+  var _a3;
+  const all2 = [];
+  for (const ln3 of lanes != null ? lanes : []) {
+    const children2 = (_a3 = ln3.childLaneSet) == null ? void 0 : _a3.lanes;
+    const own = ln3.id ? refsOf(ln3.id) : [];
+    const refs = (children2 == null ? void 0 : children2.length) ? [...fillLaneRefs(children2, refsOf), ...own] : own;
+    ln3.flowNodeRef = refs;
+    all2.push(...refs);
+  }
+  return all2;
+}
+async function exportBpmn(model, meta) {
+  var _a3, _b2, _c, _d;
+  const normalizedModel = normalizeModelIdsForBpmn(fixInnerMessageFlows(model));
+  const m7 = moddle();
+  if ((meta == null ? void 0 : meta.format) === "bpmn") {
+    const raw2 = String((_b2 = (_a3 = meta.payload) == null ? void 0 : _a3.raw) != null ? _b2 : "");
+    const diagramIndex = Number((_d = (_c = meta.payload) == null ? void 0 : _c.diagramIndex) != null ? _d : 0);
+    if (raw2) {
+      try {
+        return await patchExisting(raw2, normalizedModel, m7, Number.isFinite(diagramIndex) ? diagramIndex : 0);
+      } catch (err2) {
+        console.warn("[omniboard:bpmn] patchExisting failed; falling back to minimal export", err2);
+      }
+    }
+  }
+  return emitMinimal(normalizedModel, m7);
+}
+async function patchExisting(raw2, model, m7, diagramIndex = 0) {
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I, _J, _K, _L, _M, _N, _O, _P, _Q, _R;
+  const { rootElement: defs } = await m7.fromXML(raw2, "bpmn:Definitions");
+  const definitions = defs;
+  const diShape = /* @__PURE__ */ new Map();
+  const diEdge = /* @__PURE__ */ new Map();
+  let mainPlane = null;
+  const diagrams = (_a3 = definitions.diagrams) != null ? _a3 : [];
+  if (diagrams.length) {
+    mainPlane = diagrams[Math.max(0, Math.min(diagramIndex, diagrams.length - 1))].plane;
+  }
+  if (!mainPlane && diagrams[0]) mainPlane = diagrams[0].plane;
+  if (!mainPlane) throw new Error("BPMN export: source document has no BPMNPlane.");
+  const indexedPlanes = [...diagrams.map((d4) => d4.plane).filter((pl) => pl !== mainPlane && isSubPlane(pl)), mainPlane];
+  for (const pl of indexedPlanes) {
+    for (const pe3 of (_b2 = pl.planeElement) != null ? _b2 : []) {
+      const refId = diRefId(pe3);
+      if (!refId) continue;
+      if (pe3.$type === "bpmndi:BPMNShape") diShape.set(refId, pe3);
+      else if (pe3.$type === "bpmndi:BPMNEdge") diEdge.set(refId, pe3);
+    }
+  }
+  const processes = ((_c = definitions.rootElements) != null ? _c : []).filter((r5) => r5.$type === "bpmn:Process");
+  const shownRef = (_d = mainPlane.bpmnElement) != null ? _d : void 0;
+  const shownId = typeof shownRef === "string" ? shownRef : shownRef == null ? void 0 : shownRef.id;
+  const process2 = (_f = (_e3 = processes.find((p6) => p6.id === shownId)) != null ? _e3 : processes[0]) != null ? _f : null;
+  if (!process2) throw new Error("BPMN export: source document has no bpmn:Process.");
+  const flowById = /* @__PURE__ */ new Map();
+  const containerOf = /* @__PURE__ */ new Map();
+  const collect = (parent) => {
+    var _a4, _b3, _c2, _d2;
+    for (const fe3 of (_a4 = parent.flowElements) != null ? _a4 : []) {
+      if (fe3.id) {
+        flowById.set(fe3.id, fe3);
+        containerOf.set(fe3.id, parent);
+      }
+      if (fe3.flowElements) collect(fe3);
+    }
+    for (const ar of (_b3 = parent.artifacts) != null ? _b3 : []) {
+      if (ar.id && /Association|TextAnnotation|Group/.test(ar.$type)) {
+        flowById.set(ar.id, ar);
+        containerOf.set(ar.id, parent);
+      }
+    }
+    const io = parent.ioSpecification;
+    for (const d4 of [...(_c2 = io == null ? void 0 : io.dataInputs) != null ? _c2 : [], ...(_d2 = io == null ? void 0 : io.dataOutputs) != null ? _d2 : []]) {
+      if (d4.id) {
+        flowById.set(d4.id, d4);
+        containerOf.set(d4.id, parent);
+      }
+    }
+  };
+  processes.forEach(collect);
+  const collaboration = findCollaboration(definitions);
+  if (collaboration) {
+    for (const mf of (_g = collaboration.messageFlows) != null ? _g : []) {
+      if (mf.id) flowById.set(mf.id, mf);
+    }
+  }
+  for (const n4 of model.nodes) {
+    const was = (_i = (_h = n4.attrs) == null ? void 0 : _h.__source) == null ? void 0 : _i.sourceId;
+    const fe3 = was && was !== n4.id && !flowById.has(n4.id) ? flowById.get(was) : void 0;
+    if (!was || !fe3) continue;
+    fe3.id = n4.id;
+    flowById.delete(was);
+    flowById.set(n4.id, fe3);
+    containerOf.set(n4.id, containerOf.get(was));
+    containerOf.delete(was);
+    const di = diShape.get(was);
+    if (di) {
+      diShape.delete(was);
+      diShape.set(n4.id, di);
+    }
+  }
+  const foreign = foreignIds(diagrams.map((d4) => d4.plane).filter((pl) => !isSubPlane(pl)), indexedPlanes);
+  addForeignFlows(foreign, [...flowById.values(), ...(_j = collaboration == null ? void 0 : collaboration.messageFlows) != null ? _j : []]);
+  const modelNodeIds = new Set(model.nodes.map((n4) => n4.id));
+  const endpointIds = new Set(flowById.keys());
+  for (const pr of processes) for (const ar of (_k = pr.artifacts) != null ? _k : []) if (ar.id) endpointIds.add(ar.id);
+  const owningProcess = processOwner(model, processes, collaboration, process2);
+  for (const p6 of (_l = collaboration == null ? void 0 : collaboration.participants) != null ? _l : []) if (p6.id) endpointIds.add(p6.id);
+  const validModelEdges = model.edges.filter(
+    (e5) => (modelNodeIds.has(e5.source) || endpointIds.has(e5.source)) && (modelNodeIds.has(e5.target) || endpointIds.has(e5.target))
+  );
+  const modelEdgeIds = new Set(validModelEdges.map((e5) => e5.id));
+  const modelEdgeKind = new Map(validModelEdges.map((e5) => [e5.id, edgeKindOf(e5)]));
+  const modelSequenceEdgeIds = new Set(validModelEdges.filter((e5) => edgeKindOf(e5) === "sequence").map((e5) => e5.id));
+  const modelAssociationEdgeIds = new Set(validModelEdges.filter((e5) => edgeKindOf(e5) === "association").map((e5) => e5.id));
+  const modelMessageEdgeIds = new Set(validModelEdges.filter((e5) => edgeKindOf(e5) === "message").map((e5) => e5.id));
+  for (const id of foreign) {
+    modelNodeIds.add(id);
+    modelEdgeIds.add(id);
+    modelSequenceEdgeIds.add(id);
+    modelAssociationEdgeIds.add(id);
+    modelMessageEdgeIds.add(id);
+  }
+  for (const n4 of model.nodes) {
+    const srcKind = (_n2 = (_m = n4.attrs) == null ? void 0 : _m.__source) == null ? void 0 : _n2.kind;
+    const isPool = n4.shape === "bpmn-pool" || srcKind === "pool";
+    const isLane2 = n4.shape === "bpmn-lane" || srcKind === "lane";
+    if (isPool || isLane2) continue;
+    const targetContainer = n4.parentId && flowById.get(n4.parentId) || owningProcess(n4);
+    let di = diShape.get(n4.id);
+    if (di == null ? void 0 : di.bounds) {
+      di.bounds.x = n4.x;
+      di.bounds.y = n4.y;
+      di.bounds.width = n4.width;
+      di.bounds.height = n4.height;
+      const nLabel = nodeLabelBoundsFromModel(m7, n4);
+      di.label = nLabel ? m7.create("bpmndi:BPMNLabel", { bounds: nLabel }) : void 0;
+      const collapsed = ((_o = n4.attrs) == null ? void 0 : _o.collapsed) === true;
+      di.isExpanded = !collapsed;
+    } else {
+      const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), n4.shape === "bpmn-annotation" ? { id: n4.id, text: (_p = n4.label) != null ? _p : "" } : n4.shape === "bpmn-group" ? { id: n4.id } : { id: n4.id, name: (_q = n4.label) != null ? _q : "" });
+      applyBpmnExtras(m7, fe3, n4.shape, (_r = n4.attrs) != null ? _r : {});
+      addToContainer(m7, definitions, targetContainer, n4, fe3);
+      flowById.set(n4.id, fe3);
+      containerOf.set(n4.id, targetContainer);
+      di = m7.create("bpmndi:BPMNShape", {
+        bpmnElement: fe3,
+        bounds: m7.create("dc:Bounds", { x: n4.x, y: n4.y, width: n4.width, height: n4.height }),
+        ...isCollapsed(n4) ? { isExpanded: false } : {}
+      });
+      ((_s = mainPlane.planeElement) != null ? _s : mainPlane.planeElement = []).push(di);
+      diShape.set(n4.id, di);
+    }
+    applyNodeColours(di, n4);
+    let existing = flowById.get(n4.id);
+    const curContainer = containerOf.get(n4.id);
+    const wantType = shapeToBpmnType(n4.shape, n4.attrs);
+    if (existing && curContainer && existing.$type !== wantType && ((_t3 = curContainer.flowElements) == null ? void 0 : _t3.includes(existing))) {
+      const swapped = retype(m7, existing, wantType);
+      const old = existing;
+      curContainer.flowElements = curContainer.flowElements.map((fe3) => fe3 === old ? swapped : fe3);
+      if (di) di.bpmnElement = swapped;
+      flowById.set(n4.id, swapped);
+      existing = swapped;
+    }
+    if (existing && curContainer && curContainer !== targetContainer && ((_u = curContainer.flowElements) == null ? void 0 : _u.includes(existing))) {
+      curContainer.flowElements = ((_v = curContainer.flowElements) != null ? _v : []).filter((fe3) => fe3.id !== n4.id);
+      ((_w = targetContainer.flowElements) != null ? _w : targetContainer.flowElements = []).push(existing);
+      containerOf.set(n4.id, targetContainer);
+    }
+    if (existing) {
+      if (typeof n4.label === "string") {
+        if (n4.shape === "bpmn-annotation") existing.text = n4.label;
+        else if (n4.shape === "bpmn-group") setGroupLabel(m7, definitions, existing, n4.label);
+        else existing.name = n4.label;
+      }
+      applyBpmnExtras(m7, existing, n4.shape, (_x = n4.attrs) != null ? _x : {});
+    }
+  }
+  const refIdOf = (r5) => typeof r5 === "string" ? r5 : r5 == null ? void 0 : r5.id;
+  const referenced = /* @__PURE__ */ new Set();
+  const collectRefs = (fe3) => {
+    if (!fe3.id || !modelEdgeIds.has(fe3.id)) return;
+    const src = refIdOf(fe3.sourceRef);
+    const tgt = refIdOf(fe3.targetRef);
+    if (src) referenced.add(src);
+    if (tgt) referenced.add(tgt);
+  };
+  for (const pr of processes) {
+    for (const fe3 of (_y = pr.flowElements) != null ? _y : []) if (fe3.$type === "bpmn:SequenceFlow") collectRefs(fe3);
+    for (const ar of (_z = pr.artifacts) != null ? _z : []) if (ar.$type === "bpmn:Association") collectRefs(ar);
+  }
+  if (collaboration) {
+    for (const mf of (_A = collaboration.messageFlows) != null ? _A : []) collectRefs(mf);
+  }
+  const survives = (fe3) => modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
+  const filterFlowElements = (parent) => {
+    var _a4;
+    const kept = ((_a4 = parent.flowElements) != null ? _a4 : []).filter((fe3) => {
+      if (fe3.$type === "bpmn:SequenceFlow") return modelSequenceEdgeIds.has(fe3.id);
+      return fe3.$type === "bpmn:DataObject" || survives(fe3);
+    });
+    const used = new Set(kept.map((fe3) => refIdOf(fe3.dataObjectRef)));
+    parent.flowElements = kept.filter((fe3) => fe3.$type !== "bpmn:DataObject" || used.has(fe3.id) || survives(fe3));
+    const io = parent.ioSpecification;
+    if (io) {
+      if (io.dataInputs) io.dataInputs = io.dataInputs.filter(survives);
+      if (io.dataOutputs) io.dataOutputs = io.dataOutputs.filter(survives);
+    }
+    for (const fe3 of parent.flowElements) {
+      if (fe3.flowElements) filterFlowElements(fe3);
+    }
+  };
+  processes.forEach(filterFlowElements);
+  {
+    const byLaneId = /* @__PURE__ */ new Map();
+    for (const n4 of model.nodes) {
+      if (!n4.laneId) continue;
+      const arr = (_B = byLaneId.get(n4.laneId)) != null ? _B : [];
+      arr.push(n4.id);
+      byLaneId.set(n4.laneId, arr);
+    }
+    const foreignRefs = /* @__PURE__ */ new Map();
+    const scanLanes = (lanes) => {
+      var _a4, _b3;
+      for (const ln3 of lanes != null ? lanes : []) {
+        const kids = (_a4 = ln3.childLaneSet) == null ? void 0 : _a4.lanes;
+        if (kids == null ? void 0 : kids.length) scanLanes(kids);
+        else if (ln3.id) foreignRefs.set(ln3.id, ((_b3 = ln3.flowNodeRef) != null ? _b3 : []).filter((r5) => {
+          var _a5;
+          return foreign.has((_a5 = refIdOf(r5)) != null ? _a5 : "");
+        }));
+      }
+    };
+    for (const pr of processes) for (const ls of (_C = pr.laneSets) != null ? _C : []) scanLanes(ls.lanes);
+    const refsOf = (laneId) => {
+      var _a4, _b3;
+      return [...((_a4 = byLaneId.get(laneId)) != null ? _a4 : []).map((id) => flowById.get(id)).filter((fe3) => !!fe3), ...(_b3 = foreignRefs.get(laneId)) != null ? _b3 : []];
+    };
+    for (const pr of processes) for (const ls of (_D = pr.laneSets) != null ? _D : []) fillLaneRefs(ls.lanes, refsOf);
+  }
+  for (const pr of processes.filter((x5) => x5.artifacts)) {
+    pr.artifacts = pr.artifacts.filter((ar) => {
+      if (ar.$type === "bpmn:Association") return modelAssociationEdgeIds.has(ar.id);
+      if (ar.$type === "bpmn:TextAnnotation" || ar.$type === "bpmn:Group") return survives(ar);
+      return true;
+    });
+  }
+  if (collaboration == null ? void 0 : collaboration.messageFlows) {
+    collaboration.messageFlows = collaboration.messageFlows.filter((mf) => modelMessageEdgeIds.has(mf.id));
+  }
+  const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
+  const keepDi = (pe3) => {
+    const refId = diRefId(pe3);
+    if (!refId) return true;
+    if (pe3.$type === "bpmndi:BPMNEdge") return modelEdgeIds.has(refId);
+    if (pe3.$type === "bpmndi:BPMNShape") {
+      if (!flowNodeIdSet.has(refId)) return true;
+      return modelNodeIds.has(refId) || referenced.has(refId);
+    }
+    return true;
+  };
+  for (const pl of indexedPlanes) pl.planeElement = ((_E = pl.planeElement) != null ? _E : []).filter(keepDi);
+  emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7);
+  const rootProcessOf = (id) => {
+    let c6 = containerOf.get(id);
+    for (let i6 = 0; c6 && c6.$type !== "bpmn:Process" && i6 < 64; i6++) c6 = containerOf.get(c6.id);
+    return c6 != null ? c6 : process2;
+  };
+  for (const e5 of validModelEdges) {
+    const srcNode = model.nodes.find((n4) => n4.id === e5.source);
+    const tgtNode = model.nodes.find((n4) => n4.id === e5.target);
+    if (!srcNode || !tgtNode) continue;
+    const kind = edgeKindOf(e5);
+    let de3 = diEdge.get(e5.id);
+    const wps = buildWaypoints(e5, srcNode, tgtNode, m7);
+    let sf = flowById.get(e5.id);
+    if (!sf) {
+      const refOf2 = (id) => {
+        var _a4, _b3;
+        return (_b3 = flowById.get(id)) != null ? _b3 : kind === "message" ? (_a4 = collaboration == null ? void 0 : collaboration.participants) == null ? void 0 : _a4.find((p6) => p6.id === id) : void 0;
+      };
+      const sourceFe = refOf2(e5.source);
+      const targetFe = refOf2(e5.target);
+      if (!sourceFe || !targetFe) {
+        console.warn(`[omniboard:bpmn] dropped ${kind} flow "${e5.id}": endpoint has no BPMN element (${e5.source} \u2192 ${e5.target})`);
+        continue;
+      }
+      const orphanMessage = kind === "message" && !collaboration;
+      sf = m7.create(orphanMessage ? "bpmn:SequenceFlow" : bpmnTypeForEdgeKind(kind), {
+        id: e5.id,
+        // bpmn:Association is an artifact with no `name` in the BPMN schema.
+        ...kind === "association" ? {} : { name: (_F = e5.label) != null ? _F : "" },
+        sourceRef: sourceFe,
+        targetRef: targetFe
+      });
+      if (kind === "message") {
+        if (!collaboration) {
+          ((_H = (_G = rootProcessOf(e5.source)).flowElements) != null ? _H : _G.flowElements = []).push(sf);
+        } else {
+          ((_I = collaboration.messageFlows) != null ? _I : collaboration.messageFlows = []).push(sf);
+        }
+      } else if (kind === "association") {
+        ((_K = (_J = rootProcessOf(e5.source)).artifacts) != null ? _K : _J.artifacts = []).push(sf);
+      } else {
+        ((_M = (_L = rootProcessOf(e5.source)).flowElements) != null ? _M : _L.flowElements = []).push(sf);
+      }
+      containerOf.set(e5.id, kind === "message" && collaboration ? collaboration : rootProcessOf(e5.source));
+      flowById.set(e5.id, sf);
+    } else if (typeof e5.label === "string" && kind !== "association") {
+      sf.name = e5.label;
+    }
+    applyEdgeExtras(m7, sf, kind, e5.attrs);
+    if (de3) {
+      de3.waypoint = wps;
+      const lb = edgeLabelBoundsFromModel(m7, e5, wps);
+      de3.label = lb ? m7.create("bpmndi:BPMNLabel", { bounds: lb }) : void 0;
+    } else {
+      const lb = edgeLabelBoundsFromModel(m7, e5, wps);
+      de3 = m7.create("bpmndi:BPMNEdge", {
+        bpmnElement: sf,
+        waypoint: wps,
+        ...lb ? { label: m7.create("bpmndi:BPMNLabel", { bounds: lb }) } : {}
+      });
+      ((_N = mainPlane.planeElement) != null ? _N : mainPlane.planeElement = []).push(de3);
+      diEdge.set(e5.id, de3);
+    }
+  }
+  for (const n4 of model.nodes) {
+    const fe3 = flowById.get(n4.id);
+    if (fe3 && fe3.default) delete fe3.default;
+  }
+  for (const e5 of validModelEdges) {
+    if (!((_O = e5.attrs) == null ? void 0 : _O.isDefault)) continue;
+    if (edgeKindOf(e5) !== "sequence") continue;
+    const srcFe = flowById.get(e5.source);
+    const edgeFe = flowById.get(e5.id);
+    if (srcFe && edgeFe) srcFe.default = edgeFe;
+  }
+  const parentOf = new Map(model.nodes.map((n4) => [n4.id, n4.parentId]));
+  for (const e5 of validModelEdges) {
+    const sf = flowById.get(e5.id);
+    if (!sf || sf.$type !== "bpmn:SequenceFlow") continue;
+    const p6 = parentOf.get(e5.source);
+    const home = p6 && p6 === parentOf.get(e5.target) ? flowById.get(p6) : void 0;
+    const cur = (_P = containerOf.get(e5.id)) != null ? _P : process2;
+    const target = home != null ? home : rootProcessOf(e5.source);
+    if (target === cur) continue;
+    cur.flowElements = ((_Q = cur.flowElements) != null ? _Q : []).filter((fe3) => fe3 !== sf);
+    ((_R = target.flowElements) != null ? _R : target.flowElements = []).push(sf);
+  }
+  placeOnPlanes(definitions, mainPlane, model, diShape, diEdge, flowById, m7);
+  const { xml: xml3 } = await m7.toXML(definitions, { format: true });
+  return patchCamundaXml(withBiocNamespace(xml3), model);
+}
+function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7, processByPoolId, laneIdByPool) {
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h;
+  const pools = model.nodes.filter(
+    (n4) => {
+      var _a4, _b3;
+      return n4.shape === "bpmn-pool" || ((_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
+    }
+  );
+  if (!pools.length) return;
+  let collaboration = findCollaboration(definitions);
+  const ensureCollaboration = () => {
+    var _a4;
+    if (collaboration) return collaboration;
+    collaboration = m7.create("bpmn:Collaboration", { id: "Collaboration_Export" });
+    ((_a4 = definitions.rootElements) != null ? _a4 : definitions.rootElements = []).push(collaboration);
+    return collaboration;
+  };
+  const processForPool = (poolId) => {
+    var _a4;
+    return (_a4 = processByPoolId == null ? void 0 : processByPoolId.get(poolId)) != null ? _a4 : process2;
+  };
+  const ensureLaneSetIn = (proc) => {
+    var _a4, _b3, _c2;
+    if (((_a4 = proc.laneSets) != null ? _a4 : []).length) return proc.laneSets[0];
+    const laneSet = m7.create("bpmn:LaneSet", { id: `LaneSet_${(_b3 = proc.id) != null ? _b3 : "Process_Export"}` });
+    ((_c2 = proc.laneSets) != null ? _c2 : proc.laneSets = []).push(laneSet);
+    return laneSet;
+  };
+  const flow = model.nodes.filter(
+    (n4) => {
+      var _a4, _b3;
+      return n4.shape !== "bpmn-pool" && ((_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) !== "pool";
+    }
+  );
+  const fallbackBox = () => {
+    const minX = Math.min(...flow.map((n4) => n4.x));
+    const minY = Math.min(...flow.map((n4) => n4.y));
+    const maxX = Math.max(...flow.map((n4) => n4.x + n4.width));
+    const maxY = Math.max(...flow.map((n4) => n4.y + n4.height));
+    return {
+      x: minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN,
+      y: minY - POOL_MARGIN,
+      width: maxX - minX + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2,
+      height: maxY - minY + POOL_MARGIN * 2
+    };
+  };
+  for (const pool of pools) {
+    const prefix2 = [];
+    const poolProcess = processForPool(pool.id);
+    const sized = pool.width > 0 && pool.height > 0;
+    if (!sized && !flow.length) continue;
+    const box = sized ? pool : fallbackBox();
+    const poolX = box.x, poolY = box.y, poolW = box.width, poolH = box.height;
+    const lanes = (_b2 = (_a3 = pool.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
+    let pdi = diShape.get(pool.id);
+    if (pdi == null ? void 0 : pdi.bounds) {
+      pdi.bounds.x = poolX;
+      pdi.bounds.y = poolY;
+      pdi.bounds.width = poolW;
+      pdi.bounds.height = poolH;
+    } else {
+      let part = findParticipant(definitions, pool.id);
+      if (!part) {
+        part = m7.create("bpmn:Participant", {
+          id: pool.id,
+          name: (_c = pool.label) != null ? _c : "Pool",
+          // Each participant references its OWN process when multi-pool.
+          ...isBlackBoxPool(pool) ? {} : { processRef: poolProcess }
+        });
+        ((_e3 = (_d = ensureCollaboration()).participants) != null ? _e3 : _d.participants = []).push(part);
+      }
+      pdi = m7.create("bpmndi:BPMNShape", {
+        bpmnElement: part,
+        bounds: m7.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
+      });
+      const isHorizontal5 = ((_f = pool.attrs) == null ? void 0 : _f.poolHorizontal) !== false;
+      pdi.isHorizontal = isHorizontal5;
+      diShape.set(pool.id, pdi);
+      prefix2.push(pdi);
+    }
+    if (lanes.length) {
+      const horizontal = ((_g = pool.attrs) == null ? void 0 : _g.poolHorizontal) !== false;
+      const renamed = laneIdByPool == null ? void 0 : laneIdByPool.get(pool.id);
+      const emitLane = (ln3, r5, parentEl) => {
+        var _a4, _b3, _c2, _d2, _e4, _f2, _g2, _h2;
+        if (!ln3.id) return;
+        const laneId = (_a4 = renamed == null ? void 0 : renamed.get(ln3.id)) != null ? _a4 : ln3.id;
+        let laneEl = findLane(poolProcess, laneId);
+        if (!laneEl) {
+          laneEl = m7.create("bpmn:Lane", { id: laneId, name: (_b3 = ln3.label) != null ? _b3 : ln3.id });
+          if (parentEl) {
+            const holder = parentEl;
+            (_c2 = holder.childLaneSet) != null ? _c2 : holder.childLaneSet = m7.create("bpmn:LaneSet", { id: `LaneSet_${parentEl.id}`, lanes: [] });
+            ((_e4 = (_d2 = holder.childLaneSet).lanes) != null ? _e4 : _d2.lanes = []).push(laneEl);
+          } else {
+            ((_g2 = (_f2 = ensureLaneSetIn(poolProcess)).lanes) != null ? _g2 : _f2.lanes = []).push(laneEl);
+          }
+        }
+        let ldi = diShape.get(laneId);
+        if (ldi == null ? void 0 : ldi.bounds) {
+          ldi.bounds.x = r5.x;
+          ldi.bounds.y = r5.y;
+          ldi.bounds.width = r5.width;
+          ldi.bounds.height = r5.height;
+        } else {
+          ldi = m7.create("bpmndi:BPMNShape", {
+            bpmnElement: laneEl,
+            bounds: m7.create("dc:Bounds", { x: r5.x, y: r5.y, width: r5.width, height: r5.height })
+          });
+          ldi.isHorizontal = horizontal;
+          diShape.set(laneId, ldi);
+          prefix2.push(ldi);
+        }
+        if ((_h2 = ln3.lanes) == null ? void 0 : _h2.length) {
+          const inner = horizontal ? { x: r5.x + LANE_HEADER, y: r5.y, width: r5.width - LANE_HEADER, height: r5.height } : { x: r5.x, y: r5.y + LANE_HEADER, width: r5.width, height: r5.height - LANE_HEADER };
+          const childRects = laneRects(ln3.lanes, inner, horizontal, 0);
+          ln3.lanes.forEach((c6, j5) => emitLane(c6, childRects[j5], laneEl));
+        }
+      };
+      const rects = laneRects(lanes, { x: poolX, y: poolY, width: poolW, height: poolH }, horizontal);
+      lanes.forEach((ln3, i6) => emitLane(ln3, rects[i6]));
+    }
+    if (prefix2.length) ((_h = mainPlane.planeElement) != null ? _h : mainPlane.planeElement = []).unshift(...prefix2);
+  }
+}
+function laneRects(lanes, pool, horizontal, header = POOL_HEADER) {
+  const extent = horizontal ? pool.height : pool.width;
+  let at3 = horizontal ? pool.y : pool.x;
+  return laneHeights(asStackLanes(lanes, horizontal), extent).map((size2) => {
+    const r5 = horizontal ? { x: pool.x + header, y: at3, width: pool.width - header, height: size2 } : { x: at3, y: pool.y + header, width: size2, height: pool.height - header };
+    at3 += size2;
+    return r5;
+  });
+}
+function getPortOffset(portId, width2, height2) {
+  if (!portId) return { dx: width2 / 2, dy: height2 / 2 };
+  switch (portId) {
+    case "top":
+      return { dx: width2 / 2, dy: 0 };
+    case "top-1":
+      return { dx: width2 / 3, dy: 0 };
+    case "top-2":
+      return { dx: 2 * width2 / 3, dy: 0 };
+    case "bottom":
+      return { dx: width2 / 2, dy: height2 };
+    case "bottom-1":
+      return { dx: width2 / 3, dy: height2 };
+    case "bottom-2":
+      return { dx: 2 * width2 / 3, dy: height2 };
+    case "left":
+      return { dx: 0, dy: height2 / 2 };
+    case "left-1":
+      return { dx: 0, dy: height2 / 3 };
+    case "left-2":
+      return { dx: 0, dy: 2 * height2 / 3 };
+    case "right":
+      return { dx: width2, dy: height2 / 2 };
+    case "right-1":
+      return { dx: width2, dy: height2 / 3 };
+    case "right-2":
+      return { dx: width2, dy: 2 * height2 / 3 };
+    default:
+      return { dx: width2 / 2, dy: height2 / 2 };
+  }
+}
+function portIsHorizontal(portId, start, end, isSource) {
+  if (portId) {
+    return portId.startsWith("left") || portId.startsWith("right");
+  }
+  if (isSource) {
+    return Math.abs(end.x - start.x) > Math.abs(end.y - start.y);
+  } else {
+    return Math.abs(end.y - start.y) > Math.abs(end.x - start.x);
+  }
+}
+function getOrthogonalWaypoints(start, end, sourcePort, targetPort) {
+  const isHorizontalSource = portIsHorizontal(sourcePort, start, end, true);
+  const isHorizontalTarget = portIsHorizontal(targetPort, start, end, false);
+  if (isHorizontalSource && !isHorizontalTarget) {
+    return [start, { x: end.x, y: start.y }, end];
+  } else if (!isHorizontalSource && isHorizontalTarget) {
+    return [start, { x: start.x, y: end.y }, end];
+  } else if (isHorizontalSource && isHorizontalTarget) {
+    const mx = (start.x + end.x) / 2;
+    return [start, { x: mx, y: start.y }, { x: mx, y: end.y }, end];
+  } else {
+    const my = (start.y + end.y) / 2;
+    return [start, { x: start.x, y: my }, { x: end.x, y: my }, end];
+  }
+}
+function buildWaypoints(e5, src, tgt, m7) {
+  var _a3, _b2, _c;
+  const point = (x5, y5) => m7.create("dc:Point", { x: x5, y: y5 });
+  const srcOffset = (_a3 = e5.sourceAnchor) != null ? _a3 : getPortOffset(e5.sourcePort, src.width, src.height);
+  const tgtOffset = (_b2 = e5.targetAnchor) != null ? _b2 : getPortOffset(e5.targetPort, tgt.width, tgt.height);
+  const start = { x: src.x + srcOffset.dx, y: src.y + srcOffset.dy };
+  const end = { x: tgt.x + tgtOffset.dx, y: tgt.y + tgtOffset.dy };
+  let waypoints;
+  if (e5.router === "orth" && (!e5.vertices || e5.vertices.length === 0)) {
+    waypoints = getOrthogonalWaypoints(start, end, e5.sourcePort, e5.targetPort);
+  } else {
+    const mid5 = (_c = e5.vertices) != null ? _c : [];
+    waypoints = [start, ...mid5, end];
+  }
+  const clean2 = waypoints.filter((w5, i6) => i6 === 0 || Math.hypot(w5.x - waypoints[i6 - 1].x, w5.y - waypoints[i6 - 1].y) > 0.5);
+  return clean2.map((w5) => point(w5.x, w5.y));
+}
+function pointAtDistance(wps, distance2) {
+  if (!wps.length) return { x: 0, y: 0 };
+  if (wps.length === 1) return { x: wps[0].x, y: wps[0].y };
+  const total = wps.slice(1).reduce((sum, p6, i6) => sum + Math.hypot(p6.x - wps[i6].x, p6.y - wps[i6].y), 0);
+  const target = Math.max(0, Math.min(1, distance2)) * total;
+  let walked = 0;
+  for (let i6 = 1; i6 < wps.length; i6++) {
+    const a5 = wps[i6 - 1], b4 = wps[i6];
+    const seg = Math.hypot(b4.x - a5.x, b4.y - a5.y);
+    if (walked + seg >= target) {
+      const t6 = seg === 0 ? 0 : (target - walked) / seg;
+      return { x: a5.x + (b4.x - a5.x) * t6, y: a5.y + (b4.y - a5.y) * t6 };
+    }
+    walked += seg;
+  }
+  return { x: wps[wps.length - 1].x, y: wps[wps.length - 1].y };
+}
+function edgeLabelBoundsFromModel(m7, edge, wps) {
+  var _a3, _b2, _c, _d;
+  if (!edge.labelPos && !edge.label) return void 0;
+  const distance2 = (_b2 = (_a3 = edge.labelPos) == null ? void 0 : _a3.distance) != null ? _b2 : 0.5;
+  const base = pointAtDistance(wps, distance2);
+  let dx = 0, dy = 0;
+  const off = (_c = edge.labelPos) == null ? void 0 : _c.offset;
+  if (typeof off === "number") dy = off;
+  else if (off && typeof off.x === "number" && typeof off.y === "number") {
+    dx = off.x;
+    dy = off.y;
+  }
+  const textLen = ((_d = edge.label) != null ? _d : "").length;
+  const width2 = Math.max(30, Math.min(300, textLen * 7 + 18));
+  const height2 = 20;
+  return m7.create("dc:Bounds", {
+    x: base.x + dx - width2 / 2,
+    y: base.y + dy - height2 / 2,
+    width: width2,
+    height: height2
+  });
+}
+function nodeLabelBoundsFromModel(m7, node3) {
+  var _a3, _b2, _c, _d, _e3, _f;
+  if (!hasExternalLabel(node3.shape)) return void 0;
+  const textLen = ((_a3 = node3.label) != null ? _a3 : "").length;
+  if (!textLen) return void 0;
+  const off = (_c = (_b2 = node3.attrs) == null ? void 0 : _b2.labelOffset) != null ? _c : { x: 0, y: 0 };
+  const width2 = Math.max(30, Math.min(320, textLen * 7 + 18));
+  const height2 = 20;
+  const isTop = ((_d = off.y) != null ? _d : 0) < -10;
+  const defaultY = defaultLabelDy(node3.shape, node3.height);
+  const dy = (isTop ? -defaultY : defaultY) + ((_e3 = off.y) != null ? _e3 : 0);
+  const dx = (_f = off.x) != null ? _f : 0;
+  const cx = node3.x + node3.width / 2 + dx;
+  const cy = node3.y + node3.height / 2 + dy;
+  return m7.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
+}
+async function emitMinimal(model, m7) {
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A;
+  const defs = m7.create("bpmn:Definitions", {
+    id: "Definitions_Export",
+    targetNamespace: "http://omniboard.local/bpmn"
+  });
+  const pools = model.nodes.filter(
+    (n4) => {
+      var _a4, _b3;
+      return n4.shape === "bpmn-pool" || ((_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
+    }
+  );
+  const laneIdByPool = /* @__PURE__ */ new Map();
+  const processByPoolId = /* @__PURE__ */ new Map();
+  const multiPool = pools.length >= 2;
+  let process2;
+  if (multiPool) {
+    for (const pool of pools) {
+      if (isBlackBoxPool(pool)) continue;
+      const proc = m7.create("bpmn:Process", {
+        id: `Process_${pool.id}`,
+        isExecutable: false
+      });
+      proc.flowElements = [];
+      ((_a3 = defs.rootElements) != null ? _a3 : defs.rootElements = []).push(proc);
+      processByPoolId.set(pool.id, proc);
+    }
+    const firstWhiteBox = pools.find((p6) => !isBlackBoxPool(p6));
+    if (firstWhiteBox) {
+      process2 = processByPoolId.get(firstWhiteBox.id);
+    } else {
+      process2 = m7.create("bpmn:Process", { id: "Process_Export", isExecutable: false });
+      process2.flowElements = [];
+      ((_b2 = defs.rootElements) != null ? _b2 : defs.rootElements = []).push(process2);
+    }
+  } else {
+    process2 = m7.create("bpmn:Process", {
+      id: "Process_Export",
+      isExecutable: false
+    });
+    process2.flowElements = [];
+    ((_c = defs.rootElements) != null ? _c : defs.rootElements = []).push(process2);
+  }
+  if (pools.length) {
+    const collaboration = m7.create("bpmn:Collaboration", { id: "Collaboration_Export" });
+    collaboration.participants = pools.map((pool) => {
+      var _a4;
+      return m7.create("bpmn:Participant", {
+        id: pool.id,
+        name: (_a4 = pool.label) != null ? _a4 : "Pool",
+        // Multi-pool: each participant → its own process. Single-pool: shared.
+        ...isBlackBoxPool(pool) ? {} : { processRef: multiPool ? processByPoolId.get(pool.id) : process2 }
+      });
+    });
+    ((_d = defs.rootElements) != null ? _d : defs.rootElements = []).push(collaboration);
+    const globalSeenLaneIds = /* @__PURE__ */ new Set();
+    const uniqueLaneId = (id) => {
+      if (!globalSeenLaneIds.has(id)) {
+        globalSeenLaneIds.add(id);
+        return id;
+      }
+      let suffix = 2;
+      while (globalSeenLaneIds.has(`${id}_${suffix}`)) suffix += 1;
+      globalSeenLaneIds.add(`${id}_${suffix}`);
+      return `${id}_${suffix}`;
+    };
+    for (const pool of pools) {
+      const lanes = (_f = (_e3 = pool.attrs) == null ? void 0 : _e3.lanes) != null ? _f : [];
+      if (!lanes.length) continue;
+      const targetProcess = multiPool ? processByPoolId.get(pool.id) : process2;
+      if (!targetProcess.laneSets || !targetProcess.laneSets.length) {
+        targetProcess.laneSets = [m7.create("bpmn:LaneSet", {
+          id: `LaneSet_${targetProcess.id}`,
+          lanes: []
+        })];
+      }
+      const laneSet = targetProcess.laneSets[0];
+      (_g = laneSet.lanes) != null ? _g : laneSet.lanes = [];
+      const renames = /* @__PURE__ */ new Map();
+      laneIdByPool.set(pool.id, renames);
+      const idOf = (id) => {
+        const u6 = uniqueLaneId(id);
+        renames.set(id, u6);
+        return u6;
+      };
+      for (const ln3 of lanes) laneSet.lanes.push(createLaneEl(m7, ln3, idOf));
+    }
+  }
+  const findOwningProcess = (n4) => {
+    var _a4, _b3;
+    if (!multiPool) return process2;
+    if (n4.parentId && processByPoolId.has(n4.parentId)) return processByPoolId.get(n4.parentId);
+    const up = n4.parentId ? model.nodes.find((x5) => x5.id === n4.parentId) : void 0;
+    if (up && up !== n4) return findOwningProcess(up);
+    if (n4.laneId) {
+      for (const pool of pools) {
+        const ls = (_b3 = (_a4 = pool.attrs) == null ? void 0 : _a4.lanes) != null ? _b3 : [];
+        if (allLaneIds(ls).includes(n4.laneId)) return processByPoolId.get(pool.id);
+      }
+    }
+    const cx = n4.x + n4.width / 2;
+    const cy = n4.y + n4.height / 2;
+    for (const pool of pools) {
+      if (cx >= pool.x && cx <= pool.x + pool.width && cy >= pool.y && cy <= pool.y + pool.height) {
+        return processByPoolId.get(pool.id);
+      }
+    }
+    return process2;
+  };
+  const feById = /* @__PURE__ */ new Map();
+  for (const n4 of model.nodes) {
+    const srcKind = (_i = (_h = n4.attrs) == null ? void 0 : _h.__source) == null ? void 0 : _i.kind;
+    if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
+    const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), n4.shape === "bpmn-annotation" ? { id: n4.id, text: (_j = n4.label) != null ? _j : "" } : n4.shape === "bpmn-group" ? { id: n4.id } : { id: n4.id, name: (_k = n4.label) != null ? _k : "" });
+    applyBpmnExtras(m7, fe3, n4.shape, (_l = n4.attrs) != null ? _l : {});
+    feById.set(n4.id, fe3);
+  }
+  for (const n4 of model.nodes) {
+    const srcKind = (_n2 = (_m = n4.attrs) == null ? void 0 : _m.__source) == null ? void 0 : _n2.kind;
+    if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
+    const fe3 = feById.get(n4.id);
+    const parent = n4.parentId ? feById.get(n4.parentId) : void 0;
+    addToContainer(m7, defs, parent != null ? parent : findOwningProcess(n4), n4, fe3);
+  }
+  const allProcesses = multiPool ? [...processByPoolId.values()] : [process2];
+  for (const proc of allProcesses) {
+    const refsOf = (laneId) => model.nodes.filter((n4) => n4.laneId === laneId && findOwningProcess(n4) === proc).map((n4) => feById.get(n4.id)).filter((fe3) => !!fe3);
+    for (const ls of (_o = proc.laneSets) != null ? _o : []) fillLaneRefs(ls.lanes, refsOf);
+  }
+  const sfById = /* @__PURE__ */ new Map();
+  const nodeIdSet = new Set(model.nodes.map((n4) => n4.id));
+  const validEdges = model.edges.filter((e5) => nodeIdSet.has(e5.source) && nodeIdSet.has(e5.target));
+  const collaborationRoot = (_q = ((_p = defs.rootElements) != null ? _p : []).find((r5) => r5.$type === "bpmn:Collaboration")) != null ? _q : null;
+  const nodeById2 = new Map(model.nodes.map((n4) => [n4.id, n4]));
+  for (const e5 of validEdges) {
+    const kind = edgeKindOf(e5);
+    const srcNode = nodeById2.get(e5.source);
+    const tgtNode = nodeById2.get(e5.target);
+    const srcProc = srcNode ? findOwningProcess(srcNode) : process2;
+    const tgtProc = tgtNode ? findOwningProcess(tgtNode) : process2;
+    const isCrossPool = multiPool && srcProc !== tgtProc;
+    let typeStr = bpmnTypeForEdgeKind(kind);
+    if (kind === "message" && !collaborationRoot) typeStr = "bpmn:SequenceFlow";
+    if (isCrossPool && kind === "sequence" && collaborationRoot) {
+      typeStr = "bpmn:MessageFlow";
+    }
+    const refOf2 = (id) => {
+      var _a4, _b3;
+      return (_b3 = feById.get(id)) != null ? _b3 : typeStr === "bpmn:MessageFlow" ? (_a4 = collaborationRoot == null ? void 0 : collaborationRoot.participants) == null ? void 0 : _a4.find((p6) => p6.id === id) : void 0;
+    };
+    const sf = m7.create(typeStr, {
+      id: e5.id,
+      // bpmn:Association is an artifact with no `name` in the BPMN schema.
+      ...kind === "association" ? {} : { name: (_r = e5.label) != null ? _r : "" },
+      sourceRef: refOf2(e5.source),
+      targetRef: refOf2(e5.target)
+    });
+    if (!sf.sourceRef || !sf.targetRef) {
+      console.warn(`[omniboard:bpmn] dropped ${typeStr} "${e5.id}": endpoint has no BPMN element (${e5.source} \u2192 ${e5.target})`);
+      continue;
+    }
+    const extrasKind = typeStr === "bpmn:MessageFlow" ? "sequence" : kind === "message" && !collaborationRoot ? "sequence" : kind;
+    applyEdgeExtras(m7, sf, extrasKind, e5.attrs);
+    if (typeStr === "bpmn:MessageFlow" && collaborationRoot) {
+      ((_s = collaborationRoot.messageFlows) != null ? _s : collaborationRoot.messageFlows = []).push(sf);
+    } else if (kind === "association") {
+      ((_t3 = srcProc.artifacts) != null ? _t3 : srcProc.artifacts = []).push(sf);
+    } else if (kind === "message" && collaborationRoot) {
+      ((_u = collaborationRoot.messageFlows) != null ? _u : collaborationRoot.messageFlows = []).push(sf);
+    } else {
+      const p6 = srcNode == null ? void 0 : srcNode.parentId;
+      const home = p6 && p6 === (tgtNode == null ? void 0 : tgtNode.parentId) ? feById.get(p6) : void 0;
+      ((_w = (_v = home != null ? home : srcProc).flowElements) != null ? _w : _v.flowElements = []).push(sf);
+    }
+    sfById.set(e5.id, sf);
+  }
+  for (const e5 of validEdges) {
+    if (!((_x = e5.attrs) == null ? void 0 : _x.isDefault)) continue;
+    if (edgeKindOf(e5) !== "sequence") continue;
+    const srcFe = feById.get(e5.source);
+    const edgeFe = sfById.get(e5.id);
+    if (srcFe && edgeFe) srcFe.default = edgeFe;
+  }
+  const plane = m7.create("bpmndi:BPMNPlane", {
+    id: "Plane_Export",
+    bpmnElement: collaborationRoot != null ? collaborationRoot : process2,
+    planeElement: []
+  });
+  const diShape = /* @__PURE__ */ new Map();
+  const diEdge = /* @__PURE__ */ new Map();
+  for (const n4 of model.nodes) {
+    const srcKind = (_z = (_y = n4.attrs) == null ? void 0 : _y.__source) == null ? void 0 : _z.kind;
+    if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
+    const nLabel = nodeLabelBoundsFromModel(m7, n4);
+    const di = m7.create("bpmndi:BPMNShape", {
+      id: n4.id + "_di",
+      bpmnElement: feById.get(n4.id),
+      bounds: m7.create("dc:Bounds", { x: n4.x, y: n4.y, width: n4.width, height: n4.height }),
+      ...nLabel ? { label: m7.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {},
+      ...isCollapsed(n4) ? { isExpanded: false } : {}
+    });
+    applyNodeColours(di, n4);
+    plane.planeElement.push(di);
+    diShape.set(n4.id, di);
+  }
+  for (const e5 of validEdges) {
+    const src = model.nodes.find((n4) => n4.id === e5.source);
+    const tgt = model.nodes.find((n4) => n4.id === e5.target);
+    const sf = sfById.get(e5.id);
+    if (!src || !tgt || !sf) continue;
+    const waypoints = buildWaypoints(e5, src, tgt, m7);
+    const eLabel = edgeLabelBoundsFromModel(m7, e5, waypoints);
+    const de3 = m7.create("bpmndi:BPMNEdge", {
+      id: e5.id + "_di",
+      bpmnElement: sf,
+      waypoint: waypoints,
+      ...eLabel ? { label: m7.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}
+    });
+    plane.planeElement.push(de3);
+    diEdge.set(e5.id, de3);
+  }
+  emitPoolLaneShapes(model, defs, process2, plane, diShape, m7, multiPool ? processByPoolId : void 0, laneIdByPool);
+  const dia = m7.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
+  ((_A = defs.diagrams) != null ? _A : defs.diagrams = []).push(dia);
+  placeOnPlanes(defs, plane, model, diShape, diEdge, feById, m7);
+  const { xml: xml3 } = await m7.toXML(defs, { format: true });
+  return patchCamundaXml(withBiocNamespace(xml3), model);
+}
+var moddleSingleton, isCollapsed, diRefId, isSubPlane, isArtifactShape, BPMN_ID_START_RE, BPMN_ID_CHAR_RE, POOL_HEADER, LANE_HEADER, POOL_MARGIN;
+var init_export = __esm({
+  "src/io/bpmn/export.ts"() {
+    "use strict";
+    init_innerFlows();
+    init_diagramScope();
+    init_dist5();
+    init_laneLayout();
+    init_shapes();
+    init_labelGeometry();
+    init_eventTriggers();
+    moddleSingleton = null;
+    isCollapsed = (n4) => {
+      var _a3;
+      return ((_a3 = n4.attrs) == null ? void 0 : _a3.collapsed) === true;
+    };
+    diRefId = (pe3) => {
+      var _a3;
+      return typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a3 = pe3.bpmnElement) == null ? void 0 : _a3.id;
+    };
+    isSubPlane = (pl) => typeof pl.bpmnElement === "object" && /SubProcess|Transaction/.test(pl.bpmnElement.$type);
+    isArtifactShape = (shape) => shape === "bpmn-annotation" || shape === "bpmn-group";
+    BPMN_ID_START_RE = /^[A-Za-z_]/;
+    BPMN_ID_CHAR_RE = /[^A-Za-z0-9_.-]/g;
+    POOL_HEADER = 30;
+    LANE_HEADER = 30;
+    POOL_MARGIN = 40;
+  }
+});
+
 // node_modules/diagram-js/lib/util/Geometry.js
 function pointDistance(a5, b4) {
   if (!a5 || !b4) {
@@ -10743,17 +12328,17 @@ function pointsAligned(a5, b4) {
     "x": "v",
     "y": "h"
   };
-  for (const [axis, orientation] of Object.entries(axisMap)) {
-    if (pointsAlignedOnAxis(axis, points)) {
+  for (const [axis2, orientation] of Object.entries(axisMap)) {
+    if (pointsAlignedOnAxis(axis2, points)) {
       return orientation;
     }
   }
   return false;
 }
-function pointsAlignedOnAxis(axis, points) {
+function pointsAlignedOnAxis(axis2, points) {
   const referencePoint = points[0];
   return every(points, function(point) {
-    return Math.abs(referencePoint[axis] - point[axis]) <= ALIGNED_THRESHOLD;
+    return Math.abs(referencePoint[axis2] - point[axis2]) <= ALIGNED_THRESHOLD;
   });
 }
 function pointInRect(p6, rect2, tolerance) {
@@ -11499,15 +13084,16 @@ __export(import_exports, {
   inspectBpmnDiagrams: () => inspectBpmnDiagrams
 });
 function bpmnExtras(fn2, tagLc) {
-  var _a3, _b2, _c, _d;
+  var _a3, _b2, _c, _d, _e3, _f;
   const out = {};
   const defRaw = (_c = (_b2 = (_a3 = fn2.eventDefinitions) == null ? void 0 : _a3[0]) == null ? void 0 : _b2.$type) == null ? void 0 : _c.replace(/^bpmn:/, "");
   const defLc = defRaw ? defRaw.charAt(0).toLowerCase() + defRaw.slice(1) : void 0;
   if (defLc && EVENT_DEF_TO_TRIGGER[defLc]) out.trigger = EVENT_DEF_TO_TRIGGER[defLc];
+  if (((_e3 = (_d = fn2.eventDefinitions) == null ? void 0 : _d.length) != null ? _e3 : 0) > 1) out.trigger = fn2.parallelMultiple ? "parallel-multiple" : "multiple";
   if (tagLc === "intermediateThrowEvent" || tagLc === "endEvent") out.throwing = true;
   if (tagLc === "boundaryEvent") {
     out.interrupting = fn2.cancelActivity !== false;
-    if ((_d = fn2.attachedToRef) == null ? void 0 : _d.id) out.attachedTo = fn2.attachedToRef.id;
+    if ((_f = fn2.attachedToRef) == null ? void 0 : _f.id) out.attachedTo = fn2.attachedToRef.id;
   } else if (fn2.isInterrupting === false) {
     out.interrupting = false;
   }
@@ -11610,18 +13196,19 @@ async function inspectBpmnDiagrams(raw2) {
   var _a3;
   const { rootElement: definitions } = await moddle2().fromXML(raw2, "bpmn:Definitions");
   const diagrams = ((_a3 = definitions.diagrams) != null ? _a3 : []).map((d4, index4) => {
-    var _a4, _b2, _c, _d, _e3, _f;
+    var _a4, _b2, _c, _d, _e3, _f, _g, _h, _i;
     return {
       index: index4,
       id: (_a4 = d4.id) != null ? _a4 : `Diagram_${index4 + 1}`,
       planeRef: (_c = (_b2 = d4.plane) == null ? void 0 : _b2.bpmnElement) == null ? void 0 : _c.id,
-      elementCount: (_f = (_e3 = (_d = d4.plane) == null ? void 0 : _d.planeElement) == null ? void 0 : _e3.length) != null ? _f : 0
+      elementCount: (_f = (_e3 = (_d = d4.plane) == null ? void 0 : _d.planeElement) == null ? void 0 : _e3.length) != null ? _f : 0,
+      subProcess: /SubProcess|Transaction/.test((_i = (_h = (_g = d4.plane) == null ? void 0 : _g.bpmnElement) == null ? void 0 : _h.$type) != null ? _i : "")
     };
   });
   return { diagramCount: diagrams.length, diagrams };
 }
 async function importBpmn(raw2, options) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I, _J, _K, _L;
+  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I, _J, _K, _L, _M, _N;
   if (raw2.length > MAX_BPMN_BYTES) {
     throw new Error(`BPMN file qu\xE1 l\u1EDBn (${(raw2.length / 1024 / 1024).toFixed(1)} MB). Gi\u1EDBi h\u1EA1n: 4 MB.`);
   }
@@ -11638,7 +13225,7 @@ async function importBpmn(raw2, options) {
   const associations2 = [];
   const messageFlows = [];
   const collectFlow = (parent, parentSubprocessId) => {
-    var _a4, _b3, _c2, _d2;
+    var _a4, _b3, _c2, _d2, _e4, _f2;
     for (const fe3 of (_a4 = parent.flowElements) != null ? _a4 : []) {
       if (FLOW_NODE_TYPES.has(fe3.$type)) {
         flowNodes.push(fe3);
@@ -11654,6 +13241,11 @@ async function importBpmn(raw2, options) {
     for (const ar of (_d2 = parent.artifacts) != null ? _d2 : []) {
       if (ar.$type === "bpmn:Association") associations2.push(ar);
       else if (ar.$type === "bpmn:TextAnnotation" || ar.$type === "bpmn:Group") flowNodes.push(ar);
+    }
+    const io = parent.ioSpecification;
+    for (const d4 of [...(_e4 = io == null ? void 0 : io.dataInputs) != null ? _e4 : [], ...(_f2 = io == null ? void 0 : io.dataOutputs) != null ? _f2 : []]) {
+      flowNodes.push(d4);
+      if (parentSubprocessId && d4.id) flowNodeParentId.set(d4.id, parentSubprocessId);
     }
   };
   for (const root2 of (_a3 = definitions.rootElements) != null ? _a3 : []) {
@@ -11694,11 +13286,20 @@ async function importBpmn(raw2, options) {
   }
   for (const root2 of (_g = definitions.rootElements) != null ? _g : []) {
     if (root2.$type !== "bpmn:Process") continue;
-    for (const ls of (_h = root2.laneSets) != null ? _h : []) {
-      for (const ln3 of (_i = ls.lanes) != null ? _i : []) if (ln3.id) candidateIds.add(ln3.id);
-    }
+    const addLanes = (lanes) => {
+      var _a4;
+      for (const ln3 of lanes != null ? lanes : []) {
+        if (ln3.id) candidateIds.add(ln3.id);
+        addLanes((_a4 = ln3.childLaneSet) == null ? void 0 : _a4.lanes);
+      }
+    };
+    for (const ls of (_h = root2.laneSets) != null ? _h : []) addLanes(ls.lanes);
   }
-  const diagrams = (_j = definitions.diagrams) != null ? _j : [];
+  const diagrams = (_i = definitions.diagrams) != null ? _i : [];
+  const isSubPlane2 = (dia) => {
+    var _a4, _b3, _c2;
+    return /SubProcess|Transaction/.test((_c2 = (_b3 = (_a4 = dia.plane) == null ? void 0 : _a4.bpmnElement) == null ? void 0 : _b3.$type) != null ? _c2 : "");
+  };
   let chosenDiagramIndex = 0;
   const requested = options == null ? void 0 : options.diagramIndex;
   if (typeof requested === "number" && requested >= 0 && requested < diagrams.length) {
@@ -11707,6 +13308,7 @@ async function importBpmn(raw2, options) {
     let bestScore = -1;
     diagrams.forEach((dia, idx) => {
       var _a4, _b3;
+      if (isSubPlane2(dia)) return;
       let score = 0;
       for (const pe3 of (_a4 = dia.plane.planeElement) != null ? _a4 : []) {
         const id = (_b3 = pe3.bpmnElement) == null ? void 0 : _b3.id;
@@ -11718,14 +13320,25 @@ async function importBpmn(raw2, options) {
       }
     });
   }
-  if (diagrams.length > 1) {
+  if (diagrams.filter((d4) => !isSubPlane2(d4)).length > 1) {
     warnings.push(`BPMN c\xF3 ${diagrams.length} diagrams; \u0111ang import plane #${chosenDiagramIndex + 1} (nhi\u1EC1u ph\u1EA7n t\u1EED nh\u1EA5t).`);
   }
-  const chosenPlane = (_k = diagrams[chosenDiagramIndex]) == null ? void 0 : _k.plane;
+  const chosenPlane = (_j = diagrams[chosenDiagramIndex]) == null ? void 0 : _j.plane;
+  const foreign = foreignIds(diagrams.filter((d4) => !isSubPlane2(d4)).map((d4) => d4.plane), [chosenPlane, ...diagrams.filter(isSubPlane2).map((d4) => d4.plane)].filter(Boolean));
+  addForeignFlows(foreign, [...sequenceFlows, ...associations2, ...messageFlows]);
+  if (foreign.size) {
+    for (const list of [flowNodes, sequenceFlows, associations2, messageFlows]) {
+      list.splice(0, list.length, ...list.filter((e5) => !e5.id || !foreign.has(e5.id)));
+    }
+  }
   const diShapes = /* @__PURE__ */ new Map();
   const diEdges = /* @__PURE__ */ new Map();
-  for (const pe3 of (_l = chosenPlane == null ? void 0 : chosenPlane.planeElement) != null ? _l : []) {
-    const refId = (_m = pe3.bpmnElement) == null ? void 0 : _m.id;
+  const readPlanes = [...diagrams.filter(isSubPlane2).map((d4) => d4.plane), ...chosenPlane ? [chosenPlane] : []];
+  for (const pe3 of readPlanes.flatMap((pl) => {
+    var _a4;
+    return (_a4 = pl.planeElement) != null ? _a4 : [];
+  })) {
+    const refId = (_k = pe3.bpmnElement) == null ? void 0 : _k.id;
     if (!refId) continue;
     if (pe3.$type === "bpmndi:BPMNShape") diShapes.set(refId, pe3);
     else if (pe3.$type === "bpmndi:BPMNEdge") diEdges.set(refId, pe3);
@@ -11736,14 +13349,17 @@ async function importBpmn(raw2, options) {
     const tag = fn2.$type.replace(/^bpmn:/, "");
     const tagLc = tag.charAt(0).toLowerCase() + tag.slice(1);
     const extras = bpmnExtras(fn2, tagLc);
-    const shape = (_o = (_n2 = extras.kindOverride) != null ? _n2 : BPMN_TO_SHAPE[tagLc]) != null ? _o : "bpmn-task";
     const di = diShapes.get(id);
+    const collapsedTask = tagLc === "subProcess" && !extras.kindOverride && (di == null ? void 0 : di.isExpanded) === false && !((_l = fn2.flowElements) == null ? void 0 : _l.length);
+    const collection = tagLc === "dataObjectReference" && ((_m = fn2.dataObjectRef) == null ? void 0 : _m.isCollection) === true;
+    const shape = collapsedTask ? "bpmn-task" : collection ? "bpmn-data-collection" : (_o = (_n2 = extras.kindOverride) != null ? _n2 : BPMN_TO_SHAPE[tagLc]) != null ? _o : "bpmn-task";
+    const markers = collapsedTask ? [...(_p = extras.markers) != null ? _p : [], "subprocess"] : extras.markers;
     const bounds = di == null ? void 0 : di.bounds;
-    const x5 = (_p = bounds == null ? void 0 : bounds.x) != null ? _p : 100;
-    const y5 = (_q = bounds == null ? void 0 : bounds.y) != null ? _q : 100;
-    const width2 = (_r = bounds == null ? void 0 : bounds.width) != null ? _r : tagLc.endsWith("Event") ? 36 : 100;
-    const height2 = (_s = bounds == null ? void 0 : bounds.height) != null ? _s : tagLc.endsWith("Event") ? 36 : 60;
-    const labelBounds = (_t3 = di == null ? void 0 : di.label) == null ? void 0 : _t3.bounds;
+    const x5 = (_q = bounds == null ? void 0 : bounds.x) != null ? _q : 100;
+    const y5 = (_r = bounds == null ? void 0 : bounds.y) != null ? _r : 100;
+    const width2 = (_s = bounds == null ? void 0 : bounds.width) != null ? _s : tagLc.endsWith("Event") ? 36 : 100;
+    const height2 = (_t3 = bounds == null ? void 0 : bounds.height) != null ? _t3 : tagLc.endsWith("Event") ? 36 : 60;
+    const labelBounds = (_u = di == null ? void 0 : di.label) == null ? void 0 : _u.bounds;
     let nodeLabelOffset;
     if (labelBounds) {
       const labelCenterY = labelBounds.y + labelBounds.height / 2;
@@ -11770,18 +13386,14 @@ async function importBpmn(raw2, options) {
       y: y5,
       width: width2,
       height: height2,
-      label: ((_u = fn2.$type === "bpmn:TextAnnotation" ? fn2.text : fn2.name) != null ? _u : "").replace(/&#10;/g, "\n"),
+      label: ((_w = fn2.$type === "bpmn:TextAnnotation" ? fn2.text : fn2.$type === "bpmn:Group" ? (_v = fn2.categoryValueRef) == null ? void 0 : _v.value : fn2.name) != null ? _w : "").replace(/&#10;/g, "\n"),
       ...flowNodeParentId.get(id) ? { parentId: flowNodeParentId.get(id) } : {},
       ...flowNodeLaneId.get(id) ? { laneId: flowNodeLaneId.get(id) } : {},
       attrs: {
         // Phase C — preserve DI.isExpanded so collapse state survives round-trip.
         ...(di == null ? void 0 : di.isExpanded) === false ? { collapsed: true } : {},
-        // Phase D — bioc/color-spec explicit fill/stroke stored separately so
-        // the panel can write back named DI attrs (not just canvas node style).
-        ...fill2 ? { bpmnFill: fill2 } : {},
-        ...stroke3 ? { bpmnStroke: stroke3 } : {},
         // Phase D — documentation text (first <bpmn:documentation> element body).
-        ...((_w = (_v = fn2.documentation) == null ? void 0 : _v[0]) == null ? void 0 : _w.text) ? { bpmnDoc: fn2.documentation[0].text } : {},
+        ...((_y = (_x = fn2.documentation) == null ? void 0 : _x[0]) == null ? void 0 : _y.text) ? { bpmnDoc: fn2.documentation[0].text } : {},
         // Phase D — Camunda attrs (in $attrs) + extensionElements property values.
         ...parseCamundaExt(fn2.extensionElements, fn2.$attrs),
         __source: { format: "bpmn", sourceId: id, tag: tagLc },
@@ -11791,17 +13403,18 @@ async function importBpmn(raw2, options) {
         ...extras.throwing !== void 0 ? { throwing: extras.throwing } : {},
         ...extras.interrupting !== void 0 ? { interrupting: extras.interrupting } : {},
         ...extras.attachedTo ? { attachedTo: extras.attachedTo } : {},
-        ...extras.markers ? { markers: extras.markers } : {},
-        ...nodeLabelOffset ? { labelOffset: nodeLabelOffset } : {}
+        ...markers ? { markers } : {},
+        ...nodeLabelOffset ? { labelOffset: nodeLabelOffset } : {},
+        ...fn2.calledElement ? { calledElement: fn2.calledElement } : {}
       }
     });
     if (!di) warnings.push(`BPMN flow node "${id}" thi\u1EBFu BPMNShape DI \u2014 \u0111\u1EB7t v\u1ECB tr\xED m\u1EB7c \u0111\u1ECBnh.`);
   }
   const nodeBox2 = /* @__PURE__ */ new Map();
   for (const n4 of model.nodes) nodeBox2.set(n4.id, { x: n4.x, y: n4.y, width: n4.width, height: n4.height });
-  for (const root2 of (_x = definitions.rootElements) != null ? _x : []) {
-    for (const part of (_y = root2.participants) != null ? _y : []) {
-      const b4 = part.id ? (_z = diShapes.get(part.id)) == null ? void 0 : _z.bounds : void 0;
+  for (const root2 of (_z = definitions.rootElements) != null ? _z : []) {
+    for (const part of (_A = root2.participants) != null ? _A : []) {
+      const b4 = part.id ? (_B = diShapes.get(part.id)) == null ? void 0 : _B.bounds : void 0;
       if (b4 && part.id) nodeBox2.set(part.id, b4);
     }
   }
@@ -11906,43 +13519,44 @@ async function importBpmn(raw2, options) {
   }
   for (const edge of model.edges) {
     if (defaultEdgeIds.has(edge.id)) {
-      edge.attrs = { ...(_A = edge.attrs) != null ? _A : {}, isDefault: true };
+      edge.attrs = { ...(_C = edge.attrs) != null ? _C : {}, isDefault: true };
     }
   }
   const defs = definitions;
   const processById = /* @__PURE__ */ new Map();
-  for (const root2 of (_B = defs.rootElements) != null ? _B : []) {
+  for (const root2 of (_D = defs.rootElements) != null ? _D : []) {
     if (root2.$type === "bpmn:Process" && root2.id) processById.set(root2.id, root2);
   }
   const pools = [];
   const HEADER = 44;
   const LANE_HEAD = 24;
-  const PAD = 30;
+  const PAD2 = 30;
   const flowNodePoolId = /* @__PURE__ */ new Map();
-  for (const root2 of (_C = defs.rootElements) != null ? _C : []) {
+  for (const root2 of (_E = defs.rootElements) != null ? _E : []) {
     if (root2.$type !== "bpmn:Collaboration") continue;
-    for (const part of (_D = root2.participants) != null ? _D : []) {
-      const processRefId = (_E = part.processRef) == null ? void 0 : _E.id;
+    for (const part of (_F = root2.participants) != null ? _F : []) {
+      if (part.id && foreign.has(part.id)) continue;
+      const processRefId = (_G = part.processRef) == null ? void 0 : _G.id;
       const proc = processRefId ? processById.get(processRefId) : void 0;
-      const lanes = ((_F = proc == null ? void 0 : proc.laneSets) != null ? _F : []).flatMap((ls) => {
+      const lanes = ((_H = proc == null ? void 0 : proc.laneSets) != null ? _H : []).flatMap((ls) => {
         var _a4;
         return (_a4 = ls.lanes) != null ? _a4 : [];
       });
-      const poolIsHorizontal = part.id ? ((_G = diShapes.get(part.id)) == null ? void 0 : _G.isHorizontal) !== false : true;
-      const toLaneAttr = (ln3, depth) => {
+      const poolIsHorizontal = part.id ? ((_I = diShapes.get(part.id)) == null ? void 0 : _I.isHorizontal) !== false : true;
+      const toLaneAttr = (ln3) => {
         var _a4, _b3, _c2, _d2, _e4;
         const b4 = ln3.id ? (_a4 = diShapes.get(ln3.id)) == null ? void 0 : _a4.bounds : void 0;
         const size2 = poolIsHorizontal ? b4 == null ? void 0 : b4.height : b4 == null ? void 0 : b4.width;
         const key = poolIsHorizontal ? "height" : "width";
-        const children2 = depth === 0 ? (_c2 = (_b3 = ln3.childLaneSet) == null ? void 0 : _b3.lanes) != null ? _c2 : [] : [];
+        const children2 = (_c2 = (_b3 = ln3.childLaneSet) == null ? void 0 : _b3.lanes) != null ? _c2 : [];
         return {
           id: (_d2 = ln3.id) != null ? _d2 : "",
           label: (_e4 = ln3.name) != null ? _e4 : "",
           ...size2 && size2 > 0 ? { [key]: size2 } : {},
-          ...children2.length ? { lanes: children2.map((c6) => toLaneAttr(c6, 1)) } : {}
+          ...children2.length ? { lanes: children2.map(toLaneAttr) } : {}
         };
       };
-      const laneAttrs = lanes.map((ln3) => toLaneAttr(ln3, 0));
+      const laneAttrs = lanes.map(toLaneAttr);
       let px2, py, pw, ph;
       const partDi = part.id ? diShapes.get(part.id) : void 0;
       if (partDi == null ? void 0 : partDi.bounds) {
@@ -11959,10 +13573,10 @@ async function importBpmn(raw2, options) {
         const minY = Math.min(...box.map((n4) => n4.y));
         const maxX = Math.max(...box.map((n4) => n4.x + n4.width));
         const maxY = Math.max(...box.map((n4) => n4.y + n4.height));
-        px2 = minX - HEADER - LANE_HEAD - PAD;
-        py = minY - PAD;
-        pw = maxX - minX + HEADER + LANE_HEAD + PAD * 2;
-        ph = maxY - minY + PAD * 2;
+        px2 = minX - HEADER - LANE_HEAD - PAD2;
+        py = minY - PAD2;
+        pw = maxX - minX + HEADER + LANE_HEAD + PAD2 * 2;
+        ph = maxY - minY + PAD2 * 2;
       }
       if ((proc == null ? void 0 : proc.flowElements) && part.id) {
         for (const fe3 of proc.flowElements) {
@@ -11971,13 +13585,13 @@ async function importBpmn(raw2, options) {
       }
       const isBlackBox = !processRefId;
       pools.push({
-        id: (_H = part.id) != null ? _H : `pool_${pools.length}`,
+        id: (_J = part.id) != null ? _J : `pool_${pools.length}`,
         shape: "bpmn-pool",
         x: px2,
         y: py,
         width: pw,
         height: ph,
-        label: (_I = part.name) != null ? _I : "",
+        label: (_K = part.name) != null ? _K : "",
         attrs: {
           lanes: laneAttrs.length ? laneAttrs : void 0,
           poolHorizontal: poolIsHorizontal,
@@ -11990,7 +13604,7 @@ async function importBpmn(raw2, options) {
   for (const n4 of model.nodes) {
     const pid = flowNodePoolId.get(n4.id);
     if (pid) {
-      n4.attrs = { ...(_J = n4.attrs) != null ? _J : {}, poolId: pid, __source: { ...(_L = (_K = n4.attrs) == null ? void 0 : _K.__source) != null ? _L : {}, poolId: pid } };
+      n4.attrs = { ...(_L = n4.attrs) != null ? _L : {}, poolId: pid, __source: { ...(_N = (_M = n4.attrs) == null ? void 0 : _M.__source) != null ? _N : {}, poolId: pid } };
     }
   }
   if (pools.length) model.nodes.unshift(...pools);
@@ -12001,6 +13615,7 @@ var FLOW_NODE_TYPES, moddleSingleton2, MAX_BPMN_BYTES;
 var init_import = __esm({
   "src/io/bpmn/import.ts"() {
     "use strict";
+    init_diagramScope();
     init_dist5();
     init_LayoutUtil();
     init_labelGeometry();
@@ -18144,7 +19759,7 @@ var require_html2canvas = __commonJS({
           });
         }
       };
-      var paintOrder = {
+      var paintOrder2 = {
         name: "paint-order",
         initialValue: "normal",
         prefix: false,
@@ -18264,7 +19879,7 @@ var require_html2canvas = __commonJS({
             this.paddingRight = parse3(context, paddingRight, declaration.paddingRight);
             this.paddingBottom = parse3(context, paddingBottom, declaration.paddingBottom);
             this.paddingLeft = parse3(context, paddingLeft, declaration.paddingLeft);
-            this.paintOrder = parse3(context, paintOrder, declaration.paintOrder);
+            this.paintOrder = parse3(context, paintOrder2, declaration.paintOrder);
             this.position = parse3(context, position2, declaration.position);
             this.textAlign = parse3(context, textAlign, declaration.textAlign);
             this.textDecorationColor = parse3(context, textDecorationColor, (_a3 = declaration.textDecorationColor) !== null && _a3 !== void 0 ? _a3 : declaration.color);
@@ -20135,9 +21750,9 @@ var require_html2canvas = __commonJS({
                 anonymousReplacedElement.appendChild(img);
               } else if (token.type === 18) {
                 if (token.name === "attr") {
-                  var attr4 = token.values.filter(isIdentToken);
-                  if (attr4.length) {
-                    anonymousReplacedElement.appendChild(document2.createTextNode(node3.getAttribute(attr4[0].value) || ""));
+                  var attr5 = token.values.filter(isIdentToken);
+                  if (attr5.length) {
+                    anonymousReplacedElement.appendChild(document2.createTextNode(node3.getAttribute(attr5[0].value) || ""));
                   }
                 } else if (token.name === "counter") {
                   var _a3 = token.values.filter(nonFunctionArgSeparator), counter = _a3[0], counterStyle = _a3[1];
@@ -21162,7 +22777,7 @@ var require_html2canvas = __commonJS({
           FontMetrics2.prototype.parseMetrics = function(fontFamily2, fontSize2) {
             var container = this._document.createElement("div");
             var img = this._document.createElement("img");
-            var span = this._document.createElement("span");
+            var span2 = this._document.createElement("span");
             var body = this._document.body;
             container.style.visibility = "hidden";
             container.style.fontFamily = fontFamily2;
@@ -21177,15 +22792,15 @@ var require_html2canvas = __commonJS({
             img.style.margin = "0";
             img.style.padding = "0";
             img.style.verticalAlign = "baseline";
-            span.style.fontFamily = fontFamily2;
-            span.style.fontSize = fontSize2;
-            span.style.margin = "0";
-            span.style.padding = "0";
-            span.appendChild(this._document.createTextNode(SAMPLE_TEXT));
-            container.appendChild(span);
+            span2.style.fontFamily = fontFamily2;
+            span2.style.fontSize = fontSize2;
+            span2.style.margin = "0";
+            span2.style.padding = "0";
+            span2.appendChild(this._document.createTextNode(SAMPLE_TEXT));
+            container.appendChild(span2);
             container.appendChild(img);
-            var baseline = img.offsetTop - span.offsetTop + 2;
-            container.removeChild(span);
+            var baseline = img.offsetTop - span2.offsetTop + 2;
+            container.removeChild(span2);
             container.appendChild(this._document.createTextNode(SAMPLE_TEXT));
             container.style.lineHeight = "normal";
             img.style.verticalAlign = "super";
@@ -21342,7 +22957,7 @@ var require_html2canvas = __commonJS({
           };
           CanvasRenderer2.prototype.renderTextNode = function(text4, styles) {
             return __awaiter(this, void 0, void 0, function() {
-              var _a3, font, fontFamily2, fontSize2, _b2, baseline, middle, paintOrder2;
+              var _a3, font, fontFamily2, fontSize2, _b2, baseline, middle, paintOrder3;
               var _this = this;
               return __generator(this, function(_c) {
                 _a3 = this.createFontStyle(styles), font = _a3[0], fontFamily2 = _a3[1], fontSize2 = _a3[2];
@@ -21351,9 +22966,9 @@ var require_html2canvas = __commonJS({
                 this.ctx.textAlign = "left";
                 this.ctx.textBaseline = "alphabetic";
                 _b2 = this.fontMetrics.getMetrics(fontFamily2, fontSize2), baseline = _b2.baseline, middle = _b2.middle;
-                paintOrder2 = styles.paintOrder;
+                paintOrder3 = styles.paintOrder;
                 text4.textBounds.forEach(function(text5) {
-                  paintOrder2.forEach(function(paintOrderLayer) {
+                  paintOrder3.forEach(function(paintOrderLayer) {
                     switch (paintOrderLayer) {
                       case 0:
                         _this.ctx.fillStyle = asString(styles.color);
@@ -23235,8 +24850,8 @@ function createDOMPurify() {
     };
     let l5 = attributes.length;
     while (l5--) {
-      const attr4 = attributes[l5];
-      const name2 = attr4.name, namespaceURI = attr4.namespaceURI, attrValue = attr4.value;
+      const attr5 = attributes[l5];
+      const name2 = attr5.name, namespaceURI = attr5.namespaceURI, attrValue = attr5.value;
       const lcName = transformCaseFunc(name2);
       const initValue = attrValue;
       let value = name2 === "value" ? initValue : stringTrim(initValue);
@@ -23478,12 +25093,12 @@ function createDOMPurify() {
     CONFIG = null;
     SET_CONFIG = false;
   };
-  DOMPurify.isValidAttribute = function(tag, attr4, value) {
+  DOMPurify.isValidAttribute = function(tag, attr5, value) {
     if (!CONFIG) {
       _parseConfig({});
     }
     const lcTag = transformCaseFunc(tag);
-    const lcName = transformCaseFunc(attr4);
+    const lcName = transformCaseFunc(attr5);
     return _isValidAttribute(lcTag, lcName, value);
   };
   DOMPurify.addHook = function(entryPoint, hookFunction) {
@@ -24632,18 +26247,18 @@ var require_array_includes = __commonJS({
     var toAbsoluteIndex = require_to_absolute_index();
     var lengthOfArrayLike = require_length_of_array_like();
     var createMethod = function(IS_INCLUDES) {
-      return function($this, el4, fromIndex) {
+      return function($this, el3, fromIndex) {
         var O5 = toIndexedObject($this);
         var length3 = lengthOfArrayLike(O5);
         if (length3 === 0) return !IS_INCLUDES && -1;
         var index4 = toAbsoluteIndex(fromIndex, length3);
         var value;
-        if (IS_INCLUDES && el4 !== el4) while (length3 > index4) {
+        if (IS_INCLUDES && el3 !== el3) while (length3 > index4) {
           value = O5[index4++];
           if (value !== value) return true;
         }
         else for (; length3 > index4; index4++) {
-          if ((IS_INCLUDES || index4 in O5) && O5[index4] === el4) return IS_INCLUDES || index4 || 0;
+          if ((IS_INCLUDES || index4 in O5) && O5[index4] === el3) return IS_INCLUDES || index4 || 0;
         }
         return !IS_INCLUDES && -1;
       };
@@ -29372,7 +30987,7 @@ var init_index_es = __esm({
         if (!this.hasValue()) {
           return 0;
         }
-        var [axis, isFontSize] = typeof axisOrIsFontSize === "boolean" ? [void 0, axisOrIsFontSize] : [axisOrIsFontSize];
+        var [axis2, isFontSize] = typeof axisOrIsFontSize === "boolean" ? [void 0, axisOrIsFontSize] : [axisOrIsFontSize];
         var {
           viewPort
         } = this.document.screen;
@@ -29406,11 +31021,11 @@ var init_index_es = __esm({
           case (this.isString(/%$/) && isFontSize):
             return this.getNumber() * this.getEm();
           case this.isString(/%$/):
-            return this.getNumber() * viewPort.computeSize(axis);
+            return this.getNumber() * viewPort.computeSize(axis2);
           default: {
             var n4 = this.getNumber();
             if (processPercent && n4 < 1) {
-              return n4 * viewPort.computeSize(axis);
+              return n4 * viewPort.computeSize(axis2);
             }
             return n4;
           }
@@ -30427,13 +32042,13 @@ var init_index_es = __esm({
       }
       getAttribute(name2) {
         var createIfNotExists = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : false;
-        var attr4 = this.attributes[name2];
-        if (!attr4 && createIfNotExists) {
+        var attr5 = this.attributes[name2];
+        if (!attr5 && createIfNotExists) {
           var _attr = new Property(this.document, name2, "");
           this.attributes[name2] = _attr;
           return _attr;
         }
-        return attr4 || Property.empty(this.document);
+        return attr5 || Property.empty(this.document);
       }
       getHrefAttribute() {
         for (var key in this.attributes) {
@@ -30450,10 +32065,10 @@ var init_index_es = __esm({
         if (style2) {
           return style2;
         }
-        var attr4 = this.getAttribute(name2);
-        if (attr4 !== null && attr4 !== void 0 && attr4.hasValue()) {
-          this.styles[name2] = attr4;
-          return attr4;
+        var attr5 = this.getAttribute(name2);
+        if (attr5 !== null && attr5 !== void 0 && attr5.hasValue()) {
+          this.styles[name2] = attr5;
+          return attr5;
         }
         if (!skipAncestors) {
           var {
@@ -41429,16 +43044,34 @@ var init_jspdf_es_min = __esm({
   }
 });
 
+// src/io/bpmn/switchDiagram.ts
+var switchDiagram_exports = {};
+__export(switchDiagram_exports, {
+  switchBpmnDiagram: () => switchBpmnDiagram
+});
+async function switchBpmnDiagram(model, meta, index4) {
+  const raw2 = await exportBpmn(model, meta);
+  const { model: next, sourceMeta, warnings } = await importBpmn(raw2, { diagramIndex: index4 });
+  return { model: next, sourceMeta, warnings };
+}
+var init_switchDiagram = __esm({
+  "src/io/bpmn/switchDiagram.ts"() {
+    "use strict";
+    init_export();
+    init_import();
+  }
+});
+
 // src/main.ts
 var main_exports18 = {};
 __export(main_exports18, {
   default: () => DiagramsPlugin
 });
 module.exports = __toCommonJS(main_exports18);
-var import_obsidian13 = require("obsidian");
+var import_obsidian12 = require("obsidian");
 
 // src/view/BoardView.ts
-var import_obsidian6 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 
 // node_modules/preact/dist/preact.module.js
 var n;
@@ -44994,7 +46627,7 @@ function baseSortedIndexBy(array, value, iteratee, retHighest) {
   value = iteratee(value);
   var valIsNaN = value !== value, valIsNull = value === null, valIsSymbol = isSymbol_default(value), valIsUndefined = value === void 0;
   while (low < high) {
-    var mid4 = nativeFloor((low + high) / 2), computed = iteratee(array[mid4]), othIsDefined = computed !== void 0, othIsNull = computed === null, othIsReflexive = computed === computed, othIsSymbol = isSymbol_default(computed);
+    var mid5 = nativeFloor((low + high) / 2), computed = iteratee(array[mid5]), othIsDefined = computed !== void 0, othIsNull = computed === null, othIsReflexive = computed === computed, othIsSymbol = isSymbol_default(computed);
     if (valIsNaN) {
       var setLow = retHighest || othIsReflexive;
     } else if (valIsUndefined) {
@@ -45009,9 +46642,9 @@ function baseSortedIndexBy(array, value, iteratee, retHighest) {
       setLow = retHighest ? computed <= value : computed < value;
     }
     if (setLow) {
-      low = mid4 + 1;
+      low = mid5 + 1;
     } else {
-      high = mid4;
+      high = mid5;
     }
   }
   return nativeMin2(high, MAX_ARRAY_INDEX);
@@ -45025,11 +46658,11 @@ function baseSortedIndex(array, value, retHighest) {
   var low = 0, high = array == null ? low : array.length;
   if (typeof value == "number" && value === value && high <= HALF_MAX_ARRAY_LENGTH) {
     while (low < high) {
-      var mid4 = low + high >>> 1, computed = array[mid4];
+      var mid5 = low + high >>> 1, computed = array[mid5];
       if (computed !== null && !isSymbol_default(computed) && (retHighest ? computed <= value : computed < value)) {
-        low = mid4 + 1;
+        low = mid5 + 1;
       } else {
-        high = mid4;
+        high = mid5;
       }
     }
     return high;
@@ -46229,30 +47862,30 @@ function styleToObject(styleString) {
   return ret;
 }
 function mergeAttrs(target, source) {
-  Object.keys(source).forEach((attr4) => {
-    if (attr4 === "class") {
-      target[attr4] = target[attr4] ? `${target[attr4]} ${source[attr4]}` : source[attr4];
-    } else if (attr4 === "style") {
-      const to = typeof target[attr4] === "object";
-      const so = typeof source[attr4] === "object";
+  Object.keys(source).forEach((attr5) => {
+    if (attr5 === "class") {
+      target[attr5] = target[attr5] ? `${target[attr5]} ${source[attr5]}` : source[attr5];
+    } else if (attr5 === "style") {
+      const to = typeof target[attr5] === "object";
+      const so = typeof source[attr5] === "object";
       let tt3;
       let ss;
       if (to && so) {
-        tt3 = target[attr4];
-        ss = source[attr4];
+        tt3 = target[attr5];
+        ss = source[attr5];
       } else if (to) {
-        tt3 = target[attr4];
-        ss = styleToObject(source[attr4]);
+        tt3 = target[attr5];
+        ss = styleToObject(source[attr5]);
       } else if (so) {
-        tt3 = styleToObject(target[attr4]);
-        ss = source[attr4];
+        tt3 = styleToObject(target[attr5]);
+        ss = source[attr5];
       } else {
-        tt3 = styleToObject(target[attr4]);
-        ss = styleToObject(source[attr4]);
+        tt3 = styleToObject(target[attr5]);
+        ss = styleToObject(source[attr5]);
       }
-      target[attr4] = mergeAttrs(tt3, ss);
+      target[attr5] = mergeAttrs(tt3, ss);
     } else {
-      target[attr4] = source[attr4];
+      target[attr5] = source[attr5];
     }
   });
   return target;
@@ -47564,8 +49197,8 @@ function breakText(text4, size2, styles = {}, options = {}) {
 
 // node_modules/@antv/x6-common/es/dom/path.js
 var KAPPA = 0.551784;
-function getNumbericAttribute(elem, attr4, defaultValue = NaN) {
-  const v6 = elem.getAttribute(attr4);
+function getNumbericAttribute(elem, attr5, defaultValue = NaN) {
+  const v6 = elem.getAttribute(attr5);
   if (v6 == null) {
     return defaultValue;
   }
@@ -50174,7 +51807,7 @@ var GeometryUtil;
     return Math.floor(Math.random() * (mmax2 - mmin2 + 1) + mmin2);
   }
   GeometryUtil2.random = random2;
-  function clamp3(value, min5, max9) {
+  function clamp4(value, min5, max9) {
     if (Number.isNaN(value)) {
       return NaN;
     }
@@ -50183,7 +51816,7 @@ var GeometryUtil;
     }
     return min5 < max9 ? value < min5 ? min5 : value > max9 ? max9 : value : value < max9 ? max9 : value > min5 ? min5 : value;
   }
-  GeometryUtil2.clamp = clamp3;
+  GeometryUtil2.clamp = clamp4;
   function snapToGrid(value, gridSize) {
     return gridSize * Math.round(value / gridSize);
   }
@@ -55479,7 +57112,7 @@ var refX2 = refX;
 var refY2 = refY;
 var refWidth2 = refWidth;
 var refHeight2 = refHeight;
-function positionWrapper(axis, dimension, origin) {
+function positionWrapper(axis2, dimension, origin) {
   return (val, { refBBox }) => {
     if (val == null) {
       return null;
@@ -55493,13 +57126,13 @@ function positionWrapper(axis, dimension, origin) {
     if (Number.isFinite(value)) {
       const refOrigin = refBBox[origin];
       if (percentage || value > 0 && value < 1) {
-        delta2 = refOrigin[axis] + refBBox[dimension] * value;
+        delta2 = refOrigin[axis2] + refBBox[dimension] * value;
       } else {
-        delta2 = refOrigin[axis] + value;
+        delta2 = refOrigin[axis2] + value;
       }
     }
     const point = new Point();
-    point[axis] = delta2 || 0;
+    point[axis2] = delta2 || 0;
     return point;
   };
 }
@@ -55749,7 +57382,7 @@ var resetOffset = {
     return val ? { x: -refBBox.x, y: -refBBox.y } : { x: 0, y: 0 };
   }
 };
-function offsetWrapper(axis, dimension, corner) {
+function offsetWrapper(axis2, dimension, corner) {
   return (value, { refBBox }) => {
     const point = new Point();
     let delta2;
@@ -55764,7 +57397,7 @@ function offsetWrapper(axis, dimension, corner) {
     } else {
       delta2 = 0;
     }
-    point[axis] = -(refBBox[axis] + delta2);
+    point[axis2] = -(refBBox[axis2] + delta2);
     return point;
   };
 }
@@ -56100,26 +57733,26 @@ function createMarker(type, marker, view, attrs, manual2 = {}) {
     [type]: `url(#${view.graph.defineMarker(options)})`
   };
 }
-function normalizeAttr(attr4, type) {
+function normalizeAttr(attr5, type) {
   const result = {};
-  const stroke3 = attr4.stroke;
+  const stroke3 = attr5.stroke;
   if (typeof stroke3 === "string") {
     result.stroke = stroke3;
     result.fill = stroke3;
   }
-  let strokeOpacity = attr4.strokeOpacity;
+  let strokeOpacity = attr5.strokeOpacity;
   if (strokeOpacity == null) {
-    strokeOpacity = attr4["stroke-opacity"];
+    strokeOpacity = attr5["stroke-opacity"];
   }
   if (strokeOpacity == null) {
-    strokeOpacity = attr4.opacity;
+    strokeOpacity = attr5.opacity;
   }
   if (strokeOpacity != null) {
     result["stroke-opacity"] = strokeOpacity;
     result["fill-opacity"] = strokeOpacity;
   }
   if (type !== "marker-mid") {
-    const strokeWidth = parseFloat(attr4.strokeWidth || attr4["stroke-width"]);
+    const strokeWidth = parseFloat(attr5.strokeWidth || attr5["stroke-width"]);
     if (Number.isFinite(strokeWidth) && strokeWidth > 1) {
       const offset3 = Math.ceil(strokeWidth / 2);
       result.refX = type === "marker-start" ? offset3 : -offset3;
@@ -56439,18 +58072,18 @@ var Util2;
   }
   Util4.getBoundingOffsetRect = getBoundingOffsetRect;
   function toGeometryShape(elem) {
-    const attr4 = (name2) => {
+    const attr5 = (name2) => {
       const s5 = elem.getAttribute(name2);
       const v6 = s5 ? parseFloat(s5) : 0;
       return Number.isNaN(v6) ? 0 : v6;
     };
     switch (elem instanceof SVGElement && elem.nodeName.toLowerCase()) {
       case "rect":
-        return new Rectangle(attr4("x"), attr4("y"), attr4("width"), attr4("height"));
+        return new Rectangle(attr5("x"), attr5("y"), attr5("width"), attr5("height"));
       case "circle":
-        return new Ellipse(attr4("cx"), attr4("cy"), attr4("r"), attr4("r"));
+        return new Ellipse(attr5("cx"), attr5("cy"), attr5("r"), attr5("r"));
       case "ellipse":
-        return new Ellipse(attr4("cx"), attr4("cy"), attr4("rx"), attr4("ry"));
+        return new Ellipse(attr5("cx"), attr5("cy"), attr5("rx"), attr5("ry"));
       case "polyline": {
         const points = main_exports3.getPointsFromSvgElement(elem);
         return new Polyline(points);
@@ -56470,7 +58103,7 @@ var Util2;
         return Path.parse(d4);
       }
       case "line": {
-        return new Line(attr4("x1"), attr4("y1"), attr4("x2"), attr4("y2"));
+        return new Line(attr5("x1"), attr5("y1"), attr5("x2"), attr5("y2"));
       }
       default:
         break;
@@ -57923,28 +59556,28 @@ var FlagManager = class {
     const flags = {};
     const attrs = {};
     let shift = 0;
-    Object.keys(actions).forEach((attr4) => {
-      let labels2 = actions[attr4];
+    Object.keys(actions).forEach((attr5) => {
+      let labels2 = actions[attr5];
       if (!Array.isArray(labels2)) {
         labels2 = [labels2];
       }
-      labels2.forEach((label) => {
-        let flag = flags[label];
+      labels2.forEach((label2) => {
+        let flag = flags[label2];
         if (!flag) {
           shift += 1;
-          flag = flags[label] = 1 << shift;
+          flag = flags[label2] = 1 << shift;
         }
-        attrs[attr4] |= flag;
+        attrs[attr5] |= flag;
       });
     });
     let labels = bootstrap2;
     if (!Array.isArray(labels)) {
       labels = [labels];
     }
-    labels.forEach((label) => {
-      if (!flags[label]) {
+    labels.forEach((label2) => {
+      if (!flags[label2]) {
         shift += 1;
-        flags[label] = 1 << shift;
+        flags[label2] = 1 << shift;
       }
     });
     if (shift > 25) {
@@ -57954,21 +59587,21 @@ var FlagManager = class {
     this.attrs = attrs;
     this.bootstrap = bootstrap2;
   }
-  getFlag(label) {
+  getFlag(label2) {
     const flags = this.flags;
     if (flags == null) {
       return 0;
     }
-    if (Array.isArray(label)) {
-      return label.reduce((memo, key) => memo | flags[key], 0);
+    if (Array.isArray(label2)) {
+      return label2.reduce((memo, key) => memo | flags[key], 0);
     }
-    return flags[label] | 0;
+    return flags[label2] | 0;
   }
-  hasAction(flag, label) {
-    return flag & this.getFlag(label);
+  hasAction(flag, label2) {
+    return flag & this.getFlag(label2);
   }
-  removeAction(flag, label) {
-    return flag ^ flag & this.getFlag(label);
+  removeAction(flag, label2) {
+    return flag ^ flag & this.getFlag(label2);
   }
   getBootstrapFlag() {
     return this.getFlag(this.bootstrap);
@@ -57978,9 +59611,9 @@ var FlagManager = class {
     if (!this.attrs) {
       return flag;
     }
-    Object.keys(this.attrs).forEach((attr4) => {
-      if (this.cell.hasChanged(attr4)) {
-        flag |= this.attrs[attr4];
+    Object.keys(this.attrs).forEach((attr5) => {
+      if (this.cell.hasChanged(attr5)) {
+        flag |= this.attrs[attr5];
       }
     });
     return flag;
@@ -59635,7 +61268,7 @@ var Segments = class extends ToolsView.ToolItem {
     }
   }
   snapHandle(handle, position2, data2) {
-    const axis = handle.options.axis;
+    const axis2 = handle.options.axis;
     const index4 = handle.options.index;
     const edgeView = this.cellView;
     const edge = edgeView.cell;
@@ -59643,10 +61276,10 @@ var Segments = class extends ToolsView.ToolItem {
     const prev = vertices[index4 - 2] || data2.sourceAnchor;
     const next = vertices[index4 + 1] || data2.targetAnchor;
     const snapRadius = this.options.snapRadius;
-    if (Math.abs(position2[axis] - prev[axis]) < snapRadius) {
-      position2[axis] = prev[axis];
-    } else if (Math.abs(position2[axis] - next[axis]) < snapRadius) {
-      position2[axis] = next[axis];
+    if (Math.abs(position2[axis2] - prev[axis2]) < snapRadius) {
+      position2[axis2] = prev[axis2];
+    } else if (Math.abs(position2[axis2] - next[axis2]) < snapRadius) {
+      position2[axis2] = next[axis2];
     }
     return position2;
   }
@@ -59655,7 +61288,7 @@ var Segments = class extends ToolsView.ToolItem {
     const options = this.options;
     const edgeView = this.cellView;
     const anchorFn = options.anchor;
-    const axis = handle.options.axis;
+    const axis2 = handle.options.axis;
     const index4 = handle.options.index - 1;
     const data2 = this.getEventData(e5);
     const evt = this.normalizeEvent(e5);
@@ -59670,7 +61303,7 @@ var Segments = class extends ToolsView.ToolItem {
     let deleteSourceAnchor = false;
     if (!vertex) {
       vertex = edgeView.sourceAnchor.toJSON();
-      vertex[axis] = position2[axis];
+      vertex[axis2] = position2[axis2];
       if (sourceBBox.containsPoint(vertex)) {
         changeSourceAnchor = true;
       } else {
@@ -59684,16 +61317,16 @@ var Segments = class extends ToolsView.ToolItem {
         this.shiftHandleIndexes(-1);
         changeSourceAnchor = true;
       } else {
-        vertex[axis] = position2[axis];
+        vertex[axis2] = position2[axis2];
         deleteSourceAnchor = true;
       }
     } else {
-      vertex[axis] = position2[axis];
+      vertex[axis2] = position2[axis2];
     }
     if (typeof anchorFn === "function" && sourceView) {
       if (changeSourceAnchor) {
         const sourceAnchorPosition = data2.sourceAnchor.clone();
-        sourceAnchorPosition[axis] = position2[axis];
+        sourceAnchorPosition[axis2] = position2[axis2];
         const sourceAnchor = main_exports.call(anchorFn, edgeView, sourceAnchorPosition, sourceView, edgeView.sourceMagnet || sourceView.container, "source", edgeView, this);
         this.resetAnchor("source", sourceAnchor);
       }
@@ -59707,7 +61340,7 @@ var Segments = class extends ToolsView.ToolItem {
     let deleteTargetAnchor = false;
     if (!nextVertex) {
       nextVertex = edgeView.targetAnchor.toJSON();
-      nextVertex[axis] = position2[axis];
+      nextVertex[axis2] = position2[axis2];
       if (targetBBox.containsPoint(nextVertex)) {
         changeTargetAnchor = true;
       } else {
@@ -59719,16 +61352,16 @@ var Segments = class extends ToolsView.ToolItem {
         vertices.pop();
         changeTargetAnchor = true;
       } else {
-        nextVertex[axis] = position2[axis];
+        nextVertex[axis2] = position2[axis2];
         deleteTargetAnchor = true;
       }
     } else {
-      nextVertex[axis] = position2[axis];
+      nextVertex[axis2] = position2[axis2];
     }
     if (typeof anchorFn === "function" && targetView) {
       if (changeTargetAnchor) {
         const targetAnchorPosition = data2.targetAnchor.clone();
-        targetAnchorPosition[axis] = position2[axis];
+        targetAnchorPosition[axis2] = position2[axis2];
         const targetAnchor = main_exports.call(anchorFn, edgeView, targetAnchorPosition, targetView, edgeView.targetMagnet || targetView.container, "target", edgeView, this);
         this.resetAnchor("target", targetAnchor);
       }
@@ -59799,12 +61432,12 @@ var Segments = class extends ToolsView.ToolItem {
         handle.hide();
       } else {
         const position2 = segmentLine.getCenter();
-        const axis = vertical ? "x" : "y";
-        position2[axis] += offset3 || 0;
+        const axis2 = vertical ? "x" : "y";
+        position2[axis2] += offset3 || 0;
         const angle = segmentLine.vector().vectorAngle(new Point(1, 0));
         handle.updatePosition(position2.x, position2.y, angle, this.cellView);
         handle.show();
-        handle.options.axis = axis;
+        handle.options.axis = axis2;
       }
     } else {
       handle.hide();
@@ -61383,9 +63016,9 @@ var Private4;
       if (toBBox2.containsPoint(p22)) {
         const fromBorder = Point.create(from).move(p22, -getBBoxSize(fromBBox, getBearing(from, p22)) / 2);
         const toBorder = Point.create(to).move(p1, -getBBoxSize(toBBox2, getBearing(to, p1)) / 2);
-        const mid4 = new Line(fromBorder, toBorder).getCenter();
-        const startRoute = nodeToVertex(from, mid4, fromBBox);
-        const endRoute = vertexToVertex(mid4, to, startRoute.direction);
+        const mid5 = new Line(fromBorder, toBorder).getCenter();
+        const startRoute = nodeToVertex(from, mid5, fromBBox);
+        const endRoute = vertexToVertex(mid5, to, startRoute.direction);
         route.points = [startRoute.points[0], endRoute.points[0]];
         route.direction = endRoute.direction;
       }
@@ -63812,10 +65445,10 @@ var Cell = class _Cell extends Basecoat {
       }
     });
     Object.keys(attrs).forEach((key) => {
-      const attr4 = attrs[key];
+      const attr5 = attrs[key];
       const defaultAttr = defaultAttrs[key];
-      Object.keys(attr4).forEach((name2) => {
-        const value = attr4[name2];
+      Object.keys(attr5).forEach((name2) => {
+        const value = attr5[name2];
         const defaultValue = defaultAttr ? defaultAttr[name2] : null;
         if (value != null && typeof value === "object" && !Array.isArray(value)) {
           Object.keys(value).forEach((subName) => {
@@ -64170,9 +65803,9 @@ var PortManager = class {
     return { args: {} };
   }
   getLabel(item, setDefaults = false) {
-    const label = item.label || {};
-    label.position = this.getPortLabelPosition(label.position, setDefaults);
-    return label;
+    const label2 = item.label || {};
+    label2.position = this.getPortLabelPosition(label2.position, setDefaults);
+    return label2;
   }
   getPortLabelLayout(port2, portPosition, elemBBox) {
     const name2 = port2.label.position.name || "left";
@@ -65162,18 +66795,18 @@ var Edge = class _Edge extends Cell {
     this.store.set("labels", Array.isArray(labels) ? labels : [labels], options);
     return this;
   }
-  insertLabel(label, index4, options = {}) {
+  insertLabel(label2, index4, options = {}) {
     const labels = this.getLabels();
     const len = labels.length;
     let idx = index4 != null && Number.isFinite(index4) ? index4 : len;
     if (idx < 0) {
       idx = len + idx + 1;
     }
-    labels.splice(idx, 0, this.parseLabel(label));
+    labels.splice(idx, 0, this.parseLabel(label2));
     return this.setLabels(labels, options);
   }
-  appendLabel(label, options = {}) {
-    return this.insertLabel(label, -1, options);
+  appendLabel(label2, options = {}) {
+    return this.insertLabel(label2, -1, options);
   }
   getLabelAt(index4) {
     const labels = this.getLabels();
@@ -65182,10 +66815,10 @@ var Edge = class _Edge extends Cell {
     }
     return null;
   }
-  setLabelAt(index4, label, options = {}) {
+  setLabelAt(index4, label2, options = {}) {
     if (index4 != null && Number.isFinite(index4)) {
       const labels = this.getLabels();
-      labels[index4] = this.parseLabel(label);
+      labels[index4] = this.parseLabel(label2);
       this.setLabels(labels, options);
     }
     return this;
@@ -65197,12 +66830,12 @@ var Edge = class _Edge extends Cell {
     this.setLabels(labels, options);
     return removed.length ? removed[0] : null;
   }
-  parseLabel(label) {
-    if (typeof label === "string") {
+  parseLabel(label2) {
+    if (typeof label2 === "string") {
       const ctor = this.constructor;
-      return ctor.parseStringLabel(label);
+      return ctor.parseStringLabel(label2);
     }
-    return label;
+    return label2;
   }
   onLabelsChanged({ previous, current }) {
     const added = previous && current ? current.filter((label1) => {
@@ -65546,12 +67179,12 @@ Edge.defaults = {};
   Edge4.config({
     shape,
     propHooks(metadata) {
-      const { label, vertices } = metadata, others = __rest17(metadata, ["label", "vertices"]);
-      if (label) {
+      const { label: label2, vertices } = metadata, others = __rest17(metadata, ["label", "vertices"]);
+      if (label2) {
         if (others.labels == null) {
           others.labels = [];
         }
-        const formated = typeof label === "string" ? Edge4.parseStringLabel(label) : label;
+        const formated = typeof label2 === "string" ? Edge4.parseStringLabel(label2) : label2;
         others.labels.push(formated);
       }
       if (vertices) {
@@ -66838,11 +68471,11 @@ var Base = class extends Node2 {
   getLabel() {
     return this.getAttrByPath("text/text");
   }
-  setLabel(label, options) {
-    if (label == null) {
+  setLabel(label2, options) {
+    if (label2 == null) {
       this.removeLabel();
     } else {
-      this.setAttrByPath("text/text", label, options);
+      this.setAttrByPath("text/text", label2, options);
     }
     return this;
   }
@@ -66869,9 +68502,9 @@ var Base = class extends Node2 {
   Base4.config({
     attrs: { text: Object.assign({}, Base4.labelAttr) },
     propHooks(metadata) {
-      const { label } = metadata, others = __rest18(metadata, ["label"]);
-      if (label) {
-        object_exports.setByPath(others, "attrs/text/text", label);
+      const { label: label2 } = metadata, others = __rest18(metadata, ["label"]);
+      if (label2) {
+        object_exports.setByPath(others, "attrs/text/text", label2);
       }
       return others;
     },
@@ -67583,8 +69216,8 @@ var NodeView = class _NodeView extends CellView {
   getPortMarkup(port2) {
     return port2.markup || this.cell.portMarkup;
   }
-  getPortLabelMarkup(label) {
-    return label.markup || this.cell.portLabelMarkup;
+  getPortLabelMarkup(label2) {
+    return label2.markup || this.cell.portLabelMarkup;
   }
   existPortLabel(port2) {
     return port2.attrs && port2.attrs.text;
@@ -68280,14 +69913,14 @@ var EdgeView = class _EdgeView extends CellView {
       const edge = this.cell;
       const labels = edge.labels;
       for (let i6 = 0, n4 = labels.length; i6 < n4; i6 += 1) {
-        const label = labels[i6];
+        const label2 = labels[i6];
         const container = this.labelCache[i6];
         const selectors = this.labelSelectors[i6];
         const onEdgeLabelRendered = this.graph.options.onEdgeLabelRendered;
         if (onEdgeLabelRendered) {
           const fn2 = onEdgeLabelRendered({
             edge,
-            label,
+            label: label2,
             container,
             selectors
           });
@@ -68338,8 +69971,8 @@ var EdgeView = class _EdgeView extends CellView {
       this.labelContainer = container;
     }
     for (let i6 = 0, ii = labels.length; i6 < ii; i6 += 1) {
-      const label = labels[i6];
-      const normalized = this.normalizeLabelMarkup(this.parseLabelMarkup(label.markup));
+      const label2 = labels[i6];
+      const normalized = this.normalizeLabelMarkup(this.parseLabelMarkup(label2.markup));
       let labelNode;
       let selectors;
       if (normalized) {
@@ -68448,11 +70081,11 @@ var EdgeView = class _EdgeView extends CellView {
         const elem = this.labelCache[i6];
         const selectors = this.labelSelectors[i6];
         elem.setAttribute("cursor", canLabelMove ? "move" : "default");
-        const label = labels[i6];
-        const attrs = object_exports.merge({}, defaultLabel.attrs, label.attrs);
+        const label2 = labels[i6];
+        const attrs = object_exports.merge({}, defaultLabel.attrs, label2.attrs);
         this.updateAttrs(elem, attrs, {
           selectors,
-          rootBBox: label.size ? Rectangle.fromSize(label.size) : void 0
+          rootBBox: label2.size ? Rectangle.fromSize(label2.size) : void 0
         });
       }
     }
@@ -68714,9 +70347,9 @@ var EdgeView = class _EdgeView extends CellView {
       const attrs = this.cell.getAttrs();
       const keys3 = Object.keys(attrs);
       for (let i6 = 0, l5 = keys3.length; i6 < l5; i6 += 1) {
-        const attr4 = attrs[keys3[i6]];
-        if (attr4[`${type}Marker`] || attr4[`${type}-marker`]) {
-          const strokeWidth = attr4.strokeWidth || attr4["stroke-width"];
+        const attr5 = attrs[keys3[i6]];
+        if (attr5[`${type}Marker`] || attr5[`${type}-marker`]) {
+          const strokeWidth = attr5.strokeWidth || attr5["stroke-width"];
           if (strokeWidth) {
             return parseFloat(strokeWidth);
           }
@@ -68791,12 +70424,12 @@ var EdgeView = class _EdgeView extends CellView {
     const defaultLabel = edge.getDefaultLabel();
     const defaultPosition = this.normalizeLabelPosition(defaultLabel.position);
     for (let i6 = 0, ii = labels.length; i6 < ii; i6 += 1) {
-      const label = labels[i6];
+      const label2 = labels[i6];
       const labelNode = this.labelCache[i6];
       if (!labelNode) {
         continue;
       }
-      const labelPosition = this.normalizeLabelPosition(label.position);
+      const labelPosition = this.normalizeLabelPosition(label2.position);
       const pos = object_exports.merge({}, defaultPosition, labelPosition);
       const matrix = this.getLabelTransformationMatrix(pos);
       labelNode.setAttribute("transform", main_exports3.matrixToTransformString(matrix));
@@ -68840,16 +70473,16 @@ var EdgeView = class _EdgeView extends CellView {
     }
   }
   getLabelPositionAngle(idx) {
-    const label = this.cell.getLabelAt(idx);
-    if (label && label.position && typeof label.position === "object") {
-      return label.position.angle || 0;
+    const label2 = this.cell.getLabelAt(idx);
+    if (label2 && label2.position && typeof label2.position === "object") {
+      return label2.position.angle || 0;
     }
     return 0;
   }
   getLabelPositionArgs(idx) {
-    const label = this.cell.getLabelAt(idx);
-    if (label && label.position && typeof label.position === "object") {
-      return label.position.options;
+    const label2 = this.cell.getLabelAt(idx);
+    if (label2 && label2.position && typeof label2.position === "object") {
+      return label2.position.options;
     }
   }
   getDefaultLabelPositionArgs() {
@@ -69781,10 +71414,10 @@ var EdgeView = class _EdgeView extends CellView {
   dragLabel(e5, x5, y5) {
     const data2 = this.getEventData(e5);
     const originLabel = this.cell.getLabelAt(data2.index);
-    const label = object_exports.merge({}, originLabel, {
+    const label2 = object_exports.merge({}, originLabel, {
       position: this.getLabelPosition(x5, y5, data2.positionAngle, data2.positionArgs)
     });
-    this.cell.setLabelAt(data2.index, label);
+    this.cell.setLabelAt(data2.index, label2);
   }
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   stopLabelDragging(e5, x5, y5) {
@@ -70287,8 +71920,8 @@ __decorate8([
         elem.removeAttribute(elem.attributes[0].name);
       }
       for (let i6 = 0, l5 = cloned.attributes.length; i6 < l5; i6 += 1) {
-        const attr4 = cloned.attributes[i6];
-        elem.setAttribute(attr4.name, attr4.value);
+        const attr5 = cloned.attributes[i6];
+        elem.setAttribute(attr5.name, attr5.value);
       }
       cloned.childNodes.forEach((child) => elem.appendChild(child));
     };
@@ -71782,12 +73415,12 @@ var JobQueue = class {
     let right4 = ins - 1;
     const priority = job.priority;
     while (left4 <= right4) {
-      const mid4 = (right4 - left4 >> 1) + left4;
-      if (priority <= this.queue[mid4].priority) {
-        left4 = mid4 + 1;
+      const mid5 = (right4 - left4 >> 1) + left4;
+      if (priority <= this.queue[mid5].priority) {
+        left4 = mid5 + 1;
       } else {
-        ins = mid4;
-        right4 = mid4 - 1;
+        ins = mid5;
+        right4 = mid5 - 1;
       }
     }
     return ins;
@@ -73752,125 +75385,8 @@ function pickDropTarget(items, pt2) {
   return best;
 }
 
-// src/canvas/laneLayout.ts
-var hasHeight = (ln3) => typeof ln3.height === "number" && Number.isFinite(ln3.height) && ln3.height > 0;
-function laneWeights(lanes) {
-  const known = lanes.filter(hasHeight);
-  if (!known.length) return null;
-  const avg = known.reduce((s5, ln3) => s5 + ln3.height, 0) / known.length;
-  return lanes.map((ln3) => hasHeight(ln3) ? ln3.height : avg);
-}
-function laneHeights(lanes, poolH) {
-  if (!lanes.length) return [];
-  const w5 = laneWeights(lanes);
-  if (!w5) return lanes.map(() => poolH / lanes.length);
-  const total = w5.reduce((s5, h5) => s5 + h5, 0);
-  return w5.map((h5) => h5 * poolH / total);
-}
-function laneIndexAt(lanes, poolH, relY) {
-  const hs = laneHeights(lanes, poolH);
-  let acc = 0;
-  for (let i6 = 0; i6 < hs.length; i6++) {
-    acc += hs[i6];
-    if (relY < acc) return i6;
-  }
-  return hs.length - 1;
-}
-function resizeLaneBoundary(lanes, poolH, index4, dy, minHeight) {
-  const hs = laneHeights(lanes, poolH);
-  if (index4 < 0 || index4 >= hs.length - 1) return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(hs[i6]) }));
-  const pair = hs[index4] + hs[index4 + 1];
-  const upper = Math.min(Math.max(hs[index4] + dy, minHeight), pair - minHeight);
-  const next = hs.map((h5, i6) => i6 === index4 ? upper : i6 === index4 + 1 ? pair - upper : h5);
-  return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(next[i6]) }));
-}
-function resizePoolLanes(lanes, prevH, newH, edge, minHeight = 30) {
-  const hs = laneHeights(lanes, prevH);
-  const order = hs.map((_6, i6) => i6);
-  if (edge === "bottom") order.reverse();
-  let delta2 = newH - prevH;
-  if (delta2 > 0) hs[order[0]] += delta2;
-  for (const i6 of order) {
-    if (delta2 >= 0) break;
-    const take = Math.min(-delta2, Math.max(0, hs[i6] - minHeight));
-    hs[i6] -= take;
-    delta2 += take;
-  }
-  return lanes.map((ln3, i6) => ({ ...ln3, height: Math.round(hs[i6]) }));
-}
-function asStackLanes(lanes, horizontal) {
-  return horizontal ? [...lanes] : lanes.map((ln3) => {
-    var _a3;
-    return {
-      id: ln3.id,
-      label: ln3.label,
-      height: ln3.width,
-      ...((_a3 = ln3.lanes) == null ? void 0 : _a3.length) ? { lanes: asStackLanes(ln3.lanes, false) } : {}
-    };
-  });
-}
-function fromStackLanes(lanes, sized, horizontal) {
-  return lanes.map((ln3, i6) => {
-    var _a3, _b2;
-    return horizontal ? { ...ln3, height: (_a3 = sized[i6]) == null ? void 0 : _a3.height } : { ...ln3, width: (_b2 = sized[i6]) == null ? void 0 : _b2.height };
-  });
-}
-function leafLaneAt(lanes, extent, rel) {
-  var _a3;
-  if (!lanes.length) return void 0;
-  const hs = laneHeights(lanes, extent);
-  const i6 = laneIndexAt(lanes, extent, rel);
-  const lane = lanes[i6];
-  if (!((_a3 = lane.lanes) == null ? void 0 : _a3.length)) return lane.id;
-  const start = hs.slice(0, i6).reduce((a5, b4) => a5 + b4, 0);
-  return lane.lanes[laneIndexAt(lane.lanes, hs[i6], rel - start)].id;
-}
-function allLaneIds(lanes) {
-  return lanes.flatMap((ln3) => {
-    var _a3;
-    return [ln3.id, ...((_a3 = ln3.lanes) != null ? _a3 : []).map((c6) => c6.id)];
-  });
-}
-var mapLanes = (lanes, id, fn2) => lanes.map((ln3) => ln3.id === id ? fn2(ln3) : ln3);
-function splitLane(lanes, laneId, ids3) {
-  return mapLanes(lanes, laneId, (ln3) => {
-    var _a3, _b2;
-    return {
-      ...ln3,
-      lanes: [{ id: ids3[0], label: `${(_a3 = ln3.label) != null ? _a3 : "Lane"} 1` }, { id: ids3[1], label: `${(_b2 = ln3.label) != null ? _b2 : "Lane"} 2` }]
-    };
-  });
-}
-function mergeChildLanes(lanes, laneId) {
-  return mapLanes(lanes, laneId, (ln3) => {
-    const { lanes: _children, ...rest } = ln3;
-    return rest;
-  });
-}
-function addChildLane(lanes, afterId, newId) {
-  return lanes.map((ln3) => {
-    var _a3, _b2, _c;
-    const i6 = (_b2 = (_a3 = ln3.lanes) == null ? void 0 : _a3.findIndex((c6) => c6.id === afterId)) != null ? _b2 : -1;
-    if (i6 < 0) return ln3;
-    const children2 = [...(_c = ln3.lanes) != null ? _c : []];
-    children2.splice(i6 + 1, 0, { id: newId, label: `Lane ${children2.length + 1}` });
-    return { ...ln3, lanes: children2 };
-  });
-}
-function removeChildLane(lanes, childId) {
-  return lanes.map((ln3) => {
-    var _a3;
-    if (!((_a3 = ln3.lanes) == null ? void 0 : _a3.some((c6) => c6.id === childId))) return ln3;
-    const children2 = ln3.lanes.filter((c6) => c6.id !== childId);
-    if (children2.length < 2) {
-      const { lanes: _children, ...rest } = ln3;
-      return rest;
-    }
-    return { ...ln3, lanes: children2 };
-  });
-}
-
 // src/canvas/htmlNode.ts
+init_laneLayout();
 var XHTML = "http://www.w3.org/1999/xhtml";
 var registered = false;
 var BPMN_DEFAULT_FONT_SIZE = 9;
@@ -73990,19 +75506,19 @@ var MARKER_ICON = {
 };
 function renderMarkers(markers) {
   if (!markers || markers.length === 0) return "";
-  const items = markers.map((m7) => MARKER_ICON[m7] ? `<span class="bp-mk-ic">${MARKER_ICON[m7]}</span>` : "").join("");
+  const items = markers.map((m7) => !MARKER_ICON[m7] ? "" : `<span class="bp-mk-ic">${MARKER_ICON[m7]}</span>`).join("");
   return items ? `<div class="bp-markers">${items}</div>` : "";
 }
-function nodeHtml(kind, label, ov, extra) {
-  return withStyle(nodeHtmlBase(kind, label, extra), styleStr(ov));
+function nodeHtml(kind, label2, ov, extra) {
+  return withStyle(nodeHtmlBase(kind, label2, extra), styleStr(ov));
 }
-function erdHtml(label, cols, headerColor) {
+function erdHtml(label2, cols, headerColor) {
   const rows = cols.map((c6, i6) => {
     const k5 = c6.k === "PK" || c6.k === "FK" ? c6.k : "";
     return `<div class="erd-col" data-col-idx="${i6}" data-col-name="${esc(c6.name)}"><span class="kk ${k5.toLowerCase()}">${k5}</span><span class="cname">${esc(c6.name)}</span><span class="ctype">${esc(c6.type)}</span></div>`;
   }).join("");
   const headerStyle = headerColor ? ` style="background:${cssSafe(headerColor)}"` : "";
-  return `<div class="erd-table"><div class="erd-th"${headerStyle}>${KEY}${esc(label) || "Table"}</div>${rows}</div>`;
+  return `<div class="erd-table"><div class="erd-th"${headerStyle}>${KEY}${esc(label2) || "Table"}</div>${rows}</div>`;
 }
 function umlLine(s5, comp, idx) {
   const m7 = String(s5).match(/^\s*([+\-#~])\s*(.*)$/);
@@ -74011,14 +75527,14 @@ function umlLine(s5, comp, idx) {
 function umlComp(lines, comp) {
   return `<div class="uml-comp">${lines.map((s5, i6) => umlLine(s5, comp, i6)).join("")}</div>`;
 }
-function umlHtml(label, fields, methods, stereo) {
-  const name2 = `<div class="uml-name">${stereo ? `<span class="stereo">${stereo}</span>` : ""}${esc(label) || "ClassName"}</div>`;
+function umlHtml(label2, fields, methods, stereo) {
+  const name2 = `<div class="uml-name">${stereo ? `<span class="stereo">${stereo}</span>` : ""}${esc(label2) || "ClassName"}</div>`;
   const comps = stereo ? umlComp(methods, "methods") : (fields.length ? umlComp(fields, "fields") : "") + (methods.length ? umlComp(methods, "methods") : "");
   return `<div class="uml">${name2}${comps}</div>`;
 }
-function nodeHtmlBase(kind, label, extra) {
+function nodeHtmlBase(kind, label2, extra) {
   var _a3, _b2, _c, _d, _e3, _f;
-  const L4 = esc(label);
+  const L4 = esc(label2);
   switch (kind) {
     case "bs-rect":
       return `<div class="fc rect">${L4}</div>`;
@@ -74062,7 +75578,7 @@ function nodeHtmlBase(kind, label, extra) {
     case "fc-connector":
       return `<div class="fc round" style="font-size:11px">${L4}</div>`;
     case "erd-entity":
-      return erdHtml(label, (_a3 = extra == null ? void 0 : extra.cols) != null ? _a3 : defaultErdCols(), extra == null ? void 0 : extra.headerColor);
+      return erdHtml(label2, (_a3 = extra == null ? void 0 : extra.cols) != null ? _a3 : defaultErdCols(), extra == null ? void 0 : extra.headerColor);
     case "erd-relationship":
       return `<div class="fc diamond">${L4}</div>`;
     case "erd-attribute":
@@ -74071,11 +75587,11 @@ function nodeHtmlBase(kind, label, extra) {
       return `<div class="fc round" style="text-decoration:underline;font-weight:700">${L4}</div>`;
     case "uml-class": {
       const u6 = (extra == null ? void 0 : extra.fields) || (extra == null ? void 0 : extra.methods) ? extra : defaultUml(kind);
-      return umlHtml(label, (_b2 = u6.fields) != null ? _b2 : [], (_c = u6.methods) != null ? _c : []);
+      return umlHtml(label2, (_b2 = u6.fields) != null ? _b2 : [], (_c = u6.methods) != null ? _c : []);
     }
     case "uml-interface": {
       const u6 = (extra == null ? void 0 : extra.fields) || (extra == null ? void 0 : extra.methods) ? extra : defaultUml(kind);
-      return umlHtml(label || "Interface", (_d = u6.fields) != null ? _d : [], (_e3 = u6.methods) != null ? _e3 : [], "\xABinterface\xBB");
+      return umlHtml(label2 || "Interface", (_d = u6.fields) != null ? _d : [], (_e3 = u6.methods) != null ? _e3 : [], "\xABinterface\xBB");
     }
     case "uml-actor":
       return `<div style="width:100%;height:100%;display:grid;place-items:center;color:var(--pg-text);position:relative">
@@ -74174,25 +75690,25 @@ function nodeHtmlBase(kind, label, extra) {
     case "bpmn-task-rule":
       return bpTask(L4, "rule", extra);
     case "bpmn-subprocess":
-      return `<div class="bp-frame bp-sub"><span class="bp-frame-lbl">${L4 || "Sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
+      return bpSub("", L4 || "Sub-process", extra);
     case "bpmn-transaction":
-      return `<div class="bp-frame bp-sub is-transaction"><span class="bp-frame-lbl">${L4 || "Transaction"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
+      return bpSub(" is-transaction", L4 || "Transaction", extra);
     case "bpmn-event-subprocess":
-      return `<div class="bp-frame bp-sub is-event-sub"><span class="bp-frame-lbl">${L4 || "Event sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
+      return bpSub(" is-event-sub", L4 || "Event sub-process", extra);
     case "bpmn-adhoc-subprocess":
-      return `<div class="bp-frame bp-sub is-adhoc"><span class="bp-frame-lbl">${L4 || "Ad-hoc sub-process"}</span><span class="bp-plus">+</span>${renderMarkers(extra == null ? void 0 : extra.markers)}<span class="bp-adhoc-mark">\u223C</span></div>`;
+      return bpSub(" is-adhoc", L4 || "Ad-hoc sub-process", extra, `<span class="bp-adhoc-mark">\u223C</span>`);
     case "bpmn-call-activity":
       return `<div class="bp-task is-call">${nl(L4) || "Call activity"}${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
     case "bpmn-data-object":
-      return bpData("", DATA_PAGE, L4, extra);
+      return bpData("", dataShape(kind, "9 5 13 22"), L4, extra);
     case "bpmn-data-collection":
-      return bpData(" is-collection", DATA_PAGE, L4, extra, `<span class="bp-coll-bars"></span>`);
+      return bpData(" is-collection", dataShape(kind, "9 5 13 22"), L4, extra);
     case "bpmn-data-input":
-      return bpData(" is-input", DATA_PAGE, L4 || "Input", extra, `<span class="bp-data-arr"></span>`);
+      return bpData(" is-input", dataShape(kind, "9 5 13 22"), L4 || "Input", extra);
     case "bpmn-data-output":
-      return bpData(" is-output", DATA_PAGE, L4 || "Output", extra, `<span class="bp-data-arr"></span>`);
+      return bpData(" is-output", dataShape(kind, "9 5 13 22"), L4 || "Output", extra);
     case "bpmn-data-store":
-      return bpData("", DATA_CYLINDER, L4, extra, "", "bp-datastore");
+      return bpData("", dataShape(kind, "7 6 18 20"), L4, extra, "bp-datastore");
     case "bpmn-annotation":
       return `<div class="bp-anno">${L4 || "Annotation"}</div>`;
     case "bpmn-group":
@@ -74209,62 +75725,78 @@ var SQ_LINE = `<svg class="sq-line" preserveAspectRatio="none"><line x1="50%" y1
 var SQ_BOUNDARY = svg(`<circle cx="14" cy="9" r="5"/><path d="M5 4v10M5 9h4"/>`);
 var SQ_CONTROL = svg(`<circle cx="12" cy="10" r="5"/><path d="M12 5l-2.5 1.5L12 7"/>`);
 var SQ_ENTITY = svg(`<circle cx="12" cy="8" r="5"/><path d="M7 15h10"/>`);
-function seqLife(icon, label) {
-  return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${icon}</div><div class="sq-actor-lbl">${esc(label)}</div></div>${SQ_LINE}</div>`;
+function seqLife(icon, label2) {
+  return `<div class="sq-life"><div class="sq-actor-head"><div class="sq-actor-fig">${icon}</div><div class="sq-actor-lbl">${esc(label2)}</div></div>${SQ_LINE}</div>`;
 }
-function seqFrag(tag, label, divider) {
-  return `<div class="sq-frag"><span class="sq-frag-tab">${esc(tag)}</span>${label ? `<span class="sq-frag-cond">[${esc(label)}]</span>` : ""}${divider ? `<div class="sq-frag-div"></div>` : ""}</div>`;
+function seqFrag(tag, label2, divider) {
+  return `<div class="sq-frag"><span class="sq-frag-tab">${esc(tag)}</span>${label2 ? `<span class="sq-frag-cond">[${esc(label2)}]</span>` : ""}${divider ? `<div class="sq-frag-div"></div>` : ""}</div>`;
 }
 function lblStyle(extra) {
   const o5 = extra == null ? void 0 : extra.labelOffset;
   if (!o5) return "";
   return ` style="margin:${px(o5.y)}px 0 0 ${px(o5.x)}px"`;
 }
-function bpEvent(kind, label, icon, extra) {
+function bpEvent(kind, label2, icon, extra) {
   var _a3;
   const pos = kind;
   const filledByPos = pos === "end" || (extra == null ? void 0 : extra.throwing) === true;
   const trigIc = (extra == null ? void 0 : extra.trigger) ? trigIcon(extra.trigger, filledByPos) : null;
   const inner = (_a3 = trigIc != null ? trigIc : icon) != null ? _a3 : pos === "inter" ? "" : svg(`<circle cx="12" cy="12" r="8"/>`);
   const interrupt = (extra == null ? void 0 : extra.interrupting) === false ? " is-non-interrupting" : "";
-  return `<div class="bp-event ${kind}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div></div>`;
+  const lblSide = (extra == null ? void 0 : extra.labelSide) && extra.labelSide !== "bottom" ? ` label-${extra.labelSide}` : "";
+  return `<div class="bp-event ${kind}${lblSide}${interrupt}" style="position:relative">${inner}<div class="bp-elabel"${lblStyle(extra)}>${nl(label2)}</div></div>`;
 }
-var DATA_PAGE = `<svg class="bp-data-shape" viewBox="0 0 36 50" preserveAspectRatio="none"><path d="M1 1h24l10 10v38H1z"/><path d="M25 1v10h10"/></svg>`;
-var DATA_CYLINDER = `<svg class="bp-data-shape" viewBox="0 0 50 50" preserveAspectRatio="none"><path d="M1 7v36c0 3.3 10.7 6 24 6s24-2.7 24-6V7"/><ellipse cx="25" cy="7" rx="24" ry="6"/><path d="M1 12c0 3.3 10.7 6 24 6s24-2.7 24-6"/></svg>`;
-function bpData(mod3, shape, label, extra, deco = "", cls = "bp-dataobj") {
-  const lbl = label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : "";
-  return `<div class="${cls}${mod3}">${shape}${deco}${lbl}</div>`;
+var PAGE = `<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/>`;
+var FOLD = `<path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/>`;
+var ARROW = `<path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z"`;
+var DATA_ICON = {
+  "bpmn-data-object": PAGE + FOLD,
+  "bpmn-data-collection": PAGE + FOLD + `<path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`,
+  "bpmn-data-input": PAGE + `${ARROW} fill="none" stroke="#607d8b" stroke-width="1.3"/>`,
+  "bpmn-data-output": PAGE + `${ARROW} fill="#607d8b"/>`,
+  // Body first, filled, so the lid sits on top of it.
+  "bpmn-data-store": `<path d="M7 9v14c0 1.6 4 3 9 3s9-1.4 9-3V9" fill="#fff" stroke="#607d8b" stroke-width="2"/><ellipse cx="16" cy="9" rx="9" ry="3" fill="#fff" stroke="#607d8b" stroke-width="2"/>`
+};
+var dataShape = (shape, viewBox) => `<svg class="bp-data-shape" viewBox="${viewBox}" preserveAspectRatio="none">${DATA_ICON[shape]}</svg>`;
+function bpData(mod3, shape, label2, extra, cls = "bp-dataobj") {
+  return `<div class="${cls}${mod3}">${shape}<div class="bp-elabel"${lblStyle(extra)}>${nl(label2)}</div></div>`;
 }
-function bpTask(label, iconKey, extra) {
+function bpSub(mod3, label2, extra, tail = "") {
+  if ((extra == null ? void 0 : extra.collapsed) !== true) return `<div class="bp-frame bp-sub${mod3}"><span class="bp-frame-lbl">${label2}</span>${renderMarkers(extra == null ? void 0 : extra.markers)}${tail}</div>`;
+  const plus = `<span class="bp-plus">+</span>`;
+  const drill = `<button type="button" class="bp-drill" data-sub-drill title="M\u1EDF trang ri\xEAng"><svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M4.81 1.5h6.38L8 6.43 4.81 1.5Zm0 6.6h6.38L8 13.03 4.81 8.1Z"/></svg></button>`;
+  return `<div class="bp-task bp-sub-closed${mod3}">${nl(label2)}${plus}${drill}${renderMarkers(extra == null ? void 0 : extra.markers)}${tail}</div>`;
+}
+function bpTask(label2, iconKey, extra) {
   const icon = iconKey && BP_ICON[iconKey] ? `<span class="ticon">${BP_ICON[iconKey]}</span>` : "";
-  return `<div class="bp-task">${icon}${nl(label)}${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
+  return `<div class="bp-task">${icon}${nl(label2)}${renderMarkers(extra == null ? void 0 : extra.markers)}</div>`;
 }
-function bpGateway(mark, label, extra) {
-  return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div>${label ? `<div class="bp-elabel"${lblStyle(extra)}>${nl(label)}</div>` : ""}</div>`;
+function bpGateway(mark, label2, extra) {
+  return `<div class="bp-gw"><div class="gwbox"><span class="x">${mark}</span></div><div class="bp-elabel"${lblStyle(extra)}>${nl(label2)}</div></div>`;
 }
-function bpPool(label, extra) {
+function bpPool(label2, extra) {
   var _a3;
   if (extra == null ? void 0 : extra.blackBox) {
     const orient2 = extra.poolHorizontal === false ? " is-vertical" : "";
-    return `<div class="bp-pool is-blackbox${orient2}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-blackbox-body"><span>Black-box participant</span></div></div>`;
+    return `<div class="bp-pool is-blackbox${orient2}"><div class="bp-pool-head">${esc(label2) || "Pool"}</div><div class="bp-pool-blackbox-body"><span>Black-box participant</span></div></div>`;
   }
   const lanes = ((_a3 = extra == null ? void 0 : extra.lanes) == null ? void 0 : _a3.length) ? extra.lanes : [{ id: "l1", label: "Lane 1" }];
   const orient = (extra == null ? void 0 : extra.poolHorizontal) === false ? " is-vertical" : "";
   const horizontal = (extra == null ? void 0 : extra.poolHorizontal) !== false;
-  const laneList = (list, parent) => {
+  const laneList = (list, path2 = []) => {
     const weights = laneWeights(asStackLanes(list, horizontal));
     return list.map((ln3, i6) => {
       var _a4;
       const flex = weights ? ` style="flex: ${weights[i6]} 1 0px"` : "";
-      const at3 = parent === void 0 ? `data-lane-idx="${i6}"` : `data-lane-path="${parent}/${i6}"`;
+      const at3 = path2.length ? `data-lane-path="${[...path2, i6].join("/")}"` : `data-lane-idx="${i6}"`;
       const divider = i6 < list.length - 1 ? `<div class="bp-pool-lane-divider" ${at3}></div>` : "";
-      const body = parent === void 0 && ((_a4 = ln3.lanes) == null ? void 0 : _a4.length) ? `<div class="bp-pool-sublanes">${laneList(ln3.lanes, i6)}</div>` : `<div class="bp-pool-lane-body"></div>`;
-      const cls = parent === void 0 ? "bp-pool-lane" : "bp-pool-lane is-child";
+      const body = ((_a4 = ln3.lanes) == null ? void 0 : _a4.length) ? `<div class="bp-pool-sublanes">${laneList(ln3.lanes, [...path2, i6])}</div>` : `<div class="bp-pool-lane-body"></div>`;
+      const cls = path2.length ? "bp-pool-lane is-child" : "bp-pool-lane";
       return `<div class="${cls}" data-lane-id="${esc(ln3.id)}"${flex}><div class="bp-pool-lane-head">${esc(ln3.label)}</div>${body}${divider}</div>`;
     }).join("");
   };
   const laneHtml = laneList(lanes);
-  return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc(label) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
+  return `<div class="bp-pool${orient}"><div class="bp-pool-head">${esc(label2) || "Pool"}</div><div class="bp-pool-body">${laneHtml}</div></div>`;
 }
 
 // src/canvas/shapes/index.ts
@@ -74514,13 +76046,13 @@ var ICONS = {
   "bpmn-adhoc-subprocess": I2(`<rect x="4" y="9" width="24" height="14" rx="3" fill="#fff" stroke="#1565c0" stroke-width="2"/><path d="M11 18 q1.5 -2.5 3 0 t3 0 t3 0" fill="none" stroke="#1565c0" stroke-width="1.4"/>`),
   "bpmn-call-activity": I2(`<rect x="4" y="10" width="24" height="12" rx="3" fill="#fff" stroke="#1565c0" stroke-width="3"/>`),
   // Đợt B — Data artifacts
-  "bpmn-data-collection": I2(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/><path d="M12 23v3M16 23v3M20 23v3" stroke="#607d8b" stroke-width="1.4"/>`),
-  "bpmn-data-input": I2(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="none" stroke="#607d8b" stroke-width="1.3"/>`),
-  "bpmn-data-output": I2(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M11 9 16 9 16 7 20 10 16 13 16 11 11 11Z" fill="#607d8b"/>`),
+  "bpmn-data-collection": I2(DATA_ICON["bpmn-data-collection"]),
+  "bpmn-data-input": I2(DATA_ICON["bpmn-data-input"]),
+  "bpmn-data-output": I2(DATA_ICON["bpmn-data-output"]),
   // Đợt B — Group
   "bpmn-group": I2(`<rect x="4" y="8" width="24" height="16" rx="4" fill="none" stroke="#5e7a99" stroke-width="1.8" stroke-dasharray="4 2"/>`),
-  "bpmn-data-object": I2(`<path d="M9 5h8l5 5v17H9z" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M17 5v5h5" fill="none" stroke="#607d8b" stroke-width="2"/>`),
-  "bpmn-data-store": I2(`<ellipse cx="16" cy="9" rx="9" ry="3" fill="#fff" stroke="#607d8b" stroke-width="2"/><path d="M7 9v14c0 1.6 4 3 9 3s9-1.4 9-3V9" fill="none" stroke="#607d8b" stroke-width="2"/>`),
+  "bpmn-data-object": I2(DATA_ICON["bpmn-data-object"]),
+  "bpmn-data-store": I2(DATA_ICON["bpmn-data-store"]),
   "bpmn-annotation": I2(`<path d="M11 6H26V26H11" fill="none" stroke="#90a4ae" stroke-width="2"/><path d="M11 6V26" stroke="#607d8b" stroke-width="2.5"/>`),
   "bpmn-lane": I2(`<rect x="4" y="9" width="24" height="14" fill="none" stroke="#546e7a" stroke-width="2"/><rect x="4" y="9" width="6" height="14" fill="#eceff1" stroke="#546e7a" stroke-width="2"/>`)
 };
@@ -74574,1050 +76106,11 @@ function shapeIcon(shape, seed) {
 
 // src/view/BoardView.ts
 init_boardSerde();
-
-// src/io/bpmn/export.ts
-init_dist5();
-init_shapes();
-init_labelGeometry();
-var moddleSingleton = null;
-function moddle() {
-  if (!moddleSingleton) moddleSingleton = new SimpleBpmnModdle();
-  return moddleSingleton;
-}
-function shapeToBpmnType(shape, attrs) {
-  var _a3;
-  if (shape === "bpmn-event-intermediate" && (attrs == null ? void 0 : attrs.attachedTo)) return "bpmn:BoundaryEvent";
-  const tag = (_a3 = SHAPE_TO_BPMN[shape]) != null ? _a3 : "task";
-  return "bpmn:" + tag.charAt(0).toUpperCase() + tag.slice(1);
-}
-function isBlackBoxPool(pool) {
-  var _a3;
-  return ((_a3 = pool.attrs) == null ? void 0 : _a3.blackBox) === true;
-}
-function edgeKindOf(e5) {
-  var _a3;
-  return (_a3 = e5.kind) != null ? _a3 : "sequence";
-}
-function bpmnTypeForEdgeKind(kind) {
-  if (kind === "message") return "bpmn:MessageFlow";
-  if (kind === "association") return "bpmn:Association";
-  return "bpmn:SequenceFlow";
-}
-function applyEdgeExtras(m7, fe3, kind, attrs) {
-  if (kind === "sequence") {
-    if (attrs == null ? void 0 : attrs.condition) {
-      const ce3 = m7.create("bpmn:FormalExpression", { body: attrs.condition });
-      fe3.conditionExpression = ce3;
-    } else {
-      delete fe3.conditionExpression;
-    }
-  }
-  if (kind === "association") {
-    if (attrs == null ? void 0 : attrs.associationDirection) {
-      fe3.associationDirection = attrs.associationDirection;
-    } else {
-      delete fe3.associationDirection;
-    }
-  }
-}
-function findCollaboration(defs) {
-  var _a3;
-  for (const root2 of (_a3 = defs.rootElements) != null ? _a3 : []) {
-    if (root2.$type === "bpmn:Collaboration") return root2;
-  }
-  return null;
-}
-function applyBpmnExtras(m7, fe3, shape, attrs) {
-  var _a3;
-  if (attrs.trigger && TRIGGER_TO_EVENT_DEF[attrs.trigger]) {
-    const defName = TRIGGER_TO_EVENT_DEF[attrs.trigger];
-    const defType = "bpmn:" + defName.charAt(0).toUpperCase() + defName.slice(1);
-    const def = m7.create(defType, {});
-    fe3.eventDefinitions = [def];
-  }
-  const markers = (_a3 = attrs.markers) != null ? _a3 : [];
-  if (markers.includes("mi-par") || markers.includes("mi-seq")) {
-    const loop3 = m7.create("bpmn:MultiInstanceLoopCharacteristics", { isSequential: markers.includes("mi-seq") });
-    fe3.loopCharacteristics = loop3;
-  } else if (markers.includes("loop")) {
-    const loop3 = m7.create("bpmn:StandardLoopCharacteristics", {});
-    fe3.loopCharacteristics = loop3;
-  }
-  if (markers.includes("compensation")) {
-    fe3.isForCompensation = true;
-  }
-  if (attrs.interrupting === false) {
-    if (shape === "bpmn-event-start") {
-      fe3.isInterrupting = false;
-    } else {
-      fe3.cancelActivity = false;
-    }
-  }
-  if (attrs.attachedTo) {
-    fe3.attachedToRef = { id: attrs.attachedTo };
-  }
-  if (shape === "bpmn-event-subprocess") {
-    fe3.triggeredByEvent = true;
-  }
-  if (shape === "bpmn-data-collection") {
-    fe3.isCollection = true;
-  }
-  if (typeof attrs.bpmnDoc === "string" && attrs.bpmnDoc.trim()) {
-    const doc = m7.create("bpmn:Documentation", { text: attrs.bpmnDoc.trim() });
-    fe3.documentation = [doc];
-  } else {
-    delete fe3.documentation;
-  }
-  if (attrs.camunda && Object.keys(attrs.camunda).length) {
-    const existing = fe3.extensionElements;
-    if (existing == null ? void 0 : existing.values) {
-      for (const v6 of existing.values) {
-        for (const [k5, val] of Object.entries(attrs.camunda)) {
-          if (k5 in v6) v6[k5] = val;
-        }
-      }
-    }
-  }
-}
-function escAttr(value) {
-  return value.replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[ch]);
-}
-var BPMN_ID_START_RE = /^[A-Za-z_]/;
-var BPMN_ID_CHAR_RE = /[^A-Za-z0-9_.-]/g;
-function normalizeBpmnId(raw2, prefix2, used) {
-  const seed = String(raw2 != null ? raw2 : "").trim();
-  let base = seed ? seed.replace(BPMN_ID_CHAR_RE, "_") : prefix2;
-  if (!base) base = prefix2;
-  if (!BPMN_ID_START_RE.test(base)) base = `${prefix2}_${base}`;
-  let out = base;
-  let n4 = 1;
-  while (used.has(out)) out = `${base}_${++n4}`;
-  used.add(out);
-  return out;
-}
-function normalizeModelIdsForBpmn(model) {
-  var _a3, _b2;
-  const used = /* @__PURE__ */ new Set();
-  const nodeMap = /* @__PURE__ */ new Map();
-  const edgeMap = /* @__PURE__ */ new Map();
-  const laneMap = /* @__PURE__ */ new Map();
-  for (const n4 of model.nodes) nodeMap.set(n4.id, normalizeBpmnId(n4.id, "N", used));
-  for (const e5 of model.edges) edgeMap.set(e5.id, normalizeBpmnId(e5.id, "E", used));
-  for (const n4 of model.nodes) {
-    const lanes = (_b2 = (_a3 = n4.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
-    for (const id of allLaneIds(lanes)) {
-      if (!id || laneMap.has(id)) continue;
-      laneMap.set(id, normalizeBpmnId(id, "L", used));
-    }
-  }
-  for (const n4 of model.nodes) {
-    if (!n4.laneId || laneMap.has(n4.laneId)) continue;
-    laneMap.set(n4.laneId, normalizeBpmnId(n4.laneId, "L", used));
-  }
-  return {
-    nodes: model.nodes.map((n4) => {
-      var _a4, _b3, _c, _d, _e3;
-      const renameLanes = (list) => list.map((ln3) => {
-        var _a5;
-        return {
-          ...ln3,
-          id: (_a5 = laneMap.get(ln3.id)) != null ? _a5 : ln3.id,
-          ...ln3.lanes ? { lanes: renameLanes(ln3.lanes) } : {}
-        };
-      });
-      const lanes = ((_a4 = n4.attrs) == null ? void 0 : _a4.lanes) ? renameLanes(n4.attrs.lanes) : void 0;
-      return {
-        ...n4,
-        id: (_b3 = nodeMap.get(n4.id)) != null ? _b3 : n4.id,
-        ...n4.parentId ? { parentId: (_c = nodeMap.get(n4.parentId)) != null ? _c : n4.parentId } : {},
-        ...n4.laneId ? { laneId: (_d = laneMap.get(n4.laneId)) != null ? _d : n4.laneId } : {},
-        attrs: lanes ? { ...(_e3 = n4.attrs) != null ? _e3 : {}, lanes } : n4.attrs
-      };
-    }),
-    edges: model.edges.map((e5) => {
-      var _a4, _b3, _c;
-      return {
-        ...e5,
-        id: (_a4 = edgeMap.get(e5.id)) != null ? _a4 : e5.id,
-        source: (_b3 = nodeMap.get(e5.source)) != null ? _b3 : e5.source,
-        target: (_c = nodeMap.get(e5.target)) != null ? _c : e5.target
-      };
-    })
-  };
-}
-function patchCamundaXml(xml3, model) {
-  var _a3, _b2, _c, _d;
-  const nodes = model.nodes.filter((n4) => {
-    var _a4, _b3, _c2;
-    const attrs = (_a4 = n4.attrs) != null ? _a4 : {};
-    return attrs.camunda && Object.keys(attrs.camunda).length > 0 || ((_c2 = (_b3 = attrs.bpmnProps) == null ? void 0 : _b3.length) != null ? _c2 : 0) > 0;
-  });
-  if (!nodes.length) return xml3;
-  let out = xml3;
-  if (!/\sxmlns:camunda=/.test(out)) {
-    out = out.replace(/<bpmn:definitions\b([^>]*)>/, `<bpmn:definitions$1 xmlns:camunda="http://camunda.org/schema/1.0/bpmn">`);
-  }
-  for (const n4 of nodes) {
-    const attrs = (_a3 = n4.attrs) != null ? _a3 : {};
-    const camunda = (_b2 = attrs.camunda) != null ? _b2 : {};
-    const props = (_d = (_c = attrs.bpmnProps) == null ? void 0 : _c.filter((p6) => p6.name)) != null ? _d : [];
-    const id = escAttr(n4.id).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const tagRe = new RegExp(`<bpmn:([A-Za-z]+)\\b([^>]*)\\bid="${id}"([^>]*)>`);
-    const match = tagRe.exec(out);
-    if (!match) continue;
-    const [full, tagName2, beforeId, afterId] = match;
-    let open4 = full;
-    for (const [key, value] of Object.entries(camunda)) {
-      if (!value) continue;
-      const attrName = `camunda:${key}`;
-      const attrRe = new RegExp(`\\s${attrName}="[^"]*"`);
-      const encoded = ` ${attrName}="${escAttr(String(value))}"`;
-      open4 = attrRe.test(open4) ? open4.replace(attrRe, encoded) : open4.replace(/\/?>$/, `${encoded}$&`);
-    }
-    if (open4 !== full) out = out.slice(0, match.index) + open4 + out.slice(match.index + full.length);
-    if (!props.length) continue;
-    const rematch = new RegExp(`<bpmn:${tagName2}\\b[^>]*\\bid="${id}"[^>]*>`).exec(out);
-    if (!rematch) continue;
-    const currentOpen = rematch[0];
-    const propsXml = `<camunda:properties>${props.map((p6) => {
-      var _a4;
-      return `<camunda:property name="${escAttr(p6.name)}" value="${escAttr((_a4 = p6.value) != null ? _a4 : "")}" />`;
-    }).join("")}</camunda:properties>`;
-    if (currentOpen.endsWith("/>")) {
-      const expanded = currentOpen.replace(/\s*\/>$/, `><bpmn:extensionElements>${propsXml}</bpmn:extensionElements></bpmn:${tagName2}>`);
-      out = out.slice(0, rematch.index) + expanded + out.slice(rematch.index + currentOpen.length);
-      continue;
-    }
-    const closeRe = new RegExp(`</bpmn:${tagName2}>`);
-    const close = closeRe.exec(out.slice(rematch.index + currentOpen.length));
-    if (!close) continue;
-    const blockStart = rematch.index;
-    const blockEnd = rematch.index + currentOpen.length + close.index + close[0].length;
-    const block2 = out.slice(blockStart, blockEnd);
-    let nextBlock;
-    if (/<bpmn:extensionElements\b[\s\S]*?<\/bpmn:extensionElements>/.test(block2)) {
-      nextBlock = block2.replace(
-        /<camunda:properties\b[\s\S]*?<\/camunda:properties>/,
-        propsXml
-      );
-      if (nextBlock === block2) {
-        nextBlock = block2.replace(/<bpmn:extensionElements\b[^>]*>/, (m0) => `${m0}${propsXml}`);
-      }
-    } else {
-      nextBlock = block2.replace(currentOpen, `${currentOpen}<bpmn:extensionElements>${propsXml}</bpmn:extensionElements>`);
-    }
-    out = out.slice(0, blockStart) + nextBlock + out.slice(blockEnd);
-  }
-  return out;
-}
-function findParticipant(defs, id) {
-  var _a3, _b2;
-  for (const root2 of (_a3 = defs.rootElements) != null ? _a3 : []) {
-    if (root2.$type !== "bpmn:Collaboration") continue;
-    const found = ((_b2 = root2.participants) != null ? _b2 : []).find((p6) => p6.id === id);
-    if (found) return found;
-  }
-  return void 0;
-}
-function findLane(process2, id) {
-  var _a3;
-  const inLanes = (lanes) => {
-    var _a4;
-    for (const l5 of lanes != null ? lanes : []) {
-      if (l5.id === id) return l5;
-      const hit = inLanes((_a4 = l5.childLaneSet) == null ? void 0 : _a4.lanes);
-      if (hit) return hit;
-    }
-    return void 0;
-  };
-  for (const ls of (_a3 = process2.laneSets) != null ? _a3 : []) {
-    const found = inLanes(ls.lanes);
-    if (found) return found;
-  }
-  return void 0;
-}
-function createLaneEl(m7, ln3, idOf = (id) => id) {
-  var _a3, _b2;
-  const el4 = m7.create("bpmn:Lane", { id: idOf(ln3.id), name: (_a3 = ln3.label) != null ? _a3 : ln3.id });
-  if ((_b2 = ln3.lanes) == null ? void 0 : _b2.length) {
-    el4.childLaneSet = m7.create("bpmn:LaneSet", {
-      id: `LaneSet_${el4.id}`,
-      lanes: ln3.lanes.map((c6) => createLaneEl(m7, c6, idOf))
-    });
-  }
-  return el4;
-}
-function fillLaneRefs(lanes, refsOf) {
-  var _a3;
-  const all2 = [];
-  for (const ln3 of lanes != null ? lanes : []) {
-    const children2 = (_a3 = ln3.childLaneSet) == null ? void 0 : _a3.lanes;
-    const own = ln3.id ? refsOf(ln3.id) : [];
-    const refs = (children2 == null ? void 0 : children2.length) ? [...fillLaneRefs(children2, refsOf), ...own] : own;
-    ln3.flowNodeRef = refs;
-    all2.push(...refs);
-  }
-  return all2;
-}
-var POOL_HEADER = 30;
-var LANE_HEADER = 30;
-var POOL_MARGIN = 40;
-async function exportBpmn(model, meta) {
-  var _a3, _b2, _c, _d;
-  const normalizedModel = normalizeModelIdsForBpmn(model);
-  const m7 = moddle();
-  if ((meta == null ? void 0 : meta.format) === "bpmn") {
-    const raw2 = String((_b2 = (_a3 = meta.payload) == null ? void 0 : _a3.raw) != null ? _b2 : "");
-    const diagramIndex = Number((_d = (_c = meta.payload) == null ? void 0 : _c.diagramIndex) != null ? _d : 0);
-    if (raw2) {
-      try {
-        return await patchExisting(raw2, normalizedModel, m7, Number.isFinite(diagramIndex) ? diagramIndex : 0);
-      } catch (err2) {
-        console.warn("[omniboard:bpmn] patchExisting failed; falling back to minimal export", err2);
-      }
-    }
-  }
-  return emitMinimal(normalizedModel, m7);
-}
-async function patchExisting(raw2, model, m7, diagramIndex = 0) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A, _B, _C, _D, _E, _F, _G, _H, _I;
-  const { rootElement: defs } = await m7.fromXML(raw2, "bpmn:Definitions");
-  const definitions = defs;
-  const diShape = /* @__PURE__ */ new Map();
-  const diEdge = /* @__PURE__ */ new Map();
-  let mainPlane = null;
-  const diagrams = (_a3 = definitions.diagrams) != null ? _a3 : [];
-  if (diagrams.length) {
-    mainPlane = diagrams[Math.max(0, Math.min(diagramIndex, diagrams.length - 1))].plane;
-  }
-  if (!mainPlane && diagrams[0]) mainPlane = diagrams[0].plane;
-  if (mainPlane) {
-    for (const pe3 of (_b2 = mainPlane.planeElement) != null ? _b2 : []) {
-      const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_c = pe3.bpmnElement) == null ? void 0 : _c.id;
-      if (!refId) continue;
-      if (pe3.$type === "bpmndi:BPMNShape") diShape.set(refId, pe3);
-      else if (pe3.$type === "bpmndi:BPMNEdge") diEdge.set(refId, pe3);
-    }
-  }
-  if (!mainPlane) throw new Error("BPMN export: source document has no BPMNPlane.");
-  const process2 = (_e3 = ((_d = definitions.rootElements) != null ? _d : []).find((r5) => r5.$type === "bpmn:Process")) != null ? _e3 : null;
-  if (!process2) throw new Error("BPMN export: source document has no bpmn:Process.");
-  const flowById = /* @__PURE__ */ new Map();
-  const containerOf = /* @__PURE__ */ new Map();
-  const collect = (parent) => {
-    var _a4, _b3;
-    for (const fe3 of (_a4 = parent.flowElements) != null ? _a4 : []) {
-      if (fe3.id) {
-        flowById.set(fe3.id, fe3);
-        containerOf.set(fe3.id, parent);
-      }
-      if (fe3.flowElements) collect(fe3);
-    }
-    for (const ar of (_b3 = parent.artifacts) != null ? _b3 : []) {
-      if (ar.id && ar.$type === "bpmn:Association") {
-        flowById.set(ar.id, ar);
-        containerOf.set(ar.id, parent);
-      }
-    }
-  };
-  collect(process2);
-  const collaboration = findCollaboration(definitions);
-  if (collaboration) {
-    for (const mf of (_f = collaboration.messageFlows) != null ? _f : []) {
-      if (mf.id) flowById.set(mf.id, mf);
-    }
-  }
-  const modelNodeIds = new Set(model.nodes.map((n4) => n4.id));
-  const endpointIds = new Set(flowById.keys());
-  for (const ar of (_g = process2.artifacts) != null ? _g : []) if (ar.id) endpointIds.add(ar.id);
-  for (const p6 of (_h = collaboration == null ? void 0 : collaboration.participants) != null ? _h : []) if (p6.id) endpointIds.add(p6.id);
-  const validModelEdges = model.edges.filter(
-    (e5) => (modelNodeIds.has(e5.source) || endpointIds.has(e5.source)) && (modelNodeIds.has(e5.target) || endpointIds.has(e5.target))
-  );
-  const modelEdgeIds = new Set(validModelEdges.map((e5) => e5.id));
-  const modelEdgeKind = new Map(validModelEdges.map((e5) => [e5.id, edgeKindOf(e5)]));
-  const modelSequenceEdgeIds = new Set(validModelEdges.filter((e5) => edgeKindOf(e5) === "sequence").map((e5) => e5.id));
-  const modelAssociationEdgeIds = new Set(validModelEdges.filter((e5) => edgeKindOf(e5) === "association").map((e5) => e5.id));
-  const modelMessageEdgeIds = new Set(validModelEdges.filter((e5) => edgeKindOf(e5) === "message").map((e5) => e5.id));
-  for (const n4 of model.nodes) {
-    const srcKind = (_j = (_i = n4.attrs) == null ? void 0 : _i.__source) == null ? void 0 : _j.kind;
-    const isPool = n4.shape === "bpmn-pool" || srcKind === "pool";
-    const isLane2 = n4.shape === "bpmn-lane" || srcKind === "lane";
-    if (isPool || isLane2) continue;
-    const targetContainer = n4.parentId && flowById.get(n4.parentId) || process2;
-    let di = diShape.get(n4.id);
-    if (di == null ? void 0 : di.bounds) {
-      di.bounds.x = n4.x;
-      di.bounds.y = n4.y;
-      di.bounds.width = n4.width;
-      di.bounds.height = n4.height;
-      const nLabel = nodeLabelBoundsFromModel(m7, n4);
-      di.label = nLabel ? m7.create("bpmndi:BPMNLabel", { bounds: nLabel }) : void 0;
-      const collapsed = ((_k = n4.attrs) == null ? void 0 : _k.collapsed) === true;
-      di.isExpanded = !collapsed;
-      const bpmnFill = (_l = n4.attrs) == null ? void 0 : _l.bpmnFill;
-      const bpmnStroke = (_m = n4.attrs) == null ? void 0 : _m.bpmnStroke;
-      const shapeAttrs = (_n2 = di.$attrs) != null ? _n2 : di.$attrs = {};
-      if (bpmnFill) shapeAttrs["bioc:fill"] = bpmnFill;
-      else {
-        delete shapeAttrs["bioc:fill"];
-        delete shapeAttrs["color:background-color"];
-      }
-      if (bpmnStroke) shapeAttrs["bioc:stroke"] = bpmnStroke;
-      else {
-        delete shapeAttrs["bioc:stroke"];
-        delete shapeAttrs["color:border-color"];
-      }
-    } else {
-      const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), n4.shape === "bpmn-annotation" ? { id: n4.id, text: (_o = n4.label) != null ? _o : "" } : n4.shape === "bpmn-group" ? { id: n4.id } : { id: n4.id, name: (_p = n4.label) != null ? _p : "" });
-      applyBpmnExtras(m7, fe3, n4.shape, (_q = n4.attrs) != null ? _q : {});
-      ((_r = targetContainer.flowElements) != null ? _r : targetContainer.flowElements = []).push(fe3);
-      flowById.set(n4.id, fe3);
-      containerOf.set(n4.id, targetContainer);
-      di = m7.create("bpmndi:BPMNShape", {
-        bpmnElement: fe3,
-        bounds: m7.create("dc:Bounds", { x: n4.x, y: n4.y, width: n4.width, height: n4.height })
-      });
-      ((_s = mainPlane.planeElement) != null ? _s : mainPlane.planeElement = []).push(di);
-      diShape.set(n4.id, di);
-    }
-    const existing = flowById.get(n4.id);
-    const curContainer = containerOf.get(n4.id);
-    if (existing && curContainer && curContainer !== targetContainer) {
-      curContainer.flowElements = ((_t3 = curContainer.flowElements) != null ? _t3 : []).filter((fe3) => fe3.id !== n4.id);
-      ((_u = targetContainer.flowElements) != null ? _u : targetContainer.flowElements = []).push(existing);
-      containerOf.set(n4.id, targetContainer);
-    }
-    if (existing) {
-      if (typeof n4.label === "string") {
-        if (n4.shape === "bpmn-annotation") existing.text = n4.label;
-        else if (n4.shape !== "bpmn-group") existing.name = n4.label;
-      }
-      applyBpmnExtras(m7, existing, n4.shape, (_v = n4.attrs) != null ? _v : {});
-    }
-  }
-  const refIdOf = (r5) => typeof r5 === "string" ? r5 : r5 == null ? void 0 : r5.id;
-  const referenced = /* @__PURE__ */ new Set();
-  const collectRefs = (fe3) => {
-    if (!fe3.id || !modelEdgeIds.has(fe3.id)) return;
-    const src = refIdOf(fe3.sourceRef);
-    const tgt = refIdOf(fe3.targetRef);
-    if (src) referenced.add(src);
-    if (tgt) referenced.add(tgt);
-  };
-  for (const fe3 of (_w = process2.flowElements) != null ? _w : []) {
-    if (fe3.$type === "bpmn:SequenceFlow") collectRefs(fe3);
-  }
-  for (const ar of (_x = process2.artifacts) != null ? _x : []) {
-    if (ar.$type === "bpmn:Association") collectRefs(ar);
-  }
-  if (collaboration) {
-    for (const mf of (_y = collaboration.messageFlows) != null ? _y : []) collectRefs(mf);
-  }
-  const filterFlowElements = (parent) => {
-    var _a4;
-    parent.flowElements = ((_a4 = parent.flowElements) != null ? _a4 : []).filter((fe3) => {
-      if (fe3.$type === "bpmn:SequenceFlow") return modelSequenceEdgeIds.has(fe3.id);
-      const survives = modelNodeIds.has(fe3.id) || referenced.has(fe3.id);
-      return survives;
-    });
-    for (const fe3 of parent.flowElements) {
-      if (fe3.flowElements) filterFlowElements(fe3);
-    }
-  };
-  filterFlowElements(process2);
-  {
-    const byLaneId = /* @__PURE__ */ new Map();
-    for (const n4 of model.nodes) {
-      if (!n4.laneId) continue;
-      const arr = (_z = byLaneId.get(n4.laneId)) != null ? _z : [];
-      arr.push(n4.id);
-      byLaneId.set(n4.laneId, arr);
-    }
-    const refsOf = (laneId) => {
-      var _a4;
-      return ((_a4 = byLaneId.get(laneId)) != null ? _a4 : []).map((id) => flowById.get(id)).filter((fe3) => !!fe3);
-    };
-    for (const ls of (_A = process2.laneSets) != null ? _A : []) fillLaneRefs(ls.lanes, refsOf);
-  }
-  if (process2.artifacts) {
-    process2.artifacts = process2.artifacts.filter((ar) => {
-      if (ar.$type === "bpmn:Association") return modelAssociationEdgeIds.has(ar.id);
-      return true;
-    });
-  }
-  if (collaboration == null ? void 0 : collaboration.messageFlows) {
-    collaboration.messageFlows = collaboration.messageFlows.filter((mf) => modelMessageEdgeIds.has(mf.id));
-  }
-  const flowNodeIdSet = /* @__PURE__ */ new Set([...flowById.keys(), ...modelNodeIds]);
-  mainPlane.planeElement = ((_B = mainPlane.planeElement) != null ? _B : []).filter((pe3) => {
-    var _a4;
-    const refId = typeof pe3.bpmnElement === "string" ? pe3.bpmnElement : (_a4 = pe3.bpmnElement) == null ? void 0 : _a4.id;
-    if (!refId) return true;
-    if (pe3.$type === "bpmndi:BPMNEdge") return modelEdgeIds.has(refId);
-    if (pe3.$type === "bpmndi:BPMNShape") {
-      if (!flowNodeIdSet.has(refId)) return true;
-      return modelNodeIds.has(refId) || referenced.has(refId);
-    }
-    return true;
-  });
-  emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7);
-  for (const e5 of validModelEdges) {
-    const srcNode = model.nodes.find((n4) => n4.id === e5.source);
-    const tgtNode = model.nodes.find((n4) => n4.id === e5.target);
-    if (!srcNode || !tgtNode) continue;
-    const kind = edgeKindOf(e5);
-    let de3 = diEdge.get(e5.id);
-    const wps = buildWaypoints(e5, srcNode, tgtNode, m7);
-    let sf = flowById.get(e5.id);
-    if (!sf) {
-      const refOf = (id) => {
-        var _a4, _b3;
-        return (_b3 = flowById.get(id)) != null ? _b3 : kind === "message" ? (_a4 = collaboration == null ? void 0 : collaboration.participants) == null ? void 0 : _a4.find((p6) => p6.id === id) : void 0;
-      };
-      const sourceFe = refOf(e5.source);
-      const targetFe = refOf(e5.target);
-      if (!sourceFe || !targetFe) {
-        console.warn(`[omniboard:bpmn] dropped ${kind} flow "${e5.id}": endpoint has no BPMN element (${e5.source} \u2192 ${e5.target})`);
-        continue;
-      }
-      sf = m7.create(bpmnTypeForEdgeKind(kind), {
-        id: e5.id,
-        // bpmn:Association is an artifact with no `name` in the BPMN schema.
-        ...kind === "association" ? {} : { name: (_C = e5.label) != null ? _C : "" },
-        sourceRef: sourceFe,
-        targetRef: targetFe
-      });
-      if (kind === "message") {
-        if (!collaboration) {
-          sf.$type = "bpmn:SequenceFlow";
-          ((_D = process2.flowElements) != null ? _D : process2.flowElements = []).push(sf);
-        } else {
-          ((_E = collaboration.messageFlows) != null ? _E : collaboration.messageFlows = []).push(sf);
-        }
-      } else if (kind === "association") {
-        ((_F = process2.artifacts) != null ? _F : process2.artifacts = []).push(sf);
-      } else {
-        ((_G = process2.flowElements) != null ? _G : process2.flowElements = []).push(sf);
-      }
-      flowById.set(e5.id, sf);
-    } else if (typeof e5.label === "string" && kind !== "association") {
-      sf.name = e5.label;
-    }
-    applyEdgeExtras(m7, sf, kind, e5.attrs);
-    if (de3) {
-      de3.waypoint = wps;
-      const lb = edgeLabelBoundsFromModel(m7, e5, wps);
-      de3.label = lb ? m7.create("bpmndi:BPMNLabel", { bounds: lb }) : void 0;
-    } else {
-      const lb = edgeLabelBoundsFromModel(m7, e5, wps);
-      de3 = m7.create("bpmndi:BPMNEdge", {
-        bpmnElement: sf,
-        waypoint: wps,
-        ...lb ? { label: m7.create("bpmndi:BPMNLabel", { bounds: lb }) } : {}
-      });
-      ((_H = mainPlane.planeElement) != null ? _H : mainPlane.planeElement = []).push(de3);
-      diEdge.set(e5.id, de3);
-    }
-  }
-  for (const n4 of model.nodes) {
-    const fe3 = flowById.get(n4.id);
-    if (fe3 && fe3.default) delete fe3.default;
-  }
-  for (const e5 of validModelEdges) {
-    if (!((_I = e5.attrs) == null ? void 0 : _I.isDefault)) continue;
-    if (edgeKindOf(e5) !== "sequence") continue;
-    const srcFe = flowById.get(e5.source);
-    const edgeFe = flowById.get(e5.id);
-    if (srcFe && edgeFe) srcFe.default = edgeFe;
-  }
-  const { xml: xml3 } = await m7.toXML(definitions, { format: true });
-  return patchCamundaXml(xml3, model);
-}
-function emitPoolLaneShapes(model, definitions, process2, mainPlane, diShape, m7, processByPoolId, laneIdByPool) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h;
-  const pools = model.nodes.filter(
-    (n4) => {
-      var _a4, _b3;
-      return n4.shape === "bpmn-pool" || ((_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
-    }
-  );
-  if (!pools.length) return;
-  let collaboration = findCollaboration(definitions);
-  const ensureCollaboration = () => {
-    var _a4;
-    if (collaboration) return collaboration;
-    collaboration = m7.create("bpmn:Collaboration", { id: "Collaboration_Export" });
-    ((_a4 = definitions.rootElements) != null ? _a4 : definitions.rootElements = []).push(collaboration);
-    return collaboration;
-  };
-  const processForPool = (poolId) => {
-    var _a4;
-    return (_a4 = processByPoolId == null ? void 0 : processByPoolId.get(poolId)) != null ? _a4 : process2;
-  };
-  const ensureLaneSetIn = (proc) => {
-    var _a4, _b3, _c2;
-    if (((_a4 = proc.laneSets) != null ? _a4 : []).length) return proc.laneSets[0];
-    const laneSet = m7.create("bpmn:LaneSet", { id: `LaneSet_${(_b3 = proc.id) != null ? _b3 : "Process_Export"}` });
-    ((_c2 = proc.laneSets) != null ? _c2 : proc.laneSets = []).push(laneSet);
-    return laneSet;
-  };
-  const flow = model.nodes.filter(
-    (n4) => {
-      var _a4, _b3;
-      return n4.shape !== "bpmn-pool" && ((_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) !== "pool";
-    }
-  );
-  const fallbackBox = () => {
-    const minX = Math.min(...flow.map((n4) => n4.x));
-    const minY = Math.min(...flow.map((n4) => n4.y));
-    const maxX = Math.max(...flow.map((n4) => n4.x + n4.width));
-    const maxY = Math.max(...flow.map((n4) => n4.y + n4.height));
-    return {
-      x: minX - POOL_HEADER - LANE_HEADER - POOL_MARGIN,
-      y: minY - POOL_MARGIN,
-      width: maxX - minX + POOL_HEADER + LANE_HEADER + POOL_MARGIN * 2,
-      height: maxY - minY + POOL_MARGIN * 2
-    };
-  };
-  for (const pool of pools) {
-    const prefix2 = [];
-    const poolProcess = processForPool(pool.id);
-    const sized = pool.width > 0 && pool.height > 0;
-    if (!sized && !flow.length) continue;
-    const box = sized ? pool : fallbackBox();
-    const poolX = box.x, poolY = box.y, poolW = box.width, poolH = box.height;
-    const lanes = (_b2 = (_a3 = pool.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : [];
-    let pdi = diShape.get(pool.id);
-    if (pdi == null ? void 0 : pdi.bounds) {
-      pdi.bounds.x = poolX;
-      pdi.bounds.y = poolY;
-      pdi.bounds.width = poolW;
-      pdi.bounds.height = poolH;
-    } else {
-      let part = findParticipant(definitions, pool.id);
-      if (!part) {
-        part = m7.create("bpmn:Participant", {
-          id: pool.id,
-          name: (_c = pool.label) != null ? _c : "Pool",
-          // Each participant references its OWN process when multi-pool.
-          ...isBlackBoxPool(pool) ? {} : { processRef: poolProcess }
-        });
-        ((_e3 = (_d = ensureCollaboration()).participants) != null ? _e3 : _d.participants = []).push(part);
-      }
-      pdi = m7.create("bpmndi:BPMNShape", {
-        bpmnElement: part,
-        bounds: m7.create("dc:Bounds", { x: poolX, y: poolY, width: poolW, height: poolH })
-      });
-      const isHorizontal5 = ((_f = pool.attrs) == null ? void 0 : _f.poolHorizontal) !== false;
-      pdi.isHorizontal = isHorizontal5;
-      diShape.set(pool.id, pdi);
-      prefix2.push(pdi);
-    }
-    if (lanes.length) {
-      const horizontal = ((_g = pool.attrs) == null ? void 0 : _g.poolHorizontal) !== false;
-      const renamed = laneIdByPool == null ? void 0 : laneIdByPool.get(pool.id);
-      const emitLane = (ln3, r5, parentEl) => {
-        var _a4, _b3, _c2, _d2, _e4, _f2, _g2, _h2;
-        if (!ln3.id) return;
-        const laneId = (_a4 = renamed == null ? void 0 : renamed.get(ln3.id)) != null ? _a4 : ln3.id;
-        let laneEl = findLane(poolProcess, laneId);
-        if (!laneEl) {
-          laneEl = m7.create("bpmn:Lane", { id: laneId, name: (_b3 = ln3.label) != null ? _b3 : ln3.id });
-          if (parentEl) {
-            const holder = parentEl;
-            (_c2 = holder.childLaneSet) != null ? _c2 : holder.childLaneSet = m7.create("bpmn:LaneSet", { id: `LaneSet_${parentEl.id}`, lanes: [] });
-            ((_e4 = (_d2 = holder.childLaneSet).lanes) != null ? _e4 : _d2.lanes = []).push(laneEl);
-          } else {
-            ((_g2 = (_f2 = ensureLaneSetIn(poolProcess)).lanes) != null ? _g2 : _f2.lanes = []).push(laneEl);
-          }
-        }
-        let ldi = diShape.get(laneId);
-        if (ldi == null ? void 0 : ldi.bounds) {
-          ldi.bounds.x = r5.x;
-          ldi.bounds.y = r5.y;
-          ldi.bounds.width = r5.width;
-          ldi.bounds.height = r5.height;
-        } else {
-          ldi = m7.create("bpmndi:BPMNShape", {
-            bpmnElement: laneEl,
-            bounds: m7.create("dc:Bounds", { x: r5.x, y: r5.y, width: r5.width, height: r5.height })
-          });
-          ldi.isHorizontal = horizontal;
-          diShape.set(laneId, ldi);
-          prefix2.push(ldi);
-        }
-        if ((_h2 = ln3.lanes) == null ? void 0 : _h2.length) {
-          const inner = horizontal ? { x: r5.x + LANE_HEADER, y: r5.y, width: r5.width - LANE_HEADER, height: r5.height } : { x: r5.x, y: r5.y + LANE_HEADER, width: r5.width, height: r5.height - LANE_HEADER };
-          const childRects = laneRects(ln3.lanes, inner, horizontal, 0);
-          ln3.lanes.forEach((c6, j5) => emitLane(c6, childRects[j5], laneEl));
-        }
-      };
-      const rects = laneRects(lanes, { x: poolX, y: poolY, width: poolW, height: poolH }, horizontal);
-      lanes.forEach((ln3, i6) => emitLane(ln3, rects[i6]));
-    }
-    if (prefix2.length) ((_h = mainPlane.planeElement) != null ? _h : mainPlane.planeElement = []).unshift(...prefix2);
-  }
-}
-function laneRects(lanes, pool, horizontal, header = POOL_HEADER) {
-  const extent = horizontal ? pool.height : pool.width;
-  let at3 = horizontal ? pool.y : pool.x;
-  return laneHeights(asStackLanes(lanes, horizontal), extent).map((size2) => {
-    const r5 = horizontal ? { x: pool.x + header, y: at3, width: pool.width - header, height: size2 } : { x: at3, y: pool.y + header, width: size2, height: pool.height - header };
-    at3 += size2;
-    return r5;
-  });
-}
-function getPortOffset(portId, width2, height2) {
-  if (!portId) return { dx: width2 / 2, dy: height2 / 2 };
-  switch (portId) {
-    case "top":
-      return { dx: width2 / 2, dy: 0 };
-    case "top-1":
-      return { dx: width2 / 3, dy: 0 };
-    case "top-2":
-      return { dx: 2 * width2 / 3, dy: 0 };
-    case "bottom":
-      return { dx: width2 / 2, dy: height2 };
-    case "bottom-1":
-      return { dx: width2 / 3, dy: height2 };
-    case "bottom-2":
-      return { dx: 2 * width2 / 3, dy: height2 };
-    case "left":
-      return { dx: 0, dy: height2 / 2 };
-    case "left-1":
-      return { dx: 0, dy: height2 / 3 };
-    case "left-2":
-      return { dx: 0, dy: 2 * height2 / 3 };
-    case "right":
-      return { dx: width2, dy: height2 / 2 };
-    case "right-1":
-      return { dx: width2, dy: height2 / 3 };
-    case "right-2":
-      return { dx: width2, dy: 2 * height2 / 3 };
-    default:
-      return { dx: width2 / 2, dy: height2 / 2 };
-  }
-}
-function portIsHorizontal(portId, start, end, isSource) {
-  if (portId) {
-    return portId.startsWith("left") || portId.startsWith("right");
-  }
-  if (isSource) {
-    return Math.abs(end.x - start.x) > Math.abs(end.y - start.y);
-  } else {
-    return Math.abs(end.y - start.y) > Math.abs(end.x - start.x);
-  }
-}
-function getOrthogonalWaypoints(start, end, sourcePort, targetPort) {
-  const isHorizontalSource = portIsHorizontal(sourcePort, start, end, true);
-  const isHorizontalTarget = portIsHorizontal(targetPort, start, end, false);
-  if (isHorizontalSource && !isHorizontalTarget) {
-    return [start, { x: end.x, y: start.y }, end];
-  } else if (!isHorizontalSource && isHorizontalTarget) {
-    return [start, { x: start.x, y: end.y }, end];
-  } else if (isHorizontalSource && isHorizontalTarget) {
-    const mx = (start.x + end.x) / 2;
-    return [start, { x: mx, y: start.y }, { x: mx, y: end.y }, end];
-  } else {
-    const my = (start.y + end.y) / 2;
-    return [start, { x: start.x, y: my }, { x: end.x, y: my }, end];
-  }
-}
-function buildWaypoints(e5, src, tgt, m7) {
-  var _a3, _b2, _c;
-  const point = (x5, y5) => m7.create("dc:Point", { x: x5, y: y5 });
-  const srcOffset = (_a3 = e5.sourceAnchor) != null ? _a3 : getPortOffset(e5.sourcePort, src.width, src.height);
-  const tgtOffset = (_b2 = e5.targetAnchor) != null ? _b2 : getPortOffset(e5.targetPort, tgt.width, tgt.height);
-  const start = { x: src.x + srcOffset.dx, y: src.y + srcOffset.dy };
-  const end = { x: tgt.x + tgtOffset.dx, y: tgt.y + tgtOffset.dy };
-  let waypoints;
-  if (e5.router === "orth" && (!e5.vertices || e5.vertices.length === 0)) {
-    waypoints = getOrthogonalWaypoints(start, end, e5.sourcePort, e5.targetPort);
-  } else {
-    const mid4 = (_c = e5.vertices) != null ? _c : [];
-    waypoints = [start, ...mid4, end];
-  }
-  const clean2 = waypoints.filter((w5, i6) => i6 === 0 || Math.hypot(w5.x - waypoints[i6 - 1].x, w5.y - waypoints[i6 - 1].y) > 0.5);
-  return clean2.map((w5) => point(w5.x, w5.y));
-}
-function pointAtDistance(wps, distance2) {
-  if (!wps.length) return { x: 0, y: 0 };
-  if (wps.length === 1) return { x: wps[0].x, y: wps[0].y };
-  const total = wps.slice(1).reduce((sum, p6, i6) => sum + Math.hypot(p6.x - wps[i6].x, p6.y - wps[i6].y), 0);
-  const target = Math.max(0, Math.min(1, distance2)) * total;
-  let walked = 0;
-  for (let i6 = 1; i6 < wps.length; i6++) {
-    const a5 = wps[i6 - 1], b4 = wps[i6];
-    const seg = Math.hypot(b4.x - a5.x, b4.y - a5.y);
-    if (walked + seg >= target) {
-      const t6 = seg === 0 ? 0 : (target - walked) / seg;
-      return { x: a5.x + (b4.x - a5.x) * t6, y: a5.y + (b4.y - a5.y) * t6 };
-    }
-    walked += seg;
-  }
-  return { x: wps[wps.length - 1].x, y: wps[wps.length - 1].y };
-}
-function edgeLabelBoundsFromModel(m7, edge, wps) {
-  var _a3, _b2, _c, _d;
-  if (!edge.labelPos && !edge.label) return void 0;
-  const distance2 = (_b2 = (_a3 = edge.labelPos) == null ? void 0 : _a3.distance) != null ? _b2 : 0.5;
-  const base = pointAtDistance(wps, distance2);
-  let dx = 0, dy = 0;
-  const off = (_c = edge.labelPos) == null ? void 0 : _c.offset;
-  if (typeof off === "number") dy = off;
-  else if (off && typeof off.x === "number" && typeof off.y === "number") {
-    dx = off.x;
-    dy = off.y;
-  }
-  const textLen = ((_d = edge.label) != null ? _d : "").length;
-  const width2 = Math.max(30, Math.min(300, textLen * 7 + 18));
-  const height2 = 20;
-  return m7.create("dc:Bounds", {
-    x: base.x + dx - width2 / 2,
-    y: base.y + dy - height2 / 2,
-    width: width2,
-    height: height2
-  });
-}
-function nodeLabelBoundsFromModel(m7, node3) {
-  var _a3, _b2, _c, _d, _e3, _f;
-  if (!hasExternalLabel(node3.shape)) return void 0;
-  const textLen = ((_a3 = node3.label) != null ? _a3 : "").length;
-  if (!textLen) return void 0;
-  const off = (_c = (_b2 = node3.attrs) == null ? void 0 : _b2.labelOffset) != null ? _c : { x: 0, y: 0 };
-  const width2 = Math.max(30, Math.min(320, textLen * 7 + 18));
-  const height2 = 20;
-  const isTop = ((_d = off.y) != null ? _d : 0) < -10;
-  const defaultY = defaultLabelDy(node3.shape, node3.height);
-  const dy = (isTop ? -defaultY : defaultY) + ((_e3 = off.y) != null ? _e3 : 0);
-  const dx = (_f = off.x) != null ? _f : 0;
-  const cx = node3.x + node3.width / 2 + dx;
-  const cy = node3.y + node3.height / 2 + dy;
-  return m7.create("dc:Bounds", { x: cx - width2 / 2, y: cy - height2 / 2, width: width2, height: height2 });
-}
-async function emitMinimal(model, m7) {
-  var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m, _n2, _o, _p, _q, _r, _s, _t3, _u, _v, _w, _x, _y, _z, _A;
-  const defs = m7.create("bpmn:Definitions", {
-    id: "Definitions_Export",
-    targetNamespace: "http://omniboard.local/bpmn"
-  });
-  const pools = model.nodes.filter(
-    (n4) => {
-      var _a4, _b3;
-      return n4.shape === "bpmn-pool" || ((_b3 = (_a4 = n4.attrs) == null ? void 0 : _a4.__source) == null ? void 0 : _b3.kind) === "pool";
-    }
-  );
-  const laneIdByPool = /* @__PURE__ */ new Map();
-  const processByPoolId = /* @__PURE__ */ new Map();
-  const multiPool = pools.length >= 2;
-  let process2;
-  if (multiPool) {
-    for (const pool of pools) {
-      if (isBlackBoxPool(pool)) continue;
-      const proc = m7.create("bpmn:Process", {
-        id: `Process_${pool.id}`,
-        isExecutable: false
-      });
-      proc.flowElements = [];
-      ((_a3 = defs.rootElements) != null ? _a3 : defs.rootElements = []).push(proc);
-      processByPoolId.set(pool.id, proc);
-    }
-    const firstWhiteBox = pools.find((p6) => !isBlackBoxPool(p6));
-    if (firstWhiteBox) {
-      process2 = processByPoolId.get(firstWhiteBox.id);
-    } else {
-      process2 = m7.create("bpmn:Process", { id: "Process_Export", isExecutable: false });
-      process2.flowElements = [];
-      ((_b2 = defs.rootElements) != null ? _b2 : defs.rootElements = []).push(process2);
-    }
-  } else {
-    process2 = m7.create("bpmn:Process", {
-      id: "Process_Export",
-      isExecutable: false
-    });
-    process2.flowElements = [];
-    ((_c = defs.rootElements) != null ? _c : defs.rootElements = []).push(process2);
-  }
-  if (pools.length) {
-    const collaboration = m7.create("bpmn:Collaboration", { id: "Collaboration_Export" });
-    collaboration.participants = pools.map((pool) => {
-      var _a4;
-      return m7.create("bpmn:Participant", {
-        id: pool.id,
-        name: (_a4 = pool.label) != null ? _a4 : "Pool",
-        // Multi-pool: each participant → its own process. Single-pool: shared.
-        ...isBlackBoxPool(pool) ? {} : { processRef: multiPool ? processByPoolId.get(pool.id) : process2 }
-      });
-    });
-    ((_d = defs.rootElements) != null ? _d : defs.rootElements = []).push(collaboration);
-    const globalSeenLaneIds = /* @__PURE__ */ new Set();
-    const uniqueLaneId = (id) => {
-      if (!globalSeenLaneIds.has(id)) {
-        globalSeenLaneIds.add(id);
-        return id;
-      }
-      let suffix = 2;
-      while (globalSeenLaneIds.has(`${id}_${suffix}`)) suffix += 1;
-      globalSeenLaneIds.add(`${id}_${suffix}`);
-      return `${id}_${suffix}`;
-    };
-    for (const pool of pools) {
-      const lanes = (_f = (_e3 = pool.attrs) == null ? void 0 : _e3.lanes) != null ? _f : [];
-      if (!lanes.length) continue;
-      const targetProcess = multiPool ? processByPoolId.get(pool.id) : process2;
-      if (!targetProcess.laneSets || !targetProcess.laneSets.length) {
-        targetProcess.laneSets = [m7.create("bpmn:LaneSet", {
-          id: `LaneSet_${targetProcess.id}`,
-          lanes: []
-        })];
-      }
-      const laneSet = targetProcess.laneSets[0];
-      (_g = laneSet.lanes) != null ? _g : laneSet.lanes = [];
-      const renames = /* @__PURE__ */ new Map();
-      laneIdByPool.set(pool.id, renames);
-      const idOf = (id) => {
-        const u6 = uniqueLaneId(id);
-        renames.set(id, u6);
-        return u6;
-      };
-      for (const ln3 of lanes) laneSet.lanes.push(createLaneEl(m7, ln3, idOf));
-    }
-  }
-  const findOwningProcess = (n4) => {
-    var _a4, _b3;
-    if (!multiPool) return process2;
-    if (n4.parentId && processByPoolId.has(n4.parentId)) return processByPoolId.get(n4.parentId);
-    if (n4.laneId) {
-      for (const pool of pools) {
-        const ls = (_b3 = (_a4 = pool.attrs) == null ? void 0 : _a4.lanes) != null ? _b3 : [];
-        if (allLaneIds(ls).includes(n4.laneId)) return processByPoolId.get(pool.id);
-      }
-    }
-    const cx = n4.x + n4.width / 2;
-    const cy = n4.y + n4.height / 2;
-    for (const pool of pools) {
-      if (cx >= pool.x && cx <= pool.x + pool.width && cy >= pool.y && cy <= pool.y + pool.height) {
-        return processByPoolId.get(pool.id);
-      }
-    }
-    return process2;
-  };
-  const feById = /* @__PURE__ */ new Map();
-  for (const n4 of model.nodes) {
-    const srcKind = (_i = (_h = n4.attrs) == null ? void 0 : _h.__source) == null ? void 0 : _i.kind;
-    if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
-    const fe3 = m7.create(shapeToBpmnType(n4.shape, n4.attrs), n4.shape === "bpmn-annotation" ? { id: n4.id, text: (_j = n4.label) != null ? _j : "" } : n4.shape === "bpmn-group" ? { id: n4.id } : { id: n4.id, name: (_k = n4.label) != null ? _k : "" });
-    applyBpmnExtras(m7, fe3, n4.shape, (_l = n4.attrs) != null ? _l : {});
-    feById.set(n4.id, fe3);
-  }
-  for (const n4 of model.nodes) {
-    const srcKind = (_n2 = (_m = n4.attrs) == null ? void 0 : _m.__source) == null ? void 0 : _n2.kind;
-    if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
-    const fe3 = feById.get(n4.id);
-    const parent = n4.parentId ? feById.get(n4.parentId) : void 0;
-    const container = parent != null ? parent : findOwningProcess(n4);
-    ((_o = container.flowElements) != null ? _o : container.flowElements = []).push(fe3);
-  }
-  const allProcesses = multiPool ? [...processByPoolId.values()] : [process2];
-  for (const proc of allProcesses) {
-    const refsOf = (laneId) => model.nodes.filter((n4) => n4.laneId === laneId).map((n4) => feById.get(n4.id)).filter((fe3) => !!fe3);
-    for (const ls of (_p = proc.laneSets) != null ? _p : []) fillLaneRefs(ls.lanes, refsOf);
-  }
-  const sfById = /* @__PURE__ */ new Map();
-  const nodeIdSet = new Set(model.nodes.map((n4) => n4.id));
-  const validEdges = model.edges.filter((e5) => nodeIdSet.has(e5.source) && nodeIdSet.has(e5.target));
-  const collaborationRoot = (_r = ((_q = defs.rootElements) != null ? _q : []).find((r5) => r5.$type === "bpmn:Collaboration")) != null ? _r : null;
-  const nodeById2 = new Map(model.nodes.map((n4) => [n4.id, n4]));
-  for (const e5 of validEdges) {
-    const kind = edgeKindOf(e5);
-    const srcNode = nodeById2.get(e5.source);
-    const tgtNode = nodeById2.get(e5.target);
-    const srcProc = srcNode ? findOwningProcess(srcNode) : process2;
-    const tgtProc = tgtNode ? findOwningProcess(tgtNode) : process2;
-    const isCrossPool = multiPool && srcProc !== tgtProc;
-    let typeStr = bpmnTypeForEdgeKind(kind);
-    if (kind === "message" && !collaborationRoot) typeStr = "bpmn:SequenceFlow";
-    if (isCrossPool && kind === "sequence" && collaborationRoot) {
-      typeStr = "bpmn:MessageFlow";
-    }
-    const refOf = (id) => {
-      var _a4, _b3;
-      return (_b3 = feById.get(id)) != null ? _b3 : typeStr === "bpmn:MessageFlow" ? (_a4 = collaborationRoot == null ? void 0 : collaborationRoot.participants) == null ? void 0 : _a4.find((p6) => p6.id === id) : void 0;
-    };
-    const sf = m7.create(typeStr, {
-      id: e5.id,
-      // bpmn:Association is an artifact with no `name` in the BPMN schema.
-      ...kind === "association" ? {} : { name: (_s = e5.label) != null ? _s : "" },
-      sourceRef: refOf(e5.source),
-      targetRef: refOf(e5.target)
-    });
-    if (!sf.sourceRef || !sf.targetRef) {
-      console.warn(`[omniboard:bpmn] dropped ${typeStr} "${e5.id}": endpoint has no BPMN element (${e5.source} \u2192 ${e5.target})`);
-      continue;
-    }
-    const extrasKind = typeStr === "bpmn:MessageFlow" ? "sequence" : kind === "message" && !collaborationRoot ? "sequence" : kind;
-    applyEdgeExtras(m7, sf, extrasKind, e5.attrs);
-    if (typeStr === "bpmn:MessageFlow" && collaborationRoot) {
-      ((_t3 = collaborationRoot.messageFlows) != null ? _t3 : collaborationRoot.messageFlows = []).push(sf);
-    } else if (kind === "association") {
-      ((_u = srcProc.artifacts) != null ? _u : srcProc.artifacts = []).push(sf);
-    } else if (kind === "message" && collaborationRoot) {
-      ((_v = collaborationRoot.messageFlows) != null ? _v : collaborationRoot.messageFlows = []).push(sf);
-    } else {
-      ((_w = srcProc.flowElements) != null ? _w : srcProc.flowElements = []).push(sf);
-    }
-    sfById.set(e5.id, sf);
-  }
-  for (const e5 of validEdges) {
-    if (!((_x = e5.attrs) == null ? void 0 : _x.isDefault)) continue;
-    if (edgeKindOf(e5) !== "sequence") continue;
-    const srcFe = feById.get(e5.source);
-    const edgeFe = sfById.get(e5.id);
-    if (srcFe && edgeFe) srcFe.default = edgeFe;
-  }
-  const plane = m7.create("bpmndi:BPMNPlane", {
-    id: "Plane_Export",
-    bpmnElement: collaborationRoot != null ? collaborationRoot : process2,
-    planeElement: []
-  });
-  const diShape = /* @__PURE__ */ new Map();
-  for (const n4 of model.nodes) {
-    const srcKind = (_z = (_y = n4.attrs) == null ? void 0 : _y.__source) == null ? void 0 : _z.kind;
-    if (n4.shape === "bpmn-pool" || n4.shape === "bpmn-lane" || srcKind === "pool" || srcKind === "lane") continue;
-    const nLabel = nodeLabelBoundsFromModel(m7, n4);
-    const di = m7.create("bpmndi:BPMNShape", {
-      id: n4.id + "_di",
-      bpmnElement: feById.get(n4.id),
-      bounds: m7.create("dc:Bounds", { x: n4.x, y: n4.y, width: n4.width, height: n4.height }),
-      ...nLabel ? { label: m7.create("bpmndi:BPMNLabel", { bounds: nLabel }) } : {}
-    });
-    plane.planeElement.push(di);
-    diShape.set(n4.id, di);
-  }
-  for (const e5 of validEdges) {
-    const src = model.nodes.find((n4) => n4.id === e5.source);
-    const tgt = model.nodes.find((n4) => n4.id === e5.target);
-    const sf = sfById.get(e5.id);
-    if (!src || !tgt || !sf) continue;
-    const waypoints = buildWaypoints(e5, src, tgt, m7);
-    const eLabel = edgeLabelBoundsFromModel(m7, e5, waypoints);
-    plane.planeElement.push(m7.create("bpmndi:BPMNEdge", {
-      id: e5.id + "_di",
-      bpmnElement: sf,
-      waypoint: waypoints,
-      ...eLabel ? { label: m7.create("bpmndi:BPMNLabel", { bounds: eLabel }) } : {}
-    }));
-  }
-  emitPoolLaneShapes(model, defs, process2, plane, diShape, m7, multiPool ? processByPoolId : void 0, laneIdByPool);
-  const dia = m7.create("bpmndi:BPMNDiagram", { id: "Diagram_Export", plane });
-  ((_A = defs.diagrams) != null ? _A : defs.diagrams = []).push(dia);
-  const { xml: xml3 } = await m7.toXML(defs, { format: true });
-  return patchCamundaXml(xml3, model);
-}
+init_export();
 
 // src/io/registry.ts
 init_import();
+init_export();
 
 // node_modules/@dagrejs/dagre/dist/dagre.esm.js
 var ge = Object.defineProperty;
@@ -77303,14 +77796,14 @@ function stripComments(src) {
   while (i6 < src.length) {
     if (src[i6] === "/" && src[i6 + 1] === "*") {
       const end = src.indexOf("*/", i6 + 2);
-      const span = end < 0 ? src.length : end + 2;
-      out += src.slice(i6, span).replace(/[^\n]/g, " ");
-      i6 = span;
+      const span2 = end < 0 ? src.length : end + 2;
+      out += src.slice(i6, span2).replace(/[^\n]/g, " ");
+      i6 = span2;
     } else if (src[i6] === "/" && src[i6 + 1] === "/") {
       const end = src.indexOf("\n", i6);
-      const span = end < 0 ? src.length : end;
-      out += src.slice(i6, span).replace(/[^\n]/g, " ");
-      i6 = span;
+      const span2 = end < 0 ? src.length : end;
+      out += src.slice(i6, span2).replace(/[^\n]/g, " ");
+      i6 = span2;
     } else {
       out += src[i6++];
     }
@@ -77633,335 +78126,125 @@ async function importFromFile(filename, raw2, options) {
   return await fmt.importer(raw2, options);
 }
 
-// src/ui/PropertiesPanel.tsx
-var import_obsidian = require("obsidian");
-var OMNIBOARD_PROPERTIES_VIEW_TYPE = "omniboard-properties";
-var BOARD_VIEW_TYPE = "omniboard-board";
-var SELECTION_EVENT = "omniboard-selection-change";
-function emitOmniboardSelectionChange() {
-  window.dispatchEvent(new CustomEvent(SELECTION_EVENT));
-}
-function el(tag, cls, text4) {
-  const node3 = document.createElement(tag);
-  if (cls) node3.className = cls;
-  if (text4 !== void 0) node3.textContent = text4;
-  return node3;
-}
-function cleanObject(obj) {
-  return Object.fromEntries(Object.entries(obj).filter(([, v6]) => v6 !== void 0 && v6 !== ""));
-}
-function isBpmnActivity(kind) {
-  return kind.startsWith("bpmn-task") || kind === "bpmn-subprocess" || kind === "bpmn-transaction" || kind === "bpmn-adhoc-subprocess" || kind === "bpmn-event-subprocess" || kind === "bpmn-call-activity";
-}
-var OmniboardPropertiesView = class extends import_obsidian.ItemView {
-  constructor(leaf) {
-    super(leaf);
-    this.onSelection = () => this.render();
-  }
-  getViewType() {
-    return OMNIBOARD_PROPERTIES_VIEW_TYPE;
-  }
-  getDisplayText() {
-    return "Pie Flow Properties";
-  }
-  getIcon() {
-    return "sliders-horizontal";
-  }
-  async onOpen() {
-    this.contentEl.addClass("omniboard-properties-view");
-    window.addEventListener(SELECTION_EVENT, this.onSelection);
-    this.render();
-  }
-  async onClose() {
-    window.removeEventListener(SELECTION_EVENT, this.onSelection);
-  }
-  activeCanvas() {
-    var _a3, _b2, _c, _d, _e3, _f, _g;
-    const active = (_a3 = this.app.workspace.activeLeaf) == null ? void 0 : _a3.view;
-    if (((_b2 = active == null ? void 0 : active.getViewType) == null ? void 0 : _b2.call(active)) === BOARD_VIEW_TYPE) return (_d = (_c = active.getCanvas) == null ? void 0 : _c.call(active)) != null ? _d : null;
-    const leaf = this.app.workspace.getLeavesOfType(BOARD_VIEW_TYPE)[0];
-    return (_g = (_f = (_e3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _e3.getCanvas) == null ? void 0 : _f.call(_e3)) != null ? _g : null;
-  }
-  render() {
-    this.contentEl.empty();
-    const canvas = this.activeCanvas();
-    if (!canvas) {
-      this.contentEl.createDiv({
-        cls: "obp-empty",
-        text: "Ch\u1ECDn m\u1ED9t node tr\xEAn Pie Flow \u0111\u1EC3 ch\u1EC9nh BPMN metadata, m\xE0u DI v\xE0 Camunda extensions."
-      });
-      return;
-    }
-    const all2 = canvas.getSelectedNodesSnapshot();
-    if (all2.length >= 2) {
-      this.renderMulti(canvas, all2);
-      return;
-    }
-    const snap2 = canvas.getSelectedNodeSnapshot();
-    if (!snap2) {
-      this.contentEl.createDiv({
-        cls: "obp-empty",
-        text: "Ch\u1ECDn m\u1ED9t node tr\xEAn Pie Flow \u0111\u1EC3 ch\u1EC9nh BPMN metadata, m\xE0u DI v\xE0 Camunda extensions."
-      });
-      return;
-    }
-    this.renderNode(canvas, snap2);
-  }
-  // Story 6.1 — Multi-select bulk style editor (AC #6).
-  // Shows only the fields shared by ALL selected nodes (Fill/Stroke for now).
-  // Values that differ across cells show "—" (mixed); typing replaces ALL.
-  renderMulti(canvas, snaps) {
-    const title2 = this.contentEl.createDiv({ cls: "obp-title" });
-    title2.createSpan({ cls: "obp-kind", text: `${snaps.length} selected` });
-    title2.createEl("strong", { text: "Multi-edit" });
-    const firstKind = snaps[0].kind;
-    const allSameKind = snaps.every((s5) => s5.kind === firstKind);
-    if (!allSameKind) {
-      this.contentEl.createDiv({
-        cls: "obp-empty",
-        text: "Ch\u1ECDn c\xE1c node C\xD9NG LO\u1EA0I \u0111\u1EC3 ch\u1EC9nh h\xE0ng lo\u1EA1t (hi\u1EC7n \u0111ang tr\u1ED9n nhi\u1EC1u lo\u1EA1i)."
-      });
-      return;
-    }
-    const mixed = (get3) => {
-      const first = get3(snaps[0]);
-      for (let i6 = 1; i6 < snaps.length; i6++) if (get3(snaps[i6]) !== first) return null;
-      return first;
-    };
-    const section = (name2) => {
-      const s5 = this.contentEl.createDiv({ cls: "lk-psec" });
-      s5.createDiv({ cls: "lk-psec-h", text: name2 });
-      return s5;
-    };
-    const field = (parent, label, control) => {
-      const wrap = parent.createDiv({ cls: "lk-pfield" });
-      wrap.createEl("label", { text: label });
-      wrap.appendChild(control);
-    };
-    const ids3 = snaps.map((s5) => s5.id);
-    const commit = (patch) => {
-      canvas.patchNodesBulk(ids3, patch);
-      emitOmniboardSelectionChange();
-    };
-    const HEX_RE = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
-    const styleColorRow = (key, label) => {
-      const row = el("div", "lk-prow2");
-      const sw = el("div", "lk-pswatch");
-      const current = mixed((s5) => s5.style[key]);
-      sw.style.background = current != null ? current : "transparent";
-      const input = el("input", "lk-pinput");
-      input.value = current != null ? current : "";
-      input.placeholder = current === null ? "\u2014 (mixed)" : "#ffffff";
-      input.oninput = () => {
-        const v6 = input.value.trim();
-        if (!v6 || HEX_RE.test(v6) || v6 === "transparent") sw.style.background = v6 || "transparent";
-      };
-      input.onchange = () => {
-        const v6 = input.value.trim();
-        if (v6 === "") {
-          commit({ [key]: void 0 });
-          return;
-        }
-        if (v6 === "transparent" || HEX_RE.test(v6)) {
-          commit({ [key]: v6 });
-          return;
-        }
-        input.value = current != null ? current : "";
-        sw.style.background = current != null ? current : "transparent";
-      };
-      input.onkeydown = (ev) => {
-        if (ev.key === "Enter") input.blur();
-      };
-      row.appendChild(sw);
-      row.appendChild(input);
-      field(this.contentEl, label, row);
-    };
-    const styleNumberRow = (key, label, min5, max9) => {
-      const input = el("input", "lk-pinput");
-      input.type = "number";
-      input.min = String(min5);
-      input.max = String(max9);
-      input.step = "1";
-      const current = mixed((s5) => s5.style[key]);
-      input.value = current != null ? String(current) : "";
-      input.placeholder = current === null ? "\u2014 (mixed)" : "";
-      input.onchange = () => {
-        const v6 = input.value.trim();
-        if (v6 === "") {
-          commit({ [key]: void 0 });
-          return;
-        }
-        const n4 = Number(v6);
-        if (Number.isFinite(n4) && n4 >= min5 && n4 <= max9) commit({ [key]: n4 });
-        else input.value = current != null ? String(current) : "";
-      };
-      input.onkeydown = (ev) => {
-        if (ev.key === "Enter") input.blur();
-      };
-      field(this.contentEl, label, input);
-    };
-    const sec = section("Bulk style");
-    sec.createDiv({ cls: "obp-empty", text: `\xC1p d\u1EE5ng cho ${snaps.length} node c\xF9ng lo\u1EA1i "${firstKind}". Tr\u01B0\u1EDDng gi\xE1 tr\u1ECB kh\xE1c nhau hi\u1EC3n th\u1ECB placeholder "\u2014 (mixed)". Edit commit on blur/Enter.` });
-    styleColorRow("fill", "Fill");
-    styleColorRow("stroke", "Stroke");
-    styleNumberRow("borderWidth", "Border width", 0, 20);
-    styleNumberRow("fontSize", "Font size", 8, 72);
-  }
-  renderNode(canvas, snap2) {
-    var _a3, _b2, _c;
-    const title2 = this.contentEl.createDiv({ cls: "obp-title" });
-    title2.createSpan({ cls: "obp-kind", text: snap2.kind });
-    title2.createEl("strong", { text: snap2.label || snap2.id });
-    const saveAttrs = (attrs) => canvas.patchSelectedNode({ attrs });
-    const section = (name2) => {
-      const s5 = this.contentEl.createDiv({ cls: "lk-psec" });
-      s5.createDiv({ cls: "lk-psec-h", text: name2 });
-      return s5;
-    };
-    const field = (parent, label, control) => {
-      const wrap = parent.createDiv({ cls: "lk-pfield" });
-      wrap.createEl("label", { text: label });
-      wrap.appendChild(control);
-    };
-    const textInput = (value, placeholder, onInput) => {
-      const input = el("input", "lk-pinput");
-      input.value = value;
-      input.placeholder = placeholder;
-      input.oninput = () => onInput(input.value);
-      return input;
-    };
-    const content5 = section("Content");
-    field(content5, "Label", textInput(snap2.label, "Label", (value) => canvas.patchSelectedNode({ label: value })));
-    if (!snap2.kind.startsWith("bpmn-")) {
-      this.contentEl.createDiv({ cls: "obp-empty", text: "Properties leaf currently exposes BPMN-specific metadata." });
-      return;
-    }
-    const color = section("BPMN DI Color");
-    const colorRow = (key, label) => {
-      var _a4;
-      const row = el("div", "lk-prow2");
-      const sw = el("div", "lk-pswatch");
-      const current = String((_a4 = snap2.attrs[key]) != null ? _a4 : "");
-      sw.style.background = current || "transparent";
-      const input = textInput(current, "#ffffff", (value) => {
-        sw.style.background = value.trim() || "transparent";
-        saveAttrs({ [key]: value.trim() || void 0 });
-      });
-      row.appendChild(sw);
-      row.appendChild(input);
-      field(color, label, row);
-    };
-    colorRow("bpmnFill", "Fill");
-    colorRow("bpmnStroke", "Stroke");
-    if (snap2.kind === "bpmn-event-start" || snap2.kind === "bpmn-event-intermediate" || snap2.kind === "bpmn-event-end") {
-      const event2 = section("Event");
-      const select = el("select", "lk-pinput");
-      const triggers = ["", "message", "timer", "signal", "error", "escalation", "compensation", "conditional", "link", "cancel", "terminate", "multiple", "parallel-multiple"];
-      for (const trigger of triggers) {
-        const option = document.createElement("option");
-        option.value = trigger;
-        option.textContent = trigger || "(none)";
-        option.selected = snap2.attrs.trigger === trigger || !snap2.attrs.trigger && trigger === "";
-        select.appendChild(option);
-      }
-      select.onchange = () => saveAttrs({ trigger: select.value || void 0 });
-      field(event2, "Trigger", select);
-    }
-    if (isBpmnActivity(snap2.kind)) {
-      const activity = section("Activity");
-      const markers = Array.isArray(snap2.attrs.markers) ? snap2.attrs.markers.map(String) : [];
-      const loop3 = el("select", "lk-pinput");
-      for (const [value, label] of [["", "None"], ["loop", "Standard loop"], ["mi-par", "Multi-instance parallel"], ["mi-seq", "Multi-instance sequential"]]) {
-        const option = document.createElement("option");
-        option.value = value;
-        option.textContent = label;
-        option.selected = markers.includes(value);
-        loop3.appendChild(option);
-      }
-      loop3.onchange = () => {
-        const rest = markers.filter((m7) => m7 !== "loop" && m7 !== "mi-par" && m7 !== "mi-seq");
-        saveAttrs({ markers: loop3.value ? [...rest, loop3.value] : rest });
-      };
-      field(activity, "Loop type", loop3);
-      const comp = el("input");
-      comp.type = "checkbox";
-      comp.checked = markers.includes("compensation");
-      comp.onchange = () => {
-        const rest = markers.filter((m7) => m7 !== "compensation");
-        saveAttrs({ markers: comp.checked ? [...rest, "compensation"] : rest });
-      };
-      field(activity, "isForCompensation", comp);
-    }
-    const docs = section("Documentation");
-    const doc = el("textarea", "lk-pinput obp-textarea");
-    doc.rows = 5;
-    doc.value = String((_a3 = snap2.attrs.bpmnDoc) != null ? _a3 : "");
-    doc.oninput = () => saveAttrs({ bpmnDoc: doc.value.trim() || void 0 });
-    docs.appendChild(doc);
-    const cam = section("Camunda Extension Elements");
-    const currentCamunda = snap2.attrs.camunda && typeof snap2.attrs.camunda === "object" ? snap2.attrs.camunda : {};
-    const camundaFields = ["assignee", "candidateUsers", "candidateGroups", "formKey", "dueDate", "priority"];
-    for (const key of camundaFields) {
-      field(cam, key, textInput((_b2 = currentCamunda[key]) != null ? _b2 : "", key, (value) => {
-        saveAttrs({ camunda: cleanObject({ ...currentCamunda, [key]: value.trim() }) });
-      }));
-    }
-    const props = Array.isArray(snap2.attrs.bpmnProps) ? snap2.attrs.bpmnProps : [];
-    const propsHost = cam.createDiv({ cls: "obp-kv" });
-    const renderPropRows = () => {
-      var _a4;
-      propsHost.empty();
-      const current = Array.isArray((_a4 = canvas.getSelectedNodeSnapshot()) == null ? void 0 : _a4.attrs.bpmnProps) ? canvas.getSelectedNodeSnapshot().attrs.bpmnProps : props;
-      current.forEach((prop2, index4) => {
-        const row = propsHost.createDiv({ cls: "lk-prow2" });
-        const name2 = textInput(prop2.name, "name", (value2) => {
-          const next = current.map((p6, i6) => i6 === index4 ? { ...p6, name: value2.trim() } : p6).filter((p6) => p6.name);
-          saveAttrs({ bpmnProps: next.length ? next : void 0 });
-        });
-        const value = textInput(prop2.value, "value", (v6) => {
-          const next = current.map((p6, i6) => i6 === index4 ? { ...p6, value: v6 } : p6).filter((p6) => p6.name);
-          saveAttrs({ bpmnProps: next.length ? next : void 0 });
-        });
-        row.appendChild(name2);
-        row.appendChild(value);
-      });
-    };
-    renderPropRows();
-    const add3 = el("button", "lk-padd", "+ Add camunda:property");
-    add3.onclick = () => {
-      var _a4;
-      const current = Array.isArray((_a4 = canvas.getSelectedNodeSnapshot()) == null ? void 0 : _a4.attrs.bpmnProps) ? canvas.getSelectedNodeSnapshot().attrs.bpmnProps : [];
-      saveAttrs({ bpmnProps: [...current, { name: "property", value: "" }] });
-      this.render();
-    };
-    cam.appendChild(add3);
-    const raw2 = section("Raw Metadata JSON");
-    const json = el("textarea", "lk-pinput obp-textarea");
-    json.rows = 8;
-    json.value = JSON.stringify({
-      documentation: (_c = snap2.attrs.bpmnDoc) != null ? _c : "",
-      camunda: currentCamunda,
-      bpmnProps: props
-    }, null, 2);
-    json.onchange = () => {
-      var _a4;
-      try {
-        const parsed = JSON.parse(json.value);
-        saveAttrs({
-          bpmnDoc: parsed.documentation || void 0,
-          camunda: parsed.camunda ? cleanObject(parsed.camunda) : void 0,
-          bpmnProps: ((_a4 = parsed.bpmnProps) == null ? void 0 : _a4.filter((p6) => p6.name)) || void 0
-        });
-      } catch (e5) {
-        json.addClass("obp-invalid");
-      }
-    };
-    raw2.appendChild(json);
-  }
+// src/io/bpmn/validatorExtra.ts
+var isSequence = (e5) => {
+  var _a3;
+  return ((_a3 = e5.kind) != null ? _a3 : "sequence") === "sequence";
 };
-
-// src/ui/BpmnIssuesView.ts
-var import_obsidian2 = require("obsidian");
+var isGateway2 = (n4) => n4.shape.startsWith("bpmn-gateway");
+var isTask = (n4) => n4.shape.startsWith("bpmn-task");
+var isEvent2 = (n4) => n4.shape.startsWith("bpmn-event-") && n4.shape !== "bpmn-event-subprocess";
+var SUBS = /* @__PURE__ */ new Set(["bpmn-subprocess", "bpmn-transaction", "bpmn-adhoc-subprocess"]);
+var isFlowNode = (n4) => isTask(n4) || isEvent2(n4) || isGateway2(n4) || SUBS.has(n4.shape) || n4.shape === "bpmn-call-activity";
+var poolOf = (n4) => {
+  var _a3, _b2, _c, _d;
+  const own = (_d = (_b2 = (_a3 = n4.attrs) == null ? void 0 : _a3.__source) == null ? void 0 : _b2.poolId) != null ? _d : (_c = n4.attrs) == null ? void 0 : _c.poolId;
+  return typeof own === "string" ? own : "";
+};
+var attr2 = (n4, k5) => {
+  var _a3;
+  return (_a3 = n4.attrs) == null ? void 0 : _a3[k5];
+};
+function adjacency(edges) {
+  var _a3, _b2;
+  const out = /* @__PURE__ */ new Map();
+  const inn = /* @__PURE__ */ new Map();
+  for (const e5 of edges.filter(isSequence)) {
+    out.set(e5.source, [...(_a3 = out.get(e5.source)) != null ? _a3 : [], e5.target]);
+    inn.set(e5.target, [...(_b2 = inn.get(e5.target)) != null ? _b2 : [], e5.source]);
+  }
+  return { out, inn };
+}
+function unreachable(model, mk, out) {
+  var _a3;
+  const byId = new Map(model.nodes.map((n4) => [n4.id, n4]));
+  const messageTargets = new Set(model.edges.filter((e5) => e5.kind === "message").map((e5) => e5.target));
+  const scopeOf = (n4) => {
+    var _a4;
+    return `${(_a4 = n4.parentId) != null ? _a4 : ""}|${poolOf(n4)}`;
+  };
+  const scoped = model.nodes.filter((n4) => {
+    var _a4, _b2;
+    return isFlowNode(n4) && ((_b2 = byId.get((_a4 = n4.parentId) != null ? _a4 : "")) == null ? void 0 : _b2.shape) !== "bpmn-adhoc-subprocess";
+  });
+  const isRoot = (n4) => {
+    var _a4;
+    return n4.shape === "bpmn-event-start" || !!attr2(n4, "attachedTo") || attr2(n4, "trigger") === "link" || messageTargets.has(n4.id) || ((_a4 = attr2(n4, "markers")) == null ? void 0 : _a4.includes("compensation")) === true;
+  };
+  const reached = /* @__PURE__ */ new Set();
+  const queue = scoped.filter(isRoot).map((n4) => n4.id);
+  const scopesWithRoot = new Set(queue.map((id) => scopeOf(byId.get(id))));
+  while (queue.length) {
+    const id = queue.pop();
+    if (reached.has(id)) continue;
+    reached.add(id);
+    queue.push(...(_a3 = out.get(id)) != null ? _a3 : []);
+  }
+  for (const n4 of scoped) {
+    if (!reached.has(n4.id) && scopesWithRoot.has(scopeOf(n4))) {
+      mk("warn", "UNREACHABLE_NODE", "No start event leads to this element.", "node", n4.id);
+    }
+  }
+}
+var GW_KIND = (n4) => n4.shape === "bpmn-gateway-parallel" ? "and" : n4.shape === "bpmn-gateway-x" ? "xor" : "";
+function joinsOf(split, byId, out, inn) {
+  var _a3, _b2, _c, _d, _e3, _f;
+  const found = /* @__PURE__ */ new Set();
+  for (const first of (_a3 = out.get(split)) != null ? _a3 : []) {
+    let hit = null;
+    const seen = /* @__PURE__ */ new Set();
+    const stack = [[first, 0]];
+    while (stack.length && !hit) {
+      const [id, depth] = stack.pop();
+      const key = `${id}:${depth}`;
+      if (seen.has(key) || seen.size > 500) continue;
+      seen.add(key);
+      const n4 = byId.get(id);
+      let d4 = depth;
+      if (n4 && isGateway2(n4)) {
+        if (((_c = (_b2 = inn.get(id)) == null ? void 0 : _b2.length) != null ? _c : 0) > 1) {
+          if (d4 === 0) {
+            hit = id;
+            break;
+          }
+          d4 -= 1;
+        }
+        if (((_e3 = (_d = out.get(id)) == null ? void 0 : _d.length) != null ? _e3 : 0) > 1) d4 += 1;
+      }
+      for (const next of (_f = out.get(id)) != null ? _f : []) stack.push([next, d4]);
+    }
+    found.add(hit);
+  }
+  return found;
+}
+function pairMismatch(model, mk, out, inn) {
+  var _a3, _b2;
+  const byId = new Map(model.nodes.map((n4) => [n4.id, n4]));
+  for (const s5 of model.nodes) {
+    if (!GW_KIND(s5) || ((_b2 = (_a3 = out.get(s5.id)) == null ? void 0 : _a3.length) != null ? _b2 : 0) < 2) continue;
+    const found = joinsOf(s5.id, byId, out, inn);
+    const joinId = found.size === 1 ? [...found][0] : null;
+    const j5 = joinId ? byId.get(joinId) : void 0;
+    if (j5 && GW_KIND(j5) && GW_KIND(j5) !== GW_KIND(s5)) {
+      const msg = "Split and join gateway types differ (parallel vs exclusive).";
+      mk("warn", "GATEWAY_PAIR_MISMATCH", msg, "node", s5.id);
+      mk("warn", "GATEWAY_PAIR_MISMATCH", msg, "node", j5.id);
+    }
+  }
+}
+function unnamed(model, mk, out) {
+  var _a3, _b2, _c;
+  for (const n4 of model.nodes) {
+    const needsName = isTask(n4) || SUBS.has(n4.shape) || n4.shape === "bpmn-event-subprocess" || n4.shape === "bpmn-call-activity" || ["bpmn-gateway-x", "bpmn-gateway-inclusive", "bpmn-gateway-complex"].includes(n4.shape) && ((_b2 = (_a3 = out.get(n4.id)) == null ? void 0 : _a3.length) != null ? _b2 : 0) > 1;
+    if (needsName && !((_c = n4.label) != null ? _c : "").trim()) mk("warn", "UNNAMED_ELEMENT", "Element has no name.", "node", n4.id);
+  }
+}
+function lintExtra(model, mk) {
+  const { out, inn } = adjacency(model.edges);
+  unreachable(model, mk, out);
+  pairMismatch(model, mk, out, inn);
+  unnamed(model, mk, out);
+}
 
 // src/io/bpmn/validator.ts
 function nodeById(model) {
@@ -78059,73 +78342,9 @@ function validateBpmnModel(model) {
       }
     }
   }
+  lintExtra(model, mk);
   return issues;
 }
-
-// src/ui/BpmnIssuesView.ts
-var OMNIBOARD_ISSUES_VIEW_TYPE = "omniboard-bpmn-issues";
-var BOARD_VIEW_TYPE2 = "omniboard-board";
-var ISSUE_EVENT = "omniboard-bpmn-issues-refresh";
-function emitBpmnIssuesRefresh() {
-  window.dispatchEvent(new CustomEvent(ISSUE_EVENT));
-}
-var BpmnIssuesView = class extends import_obsidian2.ItemView {
-  constructor(leaf) {
-    super(leaf);
-    this.onRefresh = () => this.render();
-  }
-  getViewType() {
-    return OMNIBOARD_ISSUES_VIEW_TYPE;
-  }
-  getDisplayText() {
-    return "BPMN Issues";
-  }
-  getIcon() {
-    return "alert-triangle";
-  }
-  async onOpen() {
-    this.contentEl.addClass("omniboard-issues-view");
-    window.addEventListener(ISSUE_EVENT, this.onRefresh);
-    this.render();
-  }
-  async onClose() {
-    window.removeEventListener(ISSUE_EVENT, this.onRefresh);
-  }
-  boardView() {
-    var _a3, _b2, _c, _d;
-    const active = (_a3 = this.app.workspace.activeLeaf) == null ? void 0 : _a3.view;
-    if (((_b2 = active == null ? void 0 : active.getViewType) == null ? void 0 : _b2.call(active)) === BOARD_VIEW_TYPE2) return active;
-    return (_d = (_c = this.app.workspace.getLeavesOfType(BOARD_VIEW_TYPE2)[0]) == null ? void 0 : _c.view) != null ? _d : null;
-  }
-  render() {
-    var _a3, _b2;
-    this.contentEl.empty();
-    const board = this.boardView();
-    const canvas = (_b2 = (_a3 = board == null ? void 0 : board.getCanvas) == null ? void 0 : _a3.call(board)) != null ? _b2 : null;
-    if (!canvas) {
-      this.contentEl.createDiv({ cls: "obp-empty", text: "M\u1EDF m\u1ED9t board Pie Flow BPMN \u0111\u1EC3 xem semantic issues." });
-      return;
-    }
-    const model = canvas.getModel();
-    const issues = validateBpmnModel(model);
-    const head = this.contentEl.createDiv({ cls: "obp-title" });
-    head.createSpan({ cls: "obp-kind", text: "BPMN Validator" });
-    head.createEl("strong", { text: `${issues.length} issues` });
-    if (!issues.length) {
-      this.contentEl.createDiv({ cls: "obp-empty", text: "Kh\xF4ng ph\xE1t hi\u1EC7n l\u1ED7i semantic." });
-      return;
-    }
-    for (const i6 of issues) {
-      const row = this.contentEl.createEl("button", { cls: `obi-row ${i6.severity}` });
-      row.type = "button";
-      row.createSpan({ cls: "obi-code", text: i6.code });
-      row.createSpan({ cls: "obi-msg", text: i6.message });
-      row.onclick = () => {
-        if (board == null ? void 0 : board.focusCellId) board.focusCellId(i6.targetId);
-      };
-    }
-  }
-};
 
 // node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
 var f2 = 0;
@@ -78505,6 +78724,9 @@ function C3(n4, t6) {
 function D3(n4, t6) {
   return "function" == typeof t6 ? t6(n4) : t6;
 }
+
+// src/canvas/OmniboardCanvas.ts
+init_innerFlows();
 
 // node_modules/@antv/x6-plugin-selection/es/selection.js
 var __decorate21 = function(decorators, target, key, desc) {
@@ -82617,7 +82839,7 @@ __decorate30([
 // src/canvas/erdPorts.ts
 var HEAD_H = 38;
 var ROW_H = 27;
-function buildErdColumnPorts(cols, width2) {
+function buildErdColumnPorts(cols) {
   var _a3;
   if (!cols || cols.length === 0) return [];
   const ports = [];
@@ -82637,7 +82859,7 @@ function buildErdColumnPorts(cols, width2) {
     ports.push({
       id: `col:${portName}-right`,
       group: "erdColRight",
-      args: { x: width2, y: y5 }
+      args: { x: "100%", y: y5 }
     });
   }
   return ports;
@@ -82670,6 +82892,60 @@ var ERD_COL_PORT_GROUPS = {
     }
   }
 };
+
+// src/canvas/boundaryLayout.ts
+var clamp2 = (v6, lo, hi) => Math.min(Math.max(v6, lo), hi);
+var centreOf = (b4) => ({ x: b4.x + b4.width / 2, y: b4.y + b4.height / 2 });
+function edgeDistances(event2, host) {
+  const c6 = centreOf(event2);
+  const along = (v6, lo, hi) => v6 - clamp2(v6, lo, hi);
+  const dist = (dx, dy) => Math.hypot(dx, dy);
+  return {
+    top: dist(along(c6.x, host.x, host.x + host.width), c6.y - host.y),
+    bottom: dist(along(c6.x, host.x, host.x + host.width), c6.y - (host.y + host.height)),
+    left: dist(c6.x - host.x, along(c6.y, host.y, host.y + host.height)),
+    right: dist(c6.x - (host.x + host.width), along(c6.y, host.y, host.y + host.height))
+  };
+}
+function hostSide(event2, host) {
+  const d4 = edgeDistances(event2, host);
+  return Object.keys(d4).reduce((best, s5) => d4[s5] < d4[best] ? s5 : best, "top");
+}
+function distanceToBorder(event2, host) {
+  return Math.min(...Object.values(edgeDistances(event2, host)));
+}
+var ATTACH_DISTANCE = 30;
+function pickHost(event2, hosts, maxDist = ATTACH_DISTANCE) {
+  var _a3;
+  let best = null;
+  for (const h5 of hosts) {
+    const d4 = distanceToBorder(event2, h5.box);
+    if (d4 <= maxDist && (!best || d4 < best.d)) best = { id: h5.id, d: d4 };
+  }
+  return (_a3 = best == null ? void 0 : best.id) != null ? _a3 : null;
+}
+function placeOn(event2, host, side, t6) {
+  const horizontal = side === "top" || side === "bottom";
+  const cx = horizontal ? host.x + t6 * host.width : side === "left" ? host.x : host.x + host.width;
+  const cy = horizontal ? side === "top" ? host.y : host.y + host.height : host.y + t6 * host.height;
+  return { x: cx - event2.width / 2, y: cy - event2.height / 2 };
+}
+function fractionOn(event2, host, side) {
+  const c6 = centreOf(event2);
+  return side === "top" || side === "bottom" ? clamp2(host.width ? (c6.x - host.x) / host.width : 0.5, 0, 1) : clamp2(host.height ? (c6.y - host.y) / host.height : 0.5, 0, 1);
+}
+function snapToHostBorder(event2, host) {
+  const side = hostSide(event2, host);
+  return placeOn(event2, host, side, fractionOn(event2, host, side));
+}
+function followHost(event2, before2, after2) {
+  const side = hostSide(event2, before2);
+  return placeOn(event2, after2, side, fractionOn(event2, before2, side));
+}
+function eventLabelSide(o5) {
+  if (o5.boundary) return o5.boundary;
+  return o5.edgeBelow && !o5.edgeAbove ? "top" : "bottom";
+}
 
 // src/canvas/staticRender.ts
 var SVGNS = "http://www.w3.org/2000/svg";
@@ -82774,13 +83050,14 @@ function edgesMarkup(edges, byId) {
     const s5 = anchor2(sn2, e5.sourcePort), t6 = anchor2(tn2, e5.targetPort);
     const d4 = edgePath(s5, e5.sourcePort, t6, e5.targetPort);
     const line2 = `<path d="${d4}" fill="none" stroke="${EDGE_STROKE}" stroke-width="1.8" marker-end="url(#da-arrow)"/>`;
-    const label = e5.label ? `<text x="${(s5.x + t6.x) / 2}" y="${(s5.y + t6.y) / 2 - 4}" text-anchor="middle" font-size="12" fill="#1f2329" style="font-family:var(--font-body,system-ui)">${esc2(e5.label)}</text>` : "";
-    return line2 + label;
+    const label2 = e5.label ? `<text x="${(s5.x + t6.x) / 2}" y="${(s5.y + t6.y) / 2 - 4}" text-anchor="middle" font-size="12" fill="#1f2329" style="font-family:var(--font-body,system-ui)">${esc2(e5.label)}</text>` : "";
+    return line2 + label2;
   }).join("");
 }
-function nodeInnerHtml(n4) {
+function nodeInnerHtml(n4, byId) {
   var _a3, _b2;
   const a5 = (_a3 = n4.attrs) != null ? _a3 : {};
+  const host = typeof a5.attachedTo === "string" ? byId.get(a5.attachedTo) : void 0;
   const style2 = (_b2 = a5.style) != null ? _b2 : {};
   const extra = {
     cols: a5.cols,
@@ -82796,9 +83073,18 @@ function nodeInnerHtml(n4) {
     interrupting: a5.interrupting,
     attachedTo: a5.attachedTo,
     markers: a5.markers,
-    collapsed: a5.collapsed
+    collapsed: a5.collapsed,
+    // Boundary event: label outside its host, like the live canvas.
+    ...host ? { labelSide: hostSide(n4, host) } : {}
   };
   return nodeHtml(n4.shape, n4.label, style2, extra);
+}
+function paintOrder(nodes) {
+  const isBoundary = (n4) => {
+    var _a3;
+    return typeof ((_a3 = n4.attrs) == null ? void 0 : _a3.attachedTo) === "string";
+  };
+  return [...nodes.filter((n4) => !isBoundary(n4)), ...nodes.filter(isBoundary)];
 }
 var ARROW_DEF = `<marker id="da-arrow" markerWidth="11" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="userSpaceOnUse"><path d="M0 0 L11 4 L0 8 z" fill="${EDGE_STROKE}"/></marker>`;
 function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
@@ -82807,8 +83093,8 @@ function renderModelToSvg(model, css2, pad = 24, bg = "#ffffff") {
   const byId = new Map(nodes.map((n4) => [n4.id, n4]));
   const { x: x5, y: y5, w: w5, h: h5 } = computeBounds(nodes, pad);
   const edgeSvg = edgesMarkup(model.edges, byId);
-  const nodeSvg = nodes.map((n4) => {
-    const inner = nodeInnerHtml(n4);
+  const nodeSvg = paintOrder(nodes).map((n4) => {
+    const inner = nodeInnerHtml(n4, byId);
     return `<foreignObject x="${num(n4.x)}" y="${num(n4.y)}" width="${num(n4.width)}" height="${num(n4.height)}"><div xmlns="${XHTMLNS}" class="hn" style="width:100%;height:100%">${inner}</div></foreignObject>`;
   }).join("");
   return `<svg xmlns="${SVGNS}" class="lk-root" width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}"><defs>${ARROW_DEF}</defs><style>foreignObject{overflow:visible}${css2}</style>` + (bg && bg !== "transparent" ? `<rect x="${x5}" y="${y5}" width="${w5}" height="${h5}" fill="${bg}"/>` : "") + edgeSvg + nodeSvg + `</svg>`;
@@ -82819,8 +83105,8 @@ function renderModelToCard(model, pad = 16, bg = "transparent") {
   const byId = new Map(nodes.map((n4) => [n4.id, n4]));
   const { x: x5, y: y5, w: w5, h: h5 } = computeBounds(nodes, pad);
   const edgeSvg = `<svg xmlns="${SVGNS}" class="ob-card-edges" width="${w5}" height="${h5}" viewBox="${x5} ${y5} ${w5} ${h5}" style="position:absolute;left:0;top:0;width:${w5}px;height:${h5}px;overflow:visible;pointer-events:none"><defs>${ARROW_DEF}</defs>${edgesMarkup(model.edges, byId)}</svg>`;
-  const nodeDivs = nodes.map((n4) => {
-    const inner = nodeInnerHtml(n4);
+  const nodeDivs = paintOrder(nodes).map((n4) => {
+    const inner = nodeInnerHtml(n4, byId);
     const left4 = num(n4.x) - x5, top4 = num(n4.y) - y5;
     return `<div class="hn" style="position:absolute;left:${left4}px;top:${top4}px;width:${num(n4.width)}px;height:${num(n4.height)}px">${inner}</div>`;
   }).join("");
@@ -82851,9 +83137,12 @@ function fitCardStage(root2) {
   return () => ro.disconnect();
 }
 
+// src/canvas/OmniboardCanvas.ts
+init_laneLayout();
+
 // src/canvas/poolConnect.ts
 var POOL_EDGE_BAND = 16;
-var clamp2 = (v6, lo, hi) => Math.min(Math.max(v6, lo), hi);
+var clamp3 = (v6, lo, hi) => Math.min(Math.max(v6, lo), hi);
 function poolDropAnchor(pool, drop, other) {
   const top4 = pool.y, bottom4 = pool.y + pool.height;
   if (drop.x < pool.x || drop.x > pool.x + pool.width) return null;
@@ -82862,7 +83151,381 @@ function poolDropAnchor(pool, drop, other) {
   const onBody = drop.y >= top4 && drop.y <= bottom4;
   if (!nearTop && !nearBottom && !(pool.blackBox && onBody)) return null;
   const toBottom = other.y > bottom4 ? true : other.y < top4 ? false : Math.abs(drop.y - bottom4) < Math.abs(drop.y - top4);
-  return { dx: clamp2(other.x - pool.x, 0, pool.width), dy: toBottom ? pool.height : 0 };
+  return { dx: clamp3(other.x - pool.x, 0, pool.width), dy: toBottom ? pool.height : 0 };
+}
+
+// node_modules/diagram-js/lib/layout/ManhattanLayout.js
+init_dist();
+init_LayoutUtil();
+init_Geometry();
+var MIN_SEGMENT_LENGTH = 20;
+var POINT_ORIENTATION_PADDING = 5;
+var round2 = Math.round;
+var INTERSECTION_THRESHOLD = 20;
+var ORIENTATION_THRESHOLD = {
+  "h:h": 20,
+  "v:v": 20,
+  "h:v": -10,
+  "v:h": -10
+};
+function needsTurn(orientation, startDirection) {
+  return !{
+    t: /top/,
+    r: /right/,
+    b: /bottom/,
+    l: /left/,
+    h: /./,
+    v: /./
+  }[startDirection].test(orientation);
+}
+function canLayoutStraight(direction, targetOrientation) {
+  return {
+    t: /top/,
+    r: /right/,
+    b: /bottom/,
+    l: /left/,
+    h: /left|right/,
+    v: /top|bottom/
+  }[direction].test(targetOrientation);
+}
+function getSegmentBendpoints(a5, b4, directions2) {
+  var orientation = getOrientation(b4, a5, POINT_ORIENTATION_PADDING);
+  var startDirection = directions2.split(":")[0];
+  var xmid = round2((b4.x - a5.x) / 2 + a5.x), ymid = round2((b4.y - a5.y) / 2 + a5.y);
+  var segmentEnd, segmentDirections;
+  var layoutStraight = canLayoutStraight(startDirection, orientation), layoutHorizontal = /h|r|l/.test(startDirection), layoutTurn = false;
+  var turnNextDirections = false;
+  if (layoutStraight) {
+    segmentEnd = layoutHorizontal ? { x: xmid, y: a5.y } : { x: a5.x, y: ymid };
+    segmentDirections = layoutHorizontal ? "h:h" : "v:v";
+  } else {
+    layoutTurn = needsTurn(orientation, startDirection);
+    segmentDirections = layoutHorizontal ? "h:v" : "v:h";
+    if (layoutTurn) {
+      if (layoutHorizontal) {
+        turnNextDirections = ymid === a5.y;
+        segmentEnd = {
+          x: a5.x + MIN_SEGMENT_LENGTH * (/l/.test(startDirection) ? -1 : 1),
+          y: turnNextDirections ? ymid + MIN_SEGMENT_LENGTH : ymid
+        };
+      } else {
+        turnNextDirections = xmid === a5.x;
+        segmentEnd = {
+          x: turnNextDirections ? xmid + MIN_SEGMENT_LENGTH : xmid,
+          y: a5.y + MIN_SEGMENT_LENGTH * (/t/.test(startDirection) ? -1 : 1)
+        };
+      }
+    } else {
+      segmentEnd = {
+        x: xmid,
+        y: ymid
+      };
+    }
+  }
+  return {
+    waypoints: getBendpoints(a5, segmentEnd, segmentDirections).concat(segmentEnd),
+    directions: segmentDirections,
+    turnNextDirections
+  };
+}
+function getStartSegment(a5, b4, directions2) {
+  return getSegmentBendpoints(a5, b4, directions2);
+}
+function getEndSegment(a5, b4, directions2) {
+  var invertedSegment = getSegmentBendpoints(b4, a5, invertDirections(directions2));
+  return {
+    waypoints: invertedSegment.waypoints.slice().reverse(),
+    directions: invertDirections(invertedSegment.directions),
+    turnNextDirections: invertedSegment.turnNextDirections
+  };
+}
+function getMidSegment(startSegment, endSegment) {
+  var startDirection = startSegment.directions.split(":")[1], endDirection = endSegment.directions.split(":")[0];
+  if (startSegment.turnNextDirections) {
+    startDirection = startDirection == "h" ? "v" : "h";
+  }
+  if (endSegment.turnNextDirections) {
+    endDirection = endDirection == "h" ? "v" : "h";
+  }
+  var directions2 = startDirection + ":" + endDirection;
+  var bendpoints = getBendpoints(
+    startSegment.waypoints[startSegment.waypoints.length - 1],
+    endSegment.waypoints[0],
+    directions2
+  );
+  return {
+    waypoints: bendpoints,
+    directions: directions2
+  };
+}
+function invertDirections(directions2) {
+  return directions2.split(":").reverse().join(":");
+}
+function getSimpleBendpoints(a5, b4, directions2) {
+  var xmid = round2((b4.x - a5.x) / 2 + a5.x), ymid = round2((b4.y - a5.y) / 2 + a5.y);
+  if (directions2 === "h:v") {
+    return [{ x: b4.x, y: a5.y }];
+  }
+  if (directions2 === "v:h") {
+    return [{ x: a5.x, y: b4.y }];
+  }
+  if (directions2 === "h:h") {
+    return [
+      { x: xmid, y: a5.y },
+      { x: xmid, y: b4.y }
+    ];
+  }
+  if (directions2 === "v:v") {
+    return [
+      { x: a5.x, y: ymid },
+      { x: b4.x, y: ymid }
+    ];
+  }
+  throw new Error("invalid directions: can only handle varians of [hv]:[hv]");
+}
+function getBendpoints(a5, b4, directions2) {
+  directions2 = directions2 || "h:h";
+  if (!isValidDirections(directions2)) {
+    throw new Error(
+      "unknown directions: <" + directions2 + ">: must be specified as <start>:<end> with start/end in { h,v,t,r,b,l }"
+    );
+  }
+  if (isExplicitDirections(directions2)) {
+    var startSegment = getStartSegment(a5, b4, directions2), endSegment = getEndSegment(a5, b4, directions2), midSegment = getMidSegment(startSegment, endSegment);
+    return [].concat(
+      startSegment.waypoints,
+      midSegment.waypoints,
+      endSegment.waypoints
+    );
+  }
+  return getSimpleBendpoints(a5, b4, directions2);
+}
+function connectPoints(a5, b4, directions2) {
+  var points = getBendpoints(a5, b4, directions2);
+  points.unshift(a5);
+  points.push(b4);
+  return withoutRedundantPoints(points);
+}
+function connectRectangles(source, target, start, end, hints) {
+  var preferredLayouts = hints && hints.preferredLayouts || [];
+  var preferredLayout = without(preferredLayouts, "straight")[0] || "h:h";
+  var threshold = ORIENTATION_THRESHOLD[preferredLayout] || 0;
+  var orientation = getOrientation(source, target, threshold);
+  var directions2 = getDirections(orientation, preferredLayout);
+  start = start || getMid(source);
+  end = end || getMid(target);
+  var directionSplit = directions2.split(":");
+  var startDocking = getDockingPoint(start, source, directionSplit[0], invertOrientation(orientation)), endDocking = getDockingPoint(end, target, directionSplit[1], orientation);
+  return connectPoints(startDocking, endDocking, directions2);
+}
+function repairConnection(source, target, start, end, waypoints, hints) {
+  if (isArray2(start)) {
+    waypoints = start;
+    hints = end;
+    start = getMid(source);
+    end = getMid(target);
+  }
+  hints = assign2({ preferredLayouts: [] }, hints);
+  waypoints = waypoints || [];
+  var preferredLayouts = hints.preferredLayouts, preferStraight = preferredLayouts.indexOf("straight") !== -1, repairedWaypoints;
+  repairedWaypoints = preferStraight && tryLayoutStraight(source, target, start, end, hints);
+  if (repairedWaypoints) {
+    return repairedWaypoints;
+  }
+  repairedWaypoints = hints.connectionEnd && tryRepairConnectionEnd(target, source, end, waypoints);
+  if (repairedWaypoints) {
+    return repairedWaypoints;
+  }
+  repairedWaypoints = hints.connectionStart && tryRepairConnectionStart(source, target, start, waypoints);
+  if (repairedWaypoints) {
+    return repairedWaypoints;
+  }
+  if (!hints.connectionStart && !hints.connectionEnd && waypoints && waypoints.length) {
+    return waypoints;
+  }
+  return connectRectangles(source, target, start, end, hints);
+}
+function inRange(a5, start, end) {
+  return a5 >= start && a5 <= end;
+}
+function isInRange(axis2, a5, b4) {
+  var size2 = {
+    x: "width",
+    y: "height"
+  };
+  return inRange(a5[axis2], b4[axis2], b4[axis2] + b4[size2[axis2]]);
+}
+function tryLayoutStraight(source, target, start, end, hints) {
+  var axis2 = {}, primaryAxis, orientation;
+  orientation = getOrientation(source, target);
+  if (!/^(top|bottom|left|right)$/.test(orientation)) {
+    return null;
+  }
+  if (/top|bottom/.test(orientation)) {
+    primaryAxis = "x";
+  }
+  if (/left|right/.test(orientation)) {
+    primaryAxis = "y";
+  }
+  if (hints.preserveDocking === "target") {
+    if (!isInRange(primaryAxis, end, source)) {
+      return null;
+    }
+    axis2[primaryAxis] = end[primaryAxis];
+    return [
+      {
+        x: axis2.x !== void 0 ? axis2.x : start.x,
+        y: axis2.y !== void 0 ? axis2.y : start.y,
+        original: {
+          x: axis2.x !== void 0 ? axis2.x : start.x,
+          y: axis2.y !== void 0 ? axis2.y : start.y
+        }
+      },
+      {
+        x: end.x,
+        y: end.y
+      }
+    ];
+  } else {
+    if (!isInRange(primaryAxis, start, target)) {
+      return null;
+    }
+    axis2[primaryAxis] = start[primaryAxis];
+    return [
+      {
+        x: start.x,
+        y: start.y
+      },
+      {
+        x: axis2.x !== void 0 ? axis2.x : end.x,
+        y: axis2.y !== void 0 ? axis2.y : end.y,
+        original: {
+          x: axis2.x !== void 0 ? axis2.x : end.x,
+          y: axis2.y !== void 0 ? axis2.y : end.y
+        }
+      }
+    ];
+  }
+}
+function tryRepairConnectionStart(moved, other, newDocking, points) {
+  return _tryRepairConnectionSide(moved, other, newDocking, points);
+}
+function tryRepairConnectionEnd(moved, other, newDocking, points) {
+  var waypoints = points.slice().reverse();
+  waypoints = _tryRepairConnectionSide(moved, other, newDocking, waypoints);
+  return waypoints ? waypoints.reverse() : null;
+}
+function _tryRepairConnectionSide(moved, other, newDocking, points) {
+  function needsRelayout(points2) {
+    if (points2.length < 3) {
+      return true;
+    }
+    if (points2.length > 4) {
+      return false;
+    }
+    return !!find2(points2, function(p6, idx) {
+      var q5 = points2[idx - 1];
+      return q5 && pointDistance(p6, q5) < 3;
+    });
+  }
+  function repairBendpoint(candidate, oldPeer, newPeer) {
+    var alignment = pointsAligned(oldPeer, candidate);
+    switch (alignment) {
+      case "v":
+        return { x: newPeer.x, y: candidate.y };
+      case "h":
+        return { x: candidate.x, y: newPeer.y };
+    }
+    return { x: candidate.x, y: candidate.y };
+  }
+  function removeOverlapping(points2, a5, b4) {
+    var i6;
+    for (i6 = points2.length - 2; i6 !== 0; i6--) {
+      if (pointInRect(points2[i6], a5, INTERSECTION_THRESHOLD) || pointInRect(points2[i6], b4, INTERSECTION_THRESHOLD)) {
+        return points2.slice(i6);
+      }
+    }
+    return points2;
+  }
+  if (needsRelayout(points)) {
+    return null;
+  }
+  var oldDocking = points[0], newPoints = points.slice(), slicedPoints;
+  newPoints[0] = newDocking;
+  newPoints[1] = repairBendpoint(newPoints[1], oldDocking, newDocking);
+  slicedPoints = removeOverlapping(newPoints, moved, other);
+  if (slicedPoints !== newPoints) {
+    newPoints = _tryRepairConnectionSide(moved, other, newDocking, slicedPoints);
+  }
+  if (newPoints && pointsAligned(newPoints)) {
+    return null;
+  }
+  return newPoints;
+}
+function getDirections(orientation, defaultLayout) {
+  if (isExplicitDirections(defaultLayout)) {
+    return defaultLayout;
+  }
+  switch (orientation) {
+    case "intersect":
+      return "t:t";
+    case "top":
+    case "bottom":
+      return "v:v";
+    case "left":
+    case "right":
+      return "h:h";
+    default:
+      return defaultLayout;
+  }
+}
+function isValidDirections(directions2) {
+  return directions2 && /^h|v|t|r|b|l:h|v|t|r|b|l$/.test(directions2);
+}
+function isExplicitDirections(directions2) {
+  return directions2 && /t|r|b|l/.test(directions2);
+}
+function invertOrientation(orientation) {
+  return {
+    "top": "bottom",
+    "bottom": "top",
+    "left": "right",
+    "right": "left",
+    "top-left": "bottom-right",
+    "bottom-right": "top-left",
+    "top-right": "bottom-left",
+    "bottom-left": "top-right"
+  }[orientation];
+}
+function getDockingPoint(point, rectangle, dockingDirection, targetOrientation) {
+  if (dockingDirection === "h") {
+    dockingDirection = /left/.test(targetOrientation) ? "l" : "r";
+  }
+  if (dockingDirection === "v") {
+    dockingDirection = /top/.test(targetOrientation) ? "t" : "b";
+  }
+  if (dockingDirection === "t") {
+    return { original: point, x: point.x, y: rectangle.y };
+  }
+  if (dockingDirection === "r") {
+    return { original: point, x: rectangle.x + rectangle.width, y: point.y };
+  }
+  if (dockingDirection === "b") {
+    return { original: point, x: point.x, y: rectangle.y + rectangle.height };
+  }
+  if (dockingDirection === "l") {
+    return { original: point, x: rectangle.x, y: point.y };
+  }
+  throw new Error("unexpected dockingDirection: <" + dockingDirection + ">");
+}
+function withoutRedundantPoints(waypoints) {
+  return waypoints.reduce(function(points, p6, idx) {
+    var previous = points[points.length - 1], next = waypoints[idx + 1];
+    if (!pointsOnLine(previous, next, p6, 0)) {
+      points.push(p6);
+    }
+    return points;
+  }, []);
 }
 
 // src/canvas/avoidRouter.ts
@@ -82890,10 +83553,12 @@ function registerAvoidRouter() {
     const graph = view.graph;
     const excludeNodes = graph.getNodes().filter((n4) => {
       var _a4, _b2;
-      return !isRouteObstacle(String((_b2 = (_a4 = n4.getData()) == null ? void 0 : _a4.kind) != null ? _b2 : ""), n4.getData());
+      return !n4.isVisible() || !isRouteObstacle(String((_b2 = (_a4 = n4.getData()) == null ? void 0 : _a4.kind) != null ? _b2 : ""), n4.getData());
     });
     const src = portSide(view.cell.getSource().port);
     const tgt = portSide(view.cell.getTarget().port);
+    const native = src && tgt ? nativeRoute(view, src, tgt, excludeNodes) : null;
+    if (native) return native;
     return presets.manhattan.call(this, vertices, {
       padding,
       step: 20,
@@ -82903,8 +83568,22 @@ function registerAvoidRouter() {
     }, view);
   }, true);
 }
+var axis = (side) => side === "left" || side === "right" ? "h" : "v";
+function nativeRoute(view, src, tgt, excluded) {
+  const a5 = view.sourceAnchor, b4 = view.targetAnchor;
+  if (!a5 || !b4) return null;
+  const pts = connectPoints({ x: a5.x, y: a5.y }, { x: b4.x, y: b4.y }, `${axis(src)}:${axis(tgt)}`);
+  const skip = new Set(excluded.map((n4) => n4.id));
+  const boxes = view.graph.getNodes().filter((n4) => !skip.has(n4.id)).map((n4) => n4.getBBox().inflate(-1));
+  for (let i6 = 1; i6 < pts.length; i6++) {
+    const seg = new Line(pts[i6 - 1], pts[i6]);
+    if (boxes.some((r5) => r5.intersectsWithLine(seg) || r5.containsPoint(seg.start))) return null;
+  }
+  return pts.slice(1, -1);
+}
 
 // src/canvas/laneAwareLayout.ts
+init_laneLayout();
 var POOL_HEAD = 44 + 24;
 var PAD_X = 40;
 var PAD_Y = 30;
@@ -82942,13 +83621,13 @@ function layoutInLanes(pools, nodes, edges) {
   const placeLane = (members, top4) => {
     const rows = [];
     for (const nd of [...members].sort((a5, b4) => orderY(a5) - orderY(b4))) {
-      const span = [colX(nd) - COL_GAP / 2, colX(nd) + nd.width + COL_GAP / 2];
-      let row = rows.find((r5) => r5.spans.every(([a5, b4]) => span[1] <= a5 || span[0] >= b4));
+      const span2 = [colX(nd) - COL_GAP / 2, colX(nd) + nd.width + COL_GAP / 2];
+      let row = rows.find((r5) => r5.spans.every(([a5, b4]) => span2[1] <= a5 || span2[0] >= b4));
       if (!row) {
         row = { spans: [], height: 0, items: [] };
         rows.push(row);
       }
-      row.spans.push(span);
+      row.spans.push(span2);
       row.height = Math.max(row.height, nd.height);
       row.items.push(nd);
     }
@@ -82973,21 +83652,18 @@ function layoutInLanes(pools, nodes, edges) {
     } else {
       let at3 = y5;
       const ofLane = (id) => inPool.filter((nd) => nd.laneId === id);
-      lanes = lanes.map((ln3) => {
+      const place = (list, extra = []) => list.map((ln3, i6) => {
         var _a3;
         if (!((_a3 = ln3.lanes) == null ? void 0 : _a3.length)) {
-          const h5 = placeLane(ofLane(ln3.id), at3);
+          const h5 = placeLane([...ofLane(ln3.id), ...i6 === 0 ? extra : []], at3);
           at3 += h5;
           return { ...ln3, height: h5 };
         }
         const start = at3;
-        const children2 = ln3.lanes.map((c6) => {
-          const h5 = placeLane([...ofLane(c6.id), ...c6 === ln3.lanes[0] ? ofLane(ln3.id) : []], at3);
-          at3 += h5;
-          return { ...c6, height: h5 };
-        });
+        const children2 = place(ln3.lanes, [...ofLane(ln3.id), ...i6 === 0 ? extra : []]);
         return { ...ln3, height: at3 - start, lanes: children2 };
       });
+      lanes = place(lanes);
       height2 = at3 - y5;
     }
     out.pools.set(pool.id, { x: left4, y: y5, width: right4 - left4, height: height2, lanes });
@@ -82998,6 +83674,149 @@ function layoutInLanes(pools, nodes, edges) {
 
 // src/canvas/OmniboardCanvas.ts
 init_labelGeometry();
+
+// src/canvas/thickCaret.ts
+var COPY2 = [
+  "fontFamily",
+  "fontSize",
+  "fontWeight",
+  "lineHeight",
+  "letterSpacing",
+  "textAlign",
+  "whiteSpace",
+  "overflowWrap",
+  "wordBreak",
+  "boxSizing",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+  "borderStyle"
+];
+function attachThickCaret(ta) {
+  const host = ta.parentElement;
+  if (!host) return () => {
+  };
+  const caret = document.createElement("div");
+  caret.className = "lk-thick-caret";
+  host.appendChild(caret);
+  ta.style.caretColor = "transparent";
+  const place = () => {
+    const pos = ta.selectionStart;
+    if (document.activeElement !== ta || pos !== ta.selectionEnd) {
+      caret.style.display = "none";
+      return;
+    }
+    const cs = getComputedStyle(ta);
+    const mirror = document.createElement("div");
+    COPY2.forEach((k5) => {
+      mirror.style[k5] = cs[k5];
+    });
+    Object.assign(mirror.style, { position: "absolute", visibility: "hidden", left: "0", top: "0", width: cs.width, borderColor: "transparent" });
+    const mark = document.createElement("span");
+    mark.textContent = "\u200B";
+    mirror.append(ta.value.slice(0, pos), mark, ta.value.slice(pos) || "\u200B");
+    host.appendChild(mirror);
+    const h5 = mark.offsetHeight;
+    Object.assign(caret.style, {
+      display: "block",
+      height: h5 + "px",
+      left: ta.offsetLeft + mark.offsetLeft - ta.scrollLeft - 1 + "px",
+      top: ta.offsetTop + mark.offsetTop - ta.scrollTop + "px"
+    });
+    mirror.remove();
+    caret.style.animation = "none";
+    void caret.offsetWidth;
+    caret.style.animation = "";
+  };
+  const later = () => setTimeout(place, 0);
+  const events = ["input", "keydown", "keyup", "mousedown", "mouseup", "focus", "blur", "select", "scroll"];
+  events.forEach((ev) => ta.addEventListener(ev, later));
+  document.addEventListener("selectionchange", later);
+  setTimeout(place, 20);
+  return () => {
+    events.forEach((ev) => ta.removeEventListener(ev, later));
+    document.removeEventListener("selectionchange", later);
+    caret.remove();
+  };
+}
+
+// src/canvas/subprocessLayout.ts
+var SUBPROCESS_KINDS = /* @__PURE__ */ new Set(["bpmn-subprocess", "bpmn-transaction", "bpmn-event-subprocess", "bpmn-adhoc-subprocess"]);
+var SUB_CLOSED = { width: 120, height: 80 };
+var MIN_OPEN = { width: 350, height: 200 };
+var PAD = 30;
+var HEAD2 = 40;
+var mid = (b4) => ({ x: b4.x + b4.width / 2, y: b4.y + b4.height / 2 });
+function openLayout(box, children2) {
+  let dx = 0, dy = 0;
+  let fit2 = box;
+  if (children2.length) {
+    const x0 = Math.min(...children2.map((c6) => c6.x));
+    const y0 = Math.min(...children2.map((c6) => c6.y));
+    const x1 = Math.max(...children2.map((c6) => c6.x + c6.width));
+    const y1 = Math.max(...children2.map((c6) => c6.y + c6.height));
+    const kids = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+    dx = Math.round(mid(box).x - mid(kids).x);
+    dy = Math.round(mid(box).y - mid(kids).y);
+    const p6 = { x: x0 + dx - PAD, y: y0 + dy - HEAD2, width: kids.width + 2 * PAD, height: kids.height + HEAD2 + PAD };
+    const ux = Math.min(p6.x, box.x), uy = Math.min(p6.y, box.y);
+    fit2 = { x: ux, y: uy, width: Math.max(p6.x + p6.width, box.x + box.width) - ux, height: Math.max(p6.y + p6.height, box.y + box.height) - uy };
+  }
+  const width2 = Math.max(fit2.width, MIN_OPEN.width);
+  const height2 = Math.max(fit2.height, MIN_OPEN.height);
+  return { x: Math.round(fit2.x + (fit2.width - width2) / 2), y: Math.round(fit2.y + (fit2.height - height2) / 2), width: width2, height: height2, dx, dy };
+}
+function closedLayout(frame) {
+  const c6 = mid(frame);
+  return { x: Math.round(c6.x - SUB_CLOSED.width / 2), y: Math.round(c6.y - SUB_CLOSED.height / 2), ...SUB_CLOSED };
+}
+
+// src/canvas/OmniboardCanvas.ts
+init_eventTriggers();
+
+// src/canvas/spaceTool.ts
+var span = (b4, axis2) => axis2 === "x" ? [b4.x, b4.x + b4.w] : [b4.y, b4.y + b4.h];
+function planSpace(boxes, axis2, line2) {
+  const move2 = /* @__PURE__ */ new Set();
+  const resize = [];
+  for (const b4 of boxes) {
+    const [start, end] = span(b4, axis2);
+    if (b4.frame) {
+      if (start >= line2) move2.add(b4.id);
+      else if (end > line2) resize.push(b4.id);
+    } else if ((start + end) / 2 >= line2) move2.add(b4.id);
+  }
+  const parent = new Map(boxes.map((b4) => [b4.id, b4.parentId]));
+  const ridesAlong = (id) => {
+    for (let p6 = parent.get(id); p6; p6 = parent.get(p6)) if (move2.has(p6)) return true;
+    return false;
+  };
+  return { move: [...move2].filter((id) => !ridesAlong(id)), resize };
+}
+function clampDelta(delta2, boxes, resize, axis2, minSize = 60) {
+  if (delta2 >= 0) return delta2;
+  const room = Math.min(...boxes.filter((b4) => resize.includes(b4.id)).map((b4) => span(b4, axis2)[1] - span(b4, axis2)[0] - minSize), Infinity);
+  return Math.max(delta2, -room);
+}
+function shiftVertices(v6, axis2, line2, delta2) {
+  return v6.map((p6) => p6[axis2] >= line2 ? { ...p6, [axis2]: p6[axis2] + delta2 } : p6);
+}
+
+// src/canvas/search.ts
+var fold = (s5) => s5.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").toLowerCase();
+function findMatches(items, query2) {
+  const q5 = fold(query2.trim());
+  if (!q5) return [];
+  return items.filter((it3) => fold(it3.label).includes(q5) || fold(it3.id).includes(q5)).sort((a5, b4) => a5.y - b4.y || a5.x - b4.x);
+}
+function stepIndex(cur, count, dir) {
+  return count === 0 ? -1 : (cur + dir + count) % count;
+}
 
 // src/canvas/bulkAlign.ts
 function reposition(cells, mut) {
@@ -83044,8 +83863,8 @@ function distributeH(cells) {
   const first = sorted[0];
   const last2 = sorted[sorted.length - 1];
   const totalWidth = sorted.reduce((sum, c6) => sum + c6.width, 0);
-  const span = last2.x + last2.width - first.x;
-  const gap = Math.max(0, (span - totalWidth) / (sorted.length - 1));
+  const span2 = last2.x + last2.width - first.x;
+  const gap = Math.max(0, (span2 - totalWidth) / (sorted.length - 1));
   let cursor = first.x;
   const map2 = /* @__PURE__ */ new Map();
   for (const c6 of sorted) {
@@ -83060,8 +83879,8 @@ function distributeV(cells) {
   const first = sorted[0];
   const last2 = sorted[sorted.length - 1];
   const totalHeight = sorted.reduce((sum, c6) => sum + c6.height, 0);
-  const span = last2.y + last2.height - first.y;
-  const gap = Math.max(0, (span - totalHeight) / (sorted.length - 1));
+  const span2 = last2.y + last2.height - first.y;
+  const gap = Math.max(0, (span2 - totalHeight) / (sorted.length - 1));
   let cursor = first.y;
   const map2 = /* @__PURE__ */ new Map();
   for (const c6 of sorted) {
@@ -83072,6 +83891,13 @@ function distributeV(cells) {
 }
 
 // src/canvas/OmniboardCanvas.ts
+var BOARD_BG_SWATCHES = ["#FFFCF5", "#FFFFFF", "#F8F9FA", "#F5F0E6", "#EEF4FA", "#F3F0FA"];
+var BOARD_BG_SWATCHES_DARK = ["#1B1B1B", "#121212", "#1E2024", "#242424", "#1A2029", "#1F1C26"];
+var GRID_DOT = { light: "#d4d0c8", dark: "#3a3a3a" };
+var ICON_SVG = (d4) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d4}</svg>`;
+var ICON_MOON = ICON_SVG(`<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>`);
+var ICON_SUN = ICON_SVG(`<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>`);
+var ICON_MENU = ICON_SVG(`<path d="M4 6h16M4 12h16M4 18h16"/>`);
 var FILL_SWATCHES = [
   "transparent",
   "#FFFFFF",
@@ -83131,7 +83957,7 @@ function hsvToRgb(h5, s5, v6) {
   else [r5, g4, b4] = [c6, 0, x5];
   return { r: (r5 + m7) * 255, g: (g4 + m7) * 255, b: (b4 + m7) * 255 };
 }
-function el2(tag, cls, html3) {
+function el(tag, cls, html3) {
   const node3 = document.createElement(tag);
   if (cls) node3.className = cls;
   if (html3 !== void 0) node3.innerHTML = html3;
@@ -83174,6 +84000,7 @@ function ensureMindmapConnector() {
 var ACCENT = "#5E8FB9";
 var EDGE_STROKE2 = "#9c8b7e";
 var CURSOR_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l7 16 2-6 6-2z"/></svg>`;
+var SPACE_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 8 22 12 18 16"/><polyline points="6 8 2 12 6 16"/><line x1="2" x2="22" y1="12" y2="12"/></svg>`;
 var HAND_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6.5a1.5 1.5 0 0 0-3 0M15 10.5V5a1.5 1.5 0 0 0-3 0v5M12 10V6.5a1.5 1.5 0 0 0-3 0V11M9 11V8a1.5 1.5 0 0 0-3 0v6a6 6 0 0 0 6 6h1.5a5 5 0 0 0 5-5v-3"/></svg>`;
 var ARROW_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`;
 var EDGE_ATTRS = { line: { stroke: EDGE_STROKE2, strokeWidth: 1.8, targetMarker: { name: "block", width: 11, height: 8 } } };
@@ -83217,6 +84044,7 @@ var FRAME_KINDS = /* @__PURE__ */ new Set([
   "bpmn-annotation",
   "bpmn-group"
 ]);
+var frameZ = (kind, depth = 0) => (kind === "bpmn-pool" || kind === "bpmn-lane" ? -2e3 : -1e3) + depth;
 var CONTAINER_KINDS2 = /* @__PURE__ */ new Set([
   "sq-frag-alt",
   "sq-frag-opt",
@@ -83230,21 +84058,6 @@ var CONTAINER_KINDS2 = /* @__PURE__ */ new Set([
   "bpmn-pool",
   "bpmn-group"
 ]);
-var BPMN_TRIGGERS = [
-  "none",
-  "message",
-  "timer",
-  "signal",
-  "error",
-  "escalation",
-  "compensation",
-  "conditional",
-  "link",
-  "cancel",
-  "terminate",
-  "multiple",
-  "parallel-multiple"
-];
 var BPMN_TRIGGER_LABEL = {
   none: "Kh\xF4ng",
   message: "Message",
@@ -83331,35 +84144,47 @@ function portEndpoint(cell, port2) {
   return { cell, port: port2, connectionPoint: PORT_CONNECTION_POINT };
 }
 function buildMarker(kind, color) {
+  const m7 = markerOf(kind, color);
+  return (m7 == null ? void 0 : m7.name) === "path" ? { ...m7, ...keepOrigin(String(m7.d)) } : m7;
+}
+function keepOrigin(d4) {
+  const b4 = Path.parse(d4).bbox();
+  return b4 ? { offsetX: -b4.width / 2 - b4.x, offsetY: -b4.height / 2 - b4.y } : { offsetX: 0, offsetY: 0 };
+}
+function circlePath(cx, r5 = 4) {
+  const k5 = r5 * 0.5523;
+  return `M${cx + r5} 0 C${cx + r5} ${k5} ${cx + k5} ${r5} ${cx} ${r5} C${cx - k5} ${r5} ${cx - r5} ${k5} ${cx - r5} 0 C${cx - r5} ${-k5} ${cx - k5} ${-r5} ${cx} ${-r5} C${cx + k5} ${-r5} ${cx + r5} ${-k5} ${cx + r5} 0`;
+}
+function markerOf(kind, color) {
   switch (kind) {
     case "arrow":
       return { name: "block", width: 12, height: 9, fill: color };
     case "arrow-open":
-      return { name: "path", d: "M 14 -7 0 0 14 7", fill: "none", stroke: color, "stroke-width": 1.8 };
+      return { name: "path", d: "M 12 -4.5 0 0 12 4.5", fill: "none", stroke: color, "stroke-width": 1.8 };
     case "triangle":
-      return { name: "block", width: 18, height: 15, fill: "#fff", stroke: color, "stroke-width": 1.5 };
+      return { name: "block", width: 12, height: 9, fill: "#fff", stroke: color, "stroke-width": 1.5 };
     case "triangle-f":
-      return { name: "block", width: 18, height: 15, fill: color };
+      return { name: "block", width: 12, height: 9, fill: color };
     case "diamond":
-      return { name: "diamond", width: 18, height: 11, fill: color };
+      return { name: "diamond", width: 14, height: 9, fill: color };
     case "diamond-o":
-      return { name: "diamond", width: 18, height: 11, fill: "#fff", stroke: color, "stroke-width": 1.5 };
+      return { name: "diamond", width: 14, height: 9, fill: "#fff", stroke: color, "stroke-width": 1.5 };
     case "circle":
       return { name: "circle", r: 4.5, fill: "#fff", stroke: color, "stroke-width": 1.5 };
     case "circle-f":
       return { name: "circle", r: 4.5, fill: color };
     case "crow":
-      return { name: "path", d: "M14 -8 0 0 14 8 M14 0 0 0", fill: "none", stroke: color, "stroke-width": 1.5 };
+      return { name: "path", d: "M0 -6 10 0 0 6 M0 0 10 0", fill: "none", stroke: color, "stroke-width": 1.5 };
     case "bar":
-      return { name: "path", d: "M6 -8 6 8", fill: "none", stroke: color, "stroke-width": 1.5 };
+      return { name: "path", d: "M5 -6 5 6", fill: "none", stroke: color, "stroke-width": 1.5 };
     case "crow-bar":
-      return { name: "path", d: "M16 -8 2 0 16 8 M16 0 2 0 M14 -8 14 8", fill: "none", stroke: color, "stroke-width": 1.5 };
+      return { name: "path", d: "M0 -6 10 0 0 6 M0 0 10 0 M13 -6 13 6", fill: "none", stroke: color, "stroke-width": 1.5 };
     case "bar-bar":
-      return { name: "path", d: "M5 -8 5 8 M10 -8 10 8", fill: "none", stroke: color, "stroke-width": 1.5 };
+      return { name: "path", d: "M4 -6 4 6 M8 -6 8 6", fill: "none", stroke: color, "stroke-width": 1.5 };
     case "circle-bar":
-      return { name: "path", d: "M14 -8 14 8 M9 0 a4 4 0 1 0 -8 0 a4 4 0 1 0 8 0", fill: "none", stroke: color, "stroke-width": 1.5 };
+      return { name: "path", d: `M5 -6 5 6 ${circlePath(12, 3)}`, fill: "none", stroke: color, "stroke-width": 1.5 };
     case "crow-circle":
-      return { name: "path", d: "M18 -8 4 0 18 8 M18 0 4 0 M3 0 a3 3 0 1 0 -6 0 a3 3 0 1 0 6 0", fill: "none", stroke: color, "stroke-width": 1.5 };
+      return { name: "path", d: `M0 -6 10 0 0 6 M0 0 10 0 ${circlePath(14, 3)}`, fill: "none", stroke: color, "stroke-width": 1.5 };
     case "def-slash":
       return { name: "path", d: "M2 -6 10 6", fill: "none", stroke: color, "stroke-width": 1.8 };
     case "none":
@@ -83404,6 +84229,14 @@ function arrowPreview(style2) {
   const head = style2.end === "none" ? "" : style2.end === "arrow-open" ? `<path d="M20 4 27 9 20 14" fill="none" stroke="currentColor" stroke-width="1.8"/>` : `<path d="M20 4 28 9 20 14Z" fill="currentColor"/>`;
   return `<svg viewBox="0 0 32 18" fill="none" stroke="currentColor"><line x1="3" y1="9" x2="24" y2="9" stroke-width="1.8"${dash}/>${head}</svg>`;
 }
+function findLaneDeep(lanes, id) {
+  for (const ln3 of lanes) {
+    if (ln3.id === id) return ln3;
+    const hit = ln3.lanes ? findLaneDeep(ln3.lanes, id) : void 0;
+    if (hit) return hit;
+  }
+  return void 0;
+}
 var _a2;
 var _OmniboardCanvas = class _OmniboardCanvas {
   constructor(root2, categories, onChange) {
@@ -83415,12 +84248,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.propsFab = null;
     this.selectionChangeHandler = null;
     this.zoomLabel = null;
+    this.appState = {};
     this.minimap = null;
     this.minimapSvg = null;
     this.minimapVp = null;
     this.mm = { scale: 1, ox: 0, oy: 0, bx: 0, by: 0 };
     // minimap↔graph mapping
     this.tool = "select";
+    this.railSpace = null;
     this.railSelect = null;
     this.railHand = null;
     this.panStart = null;
@@ -83463,7 +84298,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (this.pendingShape && !node3 && this.graph.getSelectedCells().length === 0) {
         const it3 = this.pendingShape;
         const p6 = this.graph.clientToLocal(e5.clientX, e5.clientY);
-        const created = this.addHtmlNode(it3.shape, p6.x - it3.w / 2, p6.y - it3.h / 2, it3.w, it3.h, it3.label);
+        const created = this.addPaletteNode(it3, p6);
         this.graph.resetSelection([created]);
         this.setPending(null);
         this.onChange();
@@ -83562,13 +84397,74 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.panStart = null;
       if (this.tool === "pan") this.graphMount.style.cursor = "grab";
     };
+    // ── Space tool ───────────────────────────────────────────────────────────
+    this.space = null;
+    this.onSpaceDown = (e5) => {
+      if (e5.pointerType === "mouse" && e5.button !== 0) return;
+      this.closeFlyoutNow();
+      this.hidePopup();
+      const p6 = this.graph.clientToLocal(e5.clientX, e5.clientY);
+      const guide = el("div", "lk-space-guide");
+      guide.style.display = "none";
+      this.graphMount.appendChild(guide);
+      this.space = { id: e5.pointerId, sx: p6.x, sy: p6.y, axis: null, line: 0, last: 0, move: [], resize: [], edges: [], guide, boxes: [], plan: null, pools: [], floor: -Infinity };
+      try {
+        this.graphMount.setPointerCapture(e5.pointerId);
+      } catch (e6) {
+      }
+      e5.preventDefault();
+    };
+    this.onSpaceMove = (e5) => {
+      const s5 = this.space;
+      if (!s5 || e5.pointerId !== s5.id) return;
+      const p6 = this.graph.clientToLocal(e5.clientX, e5.clientY);
+      if (!s5.axis) {
+        if (Math.hypot(p6.x - s5.sx, p6.y - s5.sy) < 6 / (this.graph.scale().sx || 1)) return;
+        this.beginSpace(s5, Math.abs(p6.x - s5.sx) >= Math.abs(p6.y - s5.sy) ? "x" : "y");
+      }
+      const axis2 = s5.axis;
+      const want = axis2 === "x" ? p6.x - s5.sx : p6.y - s5.sy;
+      const delta2 = Math.max(Math.round(clampDelta(want, s5.boxes, s5.plan.resize, axis2)), s5.floor);
+      const step = delta2 - s5.last;
+      if (step === 0) {
+        e5.preventDefault();
+        return;
+      }
+      s5.last = delta2;
+      for (const n4 of s5.move) n4.translate(axis2 === "x" ? step : 0, axis2 === "y" ? step : 0);
+      for (const r5 of s5.resize) r5.node.resize(r5.w + (axis2 === "x" ? delta2 : 0), r5.h + (axis2 === "y" ? delta2 : 0));
+      for (const pl of s5.pools) {
+        const grown = growLaneAt(asStackLanes(pl.lanes, pl.horizontal), pl.extent, pl.rel, delta2);
+        pl.node.setData({ ...pl.node.getData(), lanes: fromStackLanesDeep(pl.lanes, grown, pl.horizontal) }, { deep: false });
+        this.rerender(pl.node);
+      }
+      for (const it3 of s5.edges) it3.edge.setVertices(shiftVertices(it3.verts, axis2, s5.line, delta2));
+      e5.preventDefault();
+    };
+    this.onSpaceUp = (e5) => {
+      const s5 = this.space;
+      if (!s5 || e5.pointerId !== s5.id) return;
+      try {
+        this.graphMount.releasePointerCapture(e5.pointerId);
+      } catch (e6) {
+      }
+      this.endSpace(true);
+    };
+    // ── Find on the board (Ctrl+F) ───────────────────────────────────────────
+    this.searchBox = null;
     this.contextBarRaf = null;
     this.styleClipboard = null;
+    /** Sub-process whose steps are shown on their own page (null = the whole process). */
+    this.drillRoot = null;
+    this.crumbs = null;
+    /** View of each level above the current page, saved when going deeper. */
+    this.drillViews = [];
+    this.flyAnim = 0;
     this.root = root2;
     this.categories = categories;
     this.onChange = onChange;
     this.root.classList.add("lk-root");
-    this.graphMount = el2("div", "lk-graph-mount");
+    this.graphMount = el("div", "lk-graph-mount");
     this.root.appendChild(this.graphMount);
     const stopTouch = (e5) => e5.stopPropagation();
     for (const t6 of ["touchstart", "touchmove", "touchend"]) {
@@ -83588,19 +84484,19 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.buildPropsPanel();
     this.buildCanvasHelp();
     this.buildMinimap();
-    this.contextBar = el2("div", "lk-context-bar");
+    this.contextBar = el("div", "lk-context-bar");
     this.contextBar.style.display = "none";
     this.root.appendChild(this.contextBar);
-    this.edgeBar = el2("div", "lk-context-bar lk-edge-bar");
+    this.edgeBar = el("div", "lk-context-bar lk-edge-bar");
     this.edgeBar.style.display = "none";
     this.root.appendChild(this.edgeBar);
-    this.mmFabs = el2("div", "lk-mm-fabs");
+    this.mmFabs = el("div", "lk-mm-fabs");
     this.mmFabs.style.display = "none";
     this.root.appendChild(this.mmFabs);
-    this.padLayer = el2("div", "lk-mm-fabs lk-pad-layer");
+    this.padLayer = el("div", "lk-mm-fabs lk-pad-layer");
     this.padLayer.style.display = "none";
     this.root.appendChild(this.padLayer);
-    this.popupLayer = el2("div", "lk-popup-layer");
+    this.popupLayer = el("div", "lk-popup-layer");
     this.popupLayer.style.display = "none";
     this.root.appendChild(this.popupLayer);
     this.bindEvents();
@@ -83622,7 +84518,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       mousewheel: { enabled: true, modifiers: ["ctrl", "meta"], zoomAtMousePosition: true },
       // Allow user to drag edge labels (bpmn.io behaviour — avoid label overlap on busy intersections).
       interacting: this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true },
-      grid: { visible: true, type: "dot", size: 22, args: { color: "#d4d0c8", thickness: 2 } },
+      grid: { visible: true, type: "dot", size: 22, args: { color: GRID_DOT.light, thickness: 2 } },
       background: { color: "transparent" },
       connecting: {
         // 20px snap radius: the port circles are r=2.75 and hidden until hover,
@@ -83736,6 +84632,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     });
     graph.bindKey("h", () => {
       this.setTool("pan");
+    });
+    graph.bindKey("s", () => {
+      this.setTool(this.tool === "space" ? "select" : "space");
+    });
+    graph.bindKey(["ctrl+f", "cmd+f"], () => {
+      this.openSearch();
+      return false;
     });
     graph.bindKey("tab", () => {
       const n4 = this.singleSelectedMindmapNode();
@@ -83858,7 +84761,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const w5 = bbox2.width * sc;
     const h5 = bbox2.height * sc;
     const mkFab = (cls, x5, y5, title2, fn2) => {
-      const b4 = el2("button", `lk-mm-fab ${cls}`, "+");
+      const b4 = el("button", `lk-mm-fab ${cls}`, "+");
       b4.title = title2;
       b4.style.left = x5 + "px";
       b4.style.top = y5 + "px";
@@ -83902,6 +84805,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.padLayer.style.display = "none";
       return;
     }
+    if (this.nodeKind(node3) === "bpmn-pool" || this.nodeKind(node3) === "bpmn-lane") {
+      this.padLayer.style.display = "none";
+      return;
+    }
     const bbox2 = node3.getBBox();
     const sc = this.graph.scale().sx;
     const tr2 = this.graph.translate();
@@ -83911,7 +84818,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const gap = 24;
     const mk = (dir, x5, y5, title2) => {
       if (x5 < 14 || x5 > rw - 14 || y5 < 14 || y5 > rh - 14) return;
-      const b4 = el2("button", "lk-mm-fab lk-pad-fab", "+");
+      const b4 = el("button", "lk-mm-fab lk-pad-fab", "+");
       b4.title = title2;
       b4.style.left = x5 + "px";
       b4.style.top = y5 + "px";
@@ -83932,7 +84839,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    *  `withLoadMore=true` keeps advanced palette items collapsed behind a button,
    *  mirroring the left toolbar flyout behavior for dense BPMN sets. */
   buildShapeGrid(onPick, onlyCats, withLoadMore = false) {
-    const grid = el2("div", "lk-shape-grid");
+    const grid = el("div", "lk-shape-grid");
     const common2 = [];
     const advanced = [];
     for (const cat of this.categories) {
@@ -83944,20 +84851,21 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
     }
     const mkCell = (item) => {
-      const cell = el2("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
+      const cell = el("div", "lk-shape-cell", shapeIcon(item.shape, item.seed));
       cell.title = item.label;
       cell.onclick = () => onPick(item);
       return cell;
     };
     for (const item of common2) grid.appendChild(mkCell(item));
     if (withLoadMore && advanced.length > 0) {
-      const more = el2("button", "lk-flyout-more", `Load more (${advanced.length})`);
+      const more = el("button", "lk-flyout-more", `Load more (${advanced.length})`);
       more.onclick = () => {
         var _a3;
         const frag = document.createDocumentFragment();
         for (const item of advanced) frag.appendChild(mkCell(item));
         (_a3 = more.parentElement) == null ? void 0 : _a3.insertBefore(frag, more);
         more.remove();
+        this.refitPopup();
       };
       grid.appendChild(more);
     }
@@ -84008,13 +84916,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     }
     const best = (_b2 = pickDropTarget(candidates.map((n4) => ({ n: n4, bbox: n4.getBBox() })), pt2)) == null ? void 0 : _b2.n;
     if (best) {
-      edge.setTarget(portEndpoint(best.id, nearestFixedPort(best, pt2)));
+      edge.setTarget(portEndpoint(best.id, this.dropPort(best, pt2)));
       return "connected";
     }
     if (this.endOnPool(edge, src, pt2)) return "pool";
     this.pendingDrop = edge;
-    const wrap = el2("div", "lk-shape-popup");
-    wrap.appendChild(el2("div", "lk-flyout-title", "Ch\xE8n h\xECnh"));
+    const wrap = el("div", "lk-shape-popup");
+    wrap.appendChild(el("div", "lk-flyout-title", "Ch\xE8n h\xECnh"));
     wrap.appendChild(this.buildShapeGrid((item) => {
       var _a4, _b3;
       this.pendingDrop = null;
@@ -84031,7 +84939,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const hint = (_a4 = oppositePort(srcPort)) != null ? _a4 : nearestFixedPort(created, { x: sb2.x + sb2.width / 2, y: sb2.y + sb2.height / 2 });
       const targetPort = this.isBpmnEventNode(created.id) ? (_b3 = collapsePortToSideCenter(hint)) != null ? _b3 : hint : hint;
       edge.setTarget(portEndpoint(created.id, targetPort));
-      edge.setData({ ...edge.getData() });
+      edge.setData({ ...edge.getData() }, { deep: false });
       this.normalizeRegularEdgeEndpoints(edge, {
         type: "target",
         currentCell: { id: created.id },
@@ -84048,6 +84956,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const tr2 = this.graph.translate();
     this.showPopupAt(wrap, pt2.x * sc + tr2.tx, pt2.y * sc + tr2.ty);
     return "pending";
+  }
+  /** Pull an open popup back inside the board after it grew (its CSS max-height
+   *  keeps it no taller than the board, so the overflow scrolls). */
+  refitPopup() {
+    const top4 = parseFloat(this.popupLayer.style.top) || 0;
+    const maxTop = this.root.clientHeight - this.popupLayer.offsetHeight - 8;
+    if (top4 > maxTop) this.popupLayer.style.top = Math.max(8, maxTop) + "px";
   }
   /** Show the popup layer at a root-relative point (clamped into view). */
   showPopupAt(content5, x5, y5) {
@@ -84131,10 +85046,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    */
   enablePinch() {
     const dist = (t6) => Math.hypot(t6[0].clientX - t6[1].clientX, t6[0].clientY - t6[1].clientY);
-    const mid4 = (t6) => ({ x: (t6[0].clientX + t6[1].clientX) / 2, y: (t6[0].clientY + t6[1].clientY) / 2 });
+    const mid5 = (t6) => ({ x: (t6[0].clientX + t6[1].clientX) / 2, y: (t6[0].clientY + t6[1].clientY) / 2 });
     const start = (e5) => {
       if (e5.touches.length !== 2) return;
-      const m7 = mid4(e5.touches);
+      const m7 = mid5(e5.touches);
       const lp = this.graph.clientToLocal(m7.x, m7.y);
       this.pinch = { d0: dist(e5.touches) || 1, scale0: this.graph.scale().sx, lx: lp.x, ly: lp.y };
       if (this.dragBatch) {
@@ -84149,7 +85064,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const p6 = this.pinch;
       if (!p6 || e5.touches.length !== 2) return;
       e5.preventDefault();
-      const m7 = mid4(e5.touches);
+      const m7 = mid5(e5.touches);
       const next = Math.min(3, Math.max(0.2, p6.scale0 * (dist(e5.touches) / p6.d0)));
       this.graph.zoom(next, { absolute: true });
       const cur = this.graph.localToClient(p6.lx, p6.ly);
@@ -84200,7 +85115,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         const next = { x: base.x + dx, y: base.y + dy };
         const final = Math.abs(dx) < 1 && Math.abs(dy) < 1 ? void 0 : next;
         const n4 = node3;
-        n4.setData({ ...n4.getData(), labelOffset: final });
+        n4.setData({ ...n4.getData(), labelOffset: final }, { deep: false });
         this.rerender(n4);
         this.onChange();
       };
@@ -84216,7 +85131,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   enableLaneResize() {
     const MIN_LANE2 = 60;
     this.root.addEventListener("pointerdown", (e5) => {
-      var _a3, _b2, _c, _d, _e3, _f, _g;
+      var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
       const handle = (_b2 = (_a3 = e5.target) == null ? void 0 : _a3.closest) == null ? void 0 : _b2.call(_a3, ".bp-pool-lane-divider");
       if (!handle) return;
       const cellId = (_c = handle.closest(".x6-node")) == null ? void 0 : _c.getAttribute("data-cell-id");
@@ -84226,21 +85141,29 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const horizontal = this.nodeExtra(node3).poolHorizontal !== false;
       const poolExtent = horizontal ? node3.getSize().height : node3.getSize().width;
       const path2 = handle.getAttribute("data-lane-path");
-      const parent = path2 ? Number(path2.split("/")[0]) : -1;
-      const idx = path2 ? Number(path2.split("/")[1]) : Number(handle.getAttribute("data-lane-idx"));
-      const siblings = parent >= 0 ? (_f = (_e3 = lanes[parent]) == null ? void 0 : _e3.lanes) != null ? _f : [] : lanes;
-      if (!Number.isInteger(idx) || idx >= siblings.length - 1) return;
-      const extent = parent >= 0 ? laneHeights(asStackLanes(lanes, horizontal), poolExtent)[parent] : poolExtent;
-      const write = (sized) => parent >= 0 ? lanes.map((ln3, i6) => i6 === parent ? { ...ln3, lanes: fromStackLanes(siblings, sized, horizontal) } : ln3) : fromStackLanes(lanes, sized, horizontal);
+      const steps = path2 ? path2.split("/").map(Number) : [Number(handle.getAttribute("data-lane-idx"))];
+      const idx = steps[steps.length - 1];
+      if (steps.some((n4) => !Number.isInteger(n4))) return;
+      let level = lanes;
+      let parentId = null;
+      for (const i6 of steps.slice(0, -1)) {
+        parentId = (_f = (_e3 = level[i6]) == null ? void 0 : _e3.id) != null ? _f : null;
+        level = (_h = (_g = level[i6]) == null ? void 0 : _g.lanes) != null ? _h : [];
+      }
+      const siblings = level;
+      if (idx >= siblings.length - 1) return;
+      const band = laneBandOf(asStackLanes(lanes, horizontal), siblings[0].id, poolExtent);
+      if (!band) return;
+      const write = (sized) => setSiblings(lanes, parentId, (kids) => fromStackLanes(kids, sized, horizontal));
       e5.preventDefault();
       e5.stopPropagation();
       handle.classList.add("is-dragging");
-      const container = handle.closest(parent >= 0 ? ".bp-pool-sublanes" : ".bp-pool-body");
-      const laneEls = Array.from((_g = container == null ? void 0 : container.querySelectorAll(":scope > .bp-pool-lane")) != null ? _g : []);
+      const container = handle.closest(parentId ? ".bp-pool-sublanes" : ".bp-pool-body");
+      const laneEls = Array.from((_i = container == null ? void 0 : container.querySelectorAll(":scope > .bp-pool-lane")) != null ? _i : []);
       const at3 = (ev) => horizontal ? ev.clientY : ev.clientX;
       const start = at3(e5);
       const scale2 = (horizontal ? this.graph.scale().sy : this.graph.scale().sx) || 1;
-      const resized = (ev) => resizeLaneBoundary(asStackLanes(siblings, horizontal), extent, idx, (at3(ev) - start) / scale2, MIN_LANE2 / (parent >= 0 ? 2 : 1));
+      const resized = (ev) => resizeLaneBoundary(asStackLanes(siblings, horizontal), band.extent, idx, (at3(ev) - start) / scale2, MIN_LANE2 / (parentId ? 2 : 1));
       const mv = (ev) => {
         resized(ev).forEach((ln3, i6) => {
           if (laneEls[i6]) laneEls[i6].style.flex = `${ln3.height} 1 0px`;
@@ -84329,10 +85252,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
     }
     const bpLabel = target.closest(".bp-elabel");
-    if (bpLabel) {
-      this.editLabelAt(node3, bpLabel);
-      return true;
-    }
+    if (bpLabel && this.editExternalLabel(node3)) return true;
     const sqActorLbl = target.closest(".sq-actor-lbl");
     if (sqActorLbl) {
       this.editLabelAt(node3, sqActorLbl);
@@ -84362,11 +85282,48 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       value: this.nodeLabel(node3),
       multiLine: true,
       onCommit: (v6) => {
-        node3.setData({ ...node3.getData(), label: v6 });
+        node3.setData({ ...node3.getData(), label: v6 }, { deep: false });
         this.rerender(node3);
         this.onChange();
       }
     });
+  }
+  /** Events, gateways and data shapes carry their name OUTSIDE the icon (bpmn-js):
+   *  edit it where it is drawn — or, while still empty, where it will appear
+   *  (below the shape, or on its chosen side) — never on top of the icon. */
+  editExternalLabel(node3) {
+    var _a3, _b2, _c;
+    const view = this.graph.findViewByCell(node3);
+    const shape = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector(".bp-event, .bp-gw, .bp-dataobj, .bp-datastore");
+    const lbl = shape == null ? void 0 : shape.querySelector(".bp-elabel");
+    if (!shape || !lbl) return false;
+    const k5 = this.graph.scale().sx, GAP = 6 * k5;
+    const W4 = Math.max(120 * k5, lbl.getBoundingClientRect().width + 8);
+    const H4 = parseFloat(getComputedStyle(lbl).lineHeight) * k5 || 12 * k5;
+    const rr2 = this.root.getBoundingClientRect();
+    let box;
+    if ((_b2 = lbl.textContent) == null ? void 0 : _b2.trim()) {
+      const r5 = lbl.getBoundingClientRect();
+      box = { left: r5.left + r5.width / 2 - rr2.left - W4 / 2, top: r5.top - rr2.top, height: Math.max(H4, r5.height) };
+    } else {
+      const b4 = shape.getBoundingClientRect();
+      const side = (_c = this.nodeExtra(node3).labelSide) != null ? _c : "bottom";
+      const cx = b4.left + b4.width / 2 - rr2.left, cy = b4.top + b4.height / 2 - rr2.top;
+      box = side === "top" ? { left: cx - W4 / 2, top: b4.top - rr2.top - GAP - H4, height: H4 } : side === "left" ? { left: b4.left - rr2.left - GAP - W4, top: cy - H4 / 2, height: H4 } : side === "right" ? { left: b4.right - rr2.left + GAP, top: cy - H4 / 2, height: H4 } : { left: cx - W4 / 2, top: b4.bottom - rr2.top + GAP, height: H4 };
+    }
+    this.inlineEdit({
+      ...box,
+      width: W4,
+      value: this.nodeLabel(node3),
+      multiLine: true,
+      inBox: lbl,
+      onCommit: (v6) => {
+        node3.setData({ ...node3.getData(), label: v6 }, { deep: false });
+        this.rerender(node3);
+        this.onChange();
+      }
+    });
+    return true;
   }
   /** Inline edit data.who for sequence participants. */
   editWho(node3, anchor3) {
@@ -84381,7 +85338,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       height: r5.height,
       value: cur,
       onCommit: (v6) => {
-        node3.setData({ ...node3.getData(), who: v6 });
+        node3.setData({ ...node3.getData(), who: v6 }, { deep: false });
         this.rerender(node3);
         this.onChange();
       }
@@ -84406,7 +85363,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       value: cols[idx][field],
       onCommit: (v6) => {
         cols[idx] = { ...cols[idx], [field]: v6 };
-        node3.setData({ ...node3.getData(), cols });
+        node3.setData({ ...node3.getData(), cols }, { deep: false });
         this.rerender(node3);
         this.onChange();
       }
@@ -84419,22 +85376,22 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const cols = ((_a3 = ex.cols) != null ? _a3 : []).slice();
     if (idx < 0 || idx >= cols.length) return;
     const cur = cols[idx].k;
-    const menu = el2("div", "lk-context-menu lk-key-menu");
+    const menu = el("div", "lk-context-menu lk-key-menu");
     const opts = [
       { k: "PK", label: "PK \u2014 Primary Key" },
       { k: "FK", label: "FK \u2014 Foreign Key" },
       { k: "", label: "Kh\xF4ng (\u0111\u1EC3 tr\u1ED1ng)" }
     ];
     opts.forEach((o5) => {
-      const item = el2("div", "lk-menu-item" + (o5.k === cur ? " active" : ""));
-      item.appendChild(el2("span", "kk " + (o5.k.toLowerCase() || "none"), o5.k || "\u2014"));
-      item.appendChild(el2("span", void 0, o5.label));
+      const item = el("div", "lk-menu-item" + (o5.k === cur ? " active" : ""));
+      item.appendChild(el("span", "kk " + (o5.k.toLowerCase() || "none"), o5.k || "\u2014"));
+      item.appendChild(el("span", void 0, o5.label));
       item.onclick = () => {
         var _a4;
         const next = ((_a4 = this.nodeExtra(node3).cols) != null ? _a4 : []).slice();
         if (idx < next.length) {
           next[idx] = { ...next[idx], k: o5.k };
-          node3.setData({ ...node3.getData(), cols: next });
+          node3.setData({ ...node3.getData(), cols: next }, { deep: false });
           this.rerender(node3);
           this.onChange();
         }
@@ -84460,7 +85417,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       value: arr[idx],
       onCommit: (v6) => {
         arr[idx] = v6;
-        node3.setData({ ...node3.getData(), [comp]: arr });
+        node3.setData({ ...node3.getData(), [comp]: arr }, { deep: false });
         this.rerender(node3);
         this.onChange();
       }
@@ -84492,7 +85449,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.graphMount.addEventListener("mousedown", onDomDown, true);
     this.graphMount.addEventListener("touchstart", onDomDown, true);
     const clearDropTarget = () => {
-      this.graphMount.querySelectorAll(".lk-drop-target").forEach((el4) => el4.classList.remove("lk-drop-target"));
+      this.graphMount.querySelectorAll(".lk-drop-target").forEach((el3) => el3.classList.remove("lk-drop-target"));
     };
     this.graphMount.addEventListener("mouseover", (e5) => {
       var _a3, _b2, _c, _d, _e3;
@@ -84572,12 +85529,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
       edge.addTools(tools);
       this.showEdgeBar(edge);
+      this.refreshProps();
       if (this.padLayer) this.padLayer.style.display = "none";
     });
     this.graph.on("edge:unselected", ({ edge }) => {
       this.applyEdgeStyle(edge, false);
       edge.removeTools();
       this.hideEdgeBar();
+      this.refreshProps();
       const snap2 = edge.__selVertsSnapshot;
       const changed2 = edge.__selVertsUserChanged;
       if (snap2 !== void 0 && !changed2) {
@@ -84613,6 +85572,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     };
     this.graph.on("edge:change:source", onEndpointMoved);
     this.graph.on("edge:change:target", onEndpointMoved);
+    for (const end of ["source", "target"]) {
+      this.graph.on(`edge:change:${end}`, ({ edge, current }) => {
+        if (!(current == null ? void 0 : current.cell) || this.graph.model.hasActiveBatch("load")) return;
+        const changed2 = this.graph.getCellById(current.cell);
+        if (!(changed2 == null ? void 0 : changed2.isNode()) || this.nodeKind(changed2) === "bpmn-pool") return;
+        this.realignPoolEnd(edge, end === "source" ? "target" : "source");
+      });
+    }
     this.graph.on("edge:change:vertices", ({ edge, options }) => {
       const tid = options == null ? void 0 : options.toolId;
       if (tid !== "auto-segments" && tid !== "auto-segments-revert") {
@@ -84636,6 +85603,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.refreshMindmapFabs();
       this.refreshContextPad();
     });
+    this.graph.on("node:moved", ({ node: node3 }) => {
+      this.settleBoundaryEvent(node3);
+      this.adoptIntoSubprocess(node3);
+    });
+    this.graph.on("node:added", ({ node: node3 }) => {
+      if (!this.graph.model.hasActiveBatch("load")) this.adoptIntoSubprocess(node3);
+    });
     this.graph.on("node:moved", () => {
       this.refreshContextBar();
       this.refreshProps();
@@ -84643,26 +85617,19 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.refreshContextPad();
     });
     this.graph.on("node:change:position", ({ node: node3, current, previous, options }) => {
-      var _a3;
       if (options == null ? void 0 : options["__boundary_follow"]) return;
       if (options == null ? void 0 : options["__bulk_follow"]) return;
       if (!current || !previous) return;
       const dx = current.x - previous.x;
       const dy = current.y - previous.y;
       if (dx === 0 && dy === 0) return;
-      const movedId = node3.id;
-      const groupMove = !!((options == null ? void 0 : options["ui"]) || (options == null ? void 0 : options["selection"]));
-      for (const child of this.graph.getNodes()) {
-        if (child.id === movedId) continue;
-        if (((_a3 = child.getData()) == null ? void 0 : _a3.attachedTo) !== movedId) continue;
-        if (groupMove && this.graph.isSelected(child)) continue;
-        const p6 = child.getPosition();
-        child.setPosition(p6.x + dx, p6.y + dy, { "__boundary_follow": true });
-      }
+      this.followBoundaryEvents(node3, { ...previous, ...node3.getSize() }, options);
+      this.snapBoundaryEvent(node3, options);
     });
     this.graph.on("node:resized", () => {
       this.refreshContextBar();
       this.refreshContextPad();
+      this.refreshBpmnEventLabels();
     });
     this.graph.on("node:change:size", ({ node: node3, previous, current, options }) => {
       var _a3;
@@ -84679,10 +85646,17 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       node3.setData({ ...node3.getData(), lanes: fromStackLanes(lanes, sized, horizontal) }, { deep: false });
       this.rerender(node3);
     });
+    this.graph.on("node:change:size", ({ node: node3, previous, options }) => {
+      if (!previous || (options == null ? void 0 : options["__boundary_follow"])) return;
+      this.followBoundaryEvents(node3, { ...node3.getPosition(), ...previous }, options);
+    });
     this.graph.on("node:change:size", ({ node: node3 }) => {
       if (this.nodeKind(node3) !== "sq-activation") return;
       const s5 = node3.getSize();
       if (s5.width !== ACT_WIDTH) node3.resize(ACT_WIDTH, s5.height);
+    });
+    this.graph.on("node:change:size", ({ node: node3 }) => {
+      if (this.nodeKind(node3) === "erd-entity") this.autoHeight(node3);
     });
     this.graph.on("scale", () => {
       this.refreshMindmapFabs();
@@ -84697,14 +85671,21 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     ["node:added", "node:removed", "node:moved", "node:resized", "node:change:size"].forEach((ev) => this.graph.on(ev, () => this.refreshMinimap()));
     ["edge:added", "edge:removed", "edge:connected", "node:moved"].forEach((ev) => this.graph.on(ev, () => this.refreshBpmnEventLabels()));
     this.graph.on("node:dblclick", ({ node: node3, e: e5 }) => {
+      var _a3, _b2;
       e5.stopPropagation();
+      if ((_b2 = (_a3 = e5.target) == null ? void 0 : _a3.closest) == null ? void 0 : _b2.call(_a3, "[data-sub-drill]")) return;
       if (this.tryEditChildLabel(e5.target, node3)) return;
       this.editLabel(node3);
     });
     this.graph.on("node:click", ({ node: node3, e: e5 }) => {
-      var _a3;
+      var _a3, _b2, _c;
+      if ((_b2 = (_a3 = e5.target) == null ? void 0 : _a3.closest) == null ? void 0 : _b2.call(_a3, "[data-sub-drill]")) {
+        e5.stopPropagation();
+        this.enterSubprocess(node3);
+        return;
+      }
       if (this.lastSelectedAt.get(node3.id) === void 0) return;
-      const sinceSel = Date.now() - ((_a3 = this.lastSelectedAt.get(node3.id)) != null ? _a3 : 0);
+      const sinceSel = Date.now() - ((_c = this.lastSelectedAt.get(node3.id)) != null ? _c : 0);
       if (sinceSel < 80) return;
       if (this.tryEditChildLabel(e5.target, node3)) e5.stopPropagation();
     });
@@ -84794,7 +85775,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const id = (_a3 = c6.getAttribute("port")) != null ? _a3 : "";
       const isFixed = FIXED_PORT_IDS.includes(id);
       const isErdCol = id.startsWith("col:");
-      const allowed = isErd ? isErdCol : isFixed;
+      const allowed = isErd ? isErdCol || id === "top" || id === "bottom" : isFixed;
       const show = visible && canConnect2 && allowed;
       c6.style.visibility = show ? "visible" : "hidden";
       if (isErdCol) {
@@ -84816,29 +85797,36 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   // flyout grid of that category's shapes (draggable onto the canvas).
   buildLeftToolbar() {
     var _a3;
-    const rail = el2("div", "lk-rail");
-    const sel = el2("div", "lk-rail-item is-active");
+    const rail = el("div", "lk-rail");
+    const sel = el("div", "lk-rail-item is-active");
     sel.innerHTML = CURSOR_ICON;
     sel.title = "Ch\u1ECDn (V)";
     sel.onclick = () => this.setTool("select");
     sel.onmouseenter = () => this.scheduleFlyoutClose();
     rail.appendChild(sel);
     this.railSelect = sel;
-    const hand = el2("div", "lk-rail-item");
+    const hand = el("div", "lk-rail-item");
     hand.innerHTML = HAND_ICON;
     hand.title = "K\xE9o board (H)";
     hand.onclick = () => this.setTool(this.tool === "pan" ? "select" : "pan");
     hand.onmouseenter = () => this.scheduleFlyoutClose();
     rail.appendChild(hand);
     this.railHand = hand;
-    const arrow = el2("div", "lk-rail-item");
+    const space = el("div", "lk-rail-item");
+    space.innerHTML = SPACE_ICON;
+    space.title = "Gi\xE3n / thu kho\u1EA3ng c\xE1ch (S)";
+    space.onclick = () => this.setTool(this.tool === "space" ? "select" : "space");
+    space.onmouseenter = () => this.scheduleFlyoutClose();
+    rail.appendChild(space);
+    this.railSpace = space;
+    const arrow = el("div", "lk-rail-item");
     arrow.innerHTML = ARROW_ICON;
     arrow.title = "M\u0169i t\xEAn";
     arrow.onmouseenter = () => this.openArrowFlyout(arrow);
     arrow.onmouseleave = () => this.scheduleFlyoutClose();
     arrow.onclick = () => this.openArrowFlyout(arrow);
     rail.appendChild(arrow);
-    rail.appendChild(el2("div", "lk-rail-sep"));
+    rail.appendChild(el("div", "lk-rail-sep"));
     const REP = {
       "C\u01A1 b\u1EA3n": "bs-rect",
       "Flowchart": "fc-decision",
@@ -84850,7 +85838,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       "BPMN": "bpmn-gateway-x"
     };
     for (const cat of this.categories) {
-      const item = el2("div", "lk-rail-item");
+      const item = el("div", "lk-rail-item");
       item.innerHTML = shapeIcon((_a3 = REP[cat.title]) != null ? _a3 : cat.items[0].shape);
       item.title = cat.title;
       item.onmouseenter = () => this.openFlyout(cat, item);
@@ -84869,16 +85857,16 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     var _a3;
     const FIT = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/></svg>`;
     const MORE = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>`;
-    const bar = el2("div", "lk-mbar");
+    const bar = el("div", "lk-mbar");
     const btn = (html3, title2, onClick) => {
-      const b4 = el2("div", "lk-mbar-item");
+      const b4 = el("div", "lk-mbar-item");
       b4.innerHTML = html3;
       b4.title = title2;
       b4.onclick = onClick;
       bar.appendChild(b4);
       return b4;
     };
-    const sep = () => bar.appendChild(el2("div", "lk-mbar-sep"));
+    const sep = () => bar.appendChild(el("div", "lk-mbar-sep"));
     this.railSelect = btn(CURSOR_ICON, "Ch\u1ECDn", () => this.setTool("select"));
     this.railSelect.classList.add("is-active");
     this.railHand = btn(HAND_ICON, "K\xE9o board", () => this.setTool(this.tool === "pan" ? "select" : "pan"));
@@ -84911,11 +85899,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
     const rest = this.categories.filter((c6) => !_OmniboardCanvas.QUICK_CATS.includes(c6.title));
-    const fly = el2("div", "lk-flyout");
-    fly.appendChild(el2("div", "lk-flyout-title", "S\u01A1 \u0111\u1ED3 kh\xE1c"));
-    const grid = el2("div", "lk-flyout-grid");
+    const fly = el("div", "lk-flyout");
+    fly.appendChild(el("div", "lk-flyout-title", "S\u01A1 \u0111\u1ED3 kh\xE1c"));
+    const grid = el("div", "lk-flyout-grid");
     for (const cat of rest) {
-      const cell = el2(
+      const cell = el(
         "div",
         "lk-flyout-cell",
         `${shapeIcon((_a3 = _OmniboardCanvas.CAT_REP[cat.title]) != null ? _a3 : cat.items[0].shape)}<span class="lbl">${cat.title}</span>`
@@ -84933,11 +85921,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   openArrowFlyout(anchor3) {
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
-    const fly = el2("div", "lk-flyout");
-    fly.appendChild(el2("div", "lk-flyout-title", "M\u0169i t\xEAn"));
-    const grid = el2("div", "lk-flyout-grid");
+    const fly = el("div", "lk-flyout");
+    fly.appendChild(el("div", "lk-flyout-title", "M\u0169i t\xEAn"));
+    const grid = el("div", "lk-flyout-grid");
     for (const a5 of ARROW_TYPES) {
-      const cell = el2("div", "lk-flyout-cell", `${arrowPreview(a5.style)}<span class="lbl">${a5.label}</span>`);
+      const cell = el("div", "lk-flyout-cell", `${arrowPreview(a5.style)}<span class="lbl">${a5.label}</span>`);
       cell.title = `Th\xEAm m\u0169i t\xEAn "${a5.label}"`;
       cell.addEventListener("pointerdown", (e5) => {
         e5.stopPropagation();
@@ -84978,12 +85966,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    * there is no Space key) and node interaction is suspended so drags always pan.
    */
   setTool(tool) {
-    var _a3, _b2, _c, _d;
+    var _a3, _b2, _c, _d, _e3;
+    this.cancelSpaceDrag();
     this.tool = tool;
     const pan = tool === "pan";
-    this.graph.options.interacting = pan ? false : this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true };
+    const idle = tool !== "select";
+    this.graph.options.interacting = idle ? false : this.isMobile ? { nodeMovable: false } : { edgeLabelMovable: true };
     const g4 = this.graph;
-    if (pan) (_a3 = g4.disableRubberband) == null ? void 0 : _a3.call(g4);
+    if (idle) (_a3 = g4.disableRubberband) == null ? void 0 : _a3.call(g4);
     else (_b2 = g4.enableRubberband) == null ? void 0 : _b2.call(g4);
     const m7 = this.graphMount;
     m7.removeEventListener("pointerdown", this.onPanDown);
@@ -84994,7 +85984,18 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     m7.removeEventListener("pointermove", this.onSelMove);
     m7.removeEventListener("pointerup", this.onSelUp);
     m7.removeEventListener("pointercancel", this.onSelUp);
-    if (pan) {
+    m7.removeEventListener("pointerdown", this.onSpaceDown);
+    m7.removeEventListener("pointermove", this.onSpaceMove);
+    m7.removeEventListener("pointerup", this.onSpaceUp);
+    m7.removeEventListener("pointercancel", this.onSpaceUp);
+    if (tool === "space") {
+      m7.addEventListener("pointerdown", this.onSpaceDown);
+      m7.addEventListener("pointermove", this.onSpaceMove);
+      m7.addEventListener("pointerup", this.onSpaceUp);
+      m7.addEventListener("pointercancel", this.onSpaceUp);
+      m7.style.cursor = "col-resize";
+      this.setPending(null);
+    } else if (pan) {
       m7.addEventListener("pointerdown", this.onPanDown);
       m7.addEventListener("pointermove", this.onPanMove);
       m7.addEventListener("pointerup", this.onPanUp);
@@ -85009,8 +86010,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       m7.style.cursor = "";
       this.panStart = null;
     }
-    (_c = this.railSelect) == null ? void 0 : _c.classList.toggle("is-active", !pan);
+    (_c = this.railSelect) == null ? void 0 : _c.classList.toggle("is-active", tool === "select");
     (_d = this.railHand) == null ? void 0 : _d.classList.toggle("is-active", pan);
+    (_e3 = this.railSpace) == null ? void 0 : _e3.classList.toggle("is-active", tool === "space");
   }
   /**
    * Node under a client point — geometric bbox test, NOT elementFromPoint.
@@ -85060,9 +86062,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   /** Arm a shape for tap-to-place (mobile-friendly add); shows a hint banner. */
   setPending(item) {
     this.pendingShape = item;
-    this.graphMount.style.cursor = item ? "copy" : this.tool === "pan" ? "grab" : "";
+    this.graphMount.style.cursor = item ? "copy" : this.tool === "pan" ? "grab" : this.tool === "space" ? "col-resize" : "";
     if (item && !this.pendingHint) {
-      this.pendingHint = el2("div", "lk-place-hint", "Ch\u1EA1m v\xE0o canvas \u0111\u1EC3 \u0111\u1EB7t h\xECnh");
+      this.pendingHint = el("div", "lk-place-hint", "Ch\u1EA1m v\xE0o canvas \u0111\u1EC3 \u0111\u1EB7t h\xECnh");
       this.root.appendChild(this.pendingHint);
     } else if (!item && this.pendingHint) {
       this.pendingHint.remove();
@@ -85095,14 +86097,124 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (target && this.tryEditChildLabel(target, node3)) return;
     this.editLabel(node3);
   }
+  /** Fix the axis and line, snapshot what the drag acts on, open one undo step. */
+  beginSpace(s5, axis2) {
+    var _a3;
+    s5.axis = axis2;
+    s5.line = axis2 === "x" ? s5.sx : s5.sy;
+    const nodes = this.graph.getNodes().filter((n4) => n4.isVisible());
+    s5.boxes = nodes.map((n4) => {
+      var _a4;
+      const b4 = n4.getBBox();
+      return { id: n4.id, x: b4.x, y: b4.y, w: b4.width, h: b4.height, frame: FRAME_KINDS.has(this.nodeKind(n4)), parentId: (_a4 = n4.getParent()) == null ? void 0 : _a4.id };
+    });
+    s5.plan = planSpace(s5.boxes, axis2, s5.line);
+    const byId = new Map(nodes.map((n4) => [n4.id, n4]));
+    s5.move = s5.plan.move.map((id) => byId.get(id));
+    s5.resize = s5.plan.resize.map((id) => {
+      const n4 = byId.get(id);
+      const z5 = n4.getSize();
+      return { node: n4, w: z5.width, h: z5.height };
+    });
+    for (const r6 of s5.resize) {
+      const ex = this.nodeExtra(r6.node);
+      const horizontal = ex.poolHorizontal !== false;
+      if (this.nodeKind(r6.node) !== "bpmn-pool" || !((_a3 = ex.lanes) == null ? void 0 : _a3.length) || (horizontal ? "y" : "x") !== axis2) continue;
+      const extent = horizontal ? r6.h : r6.w;
+      const rel = s5.line - r6.node.getPosition()[axis2];
+      s5.pools.push({ node: r6.node, lanes: ex.lanes, horizontal, extent, rel });
+      s5.floor = Math.max(s5.floor, 30 - leafLaneSize(asStackLanes(ex.lanes, horizontal), extent, rel));
+    }
+    s5.edges = this.graph.getEdges().filter((e5) => e5.getVertices().length).map((edge) => ({ edge, verts: edge.getVertices().map((v6) => ({ x: v6.x, y: v6.y })) }));
+    s5.guide.style.display = "block";
+    const c6 = this.graph.localToClient(s5.sx, s5.sy);
+    const r5 = this.graphMount.getBoundingClientRect();
+    s5.guide.style.cssText = axis2 === "x" ? `display:block;left:${c6.x - r5.left}px;top:0;bottom:0;width:0;border-left:1.5px dashed var(--pg-accent)` : `display:block;top:${c6.y - r5.top}px;left:0;right:0;height:0;border-top:1.5px dashed var(--pg-accent)`;
+    this.graph.cleanSelection();
+    this.graph.startBatch("space");
+  }
+  cancelSpaceDrag() {
+    if (this.space) this.endSpace(false);
+  }
+  endSpace(commit) {
+    const s5 = this.space;
+    if (!s5) return;
+    this.space = null;
+    s5.guide.remove();
+    if (!s5.axis) return;
+    this.graph.stopBatch("space");
+    if (!commit) {
+      if (s5.last !== 0) this.graph.undo();
+      return;
+    }
+    for (const r5 of s5.resize) this.rerender(r5.node);
+    if (s5.last !== 0) this.onChange();
+  }
+  openSearch() {
+    if (this.searchBox) {
+      this.searchBox.querySelector("input").select();
+      return;
+    }
+    const box = el("div", "lk-search");
+    const input = el("input", "lk-pinput");
+    input.placeholder = "T\xECm ph\u1EA7n t\u1EED\u2026";
+    const count = el("span", "lk-search-count", "");
+    const prev = el("button", "lk-cb-btn", "\u2191");
+    prev.title = "K\u1EBFt qu\u1EA3 tr\u01B0\u1EDBc (Shift+Enter)";
+    const next = el("button", "lk-cb-btn", "\u2193");
+    next.title = "K\u1EBFt qu\u1EA3 sau (Enter)";
+    const close = el("button", "lk-cb-btn", "\u2715");
+    close.title = "\u0110\xF3ng (Esc)";
+    box.append(input, count, prev, next, close);
+    this.root.appendChild(box);
+    this.searchBox = box;
+    let matches2 = [];
+    let cur = -1;
+    const show = () => {
+      count.textContent = input.value.trim() ? matches2.length ? `${cur + 1}/${matches2.length}` : "0" : "";
+      const n4 = matches2[cur];
+      if (!n4) return;
+      this.graph.resetSelection([n4]);
+      this.graph.centerCell(n4);
+    };
+    const search2 = () => {
+      const items = this.graph.getNodes().filter((n4) => n4.isVisible()).map((n4) => ({ id: n4.id, label: this.nodeLabel(n4), x: n4.getPosition().x, y: n4.getPosition().y, node: n4 }));
+      matches2 = findMatches(items, input.value).map((m7) => m7.node);
+      cur = matches2.length ? 0 : -1;
+      show();
+    };
+    const step = (dir) => {
+      cur = stepIndex(cur, matches2.length, dir);
+      show();
+    };
+    const closeBox = () => {
+      box.remove();
+      this.searchBox = null;
+    };
+    input.oninput = search2;
+    input.onkeydown = (ev) => {
+      ev.stopPropagation();
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        step(ev.shiftKey ? -1 : 1);
+      } else if (ev.key === "Escape") {
+        ev.preventDefault();
+        closeBox();
+      }
+    };
+    prev.onclick = () => step(-1);
+    next.onclick = () => step(1);
+    close.onclick = closeBox;
+    input.focus();
+  }
   openFlyout(cat, anchor3) {
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
-    const fly = el2("div", "lk-flyout");
-    fly.appendChild(el2("div", "lk-flyout-title", cat.title));
-    const grid = el2("div", "lk-flyout-grid");
+    const fly = el("div", "lk-flyout");
+    fly.appendChild(el("div", "lk-flyout-title", cat.title));
+    const grid = el("div", "lk-flyout-grid");
     const mkCell = (item) => {
-      const cell = el2("div", "lk-flyout-cell", `${shapeIcon(item.shape, item.seed)}<span class="lbl">${item.label}</span>`);
+      const cell = el("div", "lk-flyout-cell", `${shapeIcon(item.shape, item.seed)}<span class="lbl">${item.label}</span>`);
       cell.title = `K\xE9o "${item.label}" v\xE0o canvas`;
       cell.addEventListener("pointerdown", (e5) => {
         if (e5.pointerType === "mouse") this.startDrag(e5, item, cell);
@@ -85114,7 +86226,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const advanced = cat.items.filter((i6) => i6.advanced);
     for (const item of common2) grid.appendChild(mkCell(item));
     if (advanced.length > 0) {
-      const more = el2("button", "lk-flyout-more", `Load more (${advanced.length})`);
+      const more = el("button", "lk-flyout-more", `Load more (${advanced.length})`);
       more.onclick = () => {
         var _a3;
         const frag = document.createDocumentFragment();
@@ -85174,7 +86286,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    */
   startDrag(e5, item, source) {
     e5.preventDefault();
-    const ghost = el2("div", "lk-drag-ghost", shapeIcon(item.shape, item.seed));
+    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape, item.seed));
     document.body.appendChild(ghost);
     let moved = false;
     const move2 = (ev) => {
@@ -85201,7 +86313,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.closeFlyoutNow();
       if (moved && onCanvas && !onFlyout) {
         const p6 = this.graph.clientToLocal(ev.clientX, ev.clientY);
-        const node3 = this.addHtmlNode(item.shape, p6.x - item.w / 2, p6.y - item.h / 2, item.w, item.h, item.label, void 0, void 0, item.seed);
+        const node3 = this.addPaletteNode(item, p6);
         this.graph.resetSelection([node3]);
         this.onChange();
       } else {
@@ -85222,7 +86334,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (e5.touches.length !== 1) return;
     e5.preventDefault();
     const t0 = e5.touches[0];
-    const ghost = el2("div", "lk-drag-ghost", shapeIcon(item.shape, item.seed));
+    const ghost = el("div", "lk-drag-ghost", shapeIcon(item.shape, item.seed));
     document.body.appendChild(ghost);
     const place = (x5, y5) => {
       ghost.style.left = x5 + 8 + "px";
@@ -85248,7 +86360,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.closeFlyoutNow();
       if (moved && onCanvas && !onFlyout && t6) {
         const p6 = this.graph.clientToLocal(t6.clientX, t6.clientY);
-        const node3 = this.addHtmlNode(item.shape, p6.x - item.w / 2, p6.y - item.h / 2, item.w, item.h, item.label, void 0, void 0, item.seed);
+        const node3 = this.addPaletteNode(item, p6);
         this.graph.resetSelection([node3]);
         this.onChange();
       } else {
@@ -85260,8 +86372,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     source.addEventListener("touchend", end);
     source.addEventListener("touchcancel", end);
   }
-  pointInRect(x5, y5, el4) {
-    const r5 = el4.getBoundingClientRect();
+  pointInRect(x5, y5, el3) {
+    const r5 = el3.getBoundingClientRect();
     return x5 >= r5.left && x5 <= r5.right && y5 >= r5.top && y5 <= r5.bottom;
   }
   pointInGraph(x5, y5) {
@@ -85273,9 +86385,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const ICON_MINUS = SVG(`<path d="M5 12h14"/>`);
     const ICON_PLUS = SVG(`<path d="M12 5v14M5 12h14"/>`);
     const ICON_FIT = SVG(`<path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/>`);
-    const wrap = el2("div", "lk-zoomctl");
+    const wrap = el("div", "lk-zoomctl");
     const mk = (icon, title2, fn2) => {
-      const b4 = el2("button", "lk-ctrl-btn");
+      const b4 = el("button", "lk-ctrl-btn");
       b4.innerHTML = icon;
       b4.title = title2;
       b4.onclick = fn2;
@@ -85285,7 +86397,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.graph.zoom(-0.1);
       this.updateZoom();
     }));
-    this.zoomLabel = el2("span", "lk-zoom-lvl", "100%");
+    this.zoomLabel = el("span", "lk-zoom-lvl", "100%");
     wrap.appendChild(this.zoomLabel);
     wrap.appendChild(mk(ICON_PLUS, "Ph\xF3ng to", () => {
       this.graph.zoom(0.1);
@@ -85295,19 +86407,69 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.graph.zoomToFit({ padding: 40, maxScale: 1.2 });
       this.updateZoom();
     }));
+    const menuBtn = mk(ICON_MENU, "Menu board", () => this.openBoardMenu(menuBtn));
+    wrap.prepend(menuBtn, el("span", "lk-zoom-sep"));
     this.root.appendChild(wrap);
     this.graph.on("scale", () => this.updateZoom());
+  }
+  /** Change the board look (merged into the current state) and save it with the file. */
+  setAppState(patch) {
+    const next = { ...this.appState, ...patch };
+    for (const k5 of Object.keys(next)) if (next[k5] === void 0) delete next[k5];
+    this.applyAppState(next);
+    this.onChange();
+  }
+  applyAppState(state) {
+    this.appState = { ...state };
+    const dark = state.theme === "dark";
+    this.root.classList.toggle("lk-dark", dark);
+    this.graph.drawGrid({ type: "dot", args: { color: dark ? GRID_DOT.dark : GRID_DOT.light, thickness: 2 } });
+    const bg = dark ? state.backgroundDark : state.background;
+    if (bg) this.root.style.setProperty("--lk-board-bg", bg);
+    else this.root.style.removeProperty("--lk-board-bg");
+  }
+  /** ☰ menu, like Excalidraw's: board background swatches + dark mode toggle. */
+  openBoardMenu(anchor3) {
+    const wrap = el("div", "lk-color-popup lk-board-menu");
+    wrap.appendChild(el("div", "lk-popup-title", "M\xE0u n\u1EC1n board"));
+    const row = el("div", "lk-color-grid");
+    const dark = this.appState.theme === "dark";
+    const key = dark ? "backgroundDark" : "background";
+    const swatches = dark ? BOARD_BG_SWATCHES_DARK : BOARD_BG_SWATCHES;
+    const cur = this.appState[key];
+    for (const c6 of swatches) {
+      const sw = el("div", "lk-swatch" + ((cur != null ? cur : swatches[0]) === c6 ? " is-active" : ""));
+      sw.style.background = c6;
+      sw.title = c6;
+      sw.onclick = () => {
+        this.setAppState({ [key]: c6 === swatches[0] ? void 0 : c6 });
+        this.openBoardMenu(anchor3);
+      };
+      row.appendChild(sw);
+    }
+    const plus = el("div", "lk-swatch lk-swatch-add", "+");
+    plus.onclick = () => this.openColorWheel(cur != null ? cur : swatches[0], (hx) => this.setAppState({ [key]: hx }), anchor3);
+    row.appendChild(plus);
+    wrap.appendChild(row);
+    const item = el("button", "lk-menu-item");
+    item.innerHTML = `${dark ? ICON_SUN : ICON_MOON}<span>${dark ? "Ch\u1EBF \u0111\u1ED9 s\xE1ng" : "Ch\u1EBF \u0111\u1ED9 t\u1ED1i"}</span>`;
+    item.onclick = () => {
+      this.setAppState({ theme: dark ? void 0 : "dark" });
+      this.openBoardMenu(anchor3);
+    };
+    wrap.appendChild(item);
+    this.showPopup(wrap, anchor3);
   }
   updateZoom() {
     if (this.zoomLabel) this.zoomLabel.textContent = Math.round(this.graph.scale().sx * 100) + "%";
   }
   // ── Minimap (overview navigator, bottom-right) ───────────────────────────
   buildMinimap() {
-    const box = el2("div", "lk-minimap");
+    const box = el("div", "lk-minimap");
     const svg3 = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg3.setAttribute("class", "lk-mm-svg");
     box.appendChild(svg3);
-    const vp = el2("div", "lk-mm-viewport");
+    const vp = el("div", "lk-mm-viewport");
     box.appendChild(vp);
     this.root.appendChild(box);
     this.minimap = box;
@@ -85344,11 +86506,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       return;
     }
     box.style.display = "block";
-    const W4 = 190, H4 = 128, PAD = 8, innerW = W4 - 2 * PAD, innerH = H4 - 2 * PAD;
+    const W4 = 190, H4 = 128, PAD2 = 8, innerW = W4 - 2 * PAD2, innerH = H4 - 2 * PAD2;
     const bb = this.graph.getContentBBox();
     const scale2 = Math.min(innerW / Math.max(bb.width, 1), innerH / Math.max(bb.height, 1));
-    const ox = PAD + (innerW - bb.width * scale2) / 2;
-    const oy = PAD + (innerH - bb.height * scale2) / 2;
+    const ox = PAD2 + (innerW - bb.width * scale2) / 2;
+    const oy = PAD2 + (innerH - bb.height * scale2) / 2;
     this.mm = { scale: scale2, ox, oy, bx: bb.x, by: bb.y };
     svg3.setAttribute("viewBox", `0 0 ${W4} ${H4}`);
     let html3 = "";
@@ -85370,7 +86532,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   // ── Canvas help (bottom-center) ──────────────────────────────────────────
   buildCanvasHelp() {
-    const h5 = el2(
+    const h5 = el(
       "div",
       "lk-canvas-help",
       `<b>2 ng\xF3n</b> k\xE9o board \xB7 <b>\u2318/Ctrl+cu\u1ED9n</b> zoom \xB7 <b>Space</b> k\xE9o \xB7 <b>k\xE9o c\u1EA1nh</b> n\u1ED1i`
@@ -85379,25 +86541,28 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   // ── Properties panel (right dock, design style) ──────────────────────────
   buildPropsPanel() {
-    const panel = el2("div", "lk-props");
+    const panel = el("div", "lk-props");
     this.propsPanel = panel;
-    const head = el2("div", "lk-props-head");
-    head.appendChild(el2("span", "lk-props-ttl", "Thu\u1ED9c t\xEDnh"));
-    const collapse = el2("button", "lk-props-collapse", "\u203A");
+    const head = el("div", "lk-props-head");
+    head.appendChild(el("span", "lk-props-ttl", "Thu\u1ED9c t\xEDnh"));
+    const collapse = el("button", "lk-props-collapse", "\u203A");
     collapse.title = "Thu g\u1ECDn";
     collapse.onclick = () => this.togglePropsPanel(false);
     head.appendChild(collapse);
     panel.appendChild(head);
-    this.propsBody = el2("div", "lk-props-body");
+    this.propsBody = el("div", "lk-props-body");
     panel.appendChild(this.propsBody);
     this.root.appendChild(panel);
-    const fab = el2("button", "lk-props-fab");
+    const fab = el("button", "lk-props-fab");
     fab.title = "Thu\u1ED9c t\xEDnh";
     fab.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M14 4v16"/></svg>`;
     fab.onclick = () => this.togglePropsPanel(true);
     this.propsFab = fab;
     this.root.appendChild(fab);
     this.togglePropsPanel(false);
+  }
+  openPropsPanel() {
+    this.togglePropsPanel(true);
   }
   togglePropsPanel(open4) {
     var _a3;
@@ -85428,30 +86593,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       size: { width: s5.width, height: s5.height }
     };
   }
-  // Story 6.1 — Returns ALL selected node snapshots (empty array when none).
-  // PropertiesPanel uses this for multi-select UX. Single-cell callers should
-  // keep using getSelectedNodeSnapshot() for backwards compatibility.
-  getSelectedNodesSnapshot() {
-    const nodes = this.graph.getSelectedCells().filter((c6) => c6.isNode());
-    return nodes.map((node3) => {
-      var _a3;
-      const p6 = node3.getPosition();
-      const s5 = node3.getSize();
-      return {
-        id: node3.id,
-        kind: this.nodeKind(node3),
-        label: this.nodeLabel(node3),
-        attrs: { ...(_a3 = node3.getData()) != null ? _a3 : {} },
-        style: this.nodeStyle(node3),
-        position: { x: p6.x, y: p6.y },
-        size: { width: s5.width, height: s5.height }
-      };
-    });
-  }
   // Story 6.1 — Apply the same style patch to every cell in `ids` inside one
-  // X6 batch so undo treats it as a single step. Callers compute the patch
-  // (e.g. from PropertiesPanel) and we just iterate-and-write. Cells with
-  // unknown ids are silently skipped.
+  // X6 batch so undo treats it as a single step. Cells with unknown ids are
+  // silently skipped.
   // [Review][Patch P8] `setStyle` calls `onChange` + `rerender` per cell — N
   // cells × M keystrokes = N×M re-saves. Use silent in-place update + a single
   // onChange() at the end of the batch. Also skip onChange when zero patches
@@ -85469,7 +86613,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         if (!(cell == null ? void 0 : cell.isNode())) continue;
         const node3 = cell;
         const next = { ...this.nodeStyle(node3), ...style2 };
-        node3.setData({ ...node3.getData(), style: next });
+        node3.setData({ ...node3.getData(), style: next }, { deep: false });
         this.rerender(node3);
         applied++;
       }
@@ -85478,34 +86622,23 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     }
     if (applied > 0) this.onChange();
   }
-  patchSelectedNode(patch) {
-    var _a3, _b2, _c, _d;
-    const nodes = this.graph.getSelectedCells().filter((c6) => c6.isNode());
-    if (nodes.length !== 1) return;
-    const node3 = nodes[0];
-    if (patch.label !== void 0) node3.setData({ ...node3.getData(), label: patch.label });
-    if (patch.attrs) node3.setData({ ...node3.getData(), ...patch.attrs });
-    if (patch.style) this.setStyle(node3, patch.style);
-    if (patch.position) {
-      const p6 = node3.getPosition();
-      node3.setPosition((_a3 = patch.position.x) != null ? _a3 : p6.x, (_b2 = patch.position.y) != null ? _b2 : p6.y);
-    }
-    if (patch.size) {
-      const s5 = node3.getSize();
-      node3.resize((_c = patch.size.width) != null ? _c : s5.width, (_d = patch.size.height) != null ? _d : s5.height);
-    }
-    this.rerender(node3);
-    this.onChange();
-    this.refreshProps();
-    this.notifySelectionChanged();
-  }
   refreshProps() {
     const body = this.propsBody;
     if (!body) return;
     body.innerHTML = "";
-    const nodes = this.graph.getSelectedCells().filter((c6) => c6.isNode());
+    const cells = this.graph.getSelectedCells();
+    const nodes = cells.filter((c6) => c6.isNode());
+    if (cells.length === 1 && cells[0].isEdge() && this.buildSequenceFlowEditor(cells[0], body)) return;
+    if (nodes.length >= 2) {
+      const s5 = el("div", "lk-psec");
+      s5.appendChild(el("div", "lk-psec-h", `Ki\u1EC3u \xB7 ${nodes.length} ph\u1EA7n t\u1EED`));
+      body.appendChild(s5);
+      this.buildStyleFields(nodes, s5);
+      this.notifySelectionChanged();
+      return;
+    }
     if (nodes.length !== 1) {
-      const empty3 = el2("div", "lk-props-empty");
+      const empty3 = el("div", "lk-props-empty");
       empty3.innerHTML = `<div class="lk-props-empty-ic">\u25C7</div>Ch\u1ECDn m\u1ED9t ph\u1EA7n t\u1EED tr\xEAn canvas \u0111\u1EC3 ch\u1EC9nh n\u1ED9i dung, m\xE0u v\xE0 v\u1ECB tr\xED.`;
       body.appendChild(empty3);
       this.notifySelectionChanged();
@@ -85513,23 +86646,22 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     }
     const node3 = nodes[0];
     const sec = (title2) => {
-      const s5 = el2("div", "lk-psec");
-      s5.appendChild(el2("div", "lk-psec-h", title2));
+      const s5 = el("div", "lk-psec");
+      s5.appendChild(el("div", "lk-psec-h", title2));
       body.appendChild(s5);
       return s5;
     };
-    const field = (parent, label, control) => {
-      const f6 = el2("div", "lk-pfield");
-      f6.appendChild(el2("label", void 0, label));
+    const field = (parent, label2, control) => {
+      const f6 = el("div", "lk-pfield");
+      f6.appendChild(el("label", void 0, label2));
       f6.appendChild(control);
       parent.appendChild(f6);
     };
-    const st3 = this.nodeStyle(node3);
     const s1 = sec("N\u1ED9i dung");
-    const labelInput = el2("input", "lk-pinput");
+    const labelInput = el("input", "lk-pinput");
     labelInput.value = this.nodeLabel(node3);
     labelInput.oninput = () => {
-      node3.setData({ ...node3.getData(), label: labelInput.value });
+      node3.setData({ ...node3.getData(), label: labelInput.value }, { deep: false });
       this.rerender(node3);
       this.onChange();
     };
@@ -85538,46 +86670,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (kind === "erd-entity") this.buildErdEditor(node3, body);
     else if (kind === "uml-class" || kind === "uml-interface") this.buildUmlEditor(node3, body);
     if (kind.startsWith("bpmn-")) this.buildBpmnPropsEditor(node3, body);
-    const s22 = sec("Ki\u1EC3u");
-    const swatchRow = (key) => {
-      const row = el2("div", "lk-pswatches");
-      for (const c6 of FILL_SWATCHES) {
-        const sw = el2("div", "lk-pswatch");
-        sw.style.background = c6 === "transparent" ? "repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50%/8px 8px" : c6;
-        if (st3[key] === c6) sw.classList.add("on");
-        sw.onclick = () => {
-          this.setStyle(node3, { [key]: c6 });
-          this.refreshProps();
-        };
-        row.appendChild(sw);
-      }
-      return row;
-    };
-    field(s22, "M\xE0u n\u1EC1n", swatchRow("fill"));
-    field(s22, "M\xE0u vi\u1EC1n", swatchRow("stroke"));
-    const fontIn = el2("input", "lk-pinput");
-    fontIn.type = "number";
-    fontIn.min = "6";
-    fontIn.max = "96";
-    fontIn.step = "1";
-    fontIn.value = String(st3.fontSize || defaultFontSizeFor(node3));
-    const applyFont = () => {
-      const v6 = Math.max(6, Math.min(96, Math.round(Number(fontIn.value)) || defaultFontSizeFor(node3)));
-      fontIn.value = String(v6);
-      this.setStyle(node3, { fontSize: v6 });
-    };
-    fontIn.oninput = () => {
-      const n4 = Number(fontIn.value);
-      if (Number.isFinite(n4) && n4 >= 6 && n4 <= 96) this.setStyle(node3, { fontSize: Math.round(n4) });
-    };
-    fontIn.onblur = applyFont;
-    field(s22, "C\u1EE1 ch\u1EEF", fontIn);
+    this.buildStyleFields([node3], sec("Ki\u1EC3u"));
     const s32 = sec("V\u1ECB tr\xED & k\xEDch th\u01B0\u1EDBc");
     const pos = node3.getPosition();
     const size2 = node3.getSize();
-    const numRow = el2("div", "lk-prow2");
+    const numRow = el("div", "lk-prow2");
     const mkNum = (val, set4) => {
-      const i6 = el2("input", "lk-pinput");
+      const i6 = el("input", "lk-pinput");
       i6.type = "number";
       i6.value = String(Math.round(val));
       i6.onchange = () => {
@@ -85589,82 +86688,136 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     numRow.appendChild(mkNum(pos.x, (v6) => node3.setPosition(v6, node3.getPosition().y)));
     numRow.appendChild(mkNum(pos.y, (v6) => node3.setPosition(node3.getPosition().x, v6)));
     field(s32, "X / Y", numRow);
-    const sizeRow = el2("div", "lk-prow2");
+    const sizeRow = el("div", "lk-prow2");
     sizeRow.appendChild(mkNum(size2.width, (v6) => node3.resize(v6, node3.getSize().height)));
     sizeRow.appendChild(mkNum(size2.height, (v6) => node3.resize(node3.getSize().width, v6)));
     field(s32, "R\u1ED9ng / Cao", sizeRow);
     this.notifySelectionChanged();
   }
+  /** "Kiểu" fields for one node or several: a value the nodes don't share shows unselected / "—". */
+  buildStyleFields(nodes, parent) {
+    const ids3 = nodes.map((n4) => n4.id);
+    const field = (label2, control) => {
+      const f6 = el("div", "lk-pfield");
+      f6.appendChild(el("label", void 0, label2));
+      f6.appendChild(control);
+      parent.appendChild(f6);
+    };
+    const shared = (k5) => {
+      const v6 = this.nodeStyle(nodes[0])[k5];
+      return nodes.every((n4) => this.nodeStyle(n4)[k5] === v6) ? v6 : void 0;
+    };
+    const apply4 = (patch) => {
+      this.patchNodesBulk(ids3, patch);
+      this.refreshProps();
+    };
+    const swatchRow = (key) => {
+      const row = el("div", "lk-pswatches");
+      const cur = shared(key);
+      for (const c6 of FILL_SWATCHES) {
+        const sw = el("div", "lk-pswatch");
+        sw.style.background = c6 === "transparent" ? "repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50%/8px 8px" : c6;
+        if (cur === c6) sw.classList.add("on");
+        sw.onclick = () => apply4({ [key]: c6 });
+        row.appendChild(sw);
+      }
+      const pick3 = el("input", "lk-pswatch lk-pswatch-pick");
+      pick3.type = "color";
+      pick3.title = "M\xE0u kh\xE1c";
+      if (cur && /^#[0-9a-f]{6}$/i.test(cur)) pick3.value = cur;
+      if (cur && !FILL_SWATCHES.includes(cur)) pick3.classList.add("on");
+      pick3.onchange = () => apply4({ [key]: pick3.value });
+      row.appendChild(pick3);
+      return row;
+    };
+    field("M\xE0u n\u1EC1n", swatchRow("fill"));
+    field("M\xE0u vi\u1EC1n", swatchRow("stroke"));
+    const numIn = (key, min5, max9, fallback) => {
+      var _a3;
+      const i6 = el("input", "lk-pinput");
+      i6.type = "number";
+      i6.min = String(min5);
+      i6.max = String(max9);
+      i6.step = "1";
+      const cur = (_a3 = shared(key)) != null ? _a3 : nodes.length === 1 ? fallback : void 0;
+      i6.value = cur != null ? String(cur) : "";
+      i6.placeholder = "\u2014";
+      const valid = () => {
+        const n4 = Number(i6.value);
+        return i6.value !== "" && n4 >= min5 && n4 <= max9 ? Math.round(n4) : null;
+      };
+      i6.oninput = () => {
+        const n4 = valid();
+        if (n4 != null) this.patchNodesBulk(ids3, { [key]: n4 });
+      };
+      i6.onblur = () => {
+        if (valid() == null) i6.value = cur != null ? String(cur) : "";
+      };
+      return i6;
+    };
+    field("C\u1EE1 ch\u1EEF", numIn("fontSize", 6, 96, defaultFontSizeFor(nodes[0])));
+    field("\u0110\u1ED9 d\xE0y vi\u1EC1n", numIn("borderWidth", 0, 20, 1));
+  }
   // ── BPMN Properties editor (Phase D) ──────────────────────────────────────
+  /** Condition of a BPMN sequence flow (bpmn:conditionExpression body). False
+   *  when the edge is not one, so the caller shows the empty state. */
+  buildSequenceFlowEditor(edge, body) {
+    var _a3, _b2, _c;
+    const d4 = (_a3 = edge.getData()) != null ? _a3 : {};
+    const ft3 = this.edgeStyle(edge).flowType;
+    const ends = [edge.getSourceCell(), edge.getTargetCell()];
+    const isSequence2 = !d4.bpmnKind || d4.bpmnKind === "sequence";
+    if (!isSequence2 || ft3 === "message" || ft3 === "association" || !ends.every((c6) => (c6 == null ? void 0 : c6.isNode()) && this.nodeKind(c6).startsWith("bpmn-"))) return false;
+    const s5 = el("div", "lk-psec");
+    s5.appendChild(el("div", "lk-psec-h", "Sequence flow"));
+    body.appendChild(s5);
+    const f6 = el("div", "lk-pfield");
+    f6.appendChild(el("label", void 0, "\u0110i\u1EC1u ki\u1EC7n"));
+    s5.appendChild(f6);
+    const ta = el("textarea", "lk-ptextarea");
+    ta.rows = 3;
+    ta.placeholder = "${amount > 1000}";
+    ta.value = (_c = (_b2 = d4.bpmnAttrs) == null ? void 0 : _b2.condition) != null ? _c : "";
+    ta.oninput = () => {
+      var _a4, _b3;
+      const cur = (_a4 = edge.getData()) != null ? _a4 : {};
+      const attrs = { ...(_b3 = cur.bpmnAttrs) != null ? _b3 : {}, condition: ta.value.trim() || void 0 };
+      if (!attrs.condition) delete attrs.condition;
+      edge.setData({ ...cur, bpmnAttrs: Object.keys(attrs).length ? attrs : void 0 }, { deep: false });
+      this.onChange();
+    };
+    f6.appendChild(ta);
+    return true;
+  }
   buildBpmnPropsEditor(node3, body) {
-    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i;
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j;
     const kind = this.nodeKind(node3);
     const ex = this.nodeExtra(node3);
     const d4 = (_a3 = node3.getData()) != null ? _a3 : {};
     const sec = (title2) => {
-      const s5 = el2("div", "lk-psec");
-      s5.appendChild(el2("div", "lk-psec-h", title2));
+      const s5 = el("div", "lk-psec");
+      s5.appendChild(el("div", "lk-psec-h", title2));
       body.appendChild(s5);
       return s5;
     };
-    const field = (parent, label, control) => {
-      const f6 = el2("div", "lk-pfield");
-      f6.appendChild(el2("label", void 0, label));
+    const field = (parent, label2, control) => {
+      const f6 = el("div", "lk-pfield");
+      f6.appendChild(el("label", void 0, label2));
       f6.appendChild(control);
       parent.appendChild(f6);
     };
     const save = (patch) => {
-      node3.setData({ ...node3.getData(), ...patch });
+      node3.setData({ ...node3.getData(), ...patch }, { deep: false });
       this.rerender(node3);
       this.onChange();
     };
-    const bpmnFill = d4.bpmnFill;
-    const bpmnStroke = d4.bpmnStroke;
-    if (!kind.endsWith("-lane") && !kind.endsWith("-pool")) {
-      const sColor = sec("M\xE0u BPMN");
-      const makeColor = (label, key, cur) => {
-        const wrap = el2("div", "lk-prow2");
-        const inp = el2("input", "lk-pinput lk-pcolor");
-        inp.type = "text";
-        inp.placeholder = "#ffffff";
-        inp.value = cur != null ? cur : "";
-        inp.oninput = () => {
-          save({ [key]: inp.value.trim() || void 0 });
-        };
-        const swatch = el2("div", "lk-pswatch lk-pcolor-swatch");
-        swatch.style.background = cur != null ? cur : "transparent";
-        inp.addEventListener("input", () => {
-          swatch.style.background = inp.value.trim() || "transparent";
-        });
-        wrap.appendChild(swatch);
-        wrap.appendChild(inp);
-        field(sColor, label, wrap);
-      };
-      makeColor("Fill", "bpmnFill", bpmnFill);
-      makeColor("Stroke", "bpmnStroke", bpmnStroke);
-    }
     if (kind === "bpmn-event-start" || kind === "bpmn-event-intermediate" || kind === "bpmn-event-end") {
       const sTrig = sec("Trigger s\u1EF1 ki\u1EC7n");
-      const TRIGGERS = [
-        "(none)",
-        "message",
-        "timer",
-        "signal",
-        "error",
-        "escalation",
-        "compensation",
-        "conditional",
-        "link",
-        "cancel",
-        "terminate",
-        "multiple",
-        "parallel-multiple"
-      ];
-      const sel = el2("select", "lk-pselect");
-      for (const t6 of TRIGGERS) {
+      const sel = el("select", "lk-pselect");
+      for (const t6 of triggerChoices(kind, ex)) {
         const opt = document.createElement("option");
-        opt.value = t6 === "(none)" ? "" : t6;
-        opt.textContent = t6;
+        opt.value = t6 === "none" ? "" : t6;
+        opt.textContent = t6 === "none" ? "(none)" : t6;
         if (((_b2 = ex.trigger) != null ? _b2 : "") === opt.value) opt.selected = true;
         sel.appendChild(opt);
       }
@@ -85673,11 +86826,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       };
       field(sTrig, "Trigger", sel);
       if (kind === "bpmn-event-intermediate") {
-        const thrChk = el2("input");
+        const thrChk = el("input");
         thrChk.type = "checkbox";
         thrChk.checked = ex.throwing === true;
         thrChk.onchange = () => {
           save({ throwing: thrChk.checked });
+          this.refreshProps();
         };
         field(sTrig, "Throwing", thrChk);
       }
@@ -85691,7 +86845,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         ["mi-par", "Multi-instance //"],
         ["mi-seq", "Multi-instance \u2261"]
       ];
-      const sel = el2("select", "lk-pselect");
+      const sel = el("select", "lk-pselect");
       const curLoop = (_d = (_c = ex.markers) == null ? void 0 : _c.find((m7) => m7 === "loop" || m7 === "mi-par" || m7 === "mi-seq")) != null ? _d : "";
       for (const [v6, l5] of LOOP_OPTS) {
         const opt = document.createElement("option");
@@ -85702,30 +86856,51 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
       sel.onchange = () => {
         var _a4;
-        const other = ((_a4 = ex.markers) != null ? _a4 : []).filter((m7) => m7 !== "loop" && m7 !== "mi-par" && m7 !== "mi-seq");
+        const other = ((_a4 = this.nodeExtra(node3).markers) != null ? _a4 : []).filter((m7) => m7 !== "loop" && m7 !== "mi-par" && m7 !== "mi-seq");
         save({ markers: sel.value ? [...other, sel.value] : other });
       };
       field(sLoop, "Ki\u1EC3u", sel);
-      const compChk = el2("input");
+      const compChk = el("input");
       compChk.type = "checkbox";
       compChk.checked = ((_e3 = ex.markers) != null ? _e3 : []).includes("compensation");
       compChk.onchange = () => {
         var _a4;
-        const others = ((_a4 = ex.markers) != null ? _a4 : []).filter((m7) => m7 !== "compensation");
+        const others = ((_a4 = this.nodeExtra(node3).markers) != null ? _a4 : []).filter((m7) => m7 !== "compensation");
         save({ markers: compChk.checked ? [...others, "compensation"] : others });
       };
       field(sLoop, "Compensation", compChk);
     }
+    const sId = sec("\u0110\u1ECBnh danh");
+    const idInp = el("input", "lk-pinput");
+    idInp.value = node3.id;
+    idInp.onchange = () => {
+      const next = idInp.value.trim();
+      if (this.renameNode(node3.id, next)) return;
+      idInp.setCustomValidity(`ID "${next}" kh\xF4ng h\u1EE3p l\u1EC7 ho\u1EB7c \u0111\xE3 c\xF3.`);
+      idInp.reportValidity();
+      idInp.setCustomValidity("");
+      idInp.value = node3.id;
+    };
+    field(sId, "ID", idInp);
+    if (kind === "bpmn-call-activity") {
+      const callInp = el("input", "lk-pinput");
+      callInp.placeholder = "ID process \u0111\u01B0\u1EE3c g\u1ECDi";
+      callInp.value = (_f = d4.calledElement) != null ? _f : "";
+      callInp.oninput = () => {
+        save({ calledElement: callInp.value.trim() || void 0 });
+      };
+      field(sId, "calledElement", callInp);
+    }
     const sDocs = sec("M\xF4 t\u1EA3 (documentation)");
-    const docTa = el2("textarea", "lk-ptextarea");
+    const docTa = el("textarea", "lk-ptextarea");
     docTa.rows = 4;
     docTa.placeholder = "Nh\u1EADp m\xF4 t\u1EA3 ph\u1EA7n t\u1EED BPMN...";
-    docTa.value = (_f = d4.bpmnDoc) != null ? _f : "";
+    docTa.value = (_g = d4.bpmnDoc) != null ? _g : "";
     docTa.oninput = () => {
       save({ bpmnDoc: docTa.value.trim() || void 0 });
     };
     sDocs.appendChild(docTa);
-    const camunda = (_g = d4.camunda) != null ? _g : {};
+    const camunda = (_h = d4.camunda) != null ? _h : {};
     const CAMUNDA_FIELDS = [
       ["assignee", "Assignee"],
       ["candidateUsers", "Candidate users"],
@@ -85734,45 +86909,80 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       ["dueDate", "Due date"],
       ["priority", "Priority"]
     ];
-    const hasCamundaData = CAMUNDA_FIELDS.some(([k5]) => camunda[k5]);
-    if (hasCamundaData || kind === "bpmn-task-user") {
-      const sCam = sec("Camunda");
-      for (const [key, label] of CAMUNDA_FIELDS) {
-        const inp = el2("input", "lk-pinput");
-        inp.value = (_h = camunda[key]) != null ? _h : "";
-        inp.placeholder = label;
-        inp.oninput = () => {
-          const updated = { ...camunda, [key]: inp.value.trim() || void 0 };
-          save({ camunda: Object.fromEntries(Object.entries(updated).filter(([, v6]) => v6 !== void 0)) });
-        };
-        field(sCam, label, inp);
-      }
+    const props = () => {
+      var _a4, _b3;
+      return (_b3 = (_a4 = node3.getData()) == null ? void 0 : _a4.bpmnProps) != null ? _b3 : [];
+    };
+    const setProps = (next) => save({ bpmnProps: next.length ? next : void 0 });
+    const fold2 = (title2, open4) => {
+      const s5 = el("details", "lk-psec lk-pfold");
+      s5.open = open4;
+      s5.appendChild(el("summary", "lk-psec-h", title2));
+      body.appendChild(s5);
+      return s5;
+    };
+    const sCam = fold2("Camunda", true);
+    for (const [key, label2] of CAMUNDA_FIELDS) {
+      const inp = el("input", "lk-pinput");
+      inp.value = (_i = camunda[key]) != null ? _i : "";
+      inp.placeholder = label2;
+      inp.oninput = () => {
+        var _a4, _b3;
+        const cur = (_b3 = (_a4 = node3.getData()) == null ? void 0 : _a4.camunda) != null ? _b3 : {};
+        const updated = { ...cur, [key]: inp.value.trim() || void 0 };
+        const kept = Object.fromEntries(Object.entries(updated).filter(([, v6]) => v6 !== void 0));
+        save({ camunda: Object.keys(kept).length ? kept : void 0 });
+      };
+      field(sCam, label2, inp);
     }
-    const bpmnProps = (_i = d4.bpmnProps) != null ? _i : [];
-    if (bpmnProps.length) {
-      const sProps = sec("Properties");
-      for (const p6 of bpmnProps) {
-        const row = el2("div", "lk-prow2");
-        const kIn = el2("input", "lk-pinput");
-        kIn.value = p6.name;
-        kIn.readOnly = true;
-        const vIn = el2("input", "lk-pinput");
-        vIn.value = p6.value;
-        vIn.oninput = () => {
-          const updated = bpmnProps.map((q5) => q5.name === p6.name ? { ...q5, value: vIn.value } : q5);
-          save({ bpmnProps: updated });
-        };
-        row.appendChild(kIn);
-        row.appendChild(vIn);
-        sProps.appendChild(row);
+    props().forEach((p6, i6) => {
+      const row = el("div", "lk-prow2");
+      const kIn = el("input", "lk-pinput");
+      kIn.value = p6.name;
+      kIn.placeholder = "name";
+      kIn.onchange = () => {
+        setProps(props().map((q5, j5) => j5 === i6 ? { ...q5, name: kIn.value.trim() } : q5).filter((q5) => q5.name));
+        this.refreshProps();
+      };
+      const vIn = el("input", "lk-pinput");
+      vIn.value = p6.value;
+      vIn.placeholder = "value";
+      vIn.oninput = () => setProps(props().map((q5, j5) => j5 === i6 ? { ...q5, value: vIn.value } : q5));
+      row.appendChild(kIn);
+      row.appendChild(vIn);
+      sCam.appendChild(row);
+    });
+    const addProp = el("button", "lk-padd", "+ Th\xEAm camunda:property");
+    addProp.onclick = () => {
+      setProps([...props(), { name: "property", value: "" }]);
+      this.refreshProps();
+    };
+    sCam.appendChild(addProp);
+    const sRaw = fold2("Metadata JSON", false);
+    const json = el("textarea", "lk-ptextarea");
+    json.rows = 8;
+    json.value = JSON.stringify({ documentation: (_j = d4.bpmnDoc) != null ? _j : "", camunda, bpmnProps: props() }, null, 2);
+    json.onchange = () => {
+      var _a4, _b3;
+      try {
+        const parsed = JSON.parse(json.value);
+        const cam = Object.fromEntries(Object.entries((_a4 = parsed.camunda) != null ? _a4 : {}).filter(([, v6]) => v6));
+        const ps = ((_b3 = parsed.bpmnProps) != null ? _b3 : []).filter((q5) => q5 == null ? void 0 : q5.name);
+        save({ bpmnDoc: parsed.documentation || void 0, camunda: Object.keys(cam).length ? cam : void 0, bpmnProps: ps.length ? ps : void 0 });
+        this.refreshProps();
+      } catch (e5) {
+        json.setCustomValidity("JSON kh\xF4ng h\u1EE3p l\u1EC7");
+        json.reportValidity();
+        json.setCustomValidity("");
       }
-    }
+    };
+    sRaw.appendChild(json);
   }
   // ── ERD column / UML member editors (right panel) ────────────────────────
   buildErdEditor(node3, body) {
-    const sec = el2("div", "lk-psec");
-    sec.appendChild(el2("div", "lk-psec-h", "C\u1ED9t"));
-    const list = el2("div");
+    const sec = el("div", "lk-psec");
+    sec.appendChild(el("div", "lk-psec-h", "C\u1ED9t"));
+    const list = el("div");
     sec.appendChild(list);
     const cols = () => {
       var _a3;
@@ -85783,7 +86993,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       cols().forEach((c6, i6) => list.appendChild(this.erdRow(node3, c6, i6, render)));
     };
     render();
-    const add3 = el2("button", "lk-padd", "+ Th\xEAm c\u1ED9t");
+    const add3 = el("button", "lk-padd", "+ Th\xEAm c\u1ED9t");
     add3.onclick = () => {
       this.setExtra(node3, { cols: [...cols(), { k: "", name: "field", type: "text" }] });
       render();
@@ -85792,32 +87002,32 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     body.appendChild(sec);
   }
   erdRow(node3, col, idx, rerenderList) {
-    const row = el2("div", "lk-erd-row");
+    const row = el("div", "lk-erd-row");
     const cols = () => {
       var _a3;
       return (_a3 = this.nodeExtra(node3).cols) != null ? _a3 : [];
     };
     const update = (patch) => this.setExtra(node3, { cols: cols().map((c6, i6) => i6 === idx ? { ...c6, ...patch } : c6) });
-    const ksel = el2("select", "lk-pinput");
+    const ksel = el("select", "lk-pinput");
     ["", "PK", "FK"].forEach((k5) => {
-      const o5 = el2("option", void 0, k5 || "\u2014");
+      const o5 = el("option", void 0, k5 || "\u2014");
       o5.value = k5;
       ksel.appendChild(o5);
     });
     ksel.value = col.k;
     ksel.style.flex = "0 0 52px";
     ksel.onchange = () => update({ k: ksel.value });
-    const name2 = el2("input", "lk-pinput");
+    const name2 = el("input", "lk-pinput");
     name2.value = col.name;
     name2.placeholder = "t\xEAn";
     name2.style.flex = "1";
     name2.oninput = () => update({ name: name2.value });
-    const type = el2("input", "lk-pinput");
+    const type = el("input", "lk-pinput");
     type.value = col.type;
     type.placeholder = "ki\u1EC3u";
     type.style.flex = "0 0 62px";
     type.oninput = () => update({ type: type.value });
-    const del = el2("button", "lk-cb-btn", "\xD7");
+    const del = el("button", "lk-cb-btn", "\xD7");
     del.title = "X\xF3a c\u1ED9t";
     del.style.flex = "0 0 26px";
     del.onclick = () => {
@@ -85829,9 +87039,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   buildUmlEditor(node3, body) {
     const mk = (title2, key) => {
-      const sec = el2("div", "lk-psec");
-      sec.appendChild(el2("div", "lk-psec-h", title2));
-      const list = el2("div");
+      const sec = el("div", "lk-psec");
+      sec.appendChild(el("div", "lk-psec-h", title2));
+      const list = el("div");
       sec.appendChild(list);
       const arr = () => {
         var _a3;
@@ -85842,7 +87052,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         arr().forEach((line2, i6) => list.appendChild(this.umlRow(node3, key, line2, i6, render)));
       };
       render();
-      const add3 = el2("button", "lk-padd", "+ Th\xEAm");
+      const add3 = el("button", "lk-padd", "+ Th\xEAm");
       add3.onclick = () => {
         this.setExtra(node3, { [key]: [...arr(), key === "methods" ? "+ method(): void" : "+ field: type"] });
         render();
@@ -85854,16 +87064,16 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     mk("Ph\u01B0\u01A1ng th\u1EE9c", "methods");
   }
   umlRow(node3, key, line2, idx, rerenderList) {
-    const row = el2("div", "lk-erd-row");
+    const row = el("div", "lk-erd-row");
     const arr = () => {
       var _a3;
       return (_a3 = this.nodeExtra(node3)[key]) != null ? _a3 : [];
     };
-    const inp = el2("input", "lk-pinput");
+    const inp = el("input", "lk-pinput");
     inp.value = line2;
     inp.style.flex = "1";
     inp.oninput = () => this.setExtra(node3, { [key]: arr().map((l5, i6) => i6 === idx ? inp.value : l5) });
-    const del = el2("button", "lk-cb-btn", "\xD7");
+    const del = el("button", "lk-cb-btn", "\xD7");
     del.title = "X\xF3a";
     del.style.flex = "0 0 26px";
     del.onclick = () => {
@@ -85887,7 +87097,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     });
   }
   renderContextBarNow() {
-    var _a3, _b2;
+    var _a3, _b2, _c;
     const nodes = this.graph.getSelectedCells().filter((c6) => c6.isNode());
     if (nodes.length >= 2) {
       this.renderBulkBar(nodes);
@@ -85905,7 +87115,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     }
     this.contextBar.innerHTML = "";
     const mkBtn = (html3, title2, fn2) => {
-      const b4 = el2("button", "lk-cb-btn", html3);
+      const b4 = el("button", "lk-cb-btn", html3);
       b4.title = title2;
       b4.onclick = fn2;
       return b4;
@@ -85927,7 +87137,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     }));
     const kindNow = this.nodeKind(node3);
     if (kindNow === "bpmn-event-start" || kindNow === "bpmn-event-intermediate" || kindNow === "bpmn-event-end") {
-      this.contextBar.appendChild(el2("div", "lk-cb-sep"));
+      this.contextBar.appendChild(el("div", "lk-cb-sep"));
       const cur = (_a3 = this.nodeExtra(node3).trigger) != null ? _a3 : "none";
       this.contextBar.appendChild(mkBtn(
         `<span style="font-size:11px;font-weight:600">${(_b2 = BPMN_TRIGGER_LABEL[cur]) != null ? _b2 : "Trigger"}</span><span class="lk-cb-caret">\u25BE</span>`,
@@ -85950,15 +87160,28 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
     }
     if (BPMN_ACTIVITY_KINDS.has(kindNow)) {
-      this.contextBar.appendChild(el2("div", "lk-cb-sep"));
+      this.contextBar.appendChild(el("div", "lk-cb-sep"));
       this.contextBar.appendChild(mkBtn(
         `<svg viewBox="0 0 20 20" width="20" height="20" fill="currentColor"><rect x="3" y="8" width="3" height="3"/><rect x="8.5" y="8" width="3" height="3"/><rect x="14" y="8" width="3" height="3"/></svg><span class="lk-cb-caret">\u25BE</span>`,
-        "Activity markers (loop / MI / ad-hoc / compensation)",
+        "Activity markers (loop / MI / compensation)",
         (ev) => this.openBpmnMarkerPopup(node3, ev.currentTarget)
       ));
     }
+    if (this.isSubprocessNode(node3)) {
+      this.contextBar.appendChild(mkBtn(
+        `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="5" width="11" height="11"/><path d="M10 3h7v7M17 3l-7 7"/></svg>`,
+        "M\u1EDF trang ri\xEAng",
+        () => this.enterSubprocess(node3)
+      ));
+      const closed = this.nodeKind(node3) === "bpmn-task" || ((_c = node3.getData()) == null ? void 0 : _c.collapsed) === true;
+      this.contextBar.appendChild(mkBtn(
+        closed ? `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="15" height="11"/><path d="M7 10h6M10 7v6"/></svg>` : `<svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2.5" y="4.5" width="15" height="11"/><path d="M7 10h6"/></svg>`,
+        closed ? "M\u1EDF r\u1ED9ng t\u1EA1i ch\u1ED7 (expanded)" : "Thu g\u1ECDn (collapsed)",
+        () => this.toggleSubprocess(node3)
+      ));
+    }
     if (this.nodeKind(node3) === "bpmn-pool") {
-      this.contextBar.appendChild(el2("div", "lk-cb-sep"));
+      this.contextBar.appendChild(el("div", "lk-cb-sep"));
       const ic = (svg3) => `<svg viewBox="0 0 20 20" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round">${svg3}</svg>`;
       this.contextBar.appendChild(mkBtn(
         ic(`<rect x="3" y="2" width="14" height="6" stroke-dasharray="2 2"/><rect x="3" y="11" width="14" height="7"/>`),
@@ -86003,7 +87226,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   renderBulkBar(nodes) {
     this.contextBar.innerHTML = "";
     const mkBtn = (svg3, title2, fn2, disabled = false) => {
-      const b4 = el2("button", "lk-cb-btn", svg3);
+      const b4 = el("button", "lk-cb-btn", svg3);
       b4.title = title2;
       if (disabled) b4.setAttribute("disabled", "true");
       else b4.onclick = fn2;
@@ -86044,11 +87267,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.contextBar.appendChild(mkBtn(ICN_AL, "C\u0103n tr\xE1i", () => apply4(alignLeft, "bulk-align-left")));
     this.contextBar.appendChild(mkBtn(ICN_AC, "C\u0103n gi\u1EEFa (ngang)", () => apply4(alignCenterH, "bulk-align-center-h")));
     this.contextBar.appendChild(mkBtn(ICN_AR, "C\u0103n ph\u1EA3i", () => apply4(alignRight, "bulk-align-right")));
-    this.contextBar.appendChild(el2("div", "lk-cb-sep"));
+    this.contextBar.appendChild(el("div", "lk-cb-sep"));
     this.contextBar.appendChild(mkBtn(ICN_AT, "C\u0103n tr\xEAn", () => apply4(alignTop, "bulk-align-top")));
     this.contextBar.appendChild(mkBtn(ICN_AM, "C\u0103n gi\u1EEFa (d\u1ECDc)", () => apply4(alignMiddleV, "bulk-align-middle-v")));
     this.contextBar.appendChild(mkBtn(ICN_AB, "C\u0103n d\u01B0\u1EDBi", () => apply4(alignBottom, "bulk-align-bottom")));
-    this.contextBar.appendChild(el2("div", "lk-cb-sep"));
+    this.contextBar.appendChild(el("div", "lk-cb-sep"));
     const can3 = nodes.length >= 3;
     this.contextBar.appendChild(mkBtn(ICN_DH, can3 ? "Ph\xE2n b\u1ED1 \u0111\u1EC1u theo chi\u1EC1u ngang" : "Ph\xE2n b\u1ED1 ngang (c\u1EA7n \u22653 element)", () => apply4(distributeH, "bulk-distribute-h"), !can3));
     this.contextBar.appendChild(mkBtn(ICN_DV, can3 ? "Ph\xE2n b\u1ED1 \u0111\u1EC1u theo chi\u1EC1u d\u1ECDc" : "Ph\xE2n b\u1ED1 d\u1ECDc (c\u1EA7n \u22653 element)", () => apply4(distributeV, "bulk-distribute-v"), !can3));
@@ -86104,10 +87327,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.showPopup(grid, anchor3);
   }
   openColorPopup(node3, key, anchor3) {
-    const wrap = el2("div", "lk-color-popup");
-    const row = el2("div", "lk-color-grid");
+    const wrap = el("div", "lk-color-popup");
+    const row = el("div", "lk-color-grid");
     for (const c6 of FILL_SWATCHES) {
-      const sw = el2("div", "lk-swatch");
+      const sw = el("div", "lk-swatch");
       sw.style.background = c6 === "transparent" ? "repeating-conic-gradient(#ccc 0% 25%, #fff 0% 50%) 50%/8px 8px" : c6;
       sw.onclick = () => {
         this.setStyle(node3, { [key]: c6 === "transparent" ? "transparent" : c6 });
@@ -86116,7 +87339,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       };
       row.appendChild(sw);
     }
-    const plus = el2("div", "lk-swatch lk-swatch-add", "+");
+    const plus = el("div", "lk-swatch lk-swatch-add", "+");
     const cur = (key === "fill" ? this.nodeStyle(node3).fill : this.nodeStyle(node3).stroke) || "#5E8FB9";
     plus.onclick = () => this.openColorWheel(cur, (hx) => {
       this.setStyle(node3, { [key]: hx });
@@ -86126,10 +87349,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     wrap.appendChild(row);
     if (key === "stroke") {
       const st3 = this.nodeStyle(node3);
-      const wRow = el2("div", "lk-line-row");
+      const wRow = el("div", "lk-line-row");
       [1, 2, 3].forEach((bw, i6) => {
         var _a3;
-        const b4 = el2(
+        const b4 = el(
           "div",
           "lk-line-cell" + (((_a3 = st3.borderWidth) != null ? _a3 : 1) === bw ? " on" : ""),
           `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="${bw}"/></svg>`
@@ -86144,10 +87367,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         wRow.appendChild(b4);
       });
       wrap.appendChild(wRow);
-      const dRow = el2("div", "lk-line-row");
+      const dRow = el("div", "lk-line-row");
       [["solid", ""], ["dashed", "5 3"], ["dotted", "1.5 3"]].forEach(([key2, dash]) => {
         var _a3;
-        const b4 = el2(
+        const b4 = el(
           "div",
           "lk-line-cell" + (((_a3 = st3.borderDash) != null ? _a3 : "solid") === key2 ? " on" : ""),
           `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ""}/></svg>`
@@ -86168,14 +87391,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   /** Modern HSV picker: draggable saturation/value square + hue slider + synced hex. */
   openColorWheel(initial, onPick, anchor3) {
     var _a3;
-    const wrap = el2("div", "lk-wheel");
-    const sv = el2("div", "lk-wheel-sv");
-    const svThumb = el2("div", "lk-wheel-sv-thumb");
+    const wrap = el("div", "lk-wheel");
+    const sv = el("div", "lk-wheel-sv");
+    const svThumb = el("div", "lk-wheel-sv-thumb");
     sv.appendChild(svThumb);
-    const hue = el2("div", "lk-wheel-hue");
-    const hueThumb = el2("div", "lk-wheel-hue-thumb");
+    const hue = el("div", "lk-wheel-hue");
+    const hueThumb = el("div", "lk-wheel-hue-thumb");
     hue.appendChild(hueThumb);
-    const hex = el2("input", "lk-hex-input");
+    const hex = el("input", "lk-hex-input");
     hex.type = "text";
     hex.maxLength = 7;
     hex.spellcheck = false;
@@ -86236,16 +87459,16 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   openTextPopup(node3, anchor3) {
     var _a3;
     const st3 = this.nodeStyle(node3);
-    const wrap = el2("div", "lk-line-popup");
-    const szRow = el2("div", "lk-line-row lk-fs-row");
-    const dec = el2("div", "lk-line-cell lk-fs-btn", "\u2212");
-    const szIn = el2("input", "lk-fs-input");
+    const wrap = el("div", "lk-line-popup");
+    const szRow = el("div", "lk-line-row lk-fs-row");
+    const dec = el("div", "lk-line-cell lk-fs-btn", "\u2212");
+    const szIn = el("input", "lk-fs-input");
     szIn.type = "number";
     szIn.min = "6";
     szIn.max = "96";
     szIn.step = "1";
     szIn.value = String((_a3 = st3.fontSize) != null ? _a3 : defaultFontSizeFor(node3));
-    const inc = el2("div", "lk-line-cell lk-fs-btn", "+");
+    const inc = el("div", "lk-line-cell lk-fs-btn", "+");
     const apply4 = (v6) => {
       const clamped = Math.max(6, Math.min(96, Math.round(v6) || defaultFontSizeFor(node3)));
       szIn.value = String(clamped);
@@ -86269,9 +87492,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     szRow.appendChild(szIn);
     szRow.appendChild(inc);
     wrap.appendChild(szRow);
-    const tgRow = el2("div", "lk-line-row");
-    const toggle2 = (label, key, css2) => {
-      const b4 = el2("div", "lk-line-cell" + (st3[key] ? " on" : ""), `<span style="${css2}">${label}</span>`);
+    const tgRow = el("div", "lk-line-row");
+    const toggle2 = (label2, key, css2) => {
+      const b4 = el("div", "lk-line-cell" + (st3[key] ? " on" : ""), `<span style="${css2}">${label2}</span>`);
       b4.onclick = () => {
         this.setStyle(node3, { [key]: !st3[key] });
         this.refreshContextBar();
@@ -86284,7 +87507,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     toggle2("U", "underline", "text-decoration:underline");
     toggle2("S", "strike", "text-decoration:line-through");
     wrap.appendChild(tgRow);
-    const alRow = el2("div", "lk-line-row");
+    const alRow = el("div", "lk-line-row");
     const ALIGN_SVG = {
       left: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg>`,
       center: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="3" y1="6"  x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
@@ -86292,7 +87515,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     };
     [["left", "Tr\xE1i"], ["center", "Gi\u1EEFa"], ["right", "Ph\u1EA3i"]].forEach(([al, title2]) => {
       var _a4;
-      const b4 = el2("div", "lk-line-cell" + (((_a4 = st3.align) != null ? _a4 : "center") === al ? " on" : ""), ALIGN_SVG[al]);
+      const b4 = el("div", "lk-line-cell" + (((_a4 = st3.align) != null ? _a4 : "center") === al ? " on" : ""), ALIGN_SVG[al]);
       b4.title = title2;
       b4.onclick = () => {
         this.setStyle(node3, { align: al });
@@ -86302,10 +87525,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       alRow.appendChild(b4);
     });
     wrap.appendChild(alRow);
-    const cRow = el2("div", "lk-color-grid");
+    const cRow = el("div", "lk-color-grid");
     for (const c6 of FILL_SWATCHES) {
       if (c6 === "transparent") continue;
-      const sw = el2("div", "lk-swatch");
+      const sw = el("div", "lk-swatch");
       sw.style.background = c6;
       sw.onclick = () => {
         this.setStyle(node3, { color: c6 });
@@ -86324,7 +87547,9 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const rootRect = this.root.getBoundingClientRect();
     this.popupLayer.style.display = "block";
     this.popupLayer.style.left = r5.left - rootRect.left + "px";
-    this.popupLayer.style.top = r5.bottom - rootRect.top + 6 + "px";
+    const below = r5.bottom - rootRect.top + 6;
+    const h5 = this.popupLayer.offsetHeight;
+    this.popupLayer.style.top = (below + h5 > rootRect.height ? Math.max(8, r5.top - rootRect.top - 6 - h5) : below) + "px";
   }
   hidePopup() {
     if (this.pendingDrop) {
@@ -86340,7 +87565,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   showLaneMenu(pool, laneId, clientX, clientY) {
     var _a3, _b2;
     const lanes = (_a3 = this.nodeExtra(pool).lanes) != null ? _a3 : [];
-    const top4 = lanes.find((l5) => l5.id === laneId);
+    const lane = findLaneDeep(lanes, laneId);
+    const topLevel = lanes.some((l5) => l5.id === laneId);
     const apply4 = (next) => {
       this.graph.startBatch("lane-edit");
       try {
@@ -86351,14 +87577,17 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
       this.onChange();
     };
-    const items = top4 ? ((_b2 = top4.lanes) == null ? void 0 : _b2.length) ? [["G\u1ED9p c\xE1c lane con", () => apply4(mergeChildLanes(lanes, laneId))]] : [["Chia th\xE0nh 2 lane con", () => apply4(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))]] : [
-      ["Th\xEAm lane con b\xEAn d\u01B0\u1EDBi", () => apply4(addChildLane(lanes, laneId, this.newLaneId()))],
-      ["Xo\xE1 lane con n\xE0y", () => apply4(removeChildLane(lanes, laneId))]
+    const items = [
+      ((_b2 = lane == null ? void 0 : lane.lanes) == null ? void 0 : _b2.length) ? ["G\u1ED9p c\xE1c lane con", () => apply4(mergeChildLanes(lanes, laneId))] : ["Chia th\xE0nh 2 lane con", () => apply4(splitLane(lanes, laneId, [this.newLaneId(), this.newLaneId()]))],
+      ...topLevel ? [] : [
+        ["Th\xEAm lane con b\xEAn d\u01B0\u1EDBi", () => apply4(addChildLane(lanes, laneId, this.newLaneId()))],
+        ["Xo\xE1 lane con n\xE0y", () => apply4(removeChildLane(lanes, laneId))]
+      ]
     ];
-    const menu = el2("div", "lk-context-menu");
-    for (const [label, fn2] of items) {
-      const item = el2("div", "lk-menu-item");
-      item.appendChild(el2("span", void 0, label));
+    const menu = el("div", "lk-context-menu");
+    for (const [label2, fn2] of items) {
+      const item = el("div", "lk-menu-item");
+      item.appendChild(el("span", void 0, label2));
       item.onclick = () => {
         fn2();
         this.hidePopup();
@@ -86373,19 +87602,19 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.popupLayer.style.top = clientY - rootRect.top + "px";
   }
   showContextMenu(clientX, clientY) {
-    const menu = el2("div", "lk-context-menu");
+    const menu = el("div", "lk-context-menu");
     const rootRect = this.root.getBoundingClientRect();
-    const add3 = (label, shortcut, fn2) => {
-      const item = el2("div", "lk-menu-item");
-      item.appendChild(el2("span", void 0, label));
-      if (shortcut) item.appendChild(el2("span", "lk-menu-sc", shortcut));
+    const add3 = (label2, shortcut, fn2) => {
+      const item = el("div", "lk-menu-item");
+      item.appendChild(el("span", void 0, label2));
+      if (shortcut) item.appendChild(el("span", "lk-menu-sc", shortcut));
       item.onclick = () => {
         fn2();
         this.hidePopup();
       };
       menu.appendChild(item);
     };
-    const sep = () => menu.appendChild(el2("div", "lk-menu-sep"));
+    const sep = () => menu.appendChild(el("div", "lk-menu-sep"));
     add3("Nh\xE2n b\u1EA3n", "\u2318D", () => this.duplicateSelection());
     add3("Copy style", "", () => this.copyStyle());
     add3("Paste style", "", () => this.pasteStyle());
@@ -86411,7 +87640,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.graph.getSelectedCells().filter((c6) => c6.isNode()).forEach((n4) => this.setStyle(n4, this.styleClipboard));
   }
   // ── HTML node helpers ────────────────────────────────────────────────────
-  addHtmlNode(kind, x5, y5, w5, h5, label, style2, id, extra, source) {
+  /** A palette item dropped / tapped onto the board, centred on `at`. Every
+   *  placement path goes through here so the item's seed (event trigger…) is kept. */
+  addPaletteNode(item, at3) {
+    return this.addHtmlNode(item.shape, at3.x - item.w / 2, at3.y - item.h / 2, item.w, item.h, item.label, void 0, void 0, item.seed);
+  }
+  addHtmlNode(kind, x5, y5, w5, h5, label2, style2, id, extra, source) {
     var _a3;
     const ex = this.mergeExtra(kind, extra);
     const hasPorts = !NON_CONNECTABLE_PORT_KINDS.has(kind);
@@ -86427,15 +87661,15 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       // MUST survive the load→getModel round-trip — otherwise re-saving the
       // board (e.g. when opened on another device) drops it and the pool/lane
       // identity + export fidelity are lost.
-      data: { kind, label, style: style2 != null ? style2 : {}, ...ex, ...source !== void 0 ? { __source: source } : {} },
-      attrs: { content: { html: nodeHtml(kind, label, style2, ex), class: "hn" } }
+      data: { kind, label: label2, style: style2 != null ? style2 : {}, ...ex, ...source !== void 0 ? { __source: source } : {} },
+      attrs: { content: { html: nodeHtml(kind, label2, style2, ex), class: "hn" } }
     });
     if (this.autoGrowSelector(kind)) {
       this.scheduleMindmapAutoGrow(node3);
     }
-    if (FRAME_KINDS.has(kind)) node3.toBack();
+    if (FRAME_KINDS.has(kind)) node3.setZIndex(frameZ(kind));
     if (kind === "erd-entity" && ((_a3 = ex.cols) == null ? void 0 : _a3.length)) {
-      const colPorts = buildErdColumnPorts(ex.cols, w5);
+      const colPorts = buildErdColumnPorts(ex.cols);
       if (colPorts.length) {
         for (const [groupId, groupSpec] of Object.entries(ERD_COL_PORT_GROUPS)) {
           node3;
@@ -86443,6 +87677,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         }
         node3.addPorts(colPorts);
       }
+      this.autoHeight(node3);
     }
     return node3;
   }
@@ -86525,7 +87760,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   initHtmlOverlay() {
     if (!this.isMobile) return;
     this.root.classList.add("lk-mobile");
-    this.htmlLayer = el2("div", "lk-html-layer");
+    this.htmlLayer = el("div", "lk-html-layer");
     this.graphMount.appendChild(this.htmlLayer);
     const xform = () => this.syncHtmlTransform();
     this.graph.on("scale", xform);
@@ -86560,7 +87795,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (!this.htmlLayer) return;
     let div = this.htmlNodes.get(node3.id);
     if (!div) {
-      div = el2("div", "lk-hnode");
+      div = el("div", "lk-hnode");
       this.htmlLayer.appendChild(div);
       this.htmlNodes.set(node3.id, div);
     }
@@ -86587,7 +87822,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     }
   }
   setStyle(n4, patch) {
-    n4.setData({ ...n4.getData(), style: { ...this.nodeStyle(n4), ...patch } });
+    n4.setData({ ...n4.getData(), style: { ...this.nodeStyle(n4), ...patch } }, { deep: false });
     this.rerender(n4);
     this.onChange();
   }
@@ -86629,8 +87864,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     }
     const allCurrent = node3.getPorts();
     const nonCol = allCurrent.filter((p6) => !(typeof p6.id === "string" && p6.id.startsWith("col:")));
-    const w5 = node3.getSize().width;
-    const newColPorts = newCols.length ? buildErdColumnPorts(newCols, w5) : [];
+    const newColPorts = newCols.length ? buildErdColumnPorts(newCols) : [];
     node3.setPropByPath("ports/items", [...nonCol, ...newColPorts], { rewrite: true });
     if (!oldCols) return;
     const isPureRename = oldCols.length === newCols.length;
@@ -86668,24 +87902,204 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   // ── Shape morph (change kind in place) ───────────────────────────────────
   morphShape(node3, newKind) {
-    node3.setData({ ...node3.getData(), kind: newKind, ...this.mergeExtra(newKind, this.nodeExtra(node3)) });
+    node3.setData({ ...node3.getData(), kind: newKind, ...this.mergeExtra(newKind, this.nodeExtra(node3)) }, { deep: false });
     this.rerender(node3);
     this.autoHeight(node3);
     this.onChange();
   }
+  // ── Sub-process expand / collapse (bpmn-js "change type") ──────────────
+  /** Expanded ⇄ collapsed sub-process, as bpmn-js's replace menu does it: an
+   *  expanded one shows its steps in a frame on the board; a collapsed one is
+   *  task-sized with ⊞ and its steps open on their own page (drill-down).
+   *  Nothing around it moves. A ⊞ task expands as an empty sub-process; one
+   *  collapsed with no steps goes back to that task. */
+  toggleSubprocess(node3) {
+    var _a3;
+    const opening = this.nodeKind(node3) === "bpmn-task" || ((_a3 = node3.getData()) == null ? void 0 : _a3.collapsed) === true;
+    this.graph.startBatch("subprocess-toggle");
+    try {
+      if (opening) this.openSubprocess(node3);
+      else {
+        this.closeSubprocess(node3);
+        this.refreshSubprocessVisibility();
+      }
+    } finally {
+      this.graph.stopBatch("subprocess-toggle");
+    }
+    this.onChange();
+    this.refreshContextBar();
+    this.refreshContextPad();
+  }
+  openSubprocess(node3) {
+    var _a3, _b2, _c, _d, _e3, _f;
+    const d4 = (_a3 = node3.getData()) != null ? _a3 : {};
+    const markers = ((_b2 = d4.markers) != null ? _b2 : []).filter((m7) => m7 !== "subprocess");
+    node3.setData(this.nodeKind(node3) === "bpmn-task" ? { ...d4, kind: "bpmn-subprocess", markers: markers.length ? markers : void 0, collapsed: void 0 } : { ...d4, collapsed: void 0 }, { deep: false });
+    for (const c6 of (_c = node3.getChildren()) != null ? _c : []) {
+      if (!c6.isNode() || this.nodeKind(c6) !== "bpmn-annotation") continue;
+      node3.unembed(c6);
+      (_d = node3.getParent()) == null ? void 0 : _d.embed(c6);
+      c6.setData({ ...c6.getData(), parentId: (_e3 = node3.getParent()) == null ? void 0 : _e3.id }, { deep: false });
+    }
+    this.refreshSubprocessVisibility();
+    const kids = ((_f = node3.getChildren()) != null ? _f : []).filter((c6) => c6.isNode());
+    const lay = openLayout(node3.getBBox(), kids.map((k5) => ({ ...k5.getPosition(), ...k5.getSize() })));
+    node3.setPosition(lay.x, lay.y, { deep: false });
+    kids.forEach((k5) => k5.translate(lay.dx, lay.dy));
+    node3.resize(lay.width, lay.height);
+    node3.setZIndex(frameZ(this.nodeKind(node3), this.ancestorCount(node3)));
+    this.rerender(node3);
+  }
+  closeSubprocess(node3) {
+    var _a3, _b2, _c;
+    const d4 = (_a3 = node3.getData()) != null ? _a3 : {};
+    const empty3 = !((_b2 = node3.getChildren()) != null ? _b2 : []).some((c6) => c6.isNode());
+    const toTask = empty3 && this.nodeKind(node3) === "bpmn-subprocess";
+    node3.setData(toTask ? { ...d4, kind: "bpmn-task", markers: [...(_c = d4.markers) != null ? _c : [], "subprocess"], collapsed: true } : { ...d4, collapsed: true }, { deep: false });
+    const b4 = closedLayout(node3.getBBox());
+    node3.setPosition(b4.x, b4.y, { deep: false });
+    node3.resize(b4.width, b4.height);
+    if (toTask) node3.toFront();
+    this.rerender(node3);
+  }
+  ancestorCount(node3) {
+    let d4 = 0;
+    for (let p6 = node3.getParent(); p6 && d4 < 32; p6 = p6.getParent()) d4++;
+    return d4;
+  }
+  /** Steps inside a closed sub-process are hidden, with every arrow touching them. */
+  refreshSubprocessVisibility() {
+    var _a3;
+    const root2 = this.drillRoot;
+    const shown = (n4) => {
+      var _a4;
+      for (let p6 = n4.getParent(); p6; p6 = p6.getParent()) {
+        if (p6.id === root2) return true;
+        if (((_a4 = p6.getData()) == null ? void 0 : _a4.collapsed) === true) return false;
+      }
+      return !root2;
+    };
+    for (const n4 of this.graph.getNodes()) {
+      const show = shown(n4);
+      if (n4.isVisible() === show) continue;
+      n4.setVisible(show);
+      if (!show) this.graph.unselect(n4);
+    }
+    for (const e5 of this.graph.getEdges()) {
+      const ends = [e5.getSourceCell(), e5.getTargetCell()];
+      const show = ends.every((c6) => !c6 || c6.isVisible());
+      if (e5.isVisible() === show) continue;
+      e5.setVisible(show);
+      if (show) (_a3 = this.graph.findViewByCell(e5)) == null ? void 0 : _a3.update();
+    }
+  }
+  /** A sub-process, or a task with the ⊞ marker (an empty one). */
+  isSubprocessNode(node3) {
+    var _a3, _b2;
+    const k5 = this.nodeKind(node3);
+    return SUBPROCESS_KINDS.has(k5) || k5 === "bpmn-task" && !!((_b2 = (_a3 = node3.getData()) == null ? void 0 : _a3.markers) == null ? void 0 : _b2.includes("subprocess"));
+  }
+  /** "Mở trang riêng": show only this sub-process's steps, with a breadcrumb
+   *  back — the same canvas, every other shape hidden (bpmn-js drill-down). */
+  enterSubprocess(node3) {
+    var _a3, _b2;
+    if (this.nodeKind(node3) === "bpmn-task") {
+      const d4 = (_a3 = node3.getData()) != null ? _a3 : {};
+      const markers = ((_b2 = d4.markers) != null ? _b2 : []).filter((m7) => m7 !== "subprocess");
+      node3.setData({ ...d4, kind: "bpmn-subprocess", markers: markers.length ? markers : void 0, collapsed: true }, { deep: false });
+      this.rerender(node3);
+    }
+    this.setDrillRoot(node3.id);
+  }
+  setDrillRoot(id) {
+    var _a3, _b2, _c, _d;
+    const prev = this.drillRoot ? this.graph.getCellById(this.drillRoot) : null;
+    const back = this.drillViews.findIndex((v6) => v6.id === id);
+    const saved = back >= 0 ? this.drillViews[back] : null;
+    if (saved) this.drillViews = this.drillViews.slice(0, back);
+    else this.drillViews = [...this.drillViews, { id: this.drillRoot, scale: this.graph.scale().sx, ...this.graph.translate() }];
+    this.drillRoot = id;
+    if ((prev == null ? void 0 : prev.isNode()) && prev.id !== id && ((_a3 = prev.getData()) == null ? void 0 : _a3.collapsed) === true && this.nodeKind(prev) === "bpmn-subprocess" && !((_b2 = prev.getChildren()) != null ? _b2 : []).some((c6) => c6.isNode())) {
+      const d4 = (_c = prev.getData()) != null ? _c : {};
+      prev.setData({ ...d4, kind: "bpmn-task", markers: [...(_d = d4.markers) != null ? _d : [], "subprocess"] }, { deep: false });
+      this.rerender(prev);
+    }
+    this.graph.cleanSelection();
+    this.refreshSubprocessVisibility();
+    this.renderCrumbs();
+    const shown = this.graph.getNodes().filter((n4) => n4.isVisible());
+    if (saved) {
+      this.graph.zoomTo(saved.scale);
+      this.graph.translate(saved.tx, saved.ty);
+    } else if (id && shown.length) this.graph.zoomToRect(this.graph.getCellsBBox(shown).inflate(80), { maxScale: 1 });
+    else if (id) this.graph.centerCell(this.graph.getCellById(id));
+    else if (prev) this.graph.centerCell(prev);
+  }
+  /** "Process › Sub A › Sub B" over the canvas while inside a sub-process. */
+  renderCrumbs() {
+    var _a3;
+    if (!this.drillRoot) {
+      (_a3 = this.crumbs) == null ? void 0 : _a3.remove();
+      this.crumbs = null;
+      return;
+    }
+    if (!this.crumbs) {
+      this.crumbs = el("div", "lk-crumbs");
+      this.graphMount.appendChild(this.crumbs);
+    }
+    this.crumbs.innerHTML = "";
+    const path2 = [];
+    for (let c6 = this.graph.getCellById(this.drillRoot); c6 == null ? void 0 : c6.isNode(); c6 = c6.getParent()) {
+      if (this.isSubprocessNode(c6)) path2.unshift(c6);
+    }
+    const seg = (label2, id, current) => {
+      const b4 = el("button", "lk-crumb" + (current ? " is-current" : ""), "");
+      b4.textContent = label2;
+      if (!current) b4.onclick = () => this.setDrillRoot(id);
+      this.crumbs.appendChild(b4);
+    };
+    seg("Process", null, false);
+    path2.forEach((n4, i6) => {
+      this.crumbs.appendChild(el("span", "lk-crumb-sep", "\u203A"));
+      seg(this.nodeLabel(n4) || "Sub-process", n4.id, i6 === path2.length - 1);
+    });
+  }
+  /** A shape dropped inside an open sub-process becomes one of its steps;
+   *  dragged out of it, it stops being one. */
+  adoptIntoSubprocess(node3) {
+    var _a3;
+    const kind = this.nodeKind(node3);
+    if (kind === "bpmn-pool" || kind === "bpmn-lane" || kind === "bpmn-annotation" || !node3.isVisible()) return;
+    const c6 = node3.getBBox().center;
+    const own = /* @__PURE__ */ new Set([node3.id, ...node3.getDescendants().map((x5) => x5.id), (_a3 = node3.getData()) == null ? void 0 : _a3.attachedTo]);
+    const host = this.graph.getNodes().filter((f6) => {
+      var _a4;
+      return !own.has(f6.id) && SUBPROCESS_KINDS.has(this.nodeKind(f6)) && ((_a4 = f6.getData()) == null ? void 0 : _a4.collapsed) !== true && f6.isVisible() && f6.getBBox().containsPoint(c6);
+    }).sort((a5, b4) => a5.getBBox().width * a5.getBBox().height - b4.getBBox().width * b4.getBBox().height)[0];
+    const drill = this.drillRoot && !own.has(this.drillRoot) ? this.graph.getCellById(this.drillRoot) : void 0;
+    const target = host != null ? host : drill;
+    const cur = node3.getParent();
+    const curIsSub = !!(cur == null ? void 0 : cur.isNode()) && SUBPROCESS_KINDS.has(this.nodeKind(cur));
+    if (target ? cur === target : !curIsSub) return;
+    if (cur) cur.unembed(node3);
+    if (target) target.embed(node3);
+    node3.setData({ ...node3.getData(), parentId: target == null ? void 0 : target.id }, { deep: false });
+    if (FRAME_KINDS.has(kind)) node3.setZIndex(frameZ(kind, this.ancestorCount(node3)));
+  }
   // ── BPMN Đợt D — Trigger / Marker / Interrupting pickers ────────────────
   /** Open the trigger picker for an event node (popup grid of 12 OMG triggers). */
   openBpmnTriggerPopup(node3, anchor3) {
-    var _a3;
-    const list = el2("div", "lk-line-list");
-    const cur = (_a3 = this.nodeExtra(node3).trigger) != null ? _a3 : "none";
-    for (const t6 of BPMN_TRIGGERS) {
-      const row = el2("button", "lk-line-row" + (t6 === cur ? " on" : ""), `<span>${BPMN_TRIGGER_LABEL[t6]}</span>`);
+    var _a3, _b2;
+    const list = el("div", "lk-line-list");
+    const ex = this.nodeExtra(node3);
+    const cur = (_a3 = ex.trigger) != null ? _a3 : "none";
+    for (const t6 of triggerChoices(this.nodeKind(node3), ex)) {
+      const row = el("button", "lk-line-row" + (t6 === cur ? " on" : ""), `<span>${(_b2 = BPMN_TRIGGER_LABEL[t6]) != null ? _b2 : t6}</span>`);
       row.onclick = () => {
         var _a4;
         const data2 = (_a4 = node3.getData()) != null ? _a4 : {};
         const nextTrigger = t6 === "none" ? void 0 : t6;
-        node3.setData({ ...data2, trigger: nextTrigger });
+        node3.setData({ ...data2, trigger: nextTrigger }, { deep: false });
         this.rerender(node3);
         this.onChange();
         this.hidePopup();
@@ -86700,7 +88114,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     var _a3;
     const data2 = (_a3 = node3.getData()) != null ? _a3 : {};
     const cur = data2.interrupting !== false;
-    node3.setData({ ...data2, interrupting: !cur ? void 0 : false });
+    node3.setData({ ...data2, interrupting: !cur ? void 0 : false }, { deep: false });
     this.rerender(node3);
     this.onChange();
     this.refreshContextBar();
@@ -86713,7 +88127,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     var _a3;
     const data2 = (_a3 = node3.getData()) != null ? _a3 : {};
     if (data2.attachedTo) {
-      node3.setData({ ...data2, attachedTo: void 0 });
+      node3.setData({ ...data2, attachedTo: void 0 }, { deep: false });
       this.rerender(node3);
       this.onChange();
       this.refreshContextBar();
@@ -86743,22 +88157,23 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (!bestId || !bestParent || bestDist > 80) {
       return;
     }
-    const snapX = bestParent.x + bestParent.w - s5.width / 2;
-    const snapY = bestParent.y + bestParent.h - s5.height / 2;
-    node3.setPosition(snapX, snapY);
-    node3.setData({ ...data2, attachedTo: bestId });
+    const snap2 = snapToHostBorder(this.boxOf(node3), { x: bestParent.x, y: bestParent.y, width: bestParent.w, height: bestParent.h });
+    node3.setPosition(snap2.x, snap2.y);
+    node3.setData({ ...data2, attachedTo: bestId }, { deep: false });
+    this.raiseBoundaryEvents();
     this.rerender(node3);
+    this.refreshBpmnEventLabels();
     this.onChange();
     this.refreshContextBar();
   }
-  /** Open the activity-marker picker (multi-select: loop / MI-par / MI-seq / ad-hoc / compensation). */
+  /** Open the activity-marker picker: one loop type (loop / MI-par / MI-seq) + compensation on its own. */
   openBpmnMarkerPopup(node3, anchor3) {
     var _a3;
-    const list = el2("div", "lk-line-list");
+    const list = el("div", "lk-line-list");
     const cur = new Set((_a3 = this.nodeExtra(node3).markers) != null ? _a3 : []);
-    for (const mk of BPMN_MARKERS) {
+    for (const mk of BPMN_MARKERS.filter((m7) => m7 !== "adhoc")) {
       const on2 = cur.has(mk);
-      const row = el2("button", "lk-line-row" + (on2 ? " on" : ""), `<span>${on2 ? "\u2611" : "\u2610"} ${BPMN_MARKER_LABEL[mk]}</span>`);
+      const row = el("button", "lk-line-row" + (on2 ? " on" : ""), `<span>${on2 ? "\u2611" : "\u2610"} ${BPMN_MARKER_LABEL[mk]}</span>`);
       row.onclick = () => {
         var _a4, _b2;
         const data2 = (_a4 = node3.getData()) != null ? _a4 : {};
@@ -86773,7 +88188,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
           next.delete("mi-seq");
         }
         const arr = Array.from(next);
-        node3.setData({ ...data2, markers: arr.length ? arr : void 0 });
+        node3.setData({ ...data2, markers: arr.length ? arr : void 0 }, { deep: false });
         this.rerender(node3);
         this.onChange();
         this.openBpmnMarkerPopup(node3, anchor3);
@@ -86852,7 +88267,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   dividePool(node3, count) {
     const lanes = Array.from({ length: count }, (_6, i6) => ({ id: this.newLaneId(), label: `Lane ${i6 + 1}` }));
-    node3.setData({ ...node3.getData(), lanes });
+    node3.setData({ ...node3.getData(), lanes }, { deep: false });
     this.rerender(node3);
     this.refreshContextBar();
     this.onChange();
@@ -86868,15 +88283,35 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   inlineEdit(opts) {
     this.commitLabel();
     if (this.isMobile) this.setEditingChrome(true);
-    const ta = el2("textarea", "lk-label-input" + (opts.vertical ? " is-vertical" : ""));
+    const ta = el("textarea", "lk-label-input" + (opts.vertical ? " is-vertical" : ""));
     ta.value = opts.value;
     ta.style.left = opts.left + "px";
     ta.style.top = opts.top + "px";
     ta.style.width = opts.width + "px";
     ta.style.height = opts.height + "px";
     ta.rows = 1;
+    const box = opts.inBox;
+    if (box) {
+      const cs = getComputedStyle(box);
+      const k5 = this.graph.scale().sx;
+      ta.classList.add("is-inbox");
+      ta.style.fontSize = parseFloat(cs.fontSize) * k5 + "px";
+      ta.style.fontWeight = cs.fontWeight;
+      ta.style.color = cs.color;
+      const lh = parseFloat(cs.lineHeight);
+      ta.style.lineHeight = lh ? String(lh / parseFloat(cs.fontSize)) : "normal";
+      ta.style.paddingLeft = ta.style.paddingRight = parseFloat(cs.paddingLeft) * k5 + "px";
+      box.classList.add("is-label-editing");
+    }
     const autoGrow = () => {
-      if (opts.vertical) {
+      if (box) {
+        ta.style.paddingTop = ta.style.paddingBottom = "0";
+        ta.style.height = "auto";
+        const content5 = ta.scrollHeight;
+        const h5 = Math.max(opts.height, content5);
+        ta.style.paddingTop = ta.style.paddingBottom = (h5 - content5) / 2 + "px";
+        ta.style.height = h5 + "px";
+      } else if (opts.vertical) {
         ta.style.width = "auto";
         const w5 = Math.max(opts.width, ta.scrollWidth + 4);
         ta.style.width = w5 + "px";
@@ -86887,9 +88322,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       }
     };
     let done = false;
+    let dropCaret = () => {
+    };
     const finish = (save) => {
       if (done) return;
       done = true;
+      dropCaret();
       if (save) {
         const v6 = ta.value.trim();
         if (v6 || opts.allowEmpty) opts.onCommit(v6);
@@ -86898,6 +88336,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.graph.off("translate", abort);
       ta.remove();
       this.labelInput = null;
+      box == null ? void 0 : box.classList.remove("is-label-editing");
       if (this.isMobile) this.setEditingChrome(false);
     };
     const abort = () => finish(true);
@@ -86915,6 +88354,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     ta.addEventListener("blur", () => finish(true));
     this.root.appendChild(ta);
     this.labelInput = ta;
+    if (!opts.vertical) dropCaret = attachThickCaret(ta);
     this.graph.on("scale", abort);
     this.graph.on("translate", abort);
     setTimeout(() => {
@@ -86927,10 +88367,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     var _a3;
     const ex = this.nodeExtra(node3);
     const lanes = (_a3 = ex.lanes) != null ? _a3 : [];
-    const current = lanes.flatMap((l5) => {
-      var _a4;
-      return [l5, ...(_a4 = l5.lanes) != null ? _a4 : []];
-    }).find((l5) => l5.id === laneId);
+    const current = findLaneDeep(lanes, laneId);
     if (!current) return;
     const relabel = (list, v6) => list.map((l5) => l5.id === laneId ? { ...l5, label: v6 } : l5.lanes ? { ...l5, lanes: relabel(l5.lanes, v6) } : l5);
     const r5 = anchor3.getBoundingClientRect();
@@ -86960,7 +88397,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       value: this.nodeLabel(node3),
       vertical: true,
       onCommit: (v6) => {
-        node3.setData({ ...node3.getData(), label: v6 });
+        node3.setData({ ...node3.getData(), label: v6 }, { deep: false });
         this.rerender(node3);
         this.onChange();
       }
@@ -86979,12 +88416,17 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   // ── Inline label editing ─────────────────────────────────────────────────
   editLabel(node3) {
+    var _a3;
+    if (this.editExternalLabel(node3)) return;
     const bbox2 = node3.getBBox();
     const s5 = this.graph.scale().sx;
     const t6 = this.graph.translate();
     const kind = this.nodeKind(node3);
     const isMindmap = kind === "mm-root" || kind === "mm-branch" || kind === "mm-leaf";
+    const view = this.graph.findViewByCell(node3);
+    const task = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector(".bp-task");
     this.inlineEdit({
+      inBox: task != null ? task : void 0,
       left: bbox2.x * s5 + t6.tx,
       top: bbox2.y * s5 + t6.ty,
       width: bbox2.width * s5,
@@ -86993,7 +88435,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       multiLine: true,
       // allow Shift+Enter newline on all nodes
       onCommit: (v6) => {
-        node3.setData({ ...node3.getData(), label: v6 });
+        node3.setData({ ...node3.getData(), label: v6 }, { deep: false });
         this.rerender(node3);
         if (isMindmap) this.autoGrowMindmapNode(node3);
         this.onChange();
@@ -87062,7 +88504,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   setEdgeStyle(edge, patch) {
     const next = { ...this.edgeStyle(edge), ...patch };
-    edge.setData({ ...edge.getData(), style: next });
+    edge.setData({ ...edge.getData(), style: next }, { deep: false });
     this.applyEdgeStyle(edge);
     this.onChange();
   }
@@ -87134,13 +88576,16 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       "diamond-o": `<path d="M11 8 17 3 23 8 17 13 Z" fill="var(--pg-surface)" stroke="currentColor" stroke-width="1.4"/>`,
       circle: `<circle cx="19" cy="8" r="3.6" fill="var(--pg-surface)" stroke="currentColor" stroke-width="1.4"/>`,
       "circle-f": `<circle cx="19" cy="8" r="3.8" fill="currentColor"/>`,
-      crow: `<path d="M24 8 13 2 M24 8 13 8 M24 8 13 14" fill="none" stroke="currentColor" stroke-width="1.4"/>`,
+      // ERD: the entity is on the right (x=25) — the crow's foot spreads onto it.
+      crow: `<path d="M14 8 25 2 M14 8 25 8 M14 8 25 14" fill="none" stroke="currentColor" stroke-width="1.4"/>`,
       bar: `<path d="M19 2 19 14" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
-      "crow-bar": `<path d="M24 8 14 2 M24 8 14 8 M24 8 14 14 M12 2 12 14" fill="none" stroke="currentColor" stroke-width="1.4"/>`,
-      "bar-bar": `<path d="M16 2 16 14 M20 2 20 14" fill="none" stroke="currentColor" stroke-width="1.5"/>`
+      "crow-bar": `<path d="M16 8 25 2 M16 8 25 8 M16 8 25 14 M12 2 12 14" fill="none" stroke="currentColor" stroke-width="1.4"/>`,
+      "bar-bar": `<path d="M16 2 16 14 M20 2 20 14" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
+      "circle-bar": `<circle cx="10" cy="8" r="3.4" fill="var(--pg-surface)" stroke="currentColor" stroke-width="1.4"/><path d="M19 2 19 14" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
+      "crow-circle": `<circle cx="9" cy="8" r="3.4" fill="var(--pg-surface)" stroke="currentColor" stroke-width="1.4"/><path d="M16 8 25 2 M16 8 25 8 M16 8 25 14" fill="none" stroke="currentColor" stroke-width="1.4"/>`
     };
-    const crowKinds = /* @__PURE__ */ new Set(["crow", "bar", "crow-bar", "bar-bar"]);
-    const lineEnd = kind === "none" ? 25 : crowKinds.has(kind) ? 12 : 13;
+    const erdKinds = /* @__PURE__ */ new Set(["crow", "bar", "crow-bar", "bar-bar", "circle-bar", "crow-circle"]);
+    const lineEnd = kind === "none" || erdKinds.has(kind) ? 25 : 13;
     const inner = `<line x1="1" y1="8" x2="${lineEnd}" y2="8" stroke="currentColor" stroke-width="1.6"/>${(_a3 = head[kind]) != null ? _a3 : ""}`;
     const body = side === "start" ? `<g transform="translate(26,0) scale(-1,1)">${inner}</g>` : inner;
     return `<svg viewBox="0 0 26 16" width="26" height="16">${body}</svg>`;
@@ -87166,7 +88611,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const st3 = this.edgeStyle(edge);
     const caret = `<span class="lk-cb-caret">\u25BE</span>`;
     const mkBtn = (html3, title2, fn2) => {
-      const b4 = el2("button", "lk-cb-btn", html3);
+      const b4 = el("button", "lk-cb-btn", html3);
       b4.title = title2;
       b4.onclick = fn2;
       return b4;
@@ -87189,26 +88634,26 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       "K\xFD hi\u1EC7u \u0111\u1EA7u ph\u1EA3i",
       (ev) => this.openEdgeMarkerPopup(edge, "end", ev.currentTarget)
     ));
-    bar.appendChild(el2("div", "lk-cb-sep"));
+    bar.appendChild(el("div", "lk-cb-sep"));
     bar.appendChild(mkBtn(
       `<span class="lk-color-dot" style="background:${st3.stroke || EDGE_STROKE2}"></span>`,
       "M\xE0u m\u0169i t\xEAn",
       (ev) => this.openEdgeColorPopup(edge, ev.currentTarget)
     ));
-    bar.appendChild(el2("div", "lk-cb-sep"));
+    bar.appendChild(el("div", "lk-cb-sep"));
     const ft3 = (_c = st3.flowType) != null ? _c : "sequence";
     bar.appendChild(mkBtn(
       `<span style="font-size:11px;font-weight:600">${(_d = FLOW_TYPE_LABEL[ft3]) != null ? _d : "Sequence"}</span>` + caret,
       "Lo\u1EA1i flow (BPMN)",
       (ev) => this.openEdgeFlowTypePopup(edge, ev.currentTarget)
     ));
-    bar.appendChild(el2("div", "lk-cb-sep"));
+    bar.appendChild(el("div", "lk-cb-sep"));
     bar.appendChild(mkBtn(
       `<svg viewBox="0 0 24 14" width="24" height="14"><path d="M2 11 H10 V3 H22" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>` + caret,
       "Ki\u1EC3u \u0111\u01B0\u1EDDng",
       (ev) => this.openEdgeLinePopup(edge, ev.currentTarget)
     ));
-    bar.appendChild(el2("div", "lk-cb-sep"));
+    bar.appendChild(el("div", "lk-cb-sep"));
     bar.appendChild(mkBtn(
       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h10M10 7v11"/><path d="M17 12h5M19.5 9.5v5"/></svg>`,
       "Th\xEAm / s\u1EEDa ch\u1EEF",
@@ -87221,7 +88666,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         this.toggleEdgeTextAngle(edge);
       }
     ));
-    bar.appendChild(el2("div", "lk-cb-sep"));
+    bar.appendChild(el("div", "lk-cb-sep"));
     const TRASH_ICON = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6m5 4v6m4-6v6"/></svg>`;
     bar.appendChild(mkBtn(TRASH_ICON, "X\xF3a", () => {
       this.graph.removeCells([edge]);
@@ -87265,10 +88710,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   }
   openEdgeMarkerPopup(edge, which, anchor3) {
     var _a3, _b2, _c;
-    const grid = el2("div", "lk-marker-grid");
+    const grid = el("div", "lk-marker-grid");
     const cur = which === "start" ? (_a3 = this.edgeStyle(edge).start) != null ? _a3 : "none" : (_b2 = this.edgeStyle(edge).end) != null ? _b2 : "arrow";
     for (const kind of EDGE_MARKER_KINDS) {
-      const cell = el2("div", "lk-marker-cell" + (kind === cur ? " on" : ""), this.markerSvg(kind, which));
+      const cell = el("div", "lk-marker-cell" + (kind === cur ? " on" : ""), this.markerSvg(kind, which));
       cell.title = (_c = EDGE_MARKER_LABEL[kind]) != null ? _c : kind;
       cell.onclick = () => {
         this.setEdgeStyle(edge, which === "start" ? { start: kind } : { end: kind });
@@ -87285,7 +88730,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    *  pool moves. */
   endOnPool(edge, other, pt2, end = "target") {
     var _a3;
-    const otherPt = (_a3 = end === "target" ? edge.getSourcePoint() : edge.getTargetPoint()) != null ? _a3 : other.getBBox().center;
+    const otherPt = (_a3 = this.dockPoint(edge, end === "target" ? "source" : "target")) != null ? _a3 : other.getBBox().center;
     const hit = this.poolAt(pt2, otherPt, other.id);
     if (!hit) return false;
     const terminal = { cell: hit.pool.id, anchor: { name: "topLeft", args: hit.anchor }, connectionPoint: { name: "anchor" } };
@@ -87295,6 +88740,31 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.applyFlowType(edge, "message");
     this.onChange();
     return true;
+  }
+  /** Where `end` of the arrow is drawn. (Edge.getSourcePoint() of a cell end
+   *  is the cell's centre, not the port / anchor the arrow leaves from.) */
+  dockPoint(edge, end) {
+    const view = this.graph.findViewByCell(edge);
+    const p6 = end === "source" ? view == null ? void 0 : view.sourcePoint : view == null ? void 0 : view.targetPoint;
+    return p6 ? { x: p6.x, y: p6.y } : null;
+  }
+  /** bpmn-js keeps a message flow to a pool vertical: when the arrow's other end
+   *  moves to another port, slide the pool end along its border to stay above / below it. */
+  realignPoolEnd(edge, poolEnd) {
+    var _a3;
+    const term = poolEnd === "source" ? edge.getSource() : edge.getTarget();
+    const pool = term.cell ? this.graph.getCellById(term.cell) : null;
+    if (!(pool == null ? void 0 : pool.isNode()) || this.nodeKind(pool) !== "bpmn-pool" || ((_a3 = term.anchor) == null ? void 0 : _a3.name) !== "topLeft" || !term.anchor.args) return;
+    const view = this.graph.findViewByCell(edge);
+    view == null ? void 0 : view.confirmUpdate(view.getFlag(["source", "target", "update"]), {});
+    const other = this.dockPoint(edge, poolEnd === "source" ? "target" : "source");
+    if (!other) return;
+    const b4 = pool.getBBox();
+    const dx = Math.min(Math.max(other.x - b4.x, 0), b4.width);
+    if (Math.abs(dx - term.anchor.args.dx) < 0.5) return;
+    const next = { ...term, anchor: { ...term.anchor, args: { ...term.anchor.args, dx } } };
+    if (poolEnd === "source") edge.setSource(next);
+    else edge.setTarget(next);
   }
   /** The (smallest) pool that takes an arrow end dropped at `pt`. */
   poolAt(pt2, otherPt, excludeId) {
@@ -87323,9 +88793,28 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       this.graph.getNodes().filter((n4) => n4.id !== tgt.id && !this.isPortDisabledNode(n4.id)).map((n4) => ({ n: n4, bbox: n4.getBBox() })),
       pt2
     )) == null ? void 0 : _a3.n;
-    if (best) edge.setSource(portEndpoint(best.id, nearestFixedPort(best, pt2)));
+    if (best) edge.setSource(portEndpoint(best.id, this.dropPort(best, pt2)));
     else if (before2) edge.setSource(before2);
     this.onChange();
+  }
+  /** Port an arrow end dropped on `node` at `pt` docks to. An ERD table:
+   *  on a row → that field (nearer side); on the header / below the rows →
+   *  the table itself (top / bottom centre). Other shapes: nearest fixed port. */
+  dropPort(node3, pt2) {
+    if (this.nodeKind(node3) !== "erd-entity") return nearestFixedPort(node3, pt2);
+    const b4 = node3.getBBox();
+    const side = pt2.x < b4.x + b4.width / 2 ? "left" : "right";
+    const rows = node3.getPorts().filter((p6) => {
+      var _a3;
+      return ((_a3 = p6.id) == null ? void 0 : _a3.startsWith("col:")) && p6.id.endsWith(`-${side}`);
+    });
+    const ROW_HALF = 27 / 2;
+    const row = rows.find((p6) => {
+      var _a3;
+      return Math.abs(b4.y + Number((_a3 = p6.args) == null ? void 0 : _a3.y) - pt2.y) <= ROW_HALF;
+    });
+    if (row == null ? void 0 : row.id) return row.id;
+    return pt2.y < b4.y + b4.height / 2 ? "top" : "bottom";
   }
   /** Set an edge's BPMN flow type: visual preset + semantic kind / attrs. */
   applyFlowType(edge, key) {
@@ -87337,15 +88826,15 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (key === "message" || key === "association") delete nextAttrs.condition;
     if (key === "default") nextAttrs.isDefault = true;
     const nextKind = key === "message" ? "message" : key === "association" ? "association" : void 0;
-    edge.setData({ ...data2, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : void 0 });
+    edge.setData({ ...data2, bpmnKind: nextKind, bpmnAttrs: Object.keys(nextAttrs).length ? nextAttrs : void 0 }, { deep: false });
   }
   /** BPMN flow-type popup — applies a preset (Sequence/Default/Message/Conditional/Association). Đợt C. */
   openEdgeFlowTypePopup(edge, anchor3) {
     var _a3;
-    const list = el2("div", "lk-line-list");
+    const list = el("div", "lk-line-list");
     const cur = (_a3 = this.edgeStyle(edge).flowType) != null ? _a3 : "sequence";
     for (const key of ["sequence", "default", "message", "conditional", "association"]) {
-      const row = el2("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
+      const row = el("button", "lk-line-row" + (key === cur ? " on" : ""), `<span>${FLOW_TYPE_LABEL[key]}</span>`);
       row.onclick = () => {
         this.applyFlowType(edge, key);
         this.hidePopup();
@@ -87359,8 +88848,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   openEdgeLinePopup(edge, anchor3) {
     var _a3, _b2;
     const st3 = this.edgeStyle(edge);
-    const wrap = el2("div", "lk-line-popup");
-    const shapeRow = el2("div", "lk-line-row");
+    const wrap = el("div", "lk-line-popup");
+    const shapeRow = el("div", "lk-line-row");
     const shapeOptions = [
       ["orthogonal", "Vu\xF4ng bo", `<path d="M2 12 H8 V2 H16" fill="none" stroke="currentColor" stroke-width="1.8"/>`],
       ["elbow", "G\u1EA5p kh\xFAc", `<path d="M2 12 H9 V2 H16" fill="none" stroke="currentColor" stroke-width="1.8"/>`],
@@ -87369,7 +88858,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     ];
     for (const [key, title2, path2] of shapeOptions) {
       const active = ((_a3 = st3.shape) != null ? _a3 : "orthogonal") === key;
-      const b4 = el2(
+      const b4 = el(
         "div",
         "lk-line-cell" + (active ? " on" : ""),
         `<svg viewBox="0 0 18 14" width="22" height="16">${path2}</svg>`
@@ -87383,10 +88872,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       shapeRow.appendChild(b4);
     }
     wrap.appendChild(shapeRow);
-    const dashRow = el2("div", "lk-line-row");
+    const dashRow = el("div", "lk-line-row");
     [["solid", ""], ["dashed", "5 3"], ["dotted", "1.5 3"]].forEach(([key, dash]) => {
       var _a4;
-      const b4 = el2(
+      const b4 = el(
         "div",
         "lk-line-cell" + (((_a4 = st3.dash) != null ? _a4 : "solid") === key ? " on" : ""),
         `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="2" ${dash ? `stroke-dasharray="${dash}"` : ""}/></svg>`
@@ -87398,10 +88887,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       dashRow.appendChild(b4);
     });
     wrap.appendChild(dashRow);
-    const wRow = el2("div", "lk-line-row");
+    const wRow = el("div", "lk-line-row");
     EDGE_WIDTHS.forEach((w5, i6) => {
       var _a4;
-      const b4 = el2(
+      const b4 = el(
         "div",
         "lk-line-cell" + (Math.abs(((_a4 = st3.width) != null ? _a4 : 1.8) - w5) < 0.2 ? " on" : ""),
         `<svg viewBox="0 0 26 8" width="30" height="10"><line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="${w5}"/></svg>`
@@ -87414,14 +88903,14 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       wRow.appendChild(b4);
     });
     wrap.appendChild(wRow);
-    const jRow = el2("div", "lk-line-row");
+    const jRow = el("div", "lk-line-row");
     const jumps = [
       ["none", "C\u1EAFt th\u1EB3ng", `<line x1="1" y1="4" x2="25" y2="4" stroke="currentColor" stroke-width="1.8"/>`],
       ["arc", "V\xF2ng cung", `<path d="M1 4 H9 A3 3 0 0 1 17 4 H25" fill="none" stroke="currentColor" stroke-width="1.8"/>`],
       ["gap", "H\u1EDF", `<path d="M1 4 H9 M17 4 H25" fill="none" stroke="currentColor" stroke-width="1.8"/>`]
     ];
     for (const [key, title2, svg3] of jumps) {
-      const b4 = el2(
+      const b4 = el(
         "div",
         "lk-line-cell" + (((_b2 = st3.jump) != null ? _b2 : "none") === key ? " on" : ""),
         `<svg viewBox="0 0 26 8" width="30" height="10">${svg3}</svg>`
@@ -87438,11 +88927,11 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.showPopup(wrap, anchor3);
   }
   openEdgeColorPopup(edge, anchor3) {
-    const wrap = el2("div", "lk-color-popup");
-    const row = el2("div", "lk-color-grid");
+    const wrap = el("div", "lk-color-popup");
+    const row = el("div", "lk-color-grid");
     for (const c6 of FILL_SWATCHES) {
       if (c6 === "transparent") continue;
-      const sw = el2("div", "lk-swatch");
+      const sw = el("div", "lk-swatch");
       sw.style.background = c6;
       sw.onclick = () => {
         this.setEdgeStyle(edge, { stroke: c6 });
@@ -87452,7 +88941,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       };
       row.appendChild(sw);
     }
-    const plus = el2("div", "lk-swatch lk-swatch-add", "+");
+    const plus = el("div", "lk-swatch lk-swatch-add", "+");
     plus.onclick = () => this.openColorWheel(
       this.edgeStyle(edge).stroke || EDGE_STROKE2,
       (hx) => {
@@ -87484,8 +88973,16 @@ var _OmniboardCanvas = class _OmniboardCanvas {
   materializeEditableBends(edge) {
     const view = this.graph.findViewByCell(edge);
     const route = view == null ? void 0 : view.routePoints;
-    if (Array.isArray(route) && route.length > 2) {
-      return route.slice(1, -1).map((p6) => ({ x: p6.x, y: p6.y }));
+    if (Array.isArray(route) && route.length > 0) {
+      const pts = route.map((p6) => ({ x: p6.x, y: p6.y }));
+      const snap2 = (p6, end) => {
+        if (!end) return;
+        if (Math.abs(p6.y - end.y) < 1) p6.y = end.y;
+        else if (Math.abs(p6.x - end.x) < 1) p6.x = end.x;
+      };
+      snap2(pts[0], view.sourcePoint);
+      snap2(pts[pts.length - 1], view.targetPoint);
+      return pts;
     }
     const source = edge.getSourcePoint();
     const target = edge.getTargetPoint();
@@ -87520,7 +89017,74 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const y5 = (_d2 = (_c2 = (_a4 = p6.getData()) == null ? void 0 : _a4.y) != null ? _c2 : (_b3 = p6.getSourcePoint()) == null ? void 0 : _b3.y) != null ? _d2 : baseY;
       return Math.max(acc, y5);
     }, baseY - 30);
-    edge.setData({ ...(_f = edge.getData()) != null ? _f : {}, y: lowest + 30 });
+    edge.setData({ ...(_f = edge.getData()) != null ? _f : {}, y: lowest + 30 }, { deep: false });
+  }
+  boxOf(n4) {
+    return { ...n4.getPosition(), ...n4.getSize() };
+  }
+  /** Re-seat every boundary event of `host` after it went from `before` to
+   *  its current box. Placement is absolute (same edge, same fraction along
+   *  it), so applying it twice is harmless. Events the X6 Selection is
+   *  already translating together with the host are left to it. */
+  followBoundaryEvents(host, before2, options) {
+    var _a3;
+    const groupMove = !!((options == null ? void 0 : options["ui"]) || (options == null ? void 0 : options["selection"]));
+    for (const child of this.graph.getNodes()) {
+      if (child.id === host.id || ((_a3 = child.getData()) == null ? void 0 : _a3.attachedTo) !== host.id) continue;
+      if (groupMove && this.graph.isSelected(child)) continue;
+      const p6 = followHost(this.boxOf(child), before2, this.boxOf(host));
+      child.setPosition(p6.x, p6.y, { "__boundary_follow": true });
+    }
+  }
+  /** While the user drags a boundary event, keep it on its host's border —
+   *  also after Snapline nudges it (`snapped`). Moves the X6 Selection makes
+   *  alongside the host (`selection`) are left alone. */
+  snapBoundaryEvent(node3, options) {
+    var _a3;
+    if (options == null ? void 0 : options["selection"]) return;
+    const direct = (options == null ? void 0 : options["ui"]) && (options == null ? void 0 : options["translateBy"]) === node3.id;
+    if (!direct && !(options == null ? void 0 : options["snapped"])) return;
+    const hostId = (_a3 = node3.getData()) == null ? void 0 : _a3.attachedTo;
+    const host = hostId ? this.graph.getCellById(hostId) : null;
+    if (!host || !host.isNode()) return;
+    if (distanceToBorder(this.boxOf(node3), this.boxOf(host)) > ATTACH_DISTANCE) return;
+    const p6 = snapToHostBorder(this.boxOf(node3), this.boxOf(host));
+    const cur = node3.getPosition();
+    if (p6.x !== cur.x || p6.y !== cur.y) node3.setPosition(p6.x, p6.y, { "__boundary_follow": true });
+  }
+  /** A boundary event was dropped: onto (near) an activity's border → attach
+   *  to that activity, like bpmn-js; clear of every activity → detach.
+   *  Free events are never auto-attached (use the attach toggle). */
+  settleBoundaryEvent(node3) {
+    var _a3;
+    const cur = (_a3 = node3.getData()) == null ? void 0 : _a3.attachedTo;
+    if (!cur) return;
+    const hosts = this.graph.getNodes().filter((n4) => n4.id !== node3.id && BPMN_ACTIVITY_KINDS.has(this.nodeKind(n4))).map((n4) => ({ id: n4.id, box: this.boxOf(n4) }));
+    const next = pickHost(this.boxOf(node3), hosts);
+    if (next !== cur) node3.setData({ ...node3.getData(), attachedTo: next != null ? next : void 0 }, { deep: false });
+    const host = next ? this.graph.getCellById(next) : null;
+    if (host && host.isNode()) {
+      const p6 = snapToHostBorder(this.boxOf(node3), this.boxOf(host));
+      node3.setPosition(p6.x, p6.y, { "__boundary_follow": true });
+      this.raiseBoundaryEvents();
+    }
+    if (next !== cur) {
+      this.rerender(node3);
+      this.refreshContextBar();
+      this.onChange();
+    }
+    this.refreshBpmnEventLabels();
+  }
+  /** Boundary events must paint above their host, or the host hides them. */
+  raiseBoundaryEvents() {
+    var _a3, _b2, _c;
+    for (const ev of this.graph.getNodes()) {
+      const hostId = (_a3 = ev.getData()) == null ? void 0 : _a3.attachedTo;
+      const host = hostId ? this.graph.getCellById(hostId) : null;
+      if (!host || !host.isNode()) continue;
+      const hz = (_b2 = host.getZIndex()) != null ? _b2 : 0;
+      if (((_c = ev.getZIndex()) != null ? _c : 0) <= hz) ev.setZIndex(hz + 1);
+    }
   }
   /**
    * Auto-flip BPMN event labels to the opposite side of any connected edge
@@ -87528,13 +89092,15 @@ var _OmniboardCanvas = class _OmniboardCanvas {
    * up; if above, label stays at the default bottom.
    */
   refreshBpmnEventLabels() {
-    var _a3, _b2;
+    var _a3, _b2, _c;
     for (const n4 of this.graph.getNodes()) {
       const k5 = this.nodeKind(n4);
-      const isEvent2 = BPMN_EVENT_KINDS.has(k5);
+      const isEvent3 = BPMN_EVENT_KINDS.has(k5);
       const isGw = k5.startsWith("bpmn-gateway");
       const isData2 = k5.startsWith("bpmn-data-");
-      if (!isEvent2 && !isGw && !isData2) continue;
+      if (!isEvent3 && !isGw && !isData2) continue;
+      const hostId = isEvent3 ? (_a3 = n4.getData()) == null ? void 0 : _a3.attachedTo : void 0;
+      const host = hostId ? this.graph.getCellById(hostId) : null;
       const cy = n4.getPosition().y + n4.getSize().height / 2;
       let bottom4 = false, top4 = false;
       for (const e5 of this.graph.getEdges()) {
@@ -87549,10 +89115,18 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         if (oc > cy + 4) bottom4 = true;
         else if (oc < cy - 4) top4 = true;
       }
-      const flipUp = bottom4 && !top4;
+      const side = eventLabelSide({
+        boundary: host && host.isNode() ? hostSide(this.boxOf(n4), this.boxOf(host)) : void 0,
+        edgeBelow: bottom4,
+        edgeAbove: top4
+      });
       const view = this.graph.findViewByCell(n4);
-      const el4 = (_b2 = (_a3 = view == null ? void 0 : view.container) == null ? void 0 : _a3.querySelector) == null ? void 0 : _b2.call(_a3, isGw ? ".bp-gw" : isData2 ? ".bp-dataobj, .bp-datastore" : ".bp-event");
-      if (el4) el4.classList.toggle("label-top", flipUp);
+      const el3 = (_c = (_b2 = view == null ? void 0 : view.container) == null ? void 0 : _b2.querySelector) == null ? void 0 : _c.call(_b2, isGw ? ".bp-gw" : isData2 ? ".bp-dataobj, .bp-datastore" : ".bp-event");
+      if (el3) {
+        el3.classList.toggle("label-top", side === "top");
+        el3.classList.toggle("label-left", side === "left");
+        el3.classList.toggle("label-right", side === "right");
+      }
     }
   }
   isMindmapNode(cellId) {
@@ -87682,14 +89256,22 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     (_c = queue == null ? void 0 : queue.flushJobsSync) == null ? void 0 : _c.call(queue);
   }
   loadModel(model, opts) {
-    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l;
-    model = this.dedupeLaneIdsAcrossPools(model);
+    var _a3, _b2, _c, _d, _e3, _f, _g, _h, _i, _j, _k, _l, _m;
+    this.applyAppState((_a3 = model.appState) != null ? _a3 : {});
+    this.drillRoot = null;
+    this.drillViews = [];
+    this.renderCrumbs();
+    model = fixInnerMessageFlows(this.dedupeLaneIdsAcrossPools(model));
     this.flushPendingRender();
     this.graph.clearCells();
     this.graph.startBatch("load");
     for (const n4 of model.nodes) {
-      const a5 = (_a3 = n4.attrs) != null ? _a3 : {};
-      const style2 = (_b2 = a5.style) != null ? _b2 : {};
+      const a5 = (_b2 = n4.attrs) != null ? _b2 : {};
+      const style2 = {
+        ...a5.bpmnFill ? { fill: a5.bpmnFill } : {},
+        ...a5.bpmnStroke ? { stroke: a5.bpmnStroke } : {},
+        ...(_c = a5.style) != null ? _c : {}
+      };
       const extra = {
         cols: a5.cols,
         fields: a5.fields,
@@ -87712,11 +89294,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       const node3 = this.addHtmlNode(migrated.kind, n4.x, n4.y, n4.width, n4.height, n4.label, style2, n4.id, migrated.extra, a5.__source);
       const phaseD = {};
       if (a5.bpmnDoc) phaseD.bpmnDoc = a5.bpmnDoc;
-      if (a5.bpmnFill) phaseD.bpmnFill = a5.bpmnFill;
-      if (a5.bpmnStroke) phaseD.bpmnStroke = a5.bpmnStroke;
+      if (a5.calledElement) phaseD.calledElement = a5.calledElement;
       if (a5.camunda) phaseD.camunda = a5.camunda;
       if (a5.bpmnProps) phaseD.bpmnProps = a5.bpmnProps;
-      if (Object.keys(phaseD).length) node3.setData({ ...node3.getData(), ...phaseD });
+      if (Object.keys(phaseD).length) node3.setData({ ...node3.getData(), ...phaseD }, { deep: false });
     }
     const nodeCenterMap = /* @__PURE__ */ new Map();
     for (const n4 of model.nodes) {
@@ -87736,10 +89317,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (e5.style) data2.style = e5.style;
       if (e5.kind && e5.kind !== "sequence") data2.bpmnKind = e5.kind;
       if (e5.attrs && Object.keys(e5.attrs).length) data2.bpmnAttrs = { ...e5.attrs };
-      if (!((_c = data2.style) == null ? void 0 : _c.flowType)) {
-        const ft3 = e5.kind === "message" ? "message" : e5.kind === "association" ? "association" : ((_d = e5.attrs) == null ? void 0 : _d.isDefault) ? "default" : ((_e3 = e5.attrs) == null ? void 0 : _e3.condition) ? "conditional" : void 0;
+      if (!((_d = data2.style) == null ? void 0 : _d.flowType)) {
+        const ft3 = e5.kind === "message" ? "message" : e5.kind === "association" ? "association" : ((_e3 = e5.attrs) == null ? void 0 : _e3.isDefault) ? "default" : ((_f = e5.attrs) == null ? void 0 : _f.condition) ? "conditional" : void 0;
         if (ft3) {
-          data2.style = { ...(_f = data2.style) != null ? _f : {}, flowType: ft3, ...FLOW_TYPE_PRESETS[ft3] };
+          data2.style = { ...(_g = data2.style) != null ? _g : {}, flowType: ft3, ...FLOW_TYPE_PRESETS[ft3] };
         }
       }
       const forcedRouter = e5.router === "normal" ? { name: "normal" } : e5.router === "orth" ? { name: "orth" } : e5.router === "avoid" ? AVOID_ROUTER : null;
@@ -87797,7 +89378,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         connector: seq ? "seq-msg" : mm ? "mm-edge" : CONNECTOR,
         attrs: edgeAttrs,
         labels: labelSpec,
-        vertices: (_g = e5.vertices) != null ? _g : [],
+        vertices: (_h = e5.vertices) != null ? _h : [],
         // Sequence Y is read by the seq-msg connector from edge data at draw time.
         data: data2
       });
@@ -87805,8 +89386,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (mm) this.applyMindmapRoutingIfNeeded(created);
       const srcNode = this.graph.getCellById(e5.source);
       const tgtNode = this.graph.getCellById(e5.target);
-      const srcKind = srcNode && ((_i = (_h = srcNode.getData) == null ? void 0 : _h.call(srcNode)) == null ? void 0 : _i.kind);
-      const tgtKind = tgtNode && ((_k = (_j = tgtNode.getData) == null ? void 0 : _j.call(tgtNode)) == null ? void 0 : _k.kind);
+      const srcKind = srcNode && ((_j = (_i = srcNode.getData) == null ? void 0 : _i.call(srcNode)) == null ? void 0 : _j.kind);
+      const tgtKind = tgtNode && ((_l = (_k = tgtNode.getData) == null ? void 0 : _k.call(tgtNode)) == null ? void 0 : _l.kind);
       if (srcKind === "erd-entity" && tgtKind === "erd-entity") {
         created.setZIndex(-1);
       }
@@ -87815,12 +89396,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (!n4.parentId && !n4.laneId) continue;
       const child = this.graph.getCellById(n4.id);
       if (!child || !child.isNode()) continue;
-      const prev = (_l = child.getData()) != null ? _l : {};
+      const prev = (_m = child.getData()) != null ? _m : {};
       child.setData({
         ...prev,
         ...n4.parentId ? { parentId: n4.parentId } : {},
         ...n4.laneId ? { laneId: n4.laneId } : {}
-      });
+      }, { deep: false });
       if (n4.parentId) {
         const parent = this.graph.getCellById(n4.parentId);
         if (parent && parent.isNode()) parent.addChild(child);
@@ -87840,9 +89421,12 @@ var _OmniboardCanvas = class _OmniboardCanvas {
       if (!FRAME_KINDS.has(n4.shape)) continue;
       const cell = this.graph.getCellById(n4.id);
       if (!cell || !cell.isNode()) continue;
-      cell.setZIndex(-1e3 + depthOf(n4.id));
+      cell.setZIndex(frameZ(n4.shape, depthOf(n4.id)));
     }
+    this.raiseBoundaryEvents();
+    this.refreshSubprocessVisibility();
     this.graph.stopBatch("load");
+    this.graph.cleanHistory();
     this.resyncHtmlNodes();
     setTimeout(() => {
       this.graph.getNodes().forEach((n4) => {
@@ -87941,9 +89525,44 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.loadModel(merged);
     return { added: incoming.nodes.length };
   }
+  /** Change a node's id. X6 ids are fixed, so the node is replaced by a copy
+   *  under the new id, with arrows, steps and references moved over in one undo
+   *  step. The BPMN export finds the old file element through `__source.sourceId`,
+   *  so nothing only the file had is lost. */
+  renameNode(oldId, newId) {
+    var _a3, _b2, _c2;
+    if (newId === oldId) return true;
+    const old = this.graph.getCellById(oldId);
+    if (!(old == null ? void 0 : old.isNode()) || !/^[A-Za-z_][\w.-]*$/.test(newId) || this.graph.getCellById(newId)) return false;
+    const REFS = ["attachedTo", "parentId", "laneId", "poolId"];
+    this.graph.startBatch("rename");
+    const { parent: _p, children: _c, ...json } = old.toJSON();
+    const next = this.graph.addNode({ ...json, id: newId });
+    (_a3 = old.getParent()) == null ? void 0 : _a3.embed(next);
+    for (const c6 of (_b2 = old.getChildren()) != null ? _b2 : []) {
+      old.unembed(c6);
+      next.embed(c6);
+    }
+    for (const e5 of this.graph.getConnectedEdges(old)) {
+      if (e5.getSourceCellId() === oldId) e5.setSource({ ...e5.getSource(), cell: newId });
+      if (e5.getTargetCellId() === oldId) e5.setTarget({ ...e5.getTarget(), cell: newId });
+    }
+    for (const n4 of this.graph.getNodes()) {
+      const d4 = (_c2 = n4.getData()) != null ? _c2 : {};
+      const hit = REFS.filter((k5) => d4[k5] === oldId);
+      if (hit.length) n4.setData(Object.fromEntries(hit.map((k5) => [k5, newId])));
+    }
+    old.remove();
+    this.graph.stopBatch("rename");
+    if (this.drillRoot === oldId) this.setDrillRoot(newId);
+    this.rerender(next);
+    this.graph.resetSelection([next]);
+    this.onChange();
+    return true;
+  }
   getModel() {
     const nodes = this.graph.getNodes().map((n4) => {
-      var _a3, _b2, _c, _d, _e3, _f, _g, _h;
+      var _a3, _b2, _c, _d, _e3, _f, _g;
       const p6 = n4.getPosition();
       const s5 = n4.getSize();
       const ex = this.nodeExtra(n4);
@@ -87965,7 +89584,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
               const horizontal = poolExtra.poolHorizontal !== false;
               laneId = horizontal ? leafLaneAt(poolLanes, poolSize.height, cy - poolPos.y) : leafLaneAt(asStackLanes(poolLanes, false), poolSize.width, cx - poolPos.x);
               if (laneId !== data2.laneId) {
-                n4.setData({ ...data2, laneId }, { silent: true });
+                n4.setData({ ...data2, laneId }, { silent: true, deep: false });
               }
               break;
             }
@@ -88001,11 +89620,10 @@ var _OmniboardCanvas = class _OmniboardCanvas {
           collapsed: ex.collapsed,
           // Phase D — BPMN metadata (live on node.data, not NodeExtra)
           bpmnDoc: (_c = n4.getData()) == null ? void 0 : _c.bpmnDoc,
-          bpmnFill: (_d = n4.getData()) == null ? void 0 : _d.bpmnFill,
-          bpmnStroke: (_e3 = n4.getData()) == null ? void 0 : _e3.bpmnStroke,
-          camunda: (_f = n4.getData()) == null ? void 0 : _f.camunda,
-          bpmnProps: (_g = n4.getData()) == null ? void 0 : _g.bpmnProps,
-          __source: (_h = n4.getData()) == null ? void 0 : _h.__source
+          calledElement: (_d = n4.getData()) == null ? void 0 : _d.calledElement,
+          camunda: (_e3 = n4.getData()) == null ? void 0 : _e3.camunda,
+          bpmnProps: (_f = n4.getData()) == null ? void 0 : _f.bpmnProps,
+          __source: (_g = n4.getData()) == null ? void 0 : _g.__source
         }
       };
     });
@@ -88051,7 +89669,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
         ...Object.keys(bpmnAttrs).length ? { attrs: bpmnAttrs } : {}
       };
     });
-    return { nodes, edges };
+    return { nodes, edges, ...Object.keys(this.appState).length ? { appState: { ...this.appState } } : {} };
   }
   nodeCount() {
     return this.graph.getNodes().length;
@@ -88061,16 +89679,34 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     if (!cell) return false;
     this.graph.resetSelection([cell]);
     if (cell.isNode()) {
-      const n4 = cell;
-      const p6 = n4.getPosition();
-      const s5 = n4.getSize();
-      const cx = p6.x + s5.width / 2;
-      const cy = p6.y + s5.height / 2;
-      this.graph.centerPoint(cx, cy);
+      const b4 = cell.getBBox();
+      this.flyTo({ x: b4.x - 160, y: b4.y - 120, width: b4.width + 320, height: b4.height + 240 }, 1.2);
     }
     this.refreshContextBar();
     this.refreshProps();
     return true;
+  }
+  /** Pan + zoom to a rect with an ease-out (≈460ms); a newer call cancels the running one. */
+  flyTo(r5, maxScale) {
+    var _a3;
+    const box = this.graphMount.getBoundingClientRect();
+    const s1 = Math.max(0.1, Math.min(maxScale, (box.width - 120) / r5.width, (box.height - 120) / r5.height));
+    const a5 = this.graph.getGraphArea();
+    const s0 = this.graph.scale().sx;
+    const c0 = { x: a5.x + a5.width / 2, y: a5.y + a5.height / 2 };
+    const c1 = { x: r5.x + r5.width / 2, y: r5.y + r5.height / 2 };
+    const id = ++this.flyAnim;
+    const reduce2 = (_a3 = window.matchMedia) == null ? void 0 : _a3.call(window, "(prefers-reduced-motion: reduce)").matches;
+    const t0 = performance.now();
+    const step = (now2) => {
+      if (id !== this.flyAnim) return;
+      const t6 = reduce2 ? 1 : 1 - Math.pow(1 - Math.min(1, (now2 - t0) / 460), 4);
+      this.graph.zoomTo(s0 + (s1 - s0) * t6);
+      this.graph.centerPoint(c0.x + (c1.x - c0.x) * t6, c0.y + (c1.y - c0.y) * t6);
+      this.updateZoom();
+      if (t6 < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
   /**
    * n8n-style auto layout (longest-path ranking).
@@ -88409,8 +90045,8 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     const idMap = /* @__PURE__ */ new Map();
     model.nodes.forEach((n4, i6) => idMap.set(n4.id, safeId(n4.id, i6)));
     const esc3 = (s5) => `"${(s5 || " ").replace(/"/g, "&quot;").replace(/\n/g, " ")}"`;
-    const wrap = (kind, label) => {
-      const t6 = esc3(label);
+    const wrap = (kind, label2) => {
+      const t6 = esc3(label2);
       if (kind === "fc-start" || kind === "fc-end" || kind === "st-initial" || kind === "st-final") return `([${t6}])`;
       if (kind === "fc-decision" || kind === "bs-diamond" || kind === "st-choice" || kind.startsWith("bpmn-gateway")) return `{${t6}}`;
       if (kind === "fc-io") return `[/${t6}/]`;
@@ -88428,9 +90064,13 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     return lines.join("\n");
   }
   destroy() {
+    var _a3;
     this.commitLabel();
     this.cancelFlyoutClose();
     this.closeFlyoutNow();
+    this.cancelSpaceDrag();
+    (_a3 = this.searchBox) == null ? void 0 : _a3.remove();
+    this.searchBox = null;
     if (this.wheelPan) this.graphMount.removeEventListener("wheel", this.wheelPan);
     for (const { type, fn: fn2 } of this.docListeners) document.removeEventListener(type, fn2, true);
     this.docListeners = [];
@@ -88524,11 +90164,11 @@ function OmniboardCanvasMount(props) {
 }
 
 // src/ui/Icon.tsx
-var import_obsidian3 = require("obsidian");
+var import_obsidian = require("obsidian");
 function Icon({ name: name2, className: className3 }) {
   const ref2 = A4(null);
   y2(() => {
-    if (ref2.current) (0, import_obsidian3.setIcon)(ref2.current, name2);
+    if (ref2.current) (0, import_obsidian.setIcon)(ref2.current, name2);
   }, [name2]);
   return /* @__PURE__ */ u2("span", { ref: ref2, class: className3 != null ? className3 : "diagrams-icon", "aria-hidden": "true" });
 }
@@ -88686,16 +90326,23 @@ function readObsidianTheme() {
 }
 
 // src/ui/boardTopbar.ts
-var import_obsidian4 = require("obsidian");
+var import_obsidian2 = require("obsidian");
 function buildBoardTopbar(bar, opts) {
   var _a3, _b2;
   bar.empty();
   const close = bar.createEl("button", { cls: "da-tb-close" });
-  (0, import_obsidian4.setIcon)(close, "x");
+  (0, import_obsidian2.setIcon)(close, "x");
   close.createSpan({ text: "\u0110\xF3ng" });
   close.onclick = () => opts.onClose();
+  if (opts.onToggleSide) {
+    const side = bar.createEl("button", { cls: "da-tb-ic da-tb-side" });
+    (0, import_obsidian2.setIcon)(side, "panel-left");
+    side.setAttribute("aria-label", "C\u1EA5u tr\xFAc");
+    side.title = "C\u1EA5u tr\xFAc";
+    side.onclick = () => opts.onToggleSide();
+  }
   const badge = bar.createDiv({ cls: "da-tb-badge" });
-  (0, import_obsidian4.setIcon)(badge, (_a3 = opts.badgeIcon) != null ? _a3 : "shapes");
+  (0, import_obsidian2.setIcon)(badge, (_a3 = opts.badgeIcon) != null ? _a3 : "shapes");
   badge.createSpan({ text: opts.badgeLabel });
   let titleEl;
   if (opts.onTitleChange) {
@@ -88711,7 +90358,7 @@ function buildBoardTopbar(bar, opts) {
   bar.createDiv({ cls: "da-tb-grow" });
   const iconBtn = (icon, tip, fn2) => {
     const b4 = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian4.setIcon)(b4, icon);
+    (0, import_obsidian2.setIcon)(b4, icon);
     b4.setAttribute("aria-label", tip);
     b4.title = tip;
     b4.onclick = fn2;
@@ -88742,18 +90389,49 @@ function buildBoardTopbar(bar, opts) {
   });
   if ((_b2 = opts.extraButtons) == null ? void 0 : _b2.length) {
     bar.createDiv({ cls: "da-tb-divider" });
-    for (const eb of opts.extraButtons) iconBtn(eb.icon, eb.tip, eb.onClick);
+    const menuItems = opts.extraButtons.filter((eb) => eb.inMenu);
+    for (const eb of opts.extraButtons) if (!eb.inMenu) iconBtn(eb.icon, eb.tip, eb.onClick);
+    if (menuItems.length) {
+      const wrap = bar.createDiv({ cls: "da-tb-more" });
+      const more = wrap.createEl("button", { cls: "da-tb-ic" });
+      (0, import_obsidian2.setIcon)(more, "more-horizontal");
+      more.setAttribute("aria-label", "Th\xEAm");
+      more.title = "Th\xEAm";
+      const pop = wrap.createDiv({ cls: "da-tb-pop" });
+      const doc = bar.ownerDocument;
+      const close2 = () => {
+        pop.removeClass("is-open");
+        doc.removeEventListener("pointerdown", outside2, true);
+      };
+      const outside2 = (e5) => {
+        if (!wrap.contains(e5.target)) close2();
+      };
+      for (const eb of menuItems) {
+        const item = pop.createEl("button", { cls: "da-tb-pop-item" });
+        (0, import_obsidian2.setIcon)(item, eb.icon);
+        item.createSpan({ text: eb.tip });
+        item.onclick = () => {
+          close2();
+          eb.onClick();
+        };
+      }
+      more.onclick = () => {
+        if (pop.hasClass("is-open")) return close2();
+        pop.addClass("is-open");
+        doc.addEventListener("pointerdown", outside2, true);
+      };
+    }
   }
   if (opts.onExport) {
     bar.createDiv({ cls: "da-tb-divider" });
     const exp = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian4.setIcon)(exp, "download");
+    (0, import_obsidian2.setIcon)(exp, "download");
     exp.setAttribute("aria-label", "Export");
     exp.title = "Export (SVG / PNG / PDF)";
     exp.onclick = (e5) => opts.onExport(e5);
   }
   const save = bar.createEl("button", { cls: "da-tb-save" });
-  (0, import_obsidian4.setIcon)(save, "check");
+  (0, import_obsidian2.setIcon)(save, "check");
   save.createSpan({ text: "L\u01B0u & \u0111\xF3ng" });
   save.onclick = () => opts.onSave();
   return {
@@ -88764,12 +90442,120 @@ function buildBoardTopbar(bar, opts) {
   };
 }
 
+// src/ui/boardSidePanel.ts
+var import_obsidian3 = require("obsidian");
+var label = (n4) => (n4.label || n4.id).replace(/\s+/g, " ").trim();
+var categoryOf = (shape) => {
+  var _a3, _b2;
+  return (_b2 = (_a3 = SHAPE_CATEGORIES.find((c6) => c6.items.some((i6) => i6.shape === shape))) == null ? void 0 : _a3.title) != null ? _b2 : "Kh\xE1c";
+};
+var hasBpmn = (model) => model.nodes.some((n4) => n4.shape.startsWith("bpmn-"));
+function boardOutline(model) {
+  const steps = model.nodes.filter((n4) => n4.shape !== "bpmn-pool" && n4.shape !== "bpmn-annotation" && !n4.parentId);
+  const byX = (a5, b4) => a5.x - b4.x;
+  const laneIds = /* @__PURE__ */ new Set();
+  const pools = model.nodes.filter((n4) => n4.shape === "bpmn-pool").map((p6) => {
+    var _a3, _b2;
+    const lanes = ((_b2 = (_a3 = p6.attrs) == null ? void 0 : _a3.lanes) != null ? _b2 : []).map((l5) => {
+      laneIds.add(l5.id);
+      return { title: l5.label, nodes: steps.filter((n4) => n4.laneId === l5.id).sort(byX) };
+    });
+    return { title: label(p6), note: lanes.length ? void 0 : "H\u1ED9p \u0111en \xB7 ch\u1EC9 trao \u0111\u1ED5i tin", lanes };
+  });
+  const loose = steps.filter((n4) => !n4.laneId || !laneIds.has(n4.laneId)).sort(byX);
+  const titles = [...SHAPE_CATEGORIES.map((c6) => c6.title), "Kh\xE1c"];
+  const groups = titles.flatMap((cat) => {
+    const nodes = loose.filter((n4) => categoryOf(n4.shape) === cat);
+    const title2 = cat === "BPMN" && pools.length ? "Ngo\xE0i pool" : cat;
+    return nodes.length ? [{ title: title2, lanes: [{ title: "", nodes }] }] : [];
+  });
+  return [...pools, ...groups];
+}
+var BoardSidePanel = class {
+  constructor(parent, opts) {
+    this.opts = opts;
+    this.tab = "tree";
+    this.selectedId = null;
+    this.el = parent.createDiv({ cls: "da-side" });
+    this.tabsEl = this.el.createDiv({ cls: "da-side-tabs" });
+    this.paneEl = this.el.createDiv({ cls: "da-side-pane" });
+    this.paneEl.onclick = (e5) => {
+      const row = e5.target.closest("[data-id]");
+      if (row == null ? void 0 : row.dataset.id) this.opts.focus(row.dataset.id);
+    };
+  }
+  refresh() {
+    const model = this.opts.getModel();
+    const issues = model ? validateBpmnModel(model) : [];
+    this.tabsEl.empty();
+    const tabBtn = (t6, text4, count) => {
+      const b4 = this.tabsEl.createEl("button", { cls: `da-side-tab${this.tab === t6 ? " is-active" : ""}`, text: text4 });
+      if (count !== void 0) b4.createEl("b", { text: String(count) });
+      b4.onclick = () => {
+        this.tab = t6;
+        this.refresh();
+      };
+    };
+    const showIssues = !!model && (hasBpmn(model) || issues.length > 0);
+    if (!showIssues) this.tab = "tree";
+    tabBtn("tree", "C\u1EA5u tr\xFAc");
+    if (showIssues) tabBtn("issues", "L\u1ED7i BPMN", issues.length);
+    this.paneEl.empty();
+    if (!model) return;
+    if (this.tab === "issues") {
+      const list = this.paneEl.createDiv({ cls: "da-side-issues omniboard-issues-view" });
+      if (!issues.length) list.createDiv({ cls: "da-side-empty", text: "Kh\xF4ng ph\xE1t hi\u1EC7n l\u1ED7i semantic." });
+      for (const i6 of issues) {
+        const row = list.createEl("button", { cls: `obi-row ${i6.severity}`, attr: { "data-id": i6.targetId } });
+        row.createSpan({ cls: "obi-code", text: i6.code });
+        row.createSpan({ cls: "obi-msg", text: i6.message });
+      }
+    } else {
+      const groups = boardOutline(model);
+      if (!groups.length) this.paneEl.createDiv({ cls: "da-side-empty", text: "Board ch\u01B0a c\xF3 h\xECnh n\xE0o." });
+      for (const g4 of groups) {
+        this.paneEl.createDiv({ cls: "da-side-pool", text: g4.title });
+        if (g4.note) this.paneEl.createDiv({ cls: "da-side-empty", text: g4.note });
+        for (const l5 of g4.lanes) {
+          const box = this.paneEl.createEl("details", { cls: "da-side-lane" });
+          box.open = true;
+          const sum = box.createEl("summary");
+          (0, import_obsidian3.setIcon)(sum, "chevron-right");
+          sum.createSpan({ text: l5.title || g4.title });
+          sum.createEl("em", { text: String(l5.nodes.length) });
+          for (const n4 of l5.nodes) {
+            const row = box.createDiv({ cls: "da-side-item", attr: { "data-id": n4.id } });
+            row.createSpan({ cls: "da-side-ico" }).innerHTML = shapeIcon(n4.shape, n4.attrs);
+            row.createSpan({ text: label(n4) });
+          }
+        }
+      }
+    }
+    this.markSelected(this.selectedId);
+  }
+  showTab(tab) {
+    this.tab = tab;
+    this.refresh();
+  }
+  /** Highlight the row of the node selected on the canvas. */
+  markSelected(id) {
+    this.selectedId = id;
+    let first = null;
+    this.paneEl.querySelectorAll(".da-side-item[data-id]").forEach((r5) => {
+      const on2 = r5.dataset.id === id;
+      r5.classList.toggle("is-active", on2);
+      if (on2 && !first) first = r5;
+    });
+    first == null ? void 0 : first.scrollIntoView({ block: "nearest" });
+  }
+};
+
 // src/view/externalChange.ts
-var import_obsidian5 = require("obsidian");
+var import_obsidian4 = require("obsidian");
 function askExternalChange(app) {
   return new Promise((resolve3) => new ExternalChangeModal(app, resolve3).open());
 }
-var ExternalChangeModal = class extends import_obsidian5.Modal {
+var ExternalChangeModal = class extends import_obsidian4.Modal {
   constructor(app, done) {
     super(app);
     this.done = done;
@@ -88817,15 +90603,15 @@ function noticeFrag(kind, text4) {
   wrap.addClass(`da-notice-${kind}`);
   const iconEl = wrap.createSpan({ cls: "da-notice-icon" });
   const icon = kind === "success" ? "check-circle-2" : kind === "warn" ? "alert-triangle" : kind === "error" ? "x-circle" : "info";
-  (0, import_obsidian6.setIcon)(iconEl, icon);
+  (0, import_obsidian5.setIcon)(iconEl, icon);
   wrap.createSpan({ cls: "da-notice-text", text: text4 });
   frag.appendChild(wrap);
   return frag;
 }
 function notify(kind, text4, timeout) {
-  return new import_obsidian6.Notice(noticeFrag(kind, text4), timeout);
+  return new import_obsidian5.Notice(noticeFrag(kind, text4), timeout);
 }
-var DiagramPickerModal = class extends import_obsidian6.Modal {
+var DiagramPickerModal = class extends import_obsidian5.Modal {
   constructor(view, diagrams, onPick, onCancel) {
     super(view.app);
     this.diagrams = diagrams;
@@ -88915,7 +90701,7 @@ async function saveToLocal(data2, suggestedName, mimeType) {
   setTimeout(() => URL.revokeObjectURL(url), 1e3);
   return suggestedName;
 }
-var BOARD_VIEW_TYPE3 = "omniboard-board";
+var BOARD_VIEW_TYPE = "omniboard-board";
 var EMPTY_MODEL = { nodes: [], edges: [] };
 var BOARD_TAB_STUB_ADAPTER = {
   id: "flowchart",
@@ -88934,11 +90720,14 @@ var BOARD_TAB_STUB_ADAPTER = {
   exportFormats: ["svg", "png", "pdf"],
   validate: () => ({ ok: true, errors: [] })
 };
-var BoardView = class _BoardView extends import_obsidian6.TextFileView {
+var sideOpen = true;
+var BoardView = class _BoardView extends import_obsidian5.TextFileView {
   constructor(leaf, plugin) {
     super(leaf);
     this.canvas = null;
     this.host = null;
+    this.side = null;
+    this.sideFrame = 0;
     this.boardTitleEl = null;
     this.model = EMPTY_MODEL;
     this.rawData = "";
@@ -88968,13 +90757,13 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
     /** True only inside our own save(), so getViewData knows it is being written. */
     this.writing = false;
     /** A write is in flight; another save request waits for it. */
-    this.saving = false;
+    this.boardSaving = false;
     this.saveAgain = false;
     this.pendingSourceMeta = null;
     this.plugin = plugin;
   }
   getViewType() {
-    return BOARD_VIEW_TYPE3;
+    return BOARD_VIEW_TYPE;
   }
   getDisplayText() {
     var _a3, _b2;
@@ -88988,8 +90777,17 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
     this.contentEl.addClass("da-board-view");
     this.contentEl.style.cssText = "padding:0; display:flex; flex-direction:column; height:100%;";
     this.buildTopBar();
-    this.host = this.contentEl.createDiv({ cls: "da-board-host" });
-    this.host.style.cssText = "position:relative; flex:1; min-height:0;";
+    const main = this.contentEl.createDiv({ cls: "da-board-main" });
+    this.contentEl.toggleClass("da-side-hidden", !sideOpen);
+    this.side = new BoardSidePanel(main, {
+      getModel: () => {
+        var _a3, _b2;
+        return (_b2 = (_a3 = this.canvas) == null ? void 0 : _a3.getModel()) != null ? _b2 : null;
+      },
+      focus: (id) => this.focusCellId(id)
+    });
+    this.host = main.createDiv({ cls: "da-board-host" });
+    this.host.style.cssText = "position:relative; flex:1; min-height:0; min-width:0;";
     const props = {
       adapter: BOARD_TAB_STUB_ADAPTER,
       initialModel: this.model,
@@ -89005,6 +90803,7 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
       canvasModel: this.model,
       onCanvasChange: () => this.handleCanvasChange(),
       onCanvasReady: (canvas) => {
+        var _a3;
         this.canvas = canvas;
         this.applyingDisk = true;
         try {
@@ -89012,8 +90811,11 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
         } finally {
           this.applyingDisk = false;
         }
-        canvas.setSelectionChangeHandler(emitOmniboardSelectionChange);
-        emitBpmnIssuesRefresh();
+        canvas.setSelectionChangeHandler(() => {
+          var _a4, _b2, _c;
+          (_c = this.side) == null ? void 0 : _c.markSelected((_b2 = (_a4 = canvas.getSelectedNodeSnapshot()) == null ? void 0 : _a4.id) != null ? _b2 : null);
+        });
+        (_a3 = this.side) == null ? void 0 : _a3.refresh();
       }
     };
     R(
@@ -89035,12 +90837,13 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
         this.leaf.detach();
       })(),
       onExport: (e5) => this.showExportMenu(e5),
+      onToggleSide: () => this.setSideOpen(!sideOpen),
       extraButtons: [
-        { icon: "sliders-horizontal", tip: "BPMN properties", onClick: () => void this.openPropertiesLeaf() },
-        { icon: "alert-triangle", tip: "BPMN issues", onClick: () => void this.openIssuesLeaf() },
         { icon: "workflow", tip: "Chuy\u1EC3n sang BPMN Native", onClick: () => void this.switchToBpmnNativeView() },
-        { icon: "file-text", tip: "M\u1EDF d\u01B0\u1EDBi d\u1EA1ng Markdown", onClick: () => void this.openAsMarkdown() },
-        { icon: "upload", tip: "Import (BPMN / DBML)", onClick: () => this.openImportPicker() }
+        { icon: "sliders-horizontal", tip: "Thu\u1ED9c t\xEDnh", onClick: () => this.showProperties(), inMenu: true },
+        { icon: "alert-triangle", tip: "BPMN issues", onClick: () => this.showIssues(), inMenu: true },
+        { icon: "file-text", tip: "M\u1EDF d\u01B0\u1EDBi d\u1EA1ng Markdown", onClick: () => void this.openAsMarkdown(), inMenu: true },
+        { icon: "upload", tip: "Import (BPMN / DBML)", onClick: () => this.openImportPicker(), inMenu: true }
       ]
     });
     this.boardTitleEl = { setText: (t6) => setTitle(t6) };
@@ -89049,10 +90852,14 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
    *  canvas.getModel() at save time (see getViewData / save); here we just
    *  trigger the change pipeline. */
   handleCanvasChange() {
+    if (sideOpen && !this.sideFrame) this.sideFrame = requestAnimationFrame(() => {
+      var _a3;
+      this.sideFrame = 0;
+      (_a3 = this.side) == null ? void 0 : _a3.refresh();
+    });
     if (this.applyingDisk) return;
     this.localEdits = true;
     this.requestSave();
-    emitBpmnIssuesRefresh();
   }
   /** Board model of a file's text, as a comparable string (null = unparseable). */
   static fingerprint(text4) {
@@ -89131,24 +90938,24 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
     var _a3, _b2;
     return (_b2 = (_a3 = this.canvas) == null ? void 0 : _a3.focusCellById(id)) != null ? _b2 : false;
   }
-  async openPropertiesLeaf() {
-    const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_PROPERTIES_VIEW_TYPE)[0];
-    const leaf = existing != null ? existing : this.app.workspace.getRightLeaf(false);
-    if (!leaf) return;
-    await leaf.setViewState({ type: OMNIBOARD_PROPERTIES_VIEW_TYPE, active: true });
-    this.app.workspace.revealLeaf(leaf);
-    emitOmniboardSelectionChange();
+  showProperties() {
+    var _a3;
+    (_a3 = this.canvas) == null ? void 0 : _a3.openPropsPanel();
   }
-  async openIssuesLeaf() {
-    const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_ISSUES_VIEW_TYPE)[0];
-    const leaf = existing != null ? existing : this.app.workspace.getRightLeaf(false);
-    if (!leaf) return;
-    await leaf.setViewState({ type: OMNIBOARD_ISSUES_VIEW_TYPE, active: true });
-    this.app.workspace.revealLeaf(leaf);
-    emitBpmnIssuesRefresh();
+  setSideOpen(open4) {
+    var _a3;
+    sideOpen = open4;
+    this.contentEl.toggleClass("da-side-hidden", !open4);
+    if (open4) (_a3 = this.side) == null ? void 0 : _a3.refresh();
+  }
+  /** BPMN issues live in the left side panel's "Lỗi BPMN" tab (menu "…" + command). */
+  showIssues() {
+    var _a3;
+    this.setSideOpen(true);
+    (_a3 = this.side) == null ? void 0 : _a3.showTab("issues");
   }
   showExportMenu(e5) {
-    const menu = new import_obsidian6.Menu();
+    const menu = new import_obsidian5.Menu();
     menu.addItem((i6) => i6.setTitle("SVG").setIcon("file-code").onClick(() => this.handleExportSvg()));
     menu.addSeparator();
     [1, 2, 4].forEach(
@@ -89211,7 +91018,7 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
   }
   // Obsidian → view
   setViewData(data2, _clear) {
-    var _a3, _b2;
+    var _a3, _b2, _c;
     this.cachedBpmnXml = void 0;
     this.rawData = data2;
     if (this.boardTitleEl) this.boardTitleEl.setText((_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "Board");
@@ -89234,7 +91041,7 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
       const current = JSON.stringify(this.canvas.getModel());
       if (JSON.stringify(parsed) === current) return;
       this.canvas.loadModel(this.model, { keepView: this.applyingDisk });
-      emitBpmnIssuesRefresh();
+      (_c = this.side) == null ? void 0 : _c.refresh();
     }
   }
   // view → Obsidian (on save)
@@ -89289,7 +91096,7 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
     const base = this;
     const file = this.file;
     if (!file || base.lastSavedData === null) return;
-    if (this.saving) {
+    if (this.boardSaving) {
       this.saveAgain = true;
       return;
     }
@@ -89303,7 +91110,7 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
     }
     base.dirty = false;
     if (text4 === base.lastSavedData) return;
-    this.saving = true;
+    this.boardSaving = true;
     try {
       const wrote = await writeIfUnchanged(this.app.vault, file, (disk) => {
         const fp = _BoardView.fingerprint(disk);
@@ -89328,7 +91135,7 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
       console.error("[omniboard] save failed", err2);
       notify("error", `L\u01B0u board l\u1ED7i: ${err2.message}`);
     } finally {
-      this.saving = false;
+      this.boardSaving = false;
       if (this.saveAgain) {
         this.saveAgain = false;
         void this.save();
@@ -89362,7 +91169,7 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
     input.accept = exts.join(",");
     input.style.display = "none";
     input.onchange = async () => {
-      var _a3, _b2;
+      var _a3, _b2, _c;
       const file = (_a3 = input.files) == null ? void 0 : _a3[0];
       input.remove();
       if (!file) return;
@@ -89393,13 +91200,52 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
         if (result.warnings.length) {
           for (const w5 of result.warnings.slice(0, 5)) notify("warn", w5, 6e3);
         }
-        emitBpmnIssuesRefresh();
+        (_c = this.side) == null ? void 0 : _c.refresh();
       } catch (err2) {
         notify("error", `Import l\u1ED7i: ${err2.message}`, 8e3);
       }
     };
     document.body.appendChild(input);
     input.click();
+  }
+  /** Open the find box (the Command Palette way, when Obsidian takes Ctrl+F first). */
+  findOnBoard() {
+    var _a3;
+    (_a3 = this.canvas) == null ? void 0 : _a3.openSearch();
+  }
+  /** Show another diagram of the BPMN file this board came from; the edits so far go into the file first. */
+  async switchDiagram() {
+    var _a3, _b2, _c, _d;
+    if (!this.canvas) return;
+    const meta = (_a3 = this.pendingSourceMeta) != null ? _a3 : (await Promise.resolve().then(() => (init_boardSerde(), boardSerde_exports))).deserializeSourceMeta(this.rawData);
+    const raw2 = (meta == null ? void 0 : meta.format) === "bpmn" ? String((_c = (_b2 = meta.payload) == null ? void 0 : _b2.raw) != null ? _c : "") : "";
+    if (!raw2) {
+      notify("warn", "Board n\xE0y kh\xF4ng \u0111\u1EBFn t\u1EEB m\u1ED9t file BPMN.");
+      return;
+    }
+    try {
+      const { inspectBpmnDiagrams: inspectBpmnDiagrams2 } = await Promise.resolve().then(() => (init_import(), import_exports));
+      const shown = Number((_d = meta.payload.diagramIndex) != null ? _d : 0);
+      const others = (await inspectBpmnDiagrams2(raw2)).diagrams.filter((d4) => !d4.subProcess && d4.index !== shown);
+      if (!others.length) {
+        notify("info", "File BPMN ch\u1EC9 c\xF3 m\u1ED9t s\u01A1 \u0111\u1ED3.");
+        return;
+      }
+      const index4 = await new Promise((resolve3) => {
+        new DiagramPickerModal(this, others, (i6) => resolve3(i6), () => resolve3(null)).open();
+      });
+      if (index4 === null) return;
+      const { switchBpmnDiagram: switchBpmnDiagram2 } = await Promise.resolve().then(() => (init_switchDiagram(), switchDiagram_exports));
+      const prev = this.canvas.getModel();
+      const next = await switchBpmnDiagram2(prev, meta, index4);
+      this.pendingSourceMeta = next.sourceMeta;
+      this.model = prev.appState ? { ...next.model, appState: prev.appState } : next.model;
+      this.canvas.loadModel(this.model);
+      this.requestSave();
+      notify("success", `\u0110ang xem s\u01A1 \u0111\u1ED3 #${index4 + 1} c\u1EE7a file BPMN`);
+    } catch (err2) {
+      notify("error", `Kh\xF4ng chuy\u1EC3n \u0111\u01B0\u1EE3c s\u01A1 \u0111\u1ED3: ${err2.message}`, 8e3);
+    }
   }
   async handleExportFormat(formatId) {
     var _a3;
@@ -89439,11 +91285,12 @@ var BoardView = class _BoardView extends import_obsidian6.TextFileView {
   async onClose() {
     var _a3;
     (_a3 = this.canvas) == null ? void 0 : _a3.setSelectionChangeHandler(null);
+    cancelAnimationFrame(this.sideFrame);
+    this.side = null;
     if (this.host) {
       R(null, this.host);
     }
     this.canvas = null;
-    emitBpmnIssuesRefresh();
   }
 };
 
@@ -89479,11 +91326,11 @@ var AdapterRegistry = class {
 // src/ui/EmbedCard.tsx
 function EmbedCard(props) {
   var _a3;
-  const setIconRef = (name2) => (el4) => {
+  const setIconRef = (name2) => (el3) => {
     var _a4;
-    if (!el4 || el4.dataset.iconApplied) return;
-    el4.dataset.iconApplied = "1";
-    (_a4 = props.setIcon) == null ? void 0 : _a4.call(props, el4, name2);
+    if (!el3 || el3.dataset.iconApplied) return;
+    el3.dataset.iconApplied = "1";
+    (_a4 = props.setIcon) == null ? void 0 : _a4.call(props, el3, name2);
   };
   const meta = props.errorMessage ? props.errorMessage : `${props.nodeCount} ph\u1EA7n t\u1EED \xB7 ${props.edgeCount} n\u1ED1i`;
   return /* @__PURE__ */ u2(
@@ -89609,7 +91456,7 @@ function EmbedCard(props) {
 }
 
 // src/settings.ts
-var import_obsidian7 = require("obsidian");
+var import_obsidian6 = require("obsidian");
 
 // src/pom-header.ts
 var POM_LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAIAAABMXPacAAAAAXNSR0IArs4c6QAAAHhlWElmTU0AKgAAAAgABAEaAAUAAAABAAAAPgEbAAUAAAABAAAARgEoAAMAAAABAAIAAIdpAAQAAAABAAAATgAAAAAAAAEsAAAAAQAAASwAAAABAAOgAQADAAAAAQABAACgAgAEAAAAAQAAAICgAwAEAAAAAQAAAIAAAAAAHeJAawAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAcNpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IlhNUCBDb3JlIDYuMC4wIj4KICAgPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4KICAgICAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIKICAgICAgICAgICAgeG1sbnM6dGlmZj0iaHR0cDovL25zLmFkb2JlLmNvbS90aWZmLzEuMC8iPgogICAgICAgICA8dGlmZjpZUmVzb2x1dGlvbj4zMDA8L3RpZmY6WVJlc29sdXRpb24+CiAgICAgICAgIDx0aWZmOlJlc29sdXRpb25Vbml0PjI8L3RpZmY6UmVzb2x1dGlvblVuaXQ+CiAgICAgICAgIDx0aWZmOlhSZXNvbHV0aW9uPjMwMDwvdGlmZjpYUmVzb2x1dGlvbj4KICAgICAgPC9yZGY6RGVzY3JpcHRpb24+CiAgIDwvcmRmOlJERj4KPC94OnhtcG1ldGE+CltpsyQAACavSURBVHgB7XwJeFvVte4ZpKN5siRblizPduIpzjwPZCJNE6YWCoUwtZRSoMCFXt6DctvS8l1u+3rLKzRQyoUytUAJY4AECBmAmMyJEzt2HNvxPNuSNUtH0nn/1kmE4yi2E4L9WnTiyEf77LOH/1977bXXXtt0MOChktfEIcBMXNXJmgkCSQImWA6SBCQJmGAEJrj65AhIEjDBCExw9ckRkCRgghGY4OqTIyBJwAQjMMHVJ0dAkoAJRmCCq0+OgCQBE4zABFefHAFJAiYYgQmuPjkCkgRMMAITXH1yBCQJmGAEJrj65AhIEjDBCExw9ckRkCRgghGY4OqTIyBJwAQjMMHVJ0dAkoAJRmCCq0+OgCQBE4zABFefHAFJAiYYgQmuPjkCkgRMMAITXL3ka62fYRiWZWnm5DiLRiKhUEiCS8pRFC1Ew3w4TAnC19qG/88L/7oIoGlaEISBgYHurq6+vv4wzyuUCq1OV3O0Zvv27QB9+vRpCxYunDRpEs2yYdDwTb3oC35ID1IPAQ8FA6+88tpzzz13+HAl8JVJObVaqVIoU1NTFWr1gQMHnU5Hlt2+du2a2++8M6+gAAyBs0gk8k0j4kISANXCsFK3y3n48OEvKip2795dVXW0u7ubZZloVAjxIU4i0arVOp1WqVT29Q909fQadNrJhYVLV6780Y9v9Xt96db0bxoHF4YAKHpWIqmrPfbGG29s2rSptvaYz+cDH0qFnOOkkUgUFzRSOBwJ8bxBp7Omp0mlUuRp7eg0aDUKuXzpipX2zMw5c2bPnjM3HOa/OePgAswB0Dltbe1/+tOf/v73Vzs6u1iG1mjUxpQUGScNhEJ8OEJIkEqRDdLt8/v7HM5Bt1uv06iUSoVM5vL4MqzWz7Zvn1xS0trcPGfu3G8O+ujpBSAAuhsFZWfnWCwWCC9wl0pYYO31+eRyudloVCjkMH4cDqfL7cYI4KQSjIbO7j5OynIcFxWohuYWqKZPd3w6a+Z0lMXJFDCQcCHbvzwZX5UAyDUw+vjjT554Yn1/fx8k3R/wu/kwkNVpNYAV0h8MBrt7er1+H0TeZDSCH7wFC9Tt9fYNOAB0JBIGW+Cspb3j+edfkHFcQWFBcUkJ+MPTf20OvtIcAByhYR5++JGn//IM5DoS4f0+H7S9WgXlL2MYGtMATTP+QFDCsqlmk1qt4kOhQZfL4/ViTEglUswMXT19yAlZxyf4o4Roil6v02q/c+WVN918s9VmxfzxL8zBVxsBNP3YH/74l2eeBb6hUNDrcWPdBTEXKMHt9YAJItt8BEMhJdUERTU4OAhFhM+YXANyVqlQqBQKF15kWE4mU2NWUBCpd7vdO7Zty87OWnfDDf/aBJz/CIC01tc3XHX1urpjtRB/j8etUCqhwQOBgCBEaRikEklsHDByTooVLxRREDNAOIKnkaiAnFKIvIwD9F5/AOaSjJNB6UNlZWXYeJ4HBxqN9uln/jJj9myMm3EYBJyUoSA7AkUzdKyd41AndZ4EQJyx3vrZ/Q8+8fjjOp3O43EpFUo4HYA+Wg3ciSTLZEGeh3L3+/00RacY9JieXa5BqCk+IoQh2FFBJmWisb9XAaWllCtUKiVKBh9pJhMGj8fjzczKenvjuzIZ4WYEPIgZkOga6Z3T8zM0vflg15ZDXXxYmFlguGqBHW0bsc7T3z/fb+epgrDW3bHjsyefXK9SqYCUSqmG6wGqA8NCjjlUImEZxuPzudwe6HqNWm2zpqsU8rbWFphC6JUE3YUziKbAAR+NyKQS3EHuMD9DC2lU6qbWNkwjmAr6+wcqKiouvngVVNwIfUwINMrnWIZiaIw4DLwRXodZ8MG+zvv/WgmaYdR9eLBzwB269/JJfPhrn37OkwBKoN9/7/3iouLe3j6XyymRsv6AT4hSWOJGopFAkKy9oHFC4TAsGSx3MbDb2ztauweAAgvlQws2LYeuqhUyjy/YORj0gL1wWCHjnOEIyDPoda0dHRg7SxYtstls4DghfGARuP76tepjbW4JO3wYQApMWllppnZJaWq+VQ2zFnN+4nIYetexfkiDQobWYXBT+BoKRxn6a3cVnicBoVDguuu+39re09BA9IPX64ZZKY4GPhQWV77EElUooFQDwSAWvSreNdemKM82XVRqz8+2Wi0mqUKBpYC7t+e193e+u6+psi/Y2t6h1Wj4SASrZcwNoWDweH09UhKiFk9s6PQePuHEUi+ecvJGoLDI2LS/85mPGq+cb79tdZ6CYzH9DM8W+56TpoJWjERJIYFQJNOslLIMepIw8wVMPE8CZHIZfMp79+3DMA8EfEBKLlei/TwfIsIvULBEsSKDAQonhccfyFEJty2wL5lVlFeQJ9GbKLmaYjlYQVQ0rDOa7rOmzsireGLjvs1NIa/XA2celsrQZDChTjQ1Hz9+3J6VhVXC2boN2YcOAV5ny+APRcBBc6/3v24sl0mYM8cBz0euXGDvGPB/Wt0biQjFmea7LykcedY5W13nmn4+BMDZ4A1En3hhY1d7Myz9AFCWSDEHAG4McpjzMIrwFQoEHeM4AbbFTXOzL1tWbrDZaaUuKlNSEvxwxNoQsNyN0Cr94ovmhCPhztcP7OmOaFiJ3+eXSKWg0pxqUWAYnUV1nNlbZIQgi+nib8ylmHGUMvajg92F1safXlIQ4ocPAryl5Niff6/4Dg8Uj5CixnYFdbaxcmalXyXlnAlAZ9DEX71S/cbmzzG9SWVyBUXBTMRohU6XyiQRqE6GCQZ5OsKrOIk7FF6ep71s/iS91SqRqwVWQtEsBYOJlWK+A2EUbiQyWqldvHDm1S0De9+pR8+xgJBysFElanOuR2anqbOK/9DOY6Yttmt/uiYfMy6Gptsf3lLZ9UllDyQG2cDEG1+0QdJTdTIRXE5CpuihJRh0MvIVumsMygcjjxGHHXqBYohRIfAoeji/Q2sYfn/OBAC6x9489tbO5uWzCwfMvkPVdfD/QFqj0TBDs5gJsPQFfBIhXG5i6tyURUnfsbzAlG5hpXIB7EHtEO8F7FL8ZikJTbGwijDxRbmo4bJl0/+8q7MrwKrlMtApl9BBWvHLV+usRlVxpnZUmwRdN6i5hVNSie7HRdNrZqX/5tWjr37aAhsfNPQ6g4ebnKumW4AS2lJR09flDGCADEMFTwvSNaiRKNNEF4rCz/EOz57j/Y1dXrefx4Rv0cvLc/Qz8g1qhSTEj3XyODcCOI59f3fHU5sab1qk/9mq66++5ZjPOwhlDZkB86wQNSqZvoCgkwhLs1R6paym2nHXivx5UwskKg0N2SfLLwoWJ8NJKI5zekJ1Te21Da2DTsfMgtR5eabsgtyfX1J258v7GKUKywSald19/YrX26IPvXzkr/fMVsslZ0MkjhI4iPJRjFExBXPDVQsy3tndjsEBAcUisK3PR0QVxhhDP/9J05bD3fIzZm/MGT9ZXTAlVx8KJRh5wLrfHfzTe8c3H+ga9PGkrFi3IPh4NDlDc9fagsWl5jFycA4EQPbben3/uaF2Rrb8vtUpSqV09rTJew8c8rhcAAtr3WkWeapezQqRcotiRq7pRI/n15nG76+aoTOZKeh9Vkr+RiBgFcLb91S9+Wn1Z5UNbR19fDAAq5SVSm9YO+s335t19cqpb+5t+qCmP0WnMZlM166eXtQtu+XZ9qc+qH/gqqLQKWTjiI98AxWnlMFIJoNSzIk1YPwV0COXslBN8RTxJgZlDNRhD2K09Q4G7nrm4KFGp5xjRLMKIwacwsWIz5pW193PHHz42pJL59jGwsE5EIDin/yg3uEOPHV9hkrOQObvuvWaDz7+/MjROj7kxxyQn6pbPNkmhIODQb6izef2he0WzXs1jhIfU14AlcIStUMJx+pavnvfs8FAoCBNs7rIXFyYlZ2TIacjfpc7wodlesPNF0/98NgnGFJmo0Gl0SxNla2br3vhk+ZV0yzT8gyjKiKgEBNxAh5sI+gcd4AXbSSAatSQCVa8UEWQx9RFvgF0mA4EwpEvmv7DO3WHGh3gFRnRmPQUhd2k9AXD0EgoEPMKxt9v36gttutyLaqRF4AoYawEQFgONjjerGi/eZF+SrYsEjMkdFr1Q/fdcs/Pf9/c2spRkZJsqyHF9PhHB3c19hA/D8MIdHuQP5xhVG5+cHVulp2SyihWomeCv/x2wYk+r4OntHoN7I6Gtj5PmAmGI0xlR3mWyWhNL51caGBC/7G2QHpsK2WZ9JMV9o+rPE9tanjq9hlA6EsZPgMsPEKfAQGy4XNnTfcfN9aJsAJioFZk14oTLCyr0kwdhFfkBhNBTZtrwBMagQNomJrWwS2V3Qqo0Bj6EPP7Lp+kU2EKFCpq+x966QjIxjq/3xXaUNH6v68spk6NvDNaejJhrASgYy9ubdYq6BsX6IRToxi2+Zo1F727ecfzr3TKpUJeVlZtlxPG+1XlaSE+4vQGAyFeq5BOsaj6WttSFFKtKZWWK/QamZdi3YHwddMtBRlmsMIIYXgdPm913/bU+xhbi6cXaeXcxSWpCwrSDv39JWOq0X7nIzctSfnde7176/rnTjadbRAAyqMtg+se200ooilfINza58esAHWP7gb5yEVlqZNsWlEqQc8da/LjEo85+q6n92851COTnnUQMCx9oMHpDYSheYC4WSe7+5ICDCmYrijnovK0tbV9L2xtknPYn2X21zv8wTAsJRA/wjUmAlBKfYd7S2XP9fO1FpMkEhpSZCRy7+3rPty+xzPQozGYUty+DIPSoGYztJyCEULBUNMg303p6jpcJl03o9YpZMqPvqg50tjzHytyD3X7n377WHeATtPJ81XhddPTb5yRumF/+w+LVA8eb7bbCv19ffnTpvlO1EQaq6+YOee57QMbKtpBwNn6AxS8gUh1y6CYAXYUMVdiGAMjk0521yWFSImrBYh/vChsRIyMlJiz0wHHIrnAX1aqKs2oxHuwTWJpTFm2XpyQwbjDEwJVehUHX0DsaeKPMREA6dhyqBvyfuk09TCLHKMhL9u6esnsDe9teXbL3vrm1h/MshSbuQ6nv8UddUc4q4bI4osHQ3ua+wcp+BXU2w43//6q6S5W/kJV/4d76mfOnK3QGzNnTd2y962Z2aauiHz2whkz6n20o6cnFLKWlnC2jKjLaS6VrJ6i3niot6PfbzHIh2I3tGdAW1QpYiIwBVJAH56Gh68thf7B0Bya/1zv4/WCyG5n4A9v1sb8LrB7iRfvRLcnPtmgasIv6BoJ/zHMASgB1ti2I71Ts2SFFi56Sv+g6Qh58w7073zxaWv3oRyz5vPKQ98uyy9M1Xxc01YvmCVK7YYt28umlOfSvXo6sLvB9+ilkzz+0M5w0Jiepk6xrF5dcry6pmbfniLL0u8snemhD/cKCpWjl5KrFhZZLbzL29Xu6+3BPhqlUKE33ypTv1wxuKdu4IoFGZFEBiKahG7D1hSFFJ8yKZueIl82JfXqhZmg7SuiP5QtENDe7396c308ETjDEMJMTkzh2E/80Qg3o48A1NTU4z3W7r5tqY7l6KH6B06bEzs2Nez4yGpMyVaGe7RWi9EQEtgAxf3k1h/u3r33ow+p+rpjylxrjlamGPQWTCqw5OQ9uf3/vrPvxKO3FCstBsW65Q7HwJrLl5kdh7UZ6ceb3WaDFlgvKbLLEUTRo8MGG8VIKCOMK6HYxtn0Esx1V8y3JewSdAtWT3evLQAHYAIGCZwKsFI0ShIag3GQ8K3zTkT5OiVs6wQXZgiNAu6ZBI+GJY1OAPQP0IeHeVqWjDqjC972JhlZz7MFeklUm+rlo1q14tKpNp37xOK50zuqdnd2di2ek1Nx8CjQwX6LMiPzumXlz+6sj9BCdqT5puUlUpWWlmGmkipVyq1VRy9bPA0qAzN5IOBSGlIYbJMp9JTeAk+fRsmW2uVVLYOYXWGVAeJhF+TOoOLml5hjg588RAqUxgUU/HiNMATK8gyP3jAFVcQTh95gVaBRjL5yHJ0AaLG6do9aTmcbpfGOxWvSpVnghfbwvNTVV5abdazHhQ0AtZRju6szot2/uHYR7/d4+nqqq6KsQUE89iH+2ssX7altWf/JsXu+O59D69F+KUcL1LMfVMiUyvmFqZi8otjkMZpZhUrwegTbZBrruGgEPBdbZZ8fd/W5QjajAmIeb0b8hoz98Jcr4Xh6wpuhAjr0Pp45nhivCfpAfIoUCLg1hTgKv3yKHsbFXgDxZwhsvOhTN2MgQBBa+3wmDatXskOsBlKAEI2aymZJN70LHxDH0JOM0qAkbW+b+9qpqZxCLlHIJPBa62TVHl+vh/9+eTrwpfiAXKH41brFj7766b0dAwtml6llbEevY+/+Krsi8tC1K7BHirESCYaYCBcZ7I8Yc1jbZII+qY/KMiHYK9IzGLCbsfMT7zh5OD4XQTxWE4z9ph5fl8OfblSIZjEGZV2bu98dguyDFKw54JYYtVWjEwD/OCTOpJHIOfqUo/dksYieSiksSyspDxw+iGa1tzR9e9Gyt/Yce6u691vF5jSdJsJID7T0r99YecXU9PwMk1KlouQ6vGzJyfndvVmf7zlyYNtmdyiaopbfWJo+p7yAwoZCmI9GpYOs3tXeb5pcri5dRKLbsdmGS6DMGhZ9w35hXM5ONuUcf2H35u1d7a/uaIn7IU7aMPCPIjJMymze31l5wikKdzAc/dHFucunpmEFNyPPAJcURAQo97uCv32z9t8um4QFAVmI1fT/6pUqYIX2+oORaxZlPnxd6dmWLPH2jkIAxhsEzRMIp8ixQsS3YUInMKyk7Ps/6m1+MJ2VeSKUz+26ssy2/WDVw0caBAkbCIX1HHXH0iJllG/rcdccrEzr7OzvHZArFZnzly3/Tv7yoDvWFJrig1GfOxrwwZ/KU3TmsstZjQGeASL7IvrIR7z2ZKHqC0a+HOnxrpzLDfrS5QjsrR/ANoD4HjpG3MsxYvEJE7N94KTJ7+cjV8yz4RV4GiZlaOEReb2iVQUXk4RY53uPD8Tsq2hbvx9YoRDQY9TKrl2SJfI3crtGIQATALqPcs+23QRlrbPnzPvJ/Qf/8ZJ7oLuntV6ZO3lOhm6KDt5P2mYz5RdkQS/vrDh4vKWnqaPLbmgtLCk2Fc+gJVIh4PN2d0SCfpVOTzbOQ8FwGGHtobBKx8gR4YKKh/ENFybpzgVRPtDmMGMAYkKAIODgWnyEyUYkBl+B6T2XFWJzbe9xB5xxeB3SiTkSQKFA/MC5hM2fh75XPHlsa47RCED0FGILJEwoPByLeLsjfMhSOm2e1nDo7b/1ONyszhjp69Dr1bZ0vT5FF4pEPW6PVqspyGE1WlV2doY1vwC7khD24EBPU30DzQdyCvMkrDTMB6GBAoGQxJbGyuRCoo144suE1ww8DGkOhjm6jRkBhiaENN6wkW/AIt6KIztCZmSLU44b+B4ev3U6vLPv7+vEchcNEVUDQrqh0GbmG+5cWzC7MGWMptcoBKB09FarlDgHSRjP2VoJDnQZ9kW33w+N1Fl1+Gh7YyAY7h/0YXUolXNH69slnCzDZkZ4hEqlcbS08HWNwBeBcAUz57IRf2iwPxT08zhBEAgGolJzTglZUJ15YZMrQBoB805UhmKmn64tcHp5oq4E4uxMaB0NKywcji6fkmo3KuJWzbAM4ldMP2AIVnGJXYtXxERoGJj/2L+Ektnf4Gjo9Lj8xNtqTZFPzTFMydFjg2Es9o9Y2igEIBP0YqpOfrxtwBuMqmXY0RZfHP6J819IQtCbMTdPkWYbbPE4fCGaoaxadYrRcKKpPdDv9Cv7jAadJsWoMpnlWpVUJcdGGIQWK1eoHuwtu90B7YyLFeb0hOKPYd7pDAMTeHXi8wIqXVBkIlv8JN4FFw6eBWGLxu5PfiBaiezExS4+hKcw34T8dE2h3YD+QaVhlwL9JD+4BMw66CTZs3M5B71eryUtDY/jgwBZcI8fRE7kpKtjr5zMDxHAEESHsFWOdATakKcjXqMTgHbkWpTv7o70uyMaOZtYNk/VgZ5xSmXW3MUHO1q8viCmb7U3kGlPS9Ep3U4Pwq8Qr+vjPUyAkapwXgARCrHoUT6MTWWn0xNWp5nK54PFU+Wd/pumTvTyEH9YHUPFHLF1e3fv3fFZhdfrL5qUv/pbK+C9iEdRAItDlUcqD1cDDkTQXLp2FYKXwEEgGGqsqUMMpNWabjIZEQnZ1NwM1LOzM5EBPCCk7N33P+rrG7joooVTykrB7OmtidFwhkcEczViMBsbm7CAzcvNQVDIsLeGfR0DAVEBLtwAT9V189kW7szF8LASYZvaSkr97kuPfLDB6XXS7X0Bf1Am4xRqEnaICFC1Hv5Sk0SuIDojHISw41+/w9Pe5Zg8vxxbY2cjQAhTR9oCWWYlHAxkNz92STnu+Rde+cXD/zXocqN8hmZWLF/y9JP/Da8flCaevvramw889AiCgkGAIcVw0eL5ajV5BOh37d7n8XjKyoqXL1/a1NS849OdCOkzGlPAH4YImLPZrJyUSzEYkF+sDvjiBvzFb8T0+FMMUISD7KzYhbCoTLsdhSDz0DzD7kcnAN7E/HS1QcPtafRfXK4a9n7CrxDr/HkL1CbTwY0b+tobo4IrRatMSdHp9Vql1gDfA6PSYeYSAu4o4im8nhNNHXUN7ZNzLCoFdMtp2iNePozrHle4pj10xQIL3L/ibi1629vT+8T6ZwDQw7+4v2jypN/+/o8fbdn27sZNN914HYnMDodffPkfiIb/8Y9unD59CmLucEItjibgRuR2b09f0O/v6OgCZ4gexojHJWqPuXNmIzMCJuOvIB2AAlyIOe5jY+UkH6AE8Wc4qxU7rwXkR5F9sWujEwBZSNXLp+XoPzs24PNjWwXevjgsZ73BOEgvLFLfeNumx3/X6+6PUgGEPSsRr6sIMgEPlDCaK+A4gdNx4FBtY3NneVG2PTMd28XE9qMxMwynAX79fScCDl+UaPxTMoXjfz29OO7nsFjSfnDTtTqdcf+BQ3v3Hmw80Yw8AwMOP6LGfF7Eaa9auXTe3FmQejHO96T8RqMarcbr9TW3tiFqXm/Qd3f3QAvhyMiWLdsGB12ItkdTZ8+amZubjSYB8Y8/3oqQy7y8nKrqGnyFvpo3dzbAxtM9e/bVNzSi5MLCAqScFZrTH4wpH3aCVk5N+1+V3fubAouK4E4YAwOYqfiQxmwypKXXtrVgahKwpMYRDpzLwEKTwY5SdMDpOlzb5HF5Zk4pyMmzI7YlGPTUVNdas7P0eg10xCmcSZMxrb53yJ2Zqpyao4cUnt4LRLjQABe5CLKIfaEZTLY3/ODOpqYWBEZCYH96zwNIhfhveOXZtLRUkWCYtBALhlEfPlyFEuArFNNROMBFmEEYhgEJccXC+6TmQbgxZgsk4iQDCK6urjGbjGVlZTW1tZWHq1BRSoqhoeEEXoFPbFgjE34dEwGItVpSaobz+LXdroWTMEGNcqGxWKJQEsn+fdXdgwE45YH1gJOqb+tFqA/WdjDpELmODcs0g3re9Mn27AxOrkAIMxcNHXj/H/dUdP/7z25duWQaoES0BcBGQEZte3BHre+Wi/N02AI8Y+pL0CCahnoxGHQ9vf2YkNUaFcJncHoQWmtIZjhXhLRU8649+4onT5KwJ/U1tMfKlcugSb74Yk9V9VERffEt8AQVNHv2zILCvE8/3Xno0JGenj5ore6uHtRSWJi/ZPHC5uaWzR9uGVLLSLdjIwD7nwb5d+dZn97cUNkcmJotj5whg2IlULLwpCBY4Eh1w+vvfbb+z3+9bXFhmRnBAdDHFE7CdAcCGOBwGsJvXGAzFhXY0+0ZnFJFBBd7KXzo0mL9/2yqvvXe/16zYs6tN6wtK85moEyjkRd3DkIXXzbXKm6pj9Qn4oXG9Ct77n8eR9Dqd753U03t8f/z6C/nz5sNwYRJCqTimGLTND8/D3opPd0yFGukEC2eyIYBhTj8hvaKUcPiHIt9MTQJKShZrVHHXhw+TBO2eUwE4E0MgqsXZf5jZ/v6LY4//8BCxHhI+aiViDxNw8+zfWfla+9s/WzXkb6BATvntaVoo4If6xToawT/q2J7rxoFZ0/V52RaTKkmuEjx1wqIgsLhMqXkrV3NjU50JvD2+9u3frZ//uwp116xWJGa99YB97qLsvLSNcNXmAAgZpMALTJ7xARcBAXnQdBKEWvgDosIHREfiVigF5AMHDBJSzNjKMBajafjLfFCCm5QbFw7xQsZWpT4IvlEbnEe/zJppLsxExAVbGblratyfv3q0Xf3e66YoxG3xjAkEYvL+4O7dle9sXHHx5/ua2xqg/MHzgIpS9l0Usy0EcTnEsYicFSxmIo5Jt2ks6WbMOkBfQbzFciMhlVy6d7j3b/eeAJLTQg91A4WQZu3VHz2RaVmwY/TUrNvXpGDja2hvQFn2I3A1O4YcELMi4sltbV16D90PbIBoDhG5GbI16GFAFn4YAlup2QKX51OFwYApgCkoxn4cxcYf1DxQ18cei/Sj+MkWFDizASmjxEyn/bi0C8j38NPfM3iTETFPLqxrzxTlmshQT4uh3vTu5+9vGHL7gNVbo+XpUlkLuLfiDWJpgfDA31dMpMBMx1i01hG4ORSLMrMKRqdTi1TKXAyD91GftCyrbLt3peP9Lix20UcBAQNeLioMJO10M2lP7g212pSDtP+KNNuz7h45dKX/v46plwo/abmVrvdunrVCngJxe5gcsY0CgE/s3fQRUPlGvdEOyGEtLd/43ubAD0ogzLZt//grt17y0pL5s0jVinyiLzi82QJgmDLsMIuOl7fiKPqqAjvIt+ZNZ6ZMtYRgDch14iH+cXVxev+sOeB13sfu8awdduup158v7q2ARoeIo9oJaIJYa/AyqQExIO0+iRNXX0aGfZm5Uq4AwRGreRMehUiunAmEuecoJkQUO0JhtdvPv7Ee7WILwP4pAgS7AejNCi3z4hkLrlyjuWyuTacPTizA8j8m4cfSLekbt3+ud8f+Pa3Vtx+283FRYXAHSXgmj5tSgrWIDqNiFq8BMgJ9D7WWciDRDzFEgyWDxRXhImmW9JiyoQIAUQBQMOfiGxpqalYx0G6kR/rNbvdZjDo8TQr0w4zt66uHgvg0pKi5pZWZCaiONp1zof0sAjavK/jvr9W6UOtxz54PBQgVjZMZBLmj0bhgiLGGhcQxk5DmmXCZZOUs7K01hQ1xin8t3qdClamDosyg9HJs59UdTzz0bED9X3YY8I8QeAghcBUCsnTi9nyG2YWW9ffNk0jlwz1xgztF/oJExZn/zDwoZGgFfEXEuIZ8BQAozWxUuPJ5CYOvZg69Kt4f1ruGEmn5yFl4L9YMsaKyDp0lzjgzqxxWIHk/fP4czU4V/S3bU2PvF4X7jgwuP9vcOjHtAWEH62J3cYAROlEEwmUQkLPsilXlZiK7QalBCGYbIhiuoLMgY7Q1uqe421OvAZioLtBHWZNosLCIS6tSFJ+3eSc9PW3lduMyhG2lkRQADQ6PFSloAFiYhy1OKwiNPiKG1H5x/MMRQ2J8XTcxDITxMULX8WUs+UZ1phT7532+3wIIHhJ2Ze2Nv3u7YZgV7V7/99Cg93YYCHGAmGA/MNFOhb7B+mDGx8WqlouxQ8owZaWF2eZMNlirsbUTHw4BH8gFpP/sCJrjlB4aUlu2mM/LMtOVY0QUYLO4+Q3zkth4Wo2G2E7xuGAhnc6nVgQQR1jfsINTlDB2CdGauzCU+gTrLQwwZLWCAL0TGwBFRMjRDMGg07HILa+0B2giWyYllEFeIVFiz/yAjsC3iSXyy3arKgaXi+0JLa+Y3Hi/zSwE305hzkg/jpah7NH1y/LQlDqf25gKYUxWPVGoL0SGaDSIYRwG4hjMzY4BZiHEmKDkGBNf4hMzngMieegcYiSxDd8EFUBwWfkGtmkVVHr3EUl5kfWlaQjmuqUI55kO+NCYZ2d3RoNVDxxb+DC6WJ8QkEDmva2dkwAKBtqAQoKJ5ZxbBlAoxhofFQJpOCKwLIXyDocjqws4grFi4AbZeITJhA+VcQ9F4WSQQlkdRwIwtBCgfDuIQVmDx5h6YAHZrMZ5btwyM3j+boIQOvRA+w5XDrXBt/kI6/LD8lu4ax7/cc+Dru7Y4Y3xBCbVuTgDrwCQBdCFxNtAn0MJaJtiNTHvhFEoryAzRv7dDpvBWfIWLfYdscacqhxZPTREkiuyWQElHCEiZoXTgLSQhhXDAPjBOs+iCfOjaMujACrVY8GYP0lw44iQ7b4QTzWCJjJwFnMUxQVvQh4BFhxj08MAsCNYpEB6waMDNSlVMqRBxngfjh5kE3QYRKGFQtixELwysjX+aigoSVit9Ll45/bcuKVzzsH+vuE9n3+ll0RV9dJXU52OQAzwRxkiD5k8oV8w8qXnMVCMsOppKmFjH0+ZcjDjtJda3IXlZpHONY7tAG4B9AAAjfiZ/xprCKiuIekEKnAhUfxV0hrYpeYODS/mJMM0S/LIFljr5CM+I97XKKyJTenqsM9Bk2s4JE+vioBKBsSBNuxtnXwxW0tnxzB3+kbEByNke6qsKMp4hvAUT0oh3gHYm1FB6ByWIlMw2osrLlQME1mNdZCm/aahdZL51jP6YzVSJ37Z3h2AQgQuwlnA2Ct7/R8sL9rW1X/iW4c+HULvn7K20sFHNHAoMDjj3iQo0iUVEXLdJTSRCkRwKs36lTlOZo109MWlZq0Ko6EBZ0Son8GAL9qGy8YAWJDSGgNy3j9fF27++CJwaMt7ubewICH94fC0OaEAIaBcxQybtFz+RbV1GztlGydzaSAGoGL9BsFvYjYBSbgZKE4sYYBQdZjAk4c4pwCfgI8IQDpCJtBVJNKDtORRJfAWDzbCuurStc/w/tfCwFDOy7Ot+Tz5FRHpkH8fAOFfSgs8fvzWQfEXx7LDYE79m8smb+BeUb3Fn0DQRnPLicJGE+0E9SVJCABKOOZlCRgPNFOUFeSgASgjGdSkoDxRDtBXUkCEoAynklJAsYT7QR1JQlIAMp4JiUJGE+0E9SVJCABKOOZlCRgPNFOUFeSgASgjGdSkoDxRDtBXUkCEoAynklJAsYT7QR1JQlIAMp4JiUJGE+0E9SVJCABKOOZlCRgPNFOUFeSgASgjGdSkoDxRDtBXUkCEoAynklJAsYT7QR1JQlIAMp4JiUJGE+0E9SVJCABKOOZlCRgPNFOUFeSgASgjGdSkoDxRDtBXUkCEoAynklJAsYT7QR1JQlIAMp4Jv0/QCQAP3oxVP4AAAAASUVORK5CYII=";
@@ -89668,7 +91515,7 @@ var DEFAULT_SETTINGS = {
   compressDrawingData: false,
   boardFolder: "Omniboards"
 };
-var DiagramsSettingTab = class extends import_obsidian7.PluginSettingTab {
+var DiagramsSettingTab = class extends import_obsidian6.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -89677,19 +91524,19 @@ var DiagramsSettingTab = class extends import_obsidian7.PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
     renderPomHeader(containerEl, "Pie Flow", "V\u1EBD s\u01A1 \u0111\u1ED3 BPMN & board tr\u1EF1c quan ngay trong vault Obsidian");
-    new import_obsidian7.Setting(containerEl).setName("Default flow layout").setDesc("Direction used when auto-laying out new flow-style diagrams.").addDropdown(
+    new import_obsidian6.Setting(containerEl).setName("Default flow layout").setDesc("Direction used when auto-laying out new flow-style diagrams.").addDropdown(
       (d4) => d4.addOption("LR", "Left \u2192 Right").addOption("TB", "Top \u2192 Bottom").setValue(this.plugin.settings.defaultLayout).onChange(async (v6) => {
         this.plugin.settings.defaultLayout = v6;
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("Validate BPMN before export").setDesc("Run semantic BPMN checks and block BPMN export when errors are present.").addToggle(
+    new import_obsidian6.Setting(containerEl).setName("Validate BPMN before export").setDesc("Run semantic BPMN checks and block BPMN export when errors are present.").addToggle(
       (t6) => t6.setValue(this.plugin.settings.validateBpmnBeforeExport).onChange(async (v6) => {
         this.plugin.settings.validateBpmnBeforeExport = v6;
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("Compress drawing data (Gzip + Base64)").setDesc(
+    new import_obsidian6.Setting(containerEl).setName("Compress drawing data (Gzip + Base64)").setDesc(
       "When OFF (default): plain JSON is stored \u2014 AI agents and humans can read/write board files directly. When ON: drawing data is compressed \u2014 smaller file size but unreadable by AI agents."
     ).addToggle(
       (t6) => t6.setValue(this.plugin.settings.compressDrawingData).onChange(async (v6) => {
@@ -89697,7 +91544,7 @@ var DiagramsSettingTab = class extends import_obsidian7.PluginSettingTab {
         await this.plugin.saveSettings();
       })
     );
-    new import_obsidian7.Setting(containerEl).setName("Board folder").setDesc(
+    new import_obsidian6.Setting(containerEl).setName("Board folder").setDesc(
       "Folder where new board files (.omniboard.md) are created when you insert a board into a note. Leave empty to create them at the vault root."
     ).addText(
       (t6) => t6.setPlaceholder("Omniboards").setValue(this.plugin.settings.boardFolder).onChange(async (v6) => {
@@ -89713,7 +91560,7 @@ var DiagramsSettingTab = class extends import_obsidian7.PluginSettingTab {
 };
 
 // src/bpmn-native/BpmnNativeView.ts
-var import_obsidian8 = require("obsidian");
+var import_obsidian7 = require("obsidian");
 
 // node_modules/inherits-browser/dist/index.es.js
 function e4(e5, t6) {
@@ -89899,26 +91746,26 @@ function assign3(element, ...styleSources) {
   });
   return element;
 }
-function attr2(el4, name2, val) {
+function attr3(el3, name2, val) {
   if (arguments.length == 2) {
-    return el4.getAttribute(name2);
+    return el3.getAttribute(name2);
   }
   if (val === null) {
-    return el4.removeAttribute(name2);
+    return el3.removeAttribute(name2);
   }
-  el4.setAttribute(name2, val);
-  return el4;
+  el3.setAttribute(name2, val);
+  return el3;
 }
 var toString3 = Object.prototype.toString;
-function classes(el4) {
-  return new ClassList(el4);
+function classes(el3) {
+  return new ClassList(el3);
 }
-function ClassList(el4) {
-  if (!el4 || !el4.nodeType) {
+function ClassList(el3) {
+  if (!el3 || !el3.nodeType) {
     throw new Error("A DOM element reference is required");
   }
-  this.el = el4;
-  this.list = el4.classList;
+  this.el = el3;
+  this.list = el3.classList;
 }
 ClassList.prototype.add = function(name2) {
   this.list.add(name2);
@@ -89981,14 +91828,14 @@ function requireComponentEvent() {
     unbind2 = window.removeEventListener ? "removeEventListener" : "detachEvent";
     prefix2 = bind3 !== "addEventListener" ? "on" : "";
   }
-  componentEvent.bind = function(el4, type, fn2, capture) {
+  componentEvent.bind = function(el3, type, fn2, capture) {
     if (!bind3) detect();
-    el4[bind3](prefix2 + type, fn2, capture || false);
+    el3[bind3](prefix2 + type, fn2, capture || false);
     return fn2;
   };
-  componentEvent.unbind = function(el4, type, fn2, capture) {
+  componentEvent.unbind = function(el3, type, fn2, capture) {
     if (!unbind2) detect();
-    el4[unbind2](prefix2 + type, fn2, capture || false);
+    el3[unbind2](prefix2 + type, fn2, capture || false);
     return fn2;
   };
   return componentEvent;
@@ -90000,23 +91847,23 @@ var event = /* @__PURE__ */ _mergeNamespaces({
   default: index3
 }, [componentEventExports]);
 var forceCaptureEvents = ["focus", "blur"];
-function bind2(el4, selector, type, fn2, capture) {
+function bind2(el3, selector, type, fn2, capture) {
   if (forceCaptureEvents.indexOf(type) !== -1) {
     capture = true;
   }
-  return event.bind(el4, type, function(e5) {
+  return event.bind(el3, type, function(e5) {
     var target = e5.target || e5.srcElement;
     e5.delegateTarget = closest2(target, selector, true);
     if (e5.delegateTarget) {
-      fn2.call(el4, e5);
+      fn2.call(el3, e5);
     }
   }, capture);
 }
-function unbind(el4, type, fn2, capture) {
+function unbind(el3, type, fn2, capture) {
   if (forceCaptureEvents.indexOf(type) !== -1) {
     capture = true;
   }
-  return event.unbind(el4, type, fn2, capture);
+  return event.unbind(el3, type, fn2, capture);
 }
 var delegate = {
   bind: bind2,
@@ -90025,16 +91872,16 @@ var delegate = {
 function matches(element, selector) {
   return element && typeof element.matches === "function" && element.matches(selector) || false;
 }
-function query(selector, el4) {
-  el4 = el4 || document;
-  return el4.querySelector(selector);
+function query(selector, el3) {
+  el3 = el3 || document;
+  return el3.querySelector(selector);
 }
-function all(selector, el4) {
-  el4 = el4 || document;
-  return el4.querySelectorAll(selector);
+function all(selector, el3) {
+  el3 = el3 || document;
+  return el3.querySelectorAll(selector);
 }
-function remove2(el4) {
-  el4.parentNode && el4.parentNode.removeChild(el4);
+function remove2(el3) {
+  el3.parentNode && el3.parentNode.removeChild(el3);
 }
 
 // node_modules/tiny-svg/dist/index.js
@@ -90143,7 +91990,7 @@ function setAttributes2(node3, attrs) {
     setAttribute2(node3, name2, attrs[name2]);
   }
 }
-function attr3(node3, name2, value) {
+function attr4(node3, name2, value) {
   if (typeof name2 === "string") {
     if (value !== void 0) {
       setAttribute2(node3, name2, value);
@@ -90156,15 +92003,15 @@ function attr3(node3, name2, value) {
   return node3;
 }
 var toString4 = Object.prototype.toString;
-function classes2(el4) {
-  return new ClassList2(el4);
+function classes2(el3) {
+  return new ClassList2(el3);
 }
-function ClassList2(el4) {
-  if (!el4 || !el4.nodeType) {
+function ClassList2(el3) {
+  if (!el3 || !el3.nodeType) {
     throw new Error("A DOM element reference is required");
   }
-  this.el = el4;
-  this.list = el4.classList;
+  this.el = el3;
+  this.list = el3.classList;
 }
 ClassList2.prototype.add = function(name2) {
   this.list.add(name2);
@@ -90253,7 +92100,7 @@ function create2(name2, attrs) {
     element = document.createElementNS(ns2.svg, name2);
   }
   if (attrs) {
-    attr3(element, attrs);
+    attr4(element, attrs);
   }
   return element;
 }
@@ -90803,7 +92650,7 @@ function createLine(points, attrs, radius) {
 }
 function updateLine(gfx, points) {
   const cornerRadius = parseInt(gfx.dataset.cornerRadius, 10) || 0;
-  attr3(gfx, {
+  attr4(gfx, {
     d: componentsToPath(drawPath(points, cornerRadius))
   });
   return gfx;
@@ -90998,16 +92845,16 @@ DefaultRenderer.prototype.canRender = function() {
 };
 DefaultRenderer.prototype.drawShape = function drawShape(visuals, element, attrs) {
   var rect2 = create2("rect");
-  attr3(rect2, {
+  attr4(rect2, {
     x: 0,
     y: 0,
     width: element.width || 0,
     height: element.height || 0
   });
   if (isFrameElement(element)) {
-    attr3(rect2, assign2({}, this.FRAME_STYLE, attrs || {}));
+    attr4(rect2, assign2({}, this.FRAME_STYLE, attrs || {}));
   } else {
-    attr3(rect2, assign2({}, this.SHAPE_STYLE, attrs || {}));
+    attr4(rect2, assign2({}, this.SHAPE_STYLE, attrs || {}));
   }
   append2(visuals, rect2);
   return rect2;
@@ -91132,7 +92979,7 @@ function indexOf(collection, element) {
 
 // node_modules/diagram-js/lib/core/Canvas.js
 init_LayoutUtil();
-function round2(number, resolution) {
+function round3(number, resolution) {
   return Math.round(number * resolution) / resolution;
 }
 function ensurePx(number) {
@@ -91193,11 +93040,11 @@ Canvas.prototype._init = function(config) {
   const eventBus = this._eventBus;
   const container = this._container = createContainer(config);
   const svg3 = this._svg = create2("svg");
-  attr3(svg3, {
+  attr4(svg3, {
     width: "100%",
     height: "100%"
   });
-  attr2(svg3, "tabindex", 0);
+  attr3(svg3, "tabindex", 0);
   config.autoFocus && eventBus.on("element.hover", () => {
     this.restoreFocus();
   });
@@ -91539,8 +93386,8 @@ Canvas.prototype._ensureValid = function(type, element) {
     throw new Error("element <" + element.id + "> already exists");
   }
   const requiredAttrs = REQUIRED_MODEL_ATTRS[type];
-  const valid = every(requiredAttrs, function(attr4) {
-    return typeof element[attr4] !== "undefined";
+  const valid = every(requiredAttrs, function(attr5) {
+    return typeof element[attr5] !== "undefined";
   });
   if (!valid) {
     throw new Error(
@@ -91613,9 +93460,9 @@ Canvas.prototype.viewbox = function(box) {
     innerBox = activeLayer && activeLayer.getBBox() || {};
     transform4 = transform2(viewport);
     matrix = transform4 ? transform4.matrix : createMatrix();
-    scale2 = round2(matrix.a, 1e3);
-    x5 = round2(-matrix.e || 0, 1e3);
-    y5 = round2(-matrix.f || 0, 1e3);
+    scale2 = round3(matrix.a, 1e3);
+    x5 = round3(-matrix.e || 0, 1e3);
+    y5 = round3(-matrix.f || 0, 1e3);
     box = this._cachedViewbox = {
       x: x5 ? x5 / scale2 : 0,
       y: y5 ? y5 / scale2 : 0,
@@ -91712,7 +93559,7 @@ Canvas.prototype.zoom = function(newScale, center3) {
     }
     matrix = this._setZoom(newScale, center3);
   });
-  return round2(matrix.a, 1e3);
+  return round3(matrix.a, 1e3);
 };
 function setCTM(node3, m7) {
   const mstr = "matrix(" + m7.a + "," + m7.b + "," + m7.c + "," + m7.d + "," + m7.e + "," + m7.f + ")";
@@ -91799,18 +93646,18 @@ ElementRegistry.$inject = ["eventBus"];
 ElementRegistry.prototype.add = function(element, gfx, secondaryGfx) {
   var id = element.id;
   this._validateId(id);
-  attr3(gfx, ELEMENT_ID, id);
+  attr4(gfx, ELEMENT_ID, id);
   if (secondaryGfx) {
-    attr3(secondaryGfx, ELEMENT_ID, id);
+    attr4(secondaryGfx, ELEMENT_ID, id);
   }
   this._elements[id] = { element, gfx, secondaryGfx };
 };
 ElementRegistry.prototype.remove = function(element) {
   var elements2 = this._elements, id = element.id || element, container = id && elements2[id];
   if (container) {
-    attr3(container.gfx, ELEMENT_ID, "");
+    attr4(container.gfx, ELEMENT_ID, "");
     if (container.secondaryGfx) {
-      attr3(container.secondaryGfx, ELEMENT_ID, "");
+      attr4(container.secondaryGfx, ELEMENT_ID, "");
     }
     delete elements2[id];
   }
@@ -91838,7 +93685,7 @@ ElementRegistry.prototype.updateGraphics = function(filter3, gfx, secondary) {
     container.gfx = gfx;
   }
   if (gfx) {
-    attr3(gfx, ELEMENT_ID, id);
+    attr4(gfx, ELEMENT_ID, id);
   }
   return gfx;
 };
@@ -91847,7 +93694,7 @@ ElementRegistry.prototype.get = function(filter3) {
   if (typeof filter3 === "string") {
     id = filter3;
   } else {
-    id = filter3 && attr3(filter3, ELEMENT_ID);
+    id = filter3 && attr4(filter3, ELEMENT_ID);
   }
   var container = this._elements[id];
   return container && container.element;
@@ -92052,9 +93899,9 @@ function ElementImpl() {
       return this.labels[0];
     },
     set: function(newLabel) {
-      var label = this.label, labels = this.labels;
-      if (!newLabel && label) {
-        labels.remove(label);
+      var label2 = this.label, labels = this.labels;
+      if (!newLabel && label2) {
+        labels.remove(label2);
       } else {
         labels.add(newLabel, 0);
       }
@@ -92463,9 +94310,9 @@ GraphicsFactory.prototype.update = function(type, element, gfx) {
     throw new Error("unknown type: " + type);
   }
   if (element.hidden) {
-    attr3(gfx, "display", "none");
+    attr4(gfx, "display", "none");
   } else {
-    attr3(gfx, "display", "block");
+    attr4(gfx, "display", "block");
   }
 };
 GraphicsFactory.prototype.remove = function(element) {
@@ -93366,9 +95213,9 @@ function hasExternalLabel2(element) {
   return isLabel(element.label);
 }
 function getFlowLabelPosition(waypoints) {
-  var mid4 = waypoints.length / 2 - 1;
-  var first = waypoints[Math.floor(mid4)];
-  var second = waypoints[Math.ceil(mid4 + 0.01)];
+  var mid5 = waypoints.length / 2 - 1;
+  var first = waypoints[Math.floor(mid5)];
+  var second = waypoints[Math.ceil(mid5 + 0.01)];
   var position2 = getWaypointsMid(waypoints);
   var angle = Math.atan((second.y - first.y) / (second.x - first.x));
   var x5 = position2.x, y5 = position2.y;
@@ -93380,9 +95227,9 @@ function getFlowLabelPosition(waypoints) {
   return { x: x5, y: y5 };
 }
 function getWaypointsMid(waypoints) {
-  var mid4 = waypoints.length / 2 - 1;
-  var first = waypoints[Math.floor(mid4)];
-  var second = waypoints[Math.ceil(mid4 + 0.01)];
+  var mid5 = waypoints.length / 2 - 1;
+  var first = waypoints[Math.floor(mid5)];
+  var second = waypoints[Math.ceil(mid5 + 0.01)];
   return {
     x: first.x + (second.x - first.x) / 2,
     y: first.y + (second.y - first.y) / 2
@@ -93404,24 +95251,24 @@ function getExternalLabelMid(element) {
   }
 }
 function getExternalLabelBounds(di, element) {
-  var mid4, size2, bounds, label = di.label;
-  if (label && label.bounds) {
-    bounds = label.bounds;
+  var mid5, size2, bounds, label2 = di.label;
+  if (label2 && label2.bounds) {
+    bounds = label2.bounds;
     size2 = {
       width: Math.max(DEFAULT_LABEL_SIZE.width, bounds.width),
       height: bounds.height
     };
-    mid4 = {
+    mid5 = {
       x: bounds.x + bounds.width / 2,
       y: bounds.y + bounds.height / 2
     };
   } else {
-    mid4 = getExternalLabelMid(element);
+    mid5 = getExternalLabelMid(element);
     size2 = DEFAULT_LABEL_SIZE;
   }
   return assign2({
-    x: mid4.x - size2.width / 2,
-    y: mid4.y - size2.height / 2
+    x: mid5.x - size2.width / 2,
+    y: mid5.y - size2.height / 2
   }, size2);
 }
 function getLabelAttr(semantic) {
@@ -93443,24 +95290,24 @@ function getCategoryValue(semantic) {
   return categoryValueRef.value || "";
 }
 function getLabel(element) {
-  var semantic = element.businessObject, attr4 = getLabelAttr(semantic);
-  if (attr4) {
-    if (attr4 === "categoryValueRef") {
+  var semantic = element.businessObject, attr5 = getLabelAttr(semantic);
+  if (attr5) {
+    if (attr5 === "categoryValueRef") {
       return getCategoryValue(semantic);
     }
-    return semantic[attr4] || "";
+    return semantic[attr5] || "";
   }
 }
 function setLabel(element, text4) {
-  var semantic = element.businessObject, attr4 = getLabelAttr(semantic);
-  if (attr4) {
-    if (attr4 === "categoryValueRef") {
-      if (!semantic[attr4]) {
+  var semantic = element.businessObject, attr5 = getLabelAttr(semantic);
+  if (attr5) {
+    if (attr5 === "categoryValueRef") {
+      if (!semantic[attr5]) {
         return element;
       }
-      semantic[attr4].value = text4;
+      semantic[attr5].value = text4;
     } else {
-      semantic[attr4] = text4;
+      semantic[attr5] = text4;
     }
   }
   return element;
@@ -93524,19 +95371,19 @@ function getStrokeColor(element, defaultColor, overrideColor) {
   return overrideColor || di.get("color:border-color") || di.get("bioc:stroke") || defaultColor || black;
 }
 function getLabelColor(element, defaultColor, defaultStrokeColor, overrideColor) {
-  var di = getDi(element), label = di.get("label");
-  return overrideColor || label && label.get("color:color") || defaultColor || getStrokeColor(element, defaultStrokeColor);
+  var di = getDi(element), label2 = di.get("label");
+  return overrideColor || label2 && label2.get("color:color") || defaultColor || getStrokeColor(element, defaultStrokeColor);
 }
 function getCirclePath(shape) {
   var cx = shape.x + shape.width / 2, cy = shape.y + shape.height / 2, radius = shape.width / 2;
-  var circlePath2 = [
+  var circlePath3 = [
     ["M", cx, cy],
     ["m", 0, -radius],
     ["a", radius, radius, 0, 1, 1, 0, 2 * radius],
     ["a", radius, radius, 0, 1, 1, 0, -2 * radius],
     ["z"]
   ];
-  return componentsToPath(circlePath2);
+  return componentsToPath(circlePath3);
 }
 function getRoundRectPath(shape, borderRadius) {
   var x5 = shape.x, y5 = shape.y, width2 = shape.width, height2 = shape.height;
@@ -94334,13 +96181,13 @@ function BpmnRenderer(config, eventBus, styles, pathMap, canvas, textRenderer, p
       renderTaskMarker(marker2, parentGfx, element, attrs);
     });
   }
-  function renderLabel(parentGfx, label, attrs = {}) {
+  function renderLabel(parentGfx, label2, attrs = {}) {
     attrs = assign2({
       size: {
         width: 100
       }
     }, attrs);
-    var text4 = textRenderer.createText(label || "", attrs);
+    var text4 = textRenderer.createText(label2 || "", attrs);
     classes2(text4).add("djs-label");
     append2(parentGfx, text4);
     return text4;
@@ -94498,7 +96345,7 @@ function BpmnRenderer(config, eventBus, styles, pathMap, canvas, textRenderer, p
     var activity = renderActivity(parentGfx, element, attrs);
     var expanded = isExpanded(element);
     if (isEventSubProcess(element)) {
-      attr3(activity, {
+      attr4(activity, {
         strokeDasharray: "0, 5.5",
         strokeWidth: 2.5
       });
@@ -94610,7 +96457,7 @@ function BpmnRenderer(config, eventBus, styles, pathMap, canvas, textRenderer, p
         }
       });
       var businessPath = drawPath2(parentGfx, headerData);
-      attr3(businessPath, {
+      attr4(businessPath, {
         fill: getFillColor(element, defaultFillColor, attrs.fill),
         stroke: getStrokeColor(element, defaultStrokeColor, attrs.stroke),
         strokeWidth: 1
@@ -94622,7 +96469,7 @@ function BpmnRenderer(config, eventBus, styles, pathMap, canvas, textRenderer, p
         }
       });
       var businessHeaderPath = drawPath2(parentGfx, headerPathData);
-      attr3(businessHeaderPath, {
+      attr4(businessHeaderPath, {
         fill: getStrokeColor(element, defaultStrokeColor, attrs.stroke),
         stroke: getStrokeColor(element, defaultStrokeColor, attrs.stroke),
         strokeWidth: 1
@@ -94963,16 +96810,16 @@ function BpmnRenderer(config, eventBus, styles, pathMap, canvas, textRenderer, p
         }
         var message = drawPath2(parentGfx, markerPathData, messageAttrs);
         var messageRef = semantic.get("messageRef"), name2 = messageRef.get("name");
-        var label = renderLabel(parentGfx, name2, {
+        var label2 = renderLabel(parentGfx, name2, {
           align: "center-top",
           fitBox: true,
           style: {
             fill: stroke3
           }
         });
-        var messageBounds = message.getBBox(), labelBounds = label.getBBox();
+        var messageBounds = message.getBBox(), labelBounds = label2.getBBox();
         var translateX = midPoint.x - labelBounds.width / 2, translateY = midPoint.y + messageBounds.height / 2 + ELEMENT_LABEL_DISTANCE;
-        transform3(label, translateX, translateY, 0);
+        transform3(label2, translateX, translateY, 0);
       }
       return path2;
     },
@@ -95154,12 +97001,12 @@ function BpmnRenderer(config, eventBus, styles, pathMap, canvas, textRenderer, p
       if (source) {
         var sourceSemantic = getBusinessObject(source);
         if (semantic.get("conditionExpression") && is2(sourceSemantic, "bpmn:Activity")) {
-          attr3(connection2, {
+          attr4(connection2, {
             markerStart: marker(parentGfx, "conditional-flow-marker", fill2, stroke3)
           });
         }
         if (sourceSemantic.get("default") && (is2(sourceSemantic, "bpmn:Gateway") || is2(sourceSemantic, "bpmn:Activity")) && sourceSemantic.get("default") === semantic) {
-          attr3(connection2, {
+          attr4(connection2, {
             markerStart: marker(parentGfx, "conditional-default-flow-marker", fill2, stroke3)
           });
         }
@@ -95587,7 +97434,7 @@ Text.prototype.layoutText = function(text4, options) {
   }
   y5 -= (lineHeight2 || layouted[0].height) / 4;
   var textElement = create2("text");
-  attr3(textElement, style2);
+  attr4(textElement, style2);
   forEach(layouted, function(line2) {
     var x5;
     y5 += lineHeight2 || line2.height;
@@ -95602,7 +97449,7 @@ Text.prototype.layoutText = function(text4, options) {
         x5 = Math.max(((fitBox ? maxLineWidth : maxWidth) - line2.width) / 2 + padding.left, 0);
     }
     var tspan = create2("tspan");
-    attr3(tspan, { x: x5, y: y5 });
+    attr4(tspan, { x: x5, y: y5 });
     tspan.textContent = line2.text;
     append2(textElement, tspan);
   });
@@ -96117,13 +97964,13 @@ BpmnImporter.prototype._attachBoundary = function(boundarySemantic, boundaryElem
   }
 };
 BpmnImporter.prototype.addLabel = function(semantic, di, element) {
-  var bounds, text4, label;
+  var bounds, text4, label2;
   bounds = getExternalLabelBounds(di, element);
   text4 = getLabel(element);
   if (text4) {
     bounds = this._textRenderer.getExternalLabelBounds(bounds, text4);
   }
-  label = this._elementFactory.createLabel(elementData(semantic, di, {
+  label2 = this._elementFactory.createLabel(elementData(semantic, di, {
     id: semantic.id + "_label",
     labelTarget: element,
     type: "label",
@@ -96133,7 +97980,7 @@ BpmnImporter.prototype.addLabel = function(semantic, di, element) {
     width: Math.round(bounds.width),
     height: Math.round(bounds.height)
   }));
-  return this._canvas.addShape(label, element.parent);
+  return this._canvas.addShape(label2, element.parent);
 };
 BpmnImporter.prototype._getConnectedElement = function(semantic, side) {
   var element, refSemantic, type = semantic.$type;
@@ -96319,7 +98166,7 @@ Overlays.prototype._updateOverlayContainer = function(container) {
     y5 = bbox2.y;
   }
   setPosition(html3, x5, y5);
-  attr2(container.html, "data-container-id", element.id);
+  attr3(container.html, "data-container-id", element.id);
 };
 Overlays.prototype._updateOverlay = function(overlay) {
   var position2 = overlay.position, htmlContainer = overlay.htmlContainer, element = overlay.element;
@@ -96507,16 +98354,16 @@ function createRoot(parentNode) {
   parentNode.insertBefore(root2, parentNode.firstChild);
   return root2;
 }
-function setPosition(el4, x5, y5) {
-  assign3(el4, { left: x5 + "px", top: y5 + "px" });
+function setPosition(el3, x5, y5) {
+  assign3(el3, { left: x5 + "px", top: y5 + "px" });
 }
-function setVisible(el4, visible) {
-  el4.style.display = visible === false ? "none" : "";
+function setVisible(el3, visible) {
+  el3.style.display = visible === false ? "none" : "";
 }
-function setTransform(el4, transform4) {
-  el4.style["transform-origin"] = "top left";
+function setTransform(el3, transform4) {
+  el3.style["transform-origin"] = "top left";
   ["", "-ms-", "-webkit-"].forEach(function(prefix2) {
-    el4.style[prefix2 + "transform"] = transform4;
+    el3.style[prefix2 + "transform"] = transform4;
   });
 }
 
@@ -97050,8 +98897,8 @@ function DrilldownOverlayBehavior(canvas, eventBus, elementRegistry, overlays, t
   eventBus.on("import.render.complete", function() {
     elementRegistry.filter(function(e5) {
       return self2._canDrillDown(e5);
-    }).map(function(el4) {
-      self2._addOverlay(el4);
+    }).map(function(el3) {
+      self2._addOverlay(el3);
     });
   });
 }
@@ -97329,7 +99176,7 @@ function InteractionEvents(eventBus, elementRegistry, styles) {
     if (!attrs) {
       throw new Error("invalid hit type <" + type + ">");
     }
-    attr3(hit, attrs);
+    attr4(hit, attrs);
     return hit;
   }
   function appendHit(gfx, hit) {
@@ -97364,7 +99211,7 @@ function InteractionEvents(eventBus, elementRegistry, styles) {
     }, attrs);
     var hit = create2("rect");
     applyStyle(hit, type);
-    attr3(hit, attrs);
+    attr4(hit, attrs);
     appendHit(gfx, hit);
     return hit;
   };
@@ -97376,7 +99223,7 @@ function InteractionEvents(eventBus, elementRegistry, styles) {
     if (element.waypoints) {
       updateLine(hit, element.waypoints);
     } else {
-      attr3(hit, {
+      attr4(hit, {
         width: element.width,
         height: element.height
       });
@@ -98210,13 +100057,13 @@ function AlignElements(modeling, rules) {
 }
 AlignElements.$inject = ["modeling", "rules"];
 AlignElements.prototype._getOrientationDetails = function(type) {
-  var vertical = ["top", "bottom", "middle"], axis = "x", dimension = "width";
+  var vertical = ["top", "bottom", "middle"], axis2 = "x", dimension = "width";
   if (vertical.indexOf(type) !== -1) {
-    axis = "y";
+    axis2 = "y";
     dimension = "height";
   }
   return {
-    axis,
+    axis: axis2,
     dimension
   };
 };
@@ -98224,18 +100071,18 @@ AlignElements.prototype._isType = function(type, types3) {
   return types3.indexOf(type) !== -1;
 };
 AlignElements.prototype._alignmentPosition = function(type, sortedElements) {
-  var orientation = this._getOrientationDetails(type), axis = orientation.axis, dimension = orientation.dimension, alignment = {}, centers = {}, hasSharedCenters = false, centeredElements, firstElement, lastElement;
+  var orientation = this._getOrientationDetails(type), axis2 = orientation.axis, dimension = orientation.dimension, alignment = {}, centers = {}, hasSharedCenters = false, centeredElements, firstElement, lastElement;
   function getMiddleOrTop(first, last2) {
-    return Math.round((first[axis] + last2[axis] + last2[dimension]) / 2);
+    return Math.round((first[axis2] + last2[axis2] + last2[dimension]) / 2);
   }
   if (this._isType(type, ["left", "top"])) {
-    alignment[type] = sortedElements[0][axis];
+    alignment[type] = sortedElements[0][axis2];
   } else if (this._isType(type, ["right", "bottom"])) {
     lastElement = last(sortedElements);
-    alignment[type] = lastElement[axis] + lastElement[dimension];
+    alignment[type] = lastElement[axis2] + lastElement[dimension];
   } else if (this._isType(type, ["center", "middle"])) {
     forEach(sortedElements, function(element) {
-      var center3 = element[axis] + Math.round(element[dimension] / 2);
+      var center3 = element[axis2] + Math.round(element[dimension] / 2);
       if (centers[center3]) {
         centers[center3].elements.push(element);
       } else {
@@ -98257,7 +100104,7 @@ AlignElements.prototype._alignmentPosition = function(type, sortedElements) {
     }
     firstElement = sortedElements[0];
     sortedElements = sortBy2(sortedElements, function(element) {
-      return element[axis] + element[dimension];
+      return element[axis2] + element[dimension];
     });
     lastElement = last(sortedElements);
     alignment[type] = getMiddleOrTop(firstElement, lastElement);
@@ -98457,7 +100304,7 @@ ContextPad.prototype.trigger = function(action, event2, autoActivate) {
   if (!button) {
     return event2.preventDefault();
   }
-  entry = attr2(button, "data-action");
+  entry = attr3(button, "data-action");
   originalEvent = event2.originalEvent || event2;
   if (action === "mouseover") {
     this._timeout = setTimeout(function() {
@@ -98517,11 +100364,11 @@ ContextPad.prototype._updateAndOpen = function(target) {
   var entries2 = this.getEntries(target), html3 = this._createHtml(target), image;
   forEach(entries2, function(entry, id) {
     var grouping = entry.group || "default", control = domify(entry.html || '<div class="entry" draggable="true"></div>'), container;
-    attr2(control, "data-action", id);
+    attr3(control, "data-action", id);
     container = query("[data-group=" + escapeCSS(grouping) + "]", html3);
     if (!container) {
       container = domify('<div class="group"></div>');
-      attr2(container, "data-group", grouping);
+      attr3(container, "data-group", grouping);
       html3.appendChild(container);
     }
     container.appendChild(control);
@@ -98529,11 +100376,11 @@ ContextPad.prototype._updateAndOpen = function(target) {
       addClasses(control, entry.className);
     }
     if (entry.title) {
-      attr2(control, "title", entry.title);
+      attr3(control, "title", entry.title);
     }
     if (entry.imageUrl) {
       image = domify("<img>");
-      attr2(image, "src", entry.imageUrl);
+      attr3(image, "src", entry.imageUrl);
       image.style.width = "100%";
       image.style.height = "100%";
       control.appendChild(image);
@@ -98978,11 +100825,11 @@ function PopupMenuList(props) {
     </div>
   `;
 }
-function scrollIntoView(el4) {
-  if (typeof el4.scrollIntoViewIfNeeded === "function") {
-    el4.scrollIntoViewIfNeeded();
+function scrollIntoView(el3) {
+  if (typeof el3.scrollIntoViewIfNeeded === "function") {
+    el3.scrollIntoViewIfNeeded();
   } else {
-    el4.scrollIntoView({
+    el3.scrollIntoView({
       scrollMode: "if-needed",
       block: "nearest"
     });
@@ -99544,7 +101391,7 @@ PopupMenu.prototype.trigger = function(event2, entry, action = "click") {
   event2.preventDefault();
   if (!entry) {
     let element = closest2(event2.delegateTarget || event2.target, ".entry", true);
-    let entryId = attr2(element, DATA_REF);
+    let entryId = attr3(element, DATA_REF);
     entry = { id: entryId, ...this._getEntry(entryId) };
   }
   const handler = entry.action;
@@ -100014,22 +101861,22 @@ function generateGetNextPosition(nextPositionDirection) {
       x: previousPosition.x,
       y: previousPosition.y
     };
-    ["x", "y"].forEach(function(axis) {
-      var nextPositionDirectionForAxis = nextPositionDirection[axis];
+    ["x", "y"].forEach(function(axis2) {
+      var nextPositionDirectionForAxis = nextPositionDirection[axis2];
       if (!nextPositionDirectionForAxis) {
         return;
       }
-      var dimension = axis === "x" ? "width" : "height";
+      var dimension = axis2 === "x" ? "width" : "height";
       var margin = nextPositionDirectionForAxis.margin, minDistance = nextPositionDirectionForAxis.minDistance;
       if (margin < 0) {
-        nextPosition[axis] = Math.min(
-          connectedAtPosition[axis] + margin - element[dimension] / 2,
-          previousPosition[axis] - minDistance + margin
+        nextPosition[axis2] = Math.min(
+          connectedAtPosition[axis2] + margin - element[dimension] / 2,
+          previousPosition[axis2] - minDistance + margin
         );
       } else {
-        nextPosition[axis] = Math.max(
-          connectedAtPosition[axis] + connectedAtPosition[dimension] + margin + element[dimension] / 2,
-          previousPosition[axis] + minDistance + margin
+        nextPosition[axis2] = Math.max(
+          connectedAtPosition[axis2] + connectedAtPosition[dimension] + margin + element[dimension] / 2,
+          previousPosition[axis2] + minDistance + margin
         );
       }
     });
@@ -100689,7 +102536,7 @@ var hover_fix_default = {
 
 // node_modules/diagram-js/lib/features/dragging/Dragging.js
 init_dist();
-var round3 = Math.round;
+var round4 = Math.round;
 var DRAG_ACTIVE_CLS = "djs-drag-active";
 function preventDefault(event2) {
   event2.preventDefault();
@@ -100741,8 +102588,8 @@ function Dragging(eventBus, canvas, selection, elementRegistry) {
     var localStart = context.localStart, localCurrent = toLocalPoint2(globalCurrent), localDelta = delta(localCurrent, localStart);
     if (!context.active && (activate || getLength(globalDelta) > context.threshold)) {
       assign2(payload, {
-        x: round3(localStart.x + displacement.x),
-        y: round3(localStart.y + displacement.y),
+        x: round4(localStart.x + displacement.x),
+        y: round4(localStart.y + displacement.y),
         dx: 0,
         dy: 0
       }, { originalEvent: event2 });
@@ -100762,10 +102609,10 @@ function Dragging(eventBus, canvas, selection, elementRegistry) {
     stopPropagation(event2);
     if (context.active) {
       assign2(payload, {
-        x: round3(localCurrent.x + displacement.x),
-        y: round3(localCurrent.y + displacement.y),
-        dx: round3(localDelta.x),
-        dy: round3(localDelta.y)
+        x: round4(localCurrent.x + displacement.x),
+        y: round4(localCurrent.y + displacement.y),
+        dx: round4(localDelta.x),
+        dy: round4(localDelta.y)
       }, { originalEvent: event2 });
       fire("move");
     }
@@ -101068,9 +102915,9 @@ init_Geometry();
 // node_modules/diagram-js/lib/util/LineIntersection.js
 init_Geometry();
 init_intersect();
-var round4 = Math.round;
+var round5 = Math.round;
 var max2 = Math.max;
-function circlePath(center3, r5) {
+function circlePath2(center3, r5) {
   var x5 = center3.x, y5 = center3.y;
   return [
     ["M", x5, y5],
@@ -101087,11 +102934,11 @@ function linePath(points) {
   });
   return segments;
 }
-var INTERSECTION_THRESHOLD = 10;
+var INTERSECTION_THRESHOLD2 = 10;
 function getBendpointIntersection(waypoints, reference) {
   var i6, w5;
   for (i6 = 0; w5 = waypoints[i6]; i6++) {
-    if (pointDistance(w5, reference) <= INTERSECTION_THRESHOLD) {
+    if (pointDistance(w5, reference) <= INTERSECTION_THRESHOLD2) {
       return {
         point: waypoints[i6],
         bendpoint: true,
@@ -101102,7 +102949,7 @@ function getBendpointIntersection(waypoints, reference) {
   return null;
 }
 function getPathIntersection(waypoints, reference) {
-  var intersections = findPathIntersections(circlePath(reference, INTERSECTION_THRESHOLD), linePath(waypoints));
+  var intersections = findPathIntersections(circlePath2(reference, INTERSECTION_THRESHOLD2), linePath(waypoints));
   var a5 = intersections[0], b4 = intersections[intersections.length - 1], idx;
   if (!a5) {
     return null;
@@ -101118,16 +102965,16 @@ function getPathIntersection(waypoints, reference) {
     }
     return {
       point: {
-        x: round4(a5.x + b4.x) / 2,
-        y: round4(a5.y + b4.y) / 2
+        x: round5(a5.x + b4.x) / 2,
+        y: round5(a5.y + b4.y) / 2
       },
       index: a5.segment2
     };
   }
   return {
     point: {
-      x: round4(a5.x),
-      y: round4(a5.y)
+      x: round5(a5.x),
+      y: round5(a5.y)
     },
     index: a5.segment2
   };
@@ -101202,7 +103049,7 @@ function addBendpoint(parentGfx, cls) {
   classes2(groupGfx).add(BENDPOINT_CLS);
   append2(parentGfx, groupGfx);
   var visual = create2("circle");
-  attr3(visual, {
+  attr4(visual, {
     cx: 0,
     cy: 0,
     r: 4
@@ -101210,7 +103057,7 @@ function addBendpoint(parentGfx, cls) {
   classes2(visual).add("djs-visual");
   append2(groupGfx, visual);
   var hit = create2("circle");
-  attr3(hit, {
+  attr4(hit, {
     cx: 0,
     cy: 0,
     r: 10
@@ -101227,7 +103074,7 @@ function createParallelDragger(parentGfx, segmentStart, segmentEnd, alignment) {
   append2(parentGfx, draggerGfx);
   var width2 = 18, height2 = 6, padding = 11, hitWidth = calculateHitWidth(segmentStart, segmentEnd, alignment), hitHeight = height2 + padding;
   var visual = create2("rect");
-  attr3(visual, {
+  attr4(visual, {
     x: -width2 / 2,
     y: -height2 / 2,
     width: width2,
@@ -101236,7 +103083,7 @@ function createParallelDragger(parentGfx, segmentStart, segmentEnd, alignment) {
   classes2(visual).add("djs-visual");
   append2(draggerGfx, visual);
   var hit = create2("rect");
-  attr3(hit, {
+  attr4(hit, {
     x: -hitWidth / 2,
     y: -hitHeight / 2,
     width: hitWidth,
@@ -101248,12 +103095,12 @@ function createParallelDragger(parentGfx, segmentStart, segmentEnd, alignment) {
   return draggerGfx;
 }
 function addSegmentDragger(parentGfx, segmentStart, segmentEnd) {
-  var groupGfx = create2("g"), mid4 = getMidPoint(segmentStart, segmentEnd), alignment = pointsAligned(segmentStart, segmentEnd);
+  var groupGfx = create2("g"), mid5 = getMidPoint(segmentStart, segmentEnd), alignment = pointsAligned(segmentStart, segmentEnd);
   append2(parentGfx, groupGfx);
   createParallelDragger(groupGfx, segmentStart, segmentEnd, alignment);
   classes2(groupGfx).add(SEGMENT_DRAGGER_CLS);
   classes2(groupGfx).add(alignment === "h" ? "horizontal" : "vertical");
-  translate2(groupGfx, mid4.x, mid4.y);
+  translate2(groupGfx, mid5.x, mid5.y);
   return groupGfx;
 }
 function calculateSegmentMoveRegion(segmentLength) {
@@ -101284,15 +103131,15 @@ function getClosestSegment(position2, connection2) {
 init_Geometry();
 function Bendpoints(eventBus, canvas, interactionEvents, bendpointMove, connectionSegmentMove) {
   function isIntersectionMiddle(intersection2, waypoints, treshold) {
-    var idx = intersection2.index, p6 = intersection2.point, p0, p1, mid4, aligned, xDelta, yDelta;
+    var idx = intersection2.index, p6 = intersection2.point, p0, p1, mid5, aligned, xDelta, yDelta;
     if (idx <= 0 || intersection2.bendpoint) {
       return false;
     }
     p0 = waypoints[idx - 1];
     p1 = waypoints[idx];
-    mid4 = getMidPoint(p0, p1), aligned = pointsAligned(p0, p1);
-    xDelta = Math.abs(p6.x - mid4.x);
-    yDelta = Math.abs(p6.y - mid4.y);
+    mid5 = getMidPoint(p0, p1), aligned = pointsAligned(p0, p1);
+    xDelta = Math.abs(p6.x - mid5.x);
+    yDelta = Math.abs(p6.y - mid5.y);
     return aligned && xDelta <= treshold && yDelta <= treshold;
   }
   function calculateIntersectionThreshold(connection2, intersection2) {
@@ -101339,7 +103186,7 @@ function Bendpoints(eventBus, canvas, interactionEvents, bendpointMove, connecti
     var layer = canvas.getLayer("overlays"), gfx = query('.djs-bendpoints[data-element-id="' + escapeCSS(element.id) + '"]', layer);
     if (!gfx && create4) {
       gfx = create2("g");
-      attr3(gfx, { "data-element-id": element.id });
+      attr4(gfx, { "data-element-id": element.id });
       classes2(gfx).add("djs-bendpoints");
       append2(layer, gfx);
       bindInteractionEvents(gfx, "mousedown", element);
@@ -101370,7 +103217,7 @@ function Bendpoints(eventBus, canvas, interactionEvents, bendpointMove, connecti
       segmentEnd = waypoints[i6];
       if (pointsAligned(segmentStart, segmentEnd)) {
         segmentDraggerGfx = addSegmentDragger(gfx, segmentStart, segmentEnd);
-        attr3(segmentDraggerGfx, { "data-segment-idx": i6 });
+        attr4(segmentDraggerGfx, { "data-segment-idx": i6 });
         bindInteractionEvents(segmentDraggerGfx, "mousemove", connection2);
       }
     }
@@ -101411,14 +103258,14 @@ function Bendpoints(eventBus, canvas, interactionEvents, bendpointMove, connecti
     translate2(floating, point.x, point.y);
   }
   function updateSegmentDraggerPosition(parentGfx, intersection2, waypoints) {
-    var draggerGfx = getSegmentDragger(intersection2.index, parentGfx), segmentStart = waypoints[intersection2.index - 1], segmentEnd = waypoints[intersection2.index], point = intersection2.point, mid4 = getMidPoint(segmentStart, segmentEnd), alignment = pointsAligned(segmentStart, segmentEnd), draggerVisual, relativePosition;
+    var draggerGfx = getSegmentDragger(intersection2.index, parentGfx), segmentStart = waypoints[intersection2.index - 1], segmentEnd = waypoints[intersection2.index], point = intersection2.point, mid5 = getMidPoint(segmentStart, segmentEnd), alignment = pointsAligned(segmentStart, segmentEnd), draggerVisual, relativePosition;
     if (!draggerGfx) {
       return;
     }
     draggerVisual = getDraggerVisual(draggerGfx);
     relativePosition = {
-      x: point.x - mid4.x,
-      y: point.y - mid4.y
+      x: point.x - mid5.x,
+      y: point.y - mid5.y
     };
     if (alignment === "v") {
       relativePosition = {
@@ -101494,7 +103341,7 @@ function Bendpoints(eventBus, canvas, interactionEvents, bendpointMove, connecti
     if (element.waypoints) {
       var bendpointContainer = getBendpointsContainer(element);
       if (bendpointContainer) {
-        attr3(bendpointContainer, { "data-element-id": newId });
+        attr4(bendpointContainer, { "data-element-id": newId });
       }
     }
   });
@@ -101516,7 +103363,7 @@ function getDraggerVisual(draggerGfx) {
 
 // node_modules/diagram-js/lib/features/bendpoints/BendpointMove.js
 init_LayoutUtil();
-var round5 = Math.round;
+var round6 = Math.round;
 var RECONNECT_START = "reconnectStart";
 var RECONNECT_END = "reconnectEnd";
 var UPDATE_WAYPOINTS = "updateWaypoints";
@@ -101605,8 +103452,8 @@ function BendpointMove(injector, eventBus, canvas, dragging, rules, modeling) {
   eventBus.on("bendpoint.move.end", function(event2) {
     var context = event2.context, allowed = context.allowed, bendpointIndex = context.bendpointIndex, connection2 = context.connection, insert = context.insert, newWaypoints = connection2.waypoints.slice(), source = context.source, target = context.target, type = context.type, hints = context.hints || {};
     var docking = {
-      x: round5(event2.x),
-      y: round5(event2.y)
+      x: round6(event2.x),
+      y: round6(event2.y)
     };
     if (!allowed) {
       return false;
@@ -101796,23 +103643,23 @@ init_Geometry();
 init_LayoutUtil();
 var MARKER_CONNECT_HOVER2 = "connect-hover";
 var MARKER_CONNECT_UPDATING2 = "djs-updating";
-function axisAdd(point, axis, delta2) {
-  return axisSet(point, axis, point[axis] + delta2);
+function axisAdd(point, axis2, delta2) {
+  return axisSet(point, axis2, point[axis2] + delta2);
 }
-function axisSet(point, axis, value) {
+function axisSet(point, axis2, value) {
   return {
-    x: axis === "x" ? value : point.x,
-    y: axis === "y" ? value : point.y
+    x: axis2 === "x" ? value : point.x,
+    y: axis2 === "y" ? value : point.y
   };
 }
-function axisFenced(position2, segmentStart, segmentEnd, axis) {
-  var maxValue = Math.max(segmentStart[axis], segmentEnd[axis]), minValue = Math.min(segmentStart[axis], segmentEnd[axis]);
+function axisFenced(position2, segmentStart, segmentEnd, axis2) {
+  var maxValue = Math.max(segmentStart[axis2], segmentEnd[axis2]), minValue = Math.min(segmentStart[axis2], segmentEnd[axis2]);
   var padding = 20;
-  var fencedValue = Math.min(Math.max(minValue + padding, position2[axis]), maxValue - padding);
-  return axisSet(segmentStart, axis, fencedValue);
+  var fencedValue = Math.min(Math.max(minValue + padding, position2[axis2]), maxValue - padding);
+  return axisSet(segmentStart, axis2, fencedValue);
 }
-function flipAxis(axis) {
-  return axis === "x" ? "y" : "x";
+function flipAxis(axis2) {
+  return axis2 === "x" ? "y" : "x";
 }
 function getDocking(point, referenceElement, moveAxis) {
   var referenceMid, inverseAxis;
@@ -101827,17 +103674,17 @@ function getDocking(point, referenceElement, moveAxis) {
 function ConnectionSegmentMove(injector, eventBus, canvas, dragging, graphicsFactory, modeling) {
   var connectionDocking = injector.get("connectionDocking", false);
   this.start = function(event2, connection2, idx) {
-    var context, gfx = canvas.getGraphics(connection2), segmentStartIndex = idx - 1, segmentEndIndex = idx, waypoints = connection2.waypoints, segmentStart = waypoints[segmentStartIndex], segmentEnd = waypoints[segmentEndIndex], intersection2 = getConnectionIntersection(canvas, waypoints, event2), direction, axis, dragPosition;
+    var context, gfx = canvas.getGraphics(connection2), segmentStartIndex = idx - 1, segmentEndIndex = idx, waypoints = connection2.waypoints, segmentStart = waypoints[segmentStartIndex], segmentEnd = waypoints[segmentEndIndex], intersection2 = getConnectionIntersection(canvas, waypoints, event2), direction, axis2, dragPosition;
     direction = pointsAligned(segmentStart, segmentEnd);
     if (!direction) {
       return;
     }
-    axis = direction === "v" ? "x" : "y";
+    axis2 = direction === "v" ? "x" : "y";
     if (segmentStartIndex === 0) {
-      segmentStart = getDocking(segmentStart, connection2.source, axis);
+      segmentStart = getDocking(segmentStart, connection2.source, axis2);
     }
     if (segmentEndIndex === waypoints.length - 1) {
-      segmentEnd = getDocking(segmentEnd, connection2.target, axis);
+      segmentEnd = getDocking(segmentEnd, connection2.target, axis2);
     }
     if (intersection2) {
       dragPosition = intersection2.point;
@@ -101853,11 +103700,11 @@ function ConnectionSegmentMove(injector, eventBus, canvas, dragging, graphicsFac
       segmentEndIndex,
       segmentStart,
       segmentEnd,
-      axis,
+      axis: axis2,
       dragPosition
     };
     dragging.init(event2, dragPosition, "connectionSegment.move", {
-      cursor: axis === "x" ? "resize-ew" : "resize-ns",
+      cursor: axis2 === "x" ? "resize-ew" : "resize-ns",
       data: {
         connection: connection2,
         connectionGfx: gfx,
@@ -101879,8 +103726,8 @@ function ConnectionSegmentMove(injector, eventBus, canvas, dragging, graphicsFac
     graphicsFactory.update("connection", data2.connection, data2.connectionGfx);
   }
   function updateDragger(context, segmentOffset, event2) {
-    var newWaypoints = context.newWaypoints, segmentStartIndex = context.segmentStartIndex + segmentOffset, segmentStart = newWaypoints[segmentStartIndex], segmentEndIndex = context.segmentEndIndex + segmentOffset, segmentEnd = newWaypoints[segmentEndIndex], axis = flipAxis(context.axis);
-    var draggerPosition = axisFenced(event2, segmentStart, segmentEnd, axis);
+    var newWaypoints = context.newWaypoints, segmentStartIndex = context.segmentStartIndex + segmentOffset, segmentStart = newWaypoints[segmentStartIndex], segmentEndIndex = context.segmentEndIndex + segmentOffset, segmentEnd = newWaypoints[segmentEndIndex], axis2 = flipAxis(context.axis);
+    var draggerPosition = axisFenced(event2, segmentStart, segmentEnd, axis2);
     translate2(context.draggerGfx, draggerPosition.x, draggerPosition.y);
   }
   function filterRedundantWaypoints2(waypoints, segmentStartIndex) {
@@ -101905,8 +103752,8 @@ function ConnectionSegmentMove(injector, eventBus, canvas, dragging, graphicsFac
     canvas.addMarker(connection2, MARKER_CONNECT_UPDATING2);
   });
   eventBus.on("connectionSegment.move.move", function(event2) {
-    var context = event2.context, connection2 = context.connection, segmentStartIndex = context.segmentStartIndex, segmentEndIndex = context.segmentEndIndex, segmentStart = context.segmentStart, segmentEnd = context.segmentEnd, axis = context.axis;
-    var newWaypoints = context.originalWaypoints.slice(), newSegmentStart = axisAdd(segmentStart, axis, event2["d" + axis]), newSegmentEnd = axisAdd(segmentEnd, axis, event2["d" + axis]);
+    var context = event2.context, connection2 = context.connection, segmentStartIndex = context.segmentStartIndex, segmentEndIndex = context.segmentEndIndex, segmentStart = context.segmentStart, segmentEnd = context.segmentEnd, axis2 = context.axis;
+    var newWaypoints = context.originalWaypoints.slice(), newSegmentStart = axisAdd(segmentStart, axis2, event2["d" + axis2]), newSegmentEnd = axisAdd(segmentEnd, axis2, event2["d" + axis2]);
     var waypointCount = newWaypoints.length, segmentOffset = 0;
     newWaypoints[segmentStartIndex] = newSegmentStart;
     newWaypoints[segmentEndIndex] = newSegmentEnd;
@@ -102006,7 +103853,7 @@ init_dist();
 
 // node_modules/diagram-js/lib/features/snapping/SnapUtil.js
 var abs3 = Math.abs;
-var round6 = Math.round;
+var round7 = Math.round;
 function snapTo(value, values2, tolerance) {
   tolerance = tolerance === void 0 ? 10 : tolerance;
   var idx, snapValue;
@@ -102029,41 +103876,41 @@ function bottomRight2(bounds) {
     y: bounds.y + bounds.height
   };
 }
-function mid(bounds, defaultValue) {
+function mid2(bounds, defaultValue) {
   if (!bounds || isNaN(bounds.x) || isNaN(bounds.y)) {
     return defaultValue;
   }
   return {
-    x: round6(bounds.x + bounds.width / 2),
-    y: round6(bounds.y + bounds.height / 2)
+    x: round7(bounds.x + bounds.width / 2),
+    y: round7(bounds.y + bounds.height / 2)
   };
 }
-function isSnapped(event2, axis) {
+function isSnapped(event2, axis2) {
   var snapped = event2.snapped;
   if (!snapped) {
     return false;
   }
-  if (typeof axis === "string") {
-    return snapped[axis];
+  if (typeof axis2 === "string") {
+    return snapped[axis2];
   }
   return snapped.x && snapped.y;
 }
-function setSnapped(event2, axis, value) {
-  if (typeof axis !== "string") {
+function setSnapped(event2, axis2, value) {
+  if (typeof axis2 !== "string") {
     throw new Error("axis must be in [x, y]");
   }
   if (typeof value !== "number" && value !== false) {
     throw new Error("value must be Number or false");
   }
-  var delta2, previousValue = event2[axis];
+  var delta2, previousValue = event2[axis2];
   var snapped = event2.snapped = event2.snapped || {};
   if (value === false) {
-    snapped[axis] = false;
+    snapped[axis2] = false;
   } else {
-    snapped[axis] = true;
+    snapped[axis2] = true;
     delta2 = value - previousValue;
-    event2[axis] += delta2;
-    event2["d" + axis] += delta2;
+    event2[axis2] += delta2;
+    event2["d" + axis2] += delta2;
   }
   return previousValue;
 }
@@ -102074,7 +103921,7 @@ function getChildren2(parent) {
 // node_modules/diagram-js/lib/features/bendpoints/BendpointSnapping.js
 init_ModelUtil();
 var abs4 = Math.abs;
-var round7 = Math.round;
+var round8 = Math.round;
 var TOLERANCE = 10;
 function BendpointSnapping(eventBus) {
   function snapTo2(values2, value) {
@@ -102101,13 +103948,13 @@ function BendpointSnapping(eventBus) {
     }
     if (element.width) {
       return {
-        x: round7(element.width / 2 + element.x),
-        y: round7(element.height / 2 + element.y)
+        x: round8(element.width / 2 + element.x),
+        y: round8(element.height / 2 + element.y)
       };
     }
   }
   function getConnectionSegmentSnaps(event2) {
-    var context = event2.context, snapPoints = context.snapPoints, connection2 = context.connection, waypoints = connection2.waypoints, segmentStart = context.segmentStart, segmentStartIndex = context.segmentStartIndex, segmentEnd = context.segmentEnd, segmentEndIndex = context.segmentEndIndex, axis = context.axis;
+    var context = event2.context, snapPoints = context.snapPoints, connection2 = context.connection, waypoints = connection2.waypoints, segmentStart = context.segmentStart, segmentStartIndex = context.segmentStartIndex, segmentEnd = context.segmentEnd, segmentEndIndex = context.segmentEndIndex, axis2 = context.axis;
     if (snapPoints) {
       return snapPoints;
     }
@@ -102127,10 +103974,10 @@ function BendpointSnapping(eventBus) {
     forEach(referenceWaypoints, function(p6) {
       if (p6) {
         p6 = p6.original || p6;
-        if (axis === "y") {
+        if (axis2 === "y") {
           snapPoints.horizontal.push(p6.y);
         }
-        if (axis === "x") {
+        if (axis2 === "x") {
           snapPoints.vertical.push(p6.x);
         }
       }
@@ -102457,7 +104304,7 @@ ConnectionPreview.prototype.getConnection = function(canConnect2) {
 };
 ConnectionPreview.prototype.createConnectionPreviewGfx = function() {
   var gfx = create2("g");
-  attr3(gfx, {
+  attr4(gfx, {
     pointerEvents: "none"
   });
   classes2(gfx).add(MARKER_CONNECTION_PREVIEW);
@@ -102536,12 +104383,12 @@ PreviewSupport.prototype.addDragger = function(element, group, gfx, className3 =
   var dragger = clone3(gfx);
   var bbox2 = gfx.getBoundingClientRect();
   this._cloneMarkers(getVisual(dragger), className3);
-  attr3(dragger, this._styles.cls(className3, [], {
+  attr4(dragger, this._styles.cls(className3, [], {
     x: bbox2.top,
     y: bbox2.left
   }));
   append2(group, dragger);
-  attr3(dragger, "data-preview-support-element-id", element.id);
+  attr4(dragger, "data-preview-support-element-id", element.id);
   return dragger;
 };
 PreviewSupport.prototype.addFrame = function(shape, group) {
@@ -102553,7 +104400,7 @@ PreviewSupport.prototype.addFrame = function(shape, group) {
     y: shape.y
   });
   append2(group, frame);
-  attr3(frame, "data-preview-support-element-id", shape.id);
+  attr4(frame, "data-preview-support-element-id", shape.id);
   return frame;
 };
 PreviewSupport.prototype._cloneMarkers = function(gfx, className3 = "djs-dragger", rootGfx = gfx) {
@@ -102567,7 +104414,7 @@ PreviewSupport.prototype._cloneMarkers = function(gfx, className3 = "djs-dragger
     return;
   }
   MARKER_TYPES.forEach(function(markerType) {
-    if (attr3(gfx, markerType)) {
+    if (attr4(gfx, markerType)) {
       var marker = getMarker(gfx, markerType, self2._canvas.getContainer());
       marker && self2._cloneMarker(rootGfx, gfx, marker, markerType, className3);
     }
@@ -102587,10 +104434,10 @@ PreviewSupport.prototype._cloneMarker = function(parentGfx, gfx, marker, markerT
   }
   append2(defs, clonedMarker);
   var reference = idToReference(clonedMarker.id);
-  attr3(gfx, markerType, reference);
+  attr4(gfx, markerType, reference);
 };
 function getMarker(node3, markerType, parentNode) {
-  var id = referenceToId(attr3(node3, markerType));
+  var id = referenceToId(attr4(node3, markerType));
   return query("marker#" + id, parentNode || document);
 }
 function referenceToId(reference) {
@@ -102757,8 +104604,8 @@ function AdaptiveLabelPositioningBehavior(eventBus, modeling) {
     adjustLabelPosition(element, optimalPosition);
   }
   function adjustLabelPosition(element, orientation) {
-    var elementMid = getMid(element), label = element.label, labelMid = getMid(label);
-    if (!label.parent) {
+    var elementMid = getMid(element), label2 = element.label, labelMid = getMid(label2);
+    if (!label2.parent) {
       return;
     }
     var elementTrbl = asTRBL(element);
@@ -102767,30 +104614,30 @@ function AdaptiveLabelPositioningBehavior(eventBus, modeling) {
       case "top":
         newLabelMid = {
           x: elementMid.x,
-          y: elementTrbl.top - ELEMENT_LABEL_DISTANCE2 - label.height / 2
+          y: elementTrbl.top - ELEMENT_LABEL_DISTANCE2 - label2.height / 2
         };
         break;
       case "left":
         newLabelMid = {
-          x: elementTrbl.left - ELEMENT_LABEL_DISTANCE2 - label.width / 2,
+          x: elementTrbl.left - ELEMENT_LABEL_DISTANCE2 - label2.width / 2,
           y: elementMid.y
         };
         break;
       case "bottom":
         newLabelMid = {
           x: elementMid.x,
-          y: elementTrbl.bottom + ELEMENT_LABEL_DISTANCE2 + label.height / 2
+          y: elementTrbl.bottom + ELEMENT_LABEL_DISTANCE2 + label2.height / 2
         };
         break;
       case "right":
         newLabelMid = {
-          x: elementTrbl.right + ELEMENT_LABEL_DISTANCE2 + label.width / 2,
+          x: elementTrbl.right + ELEMENT_LABEL_DISTANCE2 + label2.width / 2,
           y: elementMid.y
         };
         break;
     }
     var delta2 = delta(newLabelMid, labelMid);
-    modeling.moveShape(label, delta2);
+    modeling.moveShape(label2, delta2);
   }
 }
 e4(AdaptiveLabelPositioningBehavior, CommandInterceptor);
@@ -103587,13 +105434,13 @@ function resizeTRBL(bounds, resize) {
     height: bounds.height - (resize.top || 0) + (resize.bottom || 0)
   };
 }
-function applyConstraints(attr4, trbl, resizeConstraints) {
-  var value = trbl[attr4], minValue = resizeConstraints.min && resizeConstraints.min[attr4], maxValue = resizeConstraints.max && resizeConstraints.max[attr4];
+function applyConstraints(attr5, trbl, resizeConstraints) {
+  var value = trbl[attr5], minValue = resizeConstraints.min && resizeConstraints.min[attr5], maxValue = resizeConstraints.max && resizeConstraints.max[attr5];
   if (isNumber2(minValue)) {
-    value = (/top|left/.test(attr4) ? min : max3)(value, minValue);
+    value = (/top|left/.test(attr5) ? min : max3)(value, minValue);
   }
   if (isNumber2(maxValue)) {
-    value = (/top|left/.test(attr4) ? max3 : min)(value, maxValue);
+    value = (/top|left/.test(attr5) ? max3 : min)(value, maxValue);
   }
   return value;
 }
@@ -103941,20 +105788,20 @@ function DropOnFlowBehavior(eventBus, bpmnRules, modeling) {
   CommandInterceptor.call(this, eventBus);
   function insertShape(shape, targetFlow, positionOrBounds) {
     var waypoints = targetFlow.waypoints, waypointsBefore, waypointsAfter, dockingPoint, source, target, incomingConnection, outgoingConnection, oldOutgoing = shape.outgoing.slice(), oldIncoming = shape.incoming.slice();
-    var mid4;
+    var mid5;
     if (isNumber2(positionOrBounds.width)) {
-      mid4 = getMid(positionOrBounds);
+      mid5 = getMid(positionOrBounds);
     } else {
-      mid4 = positionOrBounds;
+      mid5 = positionOrBounds;
     }
-    var intersection2 = getApproxIntersection(waypoints, mid4);
+    var intersection2 = getApproxIntersection(waypoints, mid5);
     if (intersection2) {
       waypointsBefore = waypoints.slice(0, intersection2.index);
       waypointsAfter = waypoints.slice(intersection2.index + (intersection2.bendpoint ? 1 : 0));
       if (!waypointsBefore.length || !waypointsAfter.length) {
         return;
       }
-      dockingPoint = intersection2.bendpoint ? waypoints[intersection2.index] : mid4;
+      dockingPoint = intersection2.bendpoint ? waypoints[intersection2.index] : mid5;
       if (waypointsBefore.length === 1 || !isPointInsideBBox3(shape, waypointsBefore[waypointsBefore.length - 1])) {
         waypointsBefore.push(copy(dockingPoint));
       }
@@ -103965,12 +105812,12 @@ function DropOnFlowBehavior(eventBus, bpmnRules, modeling) {
     source = targetFlow.source;
     target = targetFlow.target;
     if (bpmnRules.canConnect(source, shape, targetFlow)) {
-      modeling.reconnectEnd(targetFlow, shape, waypointsBefore || mid4);
+      modeling.reconnectEnd(targetFlow, shape, waypointsBefore || mid5);
       incomingConnection = targetFlow;
     }
     if (bpmnRules.canConnect(shape, target, targetFlow)) {
       if (!incomingConnection) {
-        modeling.reconnectStart(targetFlow, shape, waypointsAfter || mid4);
+        modeling.reconnectStart(targetFlow, shape, waypointsAfter || mid5);
         outgoingConnection = targetFlow;
       } else {
         outgoingConnection = modeling.connect(
@@ -104495,7 +106342,7 @@ function getAttachment(point, line2) {
       };
     }
     if (intersections.length === 2) {
-      attachmentPosition = mid2(intersections[0], intersections[1]);
+      attachmentPosition = mid3(intersections[0], intersections[1]);
       attachment = {
         type: "segment",
         position: attachmentPosition,
@@ -104552,7 +106399,7 @@ function isPointInSegment(p6, segmentStart, segmentEnd) {
 function fenced(n4, rangeStart, rangeEnd) {
   return n4 >= min2(rangeStart, rangeEnd) - EQUAL_THRESHOLD && n4 <= max4(rangeStart, rangeEnd) + EQUAL_THRESHOLD;
 }
-function mid2(p1, p22) {
+function mid3(p1, p22) {
   return {
     x: (p1.x + p22.x) / 2,
     y: (p1.y + p22.y) / 2
@@ -104680,8 +106527,8 @@ function getRelativeFootPosition(line2, foot) {
 
 // node_modules/bpmn-js/lib/features/modeling/behavior/util/LabelLayoutUtil.js
 init_LayoutUtil();
-function getLabelAdjustment(label, newWaypoints, oldWaypoints, hints) {
-  var labelPosition = getMid(label);
+function getLabelAdjustment(label2, newWaypoints, oldWaypoints, hints) {
+  var labelPosition = getMid(label2);
   return getAnchorPointAdjustment(labelPosition, newWaypoints, oldWaypoints, hints).delta;
 }
 
@@ -104818,14 +106665,14 @@ function LabelBehavior(eventBus, modeling, bpmnFactory, textRenderer) {
     }
   });
   function getVisibleLabelAdjustment(event2) {
-    var context = event2.context, connection2 = context.connection, label = connection2.label, hints = assign2({}, context.hints), newWaypoints = context.newWaypoints || connection2.waypoints, oldWaypoints = context.oldWaypoints;
+    var context = event2.context, connection2 = context.connection, label2 = connection2.label, hints = assign2({}, context.hints), newWaypoints = context.newWaypoints || connection2.waypoints, oldWaypoints = context.oldWaypoints;
     if (typeof hints.startChanged === "undefined") {
       hints.startChanged = !!hints.connectionStart;
     }
     if (typeof hints.endChanged === "undefined") {
       hints.endChanged = !!hints.connectionEnd;
     }
-    return getLabelAdjustment(label, newWaypoints, oldWaypoints, hints);
+    return getLabelAdjustment(label2, newWaypoints, oldWaypoints, hints);
   }
   this.postExecute([
     "connection.layout",
@@ -104835,12 +106682,12 @@ function LabelBehavior(eventBus, modeling, bpmnFactory, textRenderer) {
     if (hints.labelBehavior === false) {
       return;
     }
-    var connection2 = context.connection, label = connection2.label, labelAdjustment;
-    if (!label || !label.parent) {
+    var connection2 = context.connection, label2 = connection2.label, labelAdjustment;
+    if (!label2 || !label2.parent) {
       return;
     }
     labelAdjustment = getVisibleLabelAdjustment(event2);
-    modeling.moveShape(label, labelAdjustment);
+    modeling.moveShape(label2, labelAdjustment);
   });
   this.postExecute(["shape.replace"], function(event2) {
     var context = event2.context, newShape = context.newShape, oldShape = context.oldShape;
@@ -104875,10 +106722,10 @@ function LabelBehavior(eventBus, modeling, bpmnFactory, textRenderer) {
     if (!hasExternalLabel2(shape)) {
       return;
     }
-    var label = shape.label, labelMid = getMid(label), edges = asEdges(oldBounds);
+    var label2 = shape.label, labelMid = getMid(label2), edges = asEdges(oldBounds);
     var referencePoint = getReferencePoint(labelMid, edges);
     var delta2 = getReferencePointDelta(referencePoint, oldBounds, newBounds);
-    modeling.moveShape(label, delta2);
+    modeling.moveShape(label2, delta2);
   });
 }
 e4(LabelBehavior, CommandInterceptor);
@@ -105186,9 +107033,9 @@ function RemoveEmbeddedLabelBoundsBehavior(eventBus, modeling) {
   CommandInterceptor.call(this, eventBus);
   this.preExecute("shape.resize", function(context) {
     var shape = context.shape;
-    var di = getDi(shape), label = di && di.get("label"), bounds = label && label.get("bounds");
+    var di = getDi(shape), label2 = di && di.get("label"), bounds = label2 && label2.get("bounds");
     if (bounds) {
-      modeling.updateModdleProperties(shape, label, {
+      modeling.updateModdleProperties(shape, label2, {
         bounds: void 0
       });
     }
@@ -105464,15 +107311,15 @@ ResizeBehavior.$inject = ["eventBus"];
 var abs7 = Math.abs;
 var min3 = Math.min;
 var max5 = Math.max;
-function addToTrbl(trbl, attr4, value, choice) {
-  var current = trbl[attr4];
-  trbl[attr4] = current === void 0 ? value : choice(value, current);
+function addToTrbl(trbl, attr5, value, choice) {
+  var current = trbl[attr5];
+  trbl[attr5] = current === void 0 ? value : choice(value, current);
 }
-function addMin(trbl, attr4, value) {
-  return addToTrbl(trbl, attr4, value, min3);
+function addMin(trbl, attr5, value) {
+  return addToTrbl(trbl, attr5, value, min3);
 }
-function addMax(trbl, attr4, value) {
-  return addToTrbl(trbl, attr4, value, max5);
+function addMax(trbl, attr5, value) {
+  return addToTrbl(trbl, attr5, value, max5);
 }
 var LANE_PADDING = { top: 20, left: 50, right: 20, bottom: 20 };
 var VERTICAL_LANE_PADDING = { top: 50, left: 20, right: 20, bottom: 20 };
@@ -105711,11 +107558,11 @@ init_dist();
 var max6 = Math.max;
 function SpaceToolBehavior(eventBus) {
   eventBus.on("spaceTool.getMinDimensions", function(context) {
-    var shapes = context.shapes, axis = context.axis, start = context.start, minDimensions = {};
+    var shapes = context.shapes, axis2 = context.axis, start = context.start, minDimensions = {};
     forEach(shapes, function(shape) {
       var id = shape.id;
       if (is2(shape, "bpmn:Participant")) {
-        minDimensions[id] = getParticipantMinDimensions(shape, axis, start);
+        minDimensions[id] = getParticipantMinDimensions(shape, axis2, start);
       }
       if (is2(shape, "bpmn:Lane")) {
         minDimensions[id] = isHorizontal(shape) ? LANE_MIN_DIMENSIONS : VERTICAL_LANE_MIN_DIMENSIONS;
@@ -105734,15 +107581,15 @@ function SpaceToolBehavior(eventBus) {
   });
 }
 SpaceToolBehavior.$inject = ["eventBus"];
-function isHorizontalAxis(axis) {
-  return axis === "x";
+function isHorizontalAxis(axis2) {
+  return axis2 === "x";
 }
-function getParticipantMinDimensions(participant, axis, start) {
+function getParticipantMinDimensions(participant, axis2, start) {
   var isHorizontalLane = isHorizontal(participant);
   if (!hasChildLanes(participant)) {
     return isHorizontalLane ? PARTICIPANT_MIN_DIMENSIONS : VERTICAL_PARTICIPANT_MIN_DIMENSIONS;
   }
-  var isHorizontalResize = isHorizontalAxis(axis);
+  var isHorizontalResize = isHorizontalAxis(axis2);
   var minDimensions = {};
   if (isHorizontalResize) {
     if (isHorizontalLane) {
@@ -107627,7 +109474,7 @@ var LOW_PRIORITY15 = 750;
 function CreatePreview(canvas, eventBus, graphicsFactory, previewSupport, styles) {
   function createDragGroup(elements2) {
     var dragGroup = create2("g");
-    attr3(dragGroup, styles.cls("djs-drag-group", ["no-events"]));
+    attr4(dragGroup, styles.cls("djs-drag-group", ["no-events"]));
     var childrenGfx = create2("g");
     elements2.forEach(function(element) {
       var gfx;
@@ -107961,8 +109808,8 @@ CopyPaste.prototype.createConnection = function(attrs) {
   return connection2;
 };
 CopyPaste.prototype.createLabel = function(attrs) {
-  var label = this._elementFactory.createLabel(omit(attrs, ["id"]));
-  return label;
+  var label2 = this._elementFactory.createLabel(omit(attrs, ["id"]));
+  return label2;
 };
 CopyPaste.prototype.createShape = function(attrs) {
   var shape = this._elementFactory.createShape(omit(attrs, ["id"]));
@@ -108025,13 +109872,13 @@ CopyPaste.prototype.createTree = function(elements2) {
     if (isLabel(element)) {
       return;
     }
-    forEach(element.labels, function(label) {
-      addElementData(label, depth);
+    forEach(element.labels, function(label2) {
+      addElementData(label2, depth);
     });
     function addRelatedElements(elements3) {
       elements3 && elements3.length && forEach(elements3, function(element2) {
-        forEach(element2.labels, function(label) {
-          addElementData(label, depth);
+        forEach(element2.labels, function(label2) {
+          addElementData(label2, depth);
         });
         addElementData(element2, depth);
       });
@@ -108407,7 +110254,7 @@ var copy_paste_default2 = {
 
 // node_modules/diagram-js/lib/features/replace/Replace.js
 init_dist();
-var round8 = Math.round;
+var round9 = Math.round;
 function Replace(modeling, eventBus) {
   this._modeling = modeling;
   this._eventBus = eventBus;
@@ -108424,7 +110271,7 @@ Replace.prototype.replaceElement = function(oldElement, attrs, hints) {
     attrs,
     hints
   });
-  var width2 = attrs.width || oldElement.width, height2 = attrs.height || oldElement.height, x5 = attrs.x || oldElement.x, y5 = attrs.y || oldElement.y, centerX = round8(x5 + width2 / 2), centerY = round8(y5 + height2 / 2);
+  var width2 = attrs.width || oldElement.width, height2 = attrs.height || oldElement.height, x5 = attrs.x || oldElement.x, y5 = attrs.y || oldElement.y, centerX = round9(x5 + width2 / 2), centerY = round9(y5 + height2 / 2);
   var newElement = modeling.replaceShape(
     oldElement,
     assign2(
@@ -108729,8 +110576,8 @@ init_LayoutUtil();
 
 // node_modules/diagram-js/lib/features/space-tool/SpaceUtil.js
 init_dist();
-function getDirection(axis, delta2) {
-  if (axis === "x") {
+function getDirection(axis2, delta2) {
+  if (axis2 === "x") {
     if (delta2 > 0) {
       return "e";
     }
@@ -108738,7 +110585,7 @@ function getDirection(axis, delta2) {
       return "w";
     }
   }
-  if (axis === "y") {
+  if (axis2 === "y") {
     if (delta2 > 0) {
       return "s";
     }
@@ -108805,7 +110652,7 @@ function resizeBounds2(bounds, direction, delta2) {
 // node_modules/diagram-js/lib/features/space-tool/SpaceTool.js
 init_ModelUtil();
 var abs8 = Math.abs;
-var round9 = Math.round;
+var round10 = Math.round;
 var AXIS_TO_DIMENSION = {
   x: "width",
   y: "height"
@@ -108853,7 +110700,7 @@ function SpaceTool(canvas, dragging, eventBus, modeling, rules, toolManager, mou
     }
   });
   eventBus.on("spaceTool.end", function(event2) {
-    var context = event2.context, axis = context.axis, direction = context.direction, movingShapes = context.movingShapes, resizingShapes = context.resizingShapes, start = context.start;
+    var context = event2.context, axis2 = context.axis, direction = context.direction, movingShapes = context.movingShapes, resizingShapes = context.resizingShapes, start = context.start;
     if (!context.initialized) {
       return;
     }
@@ -108862,7 +110709,7 @@ function SpaceTool(canvas, dragging, eventBus, modeling, rules, toolManager, mou
       x: 0,
       y: 0
     };
-    delta2[axis] = round9(event2["d" + axis]);
+    delta2[axis2] = round10(event2["d" + axis2]);
     self2.makeSpace(movingShapes, resizingShapes, delta2, direction, start);
     eventBus.once("spaceTool.ended", function(event3) {
       self2.activateSelection(event3.originalEvent, true, true);
@@ -108903,7 +110750,7 @@ SpaceTool.prototype.makeSpace = function(movingShapes, resizingShapes, delta2, d
   return this._modeling.createSpace(movingShapes, resizingShapes, delta2, direction, start);
 };
 SpaceTool.prototype.init = function(event2, context) {
-  var axis = abs8(event2.dx) > abs8(event2.dy) ? "x" : "y", delta2 = event2["d" + axis], start = event2[axis] - delta2;
+  var axis2 = abs8(event2.dx) > abs8(event2.dy) ? "x" : "y", delta2 = event2["d" + axis2], start = event2[axis2] - delta2;
   if (abs8(delta2) < 5) {
     return false;
   }
@@ -108913,7 +110760,7 @@ SpaceTool.prototype.init = function(event2, context) {
   if (hasPrimaryModifier(event2)) {
     delta2 *= -1;
   }
-  var direction = getDirection(axis, delta2);
+  var direction = getDirection(axis2, delta2);
   var root2 = this._canvas.getRootElement();
   if (!hasSecondaryModifier(event2) && event2.hover) {
     root2 = event2.hover;
@@ -108922,28 +110769,28 @@ SpaceTool.prototype.init = function(event2, context) {
     ...selfAndAllChildren(root2, true),
     ...root2.attachers || []
   ];
-  var elements2 = this.calculateAdjustments(children2, axis, delta2, start);
+  var elements2 = this.calculateAdjustments(children2, axis2, delta2, start);
   var minDimensions = this._eventBus.fire("spaceTool.getMinDimensions", {
-    axis,
+    axis: axis2,
     direction,
     shapes: elements2.resizingShapes,
     start
   });
-  var spaceToolConstraints = getSpaceToolConstraints(elements2, axis, direction, start, minDimensions);
+  var spaceToolConstraints = getSpaceToolConstraints(elements2, axis2, direction, start, minDimensions);
   assign2(
     context,
     elements2,
     {
-      axis,
+      axis: axis2,
       direction,
       spaceToolConstraints,
       start
     }
   );
-  set3("resize-" + (axis === "x" ? "ew" : "ns"));
+  set3("resize-" + (axis2 === "x" ? "ew" : "ns"));
   return true;
 };
-SpaceTool.prototype.calculateAdjustments = function(elements2, axis, delta2, start) {
+SpaceTool.prototype.calculateAdjustments = function(elements2, axis2, delta2, start) {
   var rules = this._rules;
   var movingShapes = [], resizingShapes = [];
   var attachers = [], connections = [];
@@ -108951,9 +110798,9 @@ SpaceTool.prototype.calculateAdjustments = function(elements2, axis, delta2, sta
     if (!movingShapes.includes(shape)) {
       movingShapes.push(shape);
     }
-    var label = shape.label;
-    if (label && !movingShapes.includes(label)) {
-      movingShapes.push(label);
+    var label2 = shape.label;
+    if (label2 && !movingShapes.includes(label2)) {
+      movingShapes.push(label2);
     }
   }
   function resizeShape(shape) {
@@ -108969,8 +110816,8 @@ SpaceTool.prototype.calculateAdjustments = function(elements2, axis, delta2, sta
       connections.push(element);
       return;
     }
-    var shapeStart = element[axis], shapeEnd = shapeStart + element[AXIS_TO_DIMENSION[axis]];
-    if (isAttacher2(element) && (delta2 > 0 && getMid(element)[axis] > start || delta2 < 0 && getMid(element)[axis] < start)) {
+    var shapeStart = element[axis2], shapeEnd = shapeStart + element[AXIS_TO_DIMENSION[axis2]];
+    if (isAttacher2(element) && (delta2 > 0 && getMid(element)[axis2] > start || delta2 < 0 && getMid(element)[axis2] < start)) {
       attachers.push(element);
       return;
     }
@@ -109000,9 +110847,9 @@ SpaceTool.prototype.calculateAdjustments = function(elements2, axis, delta2, sta
   });
   allShapes = movingShapes.concat(resizingShapes);
   forEach(connections, function(connection2) {
-    var source = connection2.source, target = connection2.target, label = connection2.label;
-    if (includes4(allShapes, source) && includes4(allShapes, target) && label) {
-      moveShape(label);
+    var source = connection2.source, target = connection2.target, label2 = connection2.label;
+    if (includes4(allShapes, source) && includes4(allShapes, target) && label2) {
+      moveShape(label2);
     }
   });
   return {
@@ -109059,7 +110906,7 @@ function ensureConstraints3(event2) {
     event2.y = y5;
   }
 }
-function getSpaceToolConstraints(elements2, axis, direction, start, minDimensions) {
+function getSpaceToolConstraints(elements2, axis2, direction, start, minDimensions) {
   var movingShapes = elements2.movingShapes, resizingShapes = elements2.resizingShapes;
   if (!resizingShapes.length) {
     return;
@@ -109134,16 +110981,16 @@ function getSpaceToolConstraints(elements2, axis, direction, start, minDimension
     var resizingShapeMinDimensions = minDimensions && minDimensions[resizingShape.id];
     if (resizingShapeMinDimensions) {
       if (direction === "n") {
-        minOrMax = start + resizingShape[AXIS_TO_DIMENSION[axis]] - resizingShapeMinDimensions[AXIS_TO_DIMENSION[axis]];
+        minOrMax = start + resizingShape[AXIS_TO_DIMENSION[axis2]] - resizingShapeMinDimensions[AXIS_TO_DIMENSION[axis2]];
         spaceToolConstraints.bottom = max9 = isNumber2(max9) ? Math.min(max9, minOrMax) : minOrMax;
       } else if (direction === "w") {
-        minOrMax = start + resizingShape[AXIS_TO_DIMENSION[axis]] - resizingShapeMinDimensions[AXIS_TO_DIMENSION[axis]];
+        minOrMax = start + resizingShape[AXIS_TO_DIMENSION[axis2]] - resizingShapeMinDimensions[AXIS_TO_DIMENSION[axis2]];
         spaceToolConstraints.right = max9 = isNumber2(max9) ? Math.min(max9, minOrMax) : minOrMax;
       } else if (direction === "s") {
-        minOrMax = start - resizingShape[AXIS_TO_DIMENSION[axis]] + resizingShapeMinDimensions[AXIS_TO_DIMENSION[axis]];
+        minOrMax = start - resizingShape[AXIS_TO_DIMENSION[axis2]] + resizingShapeMinDimensions[AXIS_TO_DIMENSION[axis2]];
         spaceToolConstraints.top = min5 = isNumber2(min5) ? Math.max(min5, minOrMax) : minOrMax;
       } else if (direction === "e") {
-        minOrMax = start - resizingShape[AXIS_TO_DIMENSION[axis]] + resizingShapeMinDimensions[AXIS_TO_DIMENSION[axis]];
+        minOrMax = start - resizingShape[AXIS_TO_DIMENSION[axis2]] + resizingShapeMinDimensions[AXIS_TO_DIMENSION[axis2]];
         spaceToolConstraints.left = min5 = isNumber2(min5) ? Math.max(min5, minOrMax) : minOrMax;
       }
     }
@@ -109178,14 +111025,14 @@ function SpaceToolPreview(eventBus, elementRegistry, canvas, styles, previewSupp
       y: "M -10000,0 L 10000,0"
     };
     var crosshairGroup = create2("g");
-    attr3(crosshairGroup, styles.cls("djs-crosshair-group", ["no-events"]));
+    attr4(crosshairGroup, styles.cls("djs-crosshair-group", ["no-events"]));
     append2(space, crosshairGroup);
     var pathX = create2("path");
-    attr3(pathX, "d", orientation.x);
+    attr4(pathX, "d", orientation.x);
     classes2(pathX).add("djs-crosshair");
     append2(crosshairGroup, pathX);
     var pathY = create2("path");
-    attr3(pathY, "d", orientation.y);
+    attr4(pathY, "d", orientation.y);
     classes2(pathY).add("djs-crosshair");
     append2(crosshairGroup, pathY);
     context.crosshairGroup = crosshairGroup;
@@ -109201,19 +111048,19 @@ function SpaceToolPreview(eventBus, elementRegistry, canvas, styles, previewSupp
     }
   });
   eventBus.on("spaceTool.move", LOW_PRIORITY18, function(event2) {
-    var context = event2.context, line2 = context.line, axis = context.axis, movingShapes = context.movingShapes, resizingShapes = context.resizingShapes;
+    var context = event2.context, line2 = context.line, axis2 = context.axis, movingShapes = context.movingShapes, resizingShapes = context.resizingShapes;
     if (!context.initialized) {
       return;
     }
     if (!context.dragGroup) {
       var spaceLayer = canvas.getLayer("space");
       line2 = create2("path");
-      attr3(line2, "d", "M0,0 L0,0");
+      attr4(line2, "d", "M0,0 L0,0");
       classes2(line2).add("djs-crosshair");
       append2(spaceLayer, line2);
       context.line = line2;
       var dragGroup = create2("g");
-      attr3(dragGroup, styles.cls("djs-drag-group", ["no-events"]));
+      attr4(dragGroup, styles.cls("djs-drag-group", ["no-events"]));
       append2(canvas.getActiveLayer(), dragGroup);
       addPreviewGfx(movingShapes, dragGroup);
       var movingConnections = context.movingConnections = elementRegistry.filter(function(element) {
@@ -109256,7 +111103,7 @@ function SpaceToolPreview(eventBus, elementRegistry, canvas, styles, previewSupp
     }
     if (!context.frameGroup) {
       var frameGroup = create2("g");
-      attr3(frameGroup, styles.cls("djs-frame-group", ["no-events"]));
+      attr4(frameGroup, styles.cls("djs-frame-group", ["no-events"]));
       append2(canvas.getActiveLayer(), frameGroup);
       var frames = [];
       forEach(resizingShapes, function(shape) {
@@ -109275,7 +111122,7 @@ function SpaceToolPreview(eventBus, elementRegistry, canvas, styles, previewSupp
       x: "M" + event2.x + ", -10000 L" + event2.x + ", 10000",
       y: "M -10000, " + event2.y + " L 10000, " + event2.y
     };
-    attr3(line2, { d: orientation[axis] });
+    attr4(line2, { d: orientation[axis2] });
     var opposite = { x: "y", y: "x" };
     var delta2 = { x: event2.dx, y: event2.dy };
     delta2[opposite[context.axis]] = 0;
@@ -109283,23 +111130,23 @@ function SpaceToolPreview(eventBus, elementRegistry, canvas, styles, previewSupp
     forEach(context.frames, function(frame) {
       var element = frame.element, initialBounds = frame.initialBounds, width2, height2;
       if (context.direction === "e") {
-        attr3(element, {
+        attr4(element, {
           width: max7(initialBounds.width + delta2.x, 5)
         });
       } else {
         width2 = max7(initialBounds.width - delta2.x, 5);
-        attr3(element, {
+        attr4(element, {
           width: width2,
           x: initialBounds.x + initialBounds.width - width2
         });
       }
       if (context.direction === "s") {
-        attr3(element, {
+        attr4(element, {
           height: max7(initialBounds.height + delta2.y, 5)
         });
       } else {
         height2 = max7(initialBounds.height - delta2.y, 5);
-        attr3(element, {
+        attr4(element, {
           height: height2,
           y: initialBounds.y + initialBounds.height - height2
         });
@@ -109359,7 +111206,7 @@ BpmnSpaceTool.$inject = [
   "canvas"
 ];
 e4(BpmnSpaceTool, SpaceTool);
-BpmnSpaceTool.prototype.calculateAdjustments = function(elements2, axis, delta2, start) {
+BpmnSpaceTool.prototype.calculateAdjustments = function(elements2, axis2, delta2, start) {
   var canvasRoot = this._canvas.getRootElement(), spaceRoot = elements2[0] === canvasRoot ? null : elements2[0], enclosedArtifacts = [];
   if (spaceRoot) {
     enclosedArtifacts = values(
@@ -109372,13 +111219,13 @@ BpmnSpaceTool.prototype.calculateAdjustments = function(elements2, axis, delta2,
     );
   }
   const elementsToMove = [...elements2, ...enclosedArtifacts];
-  var adjustments = SpaceTool.prototype.calculateAdjustments.call(this, elementsToMove, axis, delta2, start);
+  var adjustments = SpaceTool.prototype.calculateAdjustments.call(this, elementsToMove, axis2, delta2, start);
   adjustments.resizingShapes = adjustments.resizingShapes.filter(function(shape) {
     if (is2(shape, "bpmn:TextAnnotation")) {
       return false;
     }
     if (isCollapsedPool(shape)) {
-      if (axis === "y" && isHorizontal(shape) || axis === "x" && !isHorizontal(shape)) {
+      if (axis2 === "y" && isHorizontal(shape) || axis2 === "x" && !isHorizontal(shape)) {
         return false;
       }
     }
@@ -109663,26 +111510,26 @@ function LabelSupport(injector, eventBus, modeling) {
     var context = e5.context, shapes = context.shapes;
     var labels = [];
     forEach(shapes, function(element) {
-      forEach(element.labels, function(label) {
-        if (!label.hidden && context.shapes.indexOf(label) === -1) {
-          labels.push(label);
+      forEach(element.labels, function(label2) {
+        if (!label2.hidden && context.shapes.indexOf(label2) === -1) {
+          labels.push(label2);
         }
         if (element.labelTarget) {
           labels.push(element);
         }
       });
     });
-    forEach(labels, function(label) {
-      movePreview.makeDraggable(context, label, true);
+    forEach(labels, function(label2) {
+      movePreview.makeDraggable(context, label2, true);
     });
   });
   this.preExecuted("elements.move", HIGH_PRIORITY14, function(e5) {
     var context = e5.context, closure = context.closure, enclosedElements = closure.enclosedElements;
     var enclosedLabels = [];
     forEach(enclosedElements, function(element) {
-      forEach(element.labels, function(label) {
-        if (!enclosedElements[label.id]) {
-          enclosedLabels.push(label);
+      forEach(element.labels, function(label2) {
+        if (!enclosedElements[label2.id]) {
+          enclosedLabels.push(label2);
         }
       });
     });
@@ -109693,8 +111540,8 @@ function LabelSupport(injector, eventBus, modeling) {
     "shape.delete"
   ], function(e5) {
     var context = e5.context, element = context.connection || context.shape;
-    saveClear(element.labels, function(label) {
-      modeling.removeShape(label, { nested: true });
+    saveClear(element.labels, function(label2) {
+      modeling.removeShape(label2, { nested: true });
     });
   });
   this.execute("shape.delete", function(e5) {
@@ -109748,8 +111595,8 @@ function AttachSupport(injector, eventBus, canvas, rules, modeling) {
     var context = e5.context, shapes = context.shapes, attachers = getAttachers(shapes);
     forEach(attachers, function(attacher) {
       movePreview.makeDraggable(context, attacher, true);
-      forEach(attacher.labels, function(label) {
-        movePreview.makeDraggable(context, label, true);
+      forEach(attacher.labels, function(label2) {
+        movePreview.makeDraggable(context, label2, true);
       });
     });
   });
@@ -109854,8 +111701,8 @@ function AttachSupport(injector, eventBus, canvas, rules, modeling) {
     forEach(attachers, function(attacher) {
       var delta2 = getNewAttachShapeDelta(attacher, oldBounds, newBounds);
       modeling.moveShape(attacher, delta2, attacher.parent);
-      forEach(attacher.labels, function(label) {
-        modeling.moveShape(label, delta2, label.parent);
+      forEach(attacher.labels, function(label2) {
+        modeling.moveShape(label2, delta2, label2.parent);
       });
     });
   });
@@ -110143,14 +111990,14 @@ function BpmnUpdater(eventBus, bpmnFactory, connectionDocking) {
   this.executed("element.updateLabel", ifBpmn(updateBPMNLabel));
   this.reverted("element.updateLabel", ifBpmn(updateBPMNLabel));
   function updateBPMNLabel(event2) {
-    const { element } = event2.context, label = getLabel(element);
+    const { element } = event2.context, label2 = getLabel(element);
     const di = getDi(element), diLabel = di && di.get("label");
     if (isLabelExternal(element) || isPlane(element)) {
       return;
     }
-    if (label && !diLabel) {
+    if (label2 && !diLabel) {
       di.set("label", bpmnFactory.create("bpmndi:BPMNLabel"));
-    } else if (!label && diLabel) {
+    } else if (!label2 && diLabel) {
       di.set("label", void 0);
     }
   }
@@ -110434,11 +112281,11 @@ function getEmbeddedLabelBounds(shape) {
   if (!di) {
     return;
   }
-  var label = di.get("label");
-  if (!label) {
+  var label2 = di.get("label");
+  if (!label2) {
     return;
   }
-  return label.get("bounds");
+  return label2.get("bounds");
 }
 
 // node_modules/bpmn-js/lib/features/modeling/ElementFactory.js
@@ -110732,7 +112579,7 @@ CreateConnectionHandler.prototype.revert = function(context) {
 // node_modules/diagram-js/lib/features/modeling/cmd/CreateElementsHandler.js
 init_dist();
 init_ModelUtil();
-var round10 = Math.round;
+var round11 = Math.round;
 function CreateElementsHandler(modeling) {
   this._modeling = modeling;
 }
@@ -110758,14 +112605,14 @@ CreateElementsHandler.prototype.preExecute = function(context) {
     if (isConnection(element)) {
       element.waypoints = map(element.waypoints, function(waypoint) {
         return {
-          x: round10(waypoint.x - bbox2.x - bbox2.width / 2 + position2.x),
-          y: round10(waypoint.y - bbox2.y - bbox2.height / 2 + position2.y)
+          x: round11(waypoint.x - bbox2.x - bbox2.width / 2 + position2.x),
+          y: round11(waypoint.y - bbox2.y - bbox2.height / 2 + position2.y)
         };
       });
     }
     assign2(element, {
-      x: round10(element.x - bbox2.x - bbox2.width / 2 + position2.x),
-      y: round10(element.y - bbox2.y - bbox2.height / 2 + position2.y)
+      x: round11(element.x - bbox2.x - bbox2.width / 2 + position2.x),
+      y: round11(element.y - bbox2.y - bbox2.height / 2 + position2.y)
     });
   });
   var parents = getParents(elements2);
@@ -110813,7 +112660,7 @@ CreateElementsHandler.prototype.preExecute = function(context) {
 
 // node_modules/diagram-js/lib/features/modeling/cmd/CreateShapeHandler.js
 init_dist();
-var round11 = Math.round;
+var round12 = Math.round;
 function CreateShapeHandler(canvas) {
   this._canvas = canvas;
 }
@@ -110830,8 +112677,8 @@ CreateShapeHandler.prototype.execute = function(context) {
     assign2(shape, positionOrBounds);
   } else {
     assign2(shape, {
-      x: positionOrBounds.x - round11(shape.width / 2),
-      y: positionOrBounds.y - round11(shape.height / 2)
+      x: positionOrBounds.x - round12(shape.width / 2),
+      y: positionOrBounds.y - round12(shape.height / 2)
     });
   }
   this._canvas.addShape(shape, parent, parentIndex);
@@ -110851,9 +112698,9 @@ e4(CreateLabelHandler, CreateShapeHandler);
 CreateLabelHandler.$inject = ["canvas"];
 var originalExecute = CreateShapeHandler.prototype.execute;
 CreateLabelHandler.prototype.execute = function(context) {
-  var label = context.shape;
-  ensureValidDimensions(label);
-  label.labelTarget = context.labelTarget;
+  var label2 = context.shape;
+  ensureValidDimensions(label2);
+  label2.labelTarget = context.labelTarget;
   return originalExecute.call(this, context);
 };
 var originalRevert = CreateShapeHandler.prototype.revert;
@@ -110861,10 +112708,10 @@ CreateLabelHandler.prototype.revert = function(context) {
   context.shape.labelTarget = null;
   return originalRevert.call(this, context);
 };
-function ensureValidDimensions(label) {
+function ensureValidDimensions(label2) {
   ["width", "height"].forEach(function(prop2) {
-    if (typeof label[prop2] === "undefined") {
-      label[prop2] = 0;
+    if (typeof label2[prop2] === "undefined") {
+      label2[prop2] = 0;
     }
   });
 }
@@ -110984,13 +112831,13 @@ var OFF_AXIS = {
 };
 DistributeElements.prototype.preExecute = function(context) {
   var modeling = this._modeling;
-  var groups = context.groups, axis = context.axis, dimension = context.dimension;
+  var groups = context.groups, axis2 = context.axis, dimension = context.dimension;
   function updateRange(group, element) {
-    group.range.min = Math.min(element[axis], group.range.min);
-    group.range.max = Math.max(element[axis] + element[dimension], group.range.max);
+    group.range.min = Math.min(element[axis2], group.range.min);
+    group.range.max = Math.max(element[axis2] + element[dimension], group.range.max);
   }
   function center3(element) {
-    return element[axis] + element[dimension] / 2;
+    return element[axis2] + element[dimension] / 2;
   }
   function lastIdx(arr) {
     return arr.length - 1;
@@ -111000,9 +112847,9 @@ DistributeElements.prototype.preExecute = function(context) {
   }
   function centerElement(refCenter, element) {
     var delta2 = { y: 0 };
-    delta2[axis] = refCenter - center3(element);
-    if (delta2[axis]) {
-      delta2[OFF_AXIS[axis]] = 0;
+    delta2[axis2] = refCenter - center3(element);
+    if (delta2[axis2]) {
+      delta2[OFF_AXIS[axis2]] = 0;
       modeling.moveElements([element], delta2, element.parent);
     }
   }
@@ -111017,7 +112864,7 @@ DistributeElements.prototype.preExecute = function(context) {
       }
       return;
     }
-    sortedElements = sortBy2(group.elements, axis);
+    sortedElements = sortBy2(group.elements, axis2);
     refElem = sortedElements[0];
     if (idx === lastGroupIdx) {
       refElem = sortedElements[lastIdx(sortedElements)];
@@ -111028,8 +112875,8 @@ DistributeElements.prototype.preExecute = function(context) {
       centerElement(refCenter, element);
       if (group.range === null) {
         group.range = {
-          min: element[axis],
-          max: element[axis] + element[dimension]
+          min: element[axis2],
+          max: element[axis2] + element[dimension]
         };
         return;
       }
@@ -111052,15 +112899,15 @@ DistributeElements.prototype.preExecute = function(context) {
     prevGroup = groups[groupIdx - 1];
     group.range.max = 0;
     forEach(group.elements, function(element, idx) {
-      delta2[OFF_AXIS[axis]] = 0;
-      delta2[axis] = prevGroup.range.max - element[axis] + margin;
-      if (group.range.min !== element[axis]) {
-        delta2[axis] += element[axis] - group.range.min;
+      delta2[OFF_AXIS[axis2]] = 0;
+      delta2[axis2] = prevGroup.range.max - element[axis2] + margin;
+      if (group.range.min !== element[axis2]) {
+        delta2[axis2] += element[axis2] - group.range.min;
       }
-      if (delta2[axis]) {
+      if (delta2[axis2]) {
         modeling.moveElements([element], delta2, element.parent);
       }
-      group.range.max = Math.max(element[axis] + element[dimension], idx ? group.range.max : 0);
+      group.range.max = Math.max(element[axis2] + element[dimension], idx ? group.range.max : 0);
     });
   });
 };
@@ -111518,14 +113365,14 @@ SpaceToolHandler.prototype.resizeShapes = function(shapes, delta2, direction) {
 SpaceToolHandler.prototype.updateConnectionWaypoints = function(connections, delta2, direction, start, movingShapes, resizingShapes, oldBounds) {
   var self2 = this, affectedShapes = movingShapes.concat(resizingShapes);
   forEach(connections, function(connection2) {
-    var source = connection2.source, target = connection2.target, waypoints = copyWaypoints2(connection2), axis = getAxisFromDirection(direction), layoutHints = {};
+    var source = connection2.source, target = connection2.target, waypoints = copyWaypoints2(connection2), axis2 = getAxisFromDirection(direction), layoutHints = {};
     if (includes6(affectedShapes, source) && includes6(affectedShapes, target)) {
       waypoints = map(waypoints, function(waypoint) {
         if (shouldMoveWaypoint(waypoint, start, direction)) {
-          waypoint[axis] = waypoint[axis] + delta2[axis];
+          waypoint[axis2] = waypoint[axis2] + delta2[axis2];
         }
         if (waypoint.original && shouldMoveWaypoint(waypoint.original, start, direction)) {
-          waypoint.original[axis] = waypoint.original[axis] + delta2[axis];
+          waypoint.original[axis2] = waypoint.original[axis2] + delta2[axis2];
         }
         return waypoint;
       });
@@ -111865,13 +113712,13 @@ Modeling.prototype.createElements = function(elements2, position2, parent, paren
   this._commandStack.execute("elements.create", context);
   return context.elements;
 };
-Modeling.prototype.createLabel = function(labelTarget, position2, label, parent) {
-  label = this._create("label", label);
+Modeling.prototype.createLabel = function(labelTarget, position2, label2, parent) {
+  label2 = this._create("label", label2);
   var context = {
     labelTarget,
     position: position2,
     parent: parent || labelTarget.parent,
-    shape: label
+    shape: label2
   };
   this._commandStack.execute("label.create", context);
   return context.shape;
@@ -111897,10 +113744,10 @@ Modeling.prototype.removeElements = function(elements2) {
   };
   this._commandStack.execute("elements.delete", context);
 };
-Modeling.prototype.distributeElements = function(groups, axis, dimension) {
+Modeling.prototype.distributeElements = function(groups, axis2, dimension) {
   var context = {
     groups,
-    axis,
+    axis: axis2,
     dimension
   };
   this._commandStack.execute("elements.distribute", context);
@@ -112100,13 +113947,13 @@ UpdatePropertiesHandler.prototype.execute = function(context) {
   return changed;
 };
 UpdatePropertiesHandler.prototype.postExecute = function(context) {
-  var element = context.element, label = element.label;
-  var text4 = label && getBusinessObject(label).name;
+  var element = context.element, label2 = element.label;
+  var text4 = label2 && getBusinessObject(label2).name;
   if (!text4) {
     return;
   }
-  var newLabelBounds = this._textRenderer.getExternalLabelBounds(label, text4);
-  this._modeling.resizeShape(label, newLabelBounds, NULL_DIMENSIONS);
+  var newLabelBounds = this._textRenderer.getExternalLabelBounds(label2, text4);
+  this._modeling.resizeShape(label2, newLabelBounds, NULL_DIMENSIONS);
 };
 UpdatePropertiesHandler.prototype.revert = function(context) {
   var element = context.element, properties = context.properties, oldProperties = context.oldProperties, businessObject = element.businessObject, elementRegistry = this._elementRegistry, ids3 = this._moddle.ids;
@@ -112269,33 +114116,33 @@ AddLaneHandler.prototype.preExecute = function(context) {
       return c6 !== shape;
     });
   });
-  var offset3, lanePosition, spacePos, direction, axis;
+  var offset3, lanePosition, spacePos, direction, axis2;
   if (location2 === "top") {
     offset3 = -120;
     lanePosition = shape.y;
     spacePos = lanePosition + 10;
     direction = "n";
-    axis = "y";
+    axis2 = "y";
   } else if (location2 === "left") {
     offset3 = -120;
     lanePosition = shape.x;
     spacePos = lanePosition + 10;
     direction = "w";
-    axis = "x";
+    axis2 = "x";
   } else if (location2 === "bottom") {
     offset3 = 120;
     lanePosition = shape.y + shape.height;
     spacePos = lanePosition - 10;
     direction = "s";
-    axis = "y";
+    axis2 = "y";
   } else if (location2 === "right") {
     offset3 = 120;
     lanePosition = shape.x + shape.width;
     spacePos = lanePosition - 10;
     direction = "e";
-    axis = "x";
+    axis2 = "x";
   }
-  var adjustments = spaceTool.calculateAdjustments(allAffected, axis, offset3, spacePos);
+  var adjustments = spaceTool.calculateAdjustments(allAffected, axis2, offset3, spacePos);
   var delta2 = isHorizontalLane ? { x: 0, y: offset3 } : { x: offset3, y: 0 };
   spaceTool.makeSpace(
     adjustments.movingShapes,
@@ -112650,10 +114497,10 @@ var NULL_DIMENSIONS2 = {
 };
 function UpdateLabelHandler(modeling, textRenderer, bpmnFactory) {
   function setText(element, text4) {
-    var label = element.label || element;
+    var label2 = element.label || element;
     var labelTarget = element.labelTarget || element;
-    setLabel(label, text4, labelTarget !== label);
-    return [label, labelTarget];
+    setLabel(label2, text4, labelTarget !== label2);
+    return [label2, labelTarget];
   }
   function preExecute(ctx) {
     var element = ctx.element, businessObject = element.businessObject, newLabel = ctx.newLabel;
@@ -112679,22 +114526,22 @@ function UpdateLabelHandler(modeling, textRenderer, bpmnFactory) {
     return setText(ctx.element, ctx.oldLabel);
   }
   function postExecute(ctx) {
-    var element = ctx.element, label = element.label || element, newLabel = ctx.newLabel, newBounds = ctx.newBounds, hints = ctx.hints || {};
-    if (!isLabel(label) && !is2(label, "bpmn:TextAnnotation")) {
+    var element = ctx.element, label2 = element.label || element, newLabel = ctx.newLabel, newBounds = ctx.newBounds, hints = ctx.hints || {};
+    if (!isLabel(label2) && !is2(label2, "bpmn:TextAnnotation")) {
       return;
     }
-    if (isLabel(label) && isEmptyText(newLabel)) {
+    if (isLabel(label2) && isEmptyText(newLabel)) {
       if (hints.removeShape !== false) {
-        modeling.removeShape(label, { unsetLabel: false });
+        modeling.removeShape(label2, { unsetLabel: false });
       }
       return;
     }
     var text4 = getLabel(element);
     if (typeof newBounds === "undefined") {
-      newBounds = textRenderer.getExternalLabelBounds(label, text4);
+      newBounds = textRenderer.getExternalLabelBounds(label2, text4);
     }
     if (newBounds) {
-      modeling.resizeShape(label, newBounds, NULL_DIMENSIONS2);
+      modeling.resizeShape(label2, newBounds, NULL_DIMENSIONS2);
     }
   }
   this.preExecute = preExecute;
@@ -112707,8 +114554,8 @@ UpdateLabelHandler.$inject = [
   "textRenderer",
   "bpmnFactory"
 ];
-function isEmptyText(label) {
-  return !label || !label.trim();
+function isEmptyText(label2) {
+  return !label2 || !label2.trim();
 }
 
 // node_modules/bpmn-js/lib/features/modeling/Modeling.js
@@ -112852,380 +114699,6 @@ BaseLayouter.prototype.layoutConnection = function(connection2, hints) {
     hints.connectionEnd || getMid(hints.target || connection2.target)
   ];
 };
-
-// node_modules/diagram-js/lib/layout/ManhattanLayout.js
-init_dist();
-init_LayoutUtil();
-init_Geometry();
-var MIN_SEGMENT_LENGTH = 20;
-var POINT_ORIENTATION_PADDING = 5;
-var round12 = Math.round;
-var INTERSECTION_THRESHOLD2 = 20;
-var ORIENTATION_THRESHOLD = {
-  "h:h": 20,
-  "v:v": 20,
-  "h:v": -10,
-  "v:h": -10
-};
-function needsTurn(orientation, startDirection) {
-  return !{
-    t: /top/,
-    r: /right/,
-    b: /bottom/,
-    l: /left/,
-    h: /./,
-    v: /./
-  }[startDirection].test(orientation);
-}
-function canLayoutStraight(direction, targetOrientation) {
-  return {
-    t: /top/,
-    r: /right/,
-    b: /bottom/,
-    l: /left/,
-    h: /left|right/,
-    v: /top|bottom/
-  }[direction].test(targetOrientation);
-}
-function getSegmentBendpoints(a5, b4, directions2) {
-  var orientation = getOrientation(b4, a5, POINT_ORIENTATION_PADDING);
-  var startDirection = directions2.split(":")[0];
-  var xmid = round12((b4.x - a5.x) / 2 + a5.x), ymid = round12((b4.y - a5.y) / 2 + a5.y);
-  var segmentEnd, segmentDirections;
-  var layoutStraight = canLayoutStraight(startDirection, orientation), layoutHorizontal = /h|r|l/.test(startDirection), layoutTurn = false;
-  var turnNextDirections = false;
-  if (layoutStraight) {
-    segmentEnd = layoutHorizontal ? { x: xmid, y: a5.y } : { x: a5.x, y: ymid };
-    segmentDirections = layoutHorizontal ? "h:h" : "v:v";
-  } else {
-    layoutTurn = needsTurn(orientation, startDirection);
-    segmentDirections = layoutHorizontal ? "h:v" : "v:h";
-    if (layoutTurn) {
-      if (layoutHorizontal) {
-        turnNextDirections = ymid === a5.y;
-        segmentEnd = {
-          x: a5.x + MIN_SEGMENT_LENGTH * (/l/.test(startDirection) ? -1 : 1),
-          y: turnNextDirections ? ymid + MIN_SEGMENT_LENGTH : ymid
-        };
-      } else {
-        turnNextDirections = xmid === a5.x;
-        segmentEnd = {
-          x: turnNextDirections ? xmid + MIN_SEGMENT_LENGTH : xmid,
-          y: a5.y + MIN_SEGMENT_LENGTH * (/t/.test(startDirection) ? -1 : 1)
-        };
-      }
-    } else {
-      segmentEnd = {
-        x: xmid,
-        y: ymid
-      };
-    }
-  }
-  return {
-    waypoints: getBendpoints(a5, segmentEnd, segmentDirections).concat(segmentEnd),
-    directions: segmentDirections,
-    turnNextDirections
-  };
-}
-function getStartSegment(a5, b4, directions2) {
-  return getSegmentBendpoints(a5, b4, directions2);
-}
-function getEndSegment(a5, b4, directions2) {
-  var invertedSegment = getSegmentBendpoints(b4, a5, invertDirections(directions2));
-  return {
-    waypoints: invertedSegment.waypoints.slice().reverse(),
-    directions: invertDirections(invertedSegment.directions),
-    turnNextDirections: invertedSegment.turnNextDirections
-  };
-}
-function getMidSegment(startSegment, endSegment) {
-  var startDirection = startSegment.directions.split(":")[1], endDirection = endSegment.directions.split(":")[0];
-  if (startSegment.turnNextDirections) {
-    startDirection = startDirection == "h" ? "v" : "h";
-  }
-  if (endSegment.turnNextDirections) {
-    endDirection = endDirection == "h" ? "v" : "h";
-  }
-  var directions2 = startDirection + ":" + endDirection;
-  var bendpoints = getBendpoints(
-    startSegment.waypoints[startSegment.waypoints.length - 1],
-    endSegment.waypoints[0],
-    directions2
-  );
-  return {
-    waypoints: bendpoints,
-    directions: directions2
-  };
-}
-function invertDirections(directions2) {
-  return directions2.split(":").reverse().join(":");
-}
-function getSimpleBendpoints(a5, b4, directions2) {
-  var xmid = round12((b4.x - a5.x) / 2 + a5.x), ymid = round12((b4.y - a5.y) / 2 + a5.y);
-  if (directions2 === "h:v") {
-    return [{ x: b4.x, y: a5.y }];
-  }
-  if (directions2 === "v:h") {
-    return [{ x: a5.x, y: b4.y }];
-  }
-  if (directions2 === "h:h") {
-    return [
-      { x: xmid, y: a5.y },
-      { x: xmid, y: b4.y }
-    ];
-  }
-  if (directions2 === "v:v") {
-    return [
-      { x: a5.x, y: ymid },
-      { x: b4.x, y: ymid }
-    ];
-  }
-  throw new Error("invalid directions: can only handle varians of [hv]:[hv]");
-}
-function getBendpoints(a5, b4, directions2) {
-  directions2 = directions2 || "h:h";
-  if (!isValidDirections(directions2)) {
-    throw new Error(
-      "unknown directions: <" + directions2 + ">: must be specified as <start>:<end> with start/end in { h,v,t,r,b,l }"
-    );
-  }
-  if (isExplicitDirections(directions2)) {
-    var startSegment = getStartSegment(a5, b4, directions2), endSegment = getEndSegment(a5, b4, directions2), midSegment = getMidSegment(startSegment, endSegment);
-    return [].concat(
-      startSegment.waypoints,
-      midSegment.waypoints,
-      endSegment.waypoints
-    );
-  }
-  return getSimpleBendpoints(a5, b4, directions2);
-}
-function connectPoints(a5, b4, directions2) {
-  var points = getBendpoints(a5, b4, directions2);
-  points.unshift(a5);
-  points.push(b4);
-  return withoutRedundantPoints(points);
-}
-function connectRectangles(source, target, start, end, hints) {
-  var preferredLayouts = hints && hints.preferredLayouts || [];
-  var preferredLayout = without(preferredLayouts, "straight")[0] || "h:h";
-  var threshold = ORIENTATION_THRESHOLD[preferredLayout] || 0;
-  var orientation = getOrientation(source, target, threshold);
-  var directions2 = getDirections(orientation, preferredLayout);
-  start = start || getMid(source);
-  end = end || getMid(target);
-  var directionSplit = directions2.split(":");
-  var startDocking = getDockingPoint(start, source, directionSplit[0], invertOrientation(orientation)), endDocking = getDockingPoint(end, target, directionSplit[1], orientation);
-  return connectPoints(startDocking, endDocking, directions2);
-}
-function repairConnection(source, target, start, end, waypoints, hints) {
-  if (isArray2(start)) {
-    waypoints = start;
-    hints = end;
-    start = getMid(source);
-    end = getMid(target);
-  }
-  hints = assign2({ preferredLayouts: [] }, hints);
-  waypoints = waypoints || [];
-  var preferredLayouts = hints.preferredLayouts, preferStraight = preferredLayouts.indexOf("straight") !== -1, repairedWaypoints;
-  repairedWaypoints = preferStraight && tryLayoutStraight(source, target, start, end, hints);
-  if (repairedWaypoints) {
-    return repairedWaypoints;
-  }
-  repairedWaypoints = hints.connectionEnd && tryRepairConnectionEnd(target, source, end, waypoints);
-  if (repairedWaypoints) {
-    return repairedWaypoints;
-  }
-  repairedWaypoints = hints.connectionStart && tryRepairConnectionStart(source, target, start, waypoints);
-  if (repairedWaypoints) {
-    return repairedWaypoints;
-  }
-  if (!hints.connectionStart && !hints.connectionEnd && waypoints && waypoints.length) {
-    return waypoints;
-  }
-  return connectRectangles(source, target, start, end, hints);
-}
-function inRange(a5, start, end) {
-  return a5 >= start && a5 <= end;
-}
-function isInRange(axis, a5, b4) {
-  var size2 = {
-    x: "width",
-    y: "height"
-  };
-  return inRange(a5[axis], b4[axis], b4[axis] + b4[size2[axis]]);
-}
-function tryLayoutStraight(source, target, start, end, hints) {
-  var axis = {}, primaryAxis, orientation;
-  orientation = getOrientation(source, target);
-  if (!/^(top|bottom|left|right)$/.test(orientation)) {
-    return null;
-  }
-  if (/top|bottom/.test(orientation)) {
-    primaryAxis = "x";
-  }
-  if (/left|right/.test(orientation)) {
-    primaryAxis = "y";
-  }
-  if (hints.preserveDocking === "target") {
-    if (!isInRange(primaryAxis, end, source)) {
-      return null;
-    }
-    axis[primaryAxis] = end[primaryAxis];
-    return [
-      {
-        x: axis.x !== void 0 ? axis.x : start.x,
-        y: axis.y !== void 0 ? axis.y : start.y,
-        original: {
-          x: axis.x !== void 0 ? axis.x : start.x,
-          y: axis.y !== void 0 ? axis.y : start.y
-        }
-      },
-      {
-        x: end.x,
-        y: end.y
-      }
-    ];
-  } else {
-    if (!isInRange(primaryAxis, start, target)) {
-      return null;
-    }
-    axis[primaryAxis] = start[primaryAxis];
-    return [
-      {
-        x: start.x,
-        y: start.y
-      },
-      {
-        x: axis.x !== void 0 ? axis.x : end.x,
-        y: axis.y !== void 0 ? axis.y : end.y,
-        original: {
-          x: axis.x !== void 0 ? axis.x : end.x,
-          y: axis.y !== void 0 ? axis.y : end.y
-        }
-      }
-    ];
-  }
-}
-function tryRepairConnectionStart(moved, other, newDocking, points) {
-  return _tryRepairConnectionSide(moved, other, newDocking, points);
-}
-function tryRepairConnectionEnd(moved, other, newDocking, points) {
-  var waypoints = points.slice().reverse();
-  waypoints = _tryRepairConnectionSide(moved, other, newDocking, waypoints);
-  return waypoints ? waypoints.reverse() : null;
-}
-function _tryRepairConnectionSide(moved, other, newDocking, points) {
-  function needsRelayout(points2) {
-    if (points2.length < 3) {
-      return true;
-    }
-    if (points2.length > 4) {
-      return false;
-    }
-    return !!find2(points2, function(p6, idx) {
-      var q5 = points2[idx - 1];
-      return q5 && pointDistance(p6, q5) < 3;
-    });
-  }
-  function repairBendpoint(candidate, oldPeer, newPeer) {
-    var alignment = pointsAligned(oldPeer, candidate);
-    switch (alignment) {
-      case "v":
-        return { x: newPeer.x, y: candidate.y };
-      case "h":
-        return { x: candidate.x, y: newPeer.y };
-    }
-    return { x: candidate.x, y: candidate.y };
-  }
-  function removeOverlapping(points2, a5, b4) {
-    var i6;
-    for (i6 = points2.length - 2; i6 !== 0; i6--) {
-      if (pointInRect(points2[i6], a5, INTERSECTION_THRESHOLD2) || pointInRect(points2[i6], b4, INTERSECTION_THRESHOLD2)) {
-        return points2.slice(i6);
-      }
-    }
-    return points2;
-  }
-  if (needsRelayout(points)) {
-    return null;
-  }
-  var oldDocking = points[0], newPoints = points.slice(), slicedPoints;
-  newPoints[0] = newDocking;
-  newPoints[1] = repairBendpoint(newPoints[1], oldDocking, newDocking);
-  slicedPoints = removeOverlapping(newPoints, moved, other);
-  if (slicedPoints !== newPoints) {
-    newPoints = _tryRepairConnectionSide(moved, other, newDocking, slicedPoints);
-  }
-  if (newPoints && pointsAligned(newPoints)) {
-    return null;
-  }
-  return newPoints;
-}
-function getDirections(orientation, defaultLayout) {
-  if (isExplicitDirections(defaultLayout)) {
-    return defaultLayout;
-  }
-  switch (orientation) {
-    case "intersect":
-      return "t:t";
-    case "top":
-    case "bottom":
-      return "v:v";
-    case "left":
-    case "right":
-      return "h:h";
-    default:
-      return defaultLayout;
-  }
-}
-function isValidDirections(directions2) {
-  return directions2 && /^h|v|t|r|b|l:h|v|t|r|b|l$/.test(directions2);
-}
-function isExplicitDirections(directions2) {
-  return directions2 && /t|r|b|l/.test(directions2);
-}
-function invertOrientation(orientation) {
-  return {
-    "top": "bottom",
-    "bottom": "top",
-    "left": "right",
-    "right": "left",
-    "top-left": "bottom-right",
-    "bottom-right": "top-left",
-    "top-right": "bottom-left",
-    "bottom-left": "top-right"
-  }[orientation];
-}
-function getDockingPoint(point, rectangle, dockingDirection, targetOrientation) {
-  if (dockingDirection === "h") {
-    dockingDirection = /left/.test(targetOrientation) ? "l" : "r";
-  }
-  if (dockingDirection === "v") {
-    dockingDirection = /top/.test(targetOrientation) ? "t" : "b";
-  }
-  if (dockingDirection === "t") {
-    return { original: point, x: point.x, y: rectangle.y };
-  }
-  if (dockingDirection === "r") {
-    return { original: point, x: rectangle.x + rectangle.width, y: point.y };
-  }
-  if (dockingDirection === "b") {
-    return { original: point, x: point.x, y: rectangle.y + rectangle.height };
-  }
-  if (dockingDirection === "l") {
-    return { original: point, x: rectangle.x, y: point.y };
-  }
-  throw new Error("unexpected dockingDirection: <" + dockingDirection + ">");
-}
-function withoutRedundantPoints(waypoints) {
-  return waypoints.reduce(function(points, p6, idx) {
-    var previous = points[points.length - 1], next = waypoints[idx + 1];
-    if (!pointsOnLine(previous, next, p6, 0)) {
-      points.push(p6);
-    }
-    return points;
-  }, []);
-}
 
 // node_modules/bpmn-js/lib/features/modeling/BpmnLayouter.js
 init_LayoutUtil();
@@ -113463,15 +114936,15 @@ function getBoundaryEventLoopLayout(attachOrientation, attachedToSide, source, t
   }
   return [sourceLayout + ":" + targetLayout];
 }
-function shouldConnectToSameSide(axis, source, target, end) {
+function shouldConnectToSameSide(axis2, source, target, end) {
   var threshold = BOUNDARY_TO_HOST_THRESHOLD;
-  return !(areCloseOnAxis(axis, end, target, threshold) || areCloseOnAxis(axis, end, {
+  return !(areCloseOnAxis(axis2, end, target, threshold) || areCloseOnAxis(axis2, end, {
     x: target.x + target.width,
     y: target.y + target.height
-  }, threshold) || areCloseOnAxis(axis, end, getMid(source), threshold));
+  }, threshold) || areCloseOnAxis(axis2, end, getMid(source), threshold));
 }
-function areCloseOnAxis(axis, a5, b4, threshold) {
-  return Math.abs(a5[axis] - b4[axis]) < threshold;
+function areCloseOnAxis(axis2, a5, b4, threshold) {
+  return Math.abs(a5[axis2] - b4[axis2]) < threshold;
 }
 function getBoundaryEventSourceLayout(attachOrientation, targetOrientation, attachedToSide, isHorizontal5) {
   if (attachedToSide) {
@@ -114974,11 +116447,11 @@ var PARTICIPANT = [
   },
   {
     label: function(element) {
-      var label = "Empty pool/participant";
+      var label2 = "Empty pool/participant";
       if (element.children && element.children.length) {
-        label += " (removes content)";
+        label2 += " (removes content)";
       }
-      return label;
+      return label2;
     },
     actionName: "replace-with-collapsed-pool",
     // TODO(@janstuemmel): maybe design new icon
@@ -115449,13 +116922,13 @@ ReplaceMenuProvider.prototype._createEntry = function(replaceOption, target, act
   var replaceAction = function() {
     return replaceElement(target, replaceOption.target);
   };
-  var label = replaceOption.label;
-  if (label && typeof label === "function") {
-    label = label(target);
+  var label2 = replaceOption.label;
+  if (label2 && typeof label2 === "function") {
+    label2 = label2(target);
   }
   action = action || replaceAction;
   return {
-    label: translate4(label),
+    label: translate4(label2),
     className: replaceOption.className,
     action
   };
@@ -115672,7 +117145,7 @@ ContextPadProvider.prototype._isDeleteAllowed = function(elements2) {
     elements: elements2
   });
   if (isArray2(baseAllowed)) {
-    return every(elements2, (el4) => baseAllowed.includes(el4));
+    return every(elements2, (el3) => baseAllowed.includes(el3));
   }
   return baseAllowed;
 };
@@ -116040,23 +117513,23 @@ DistributeElements2.prototype.trigger = function(elements2, orientation) {
   return groups;
 };
 DistributeElements2.prototype._filterElements = function(elements2) {
-  var filters = this._filters, axis = this._axis, dimension = this._dimension, distributableElements = [].concat(elements2);
+  var filters = this._filters, axis2 = this._axis, dimension = this._dimension, distributableElements = [].concat(elements2);
   if (!filters.length) {
     return elements2;
   }
   forEach(filters, function(filterFn) {
-    distributableElements = filterFn(distributableElements, axis, dimension);
+    distributableElements = filterFn(distributableElements, axis2, dimension);
   });
   return distributableElements;
 };
 DistributeElements2.prototype._createGroups = function(elements2) {
-  var rangeGroups = [], self2 = this, axis = this._axis, dimension = this._dimension;
-  if (!axis) {
+  var rangeGroups = [], self2 = this, axis2 = this._axis, dimension = this._dimension;
+  if (!axis2) {
     throw new Error('must have a defined "axis" and "dimension"');
   }
-  var sortedElements = sortBy2(elements2, axis);
+  var sortedElements = sortBy2(elements2, axis2);
   forEach(sortedElements, function(element, idx) {
-    var elementRange = self2._findRange(element, axis, dimension), range;
+    var elementRange = self2._findRange(element, axis2, dimension), range;
     var previous = rangeGroups[rangeGroups.length - 1];
     if (previous && self2._hasIntersection(previous.range, elementRange)) {
       rangeGroups[rangeGroups.length - 1].elements.push(element);
@@ -116076,10 +117549,10 @@ DistributeElements2.prototype._hasIntersection = function(rangeA, rangeB) {
   return Math.max(rangeA.min, rangeA.max) >= Math.min(rangeB.min, rangeB.max) && Math.min(rangeA.min, rangeA.max) <= Math.max(rangeB.min, rangeB.max);
 };
 DistributeElements2.prototype._findRange = function(element) {
-  var axis = element[this._axis], dimension = element[this._dimension];
+  var axis2 = element[this._axis], dimension = element[this._dimension];
   return {
-    min: axis + THRESHOLD2,
-    max: axis + dimension - THRESHOLD2
+    min: axis2 + THRESHOLD2,
+    max: axis2 + dimension - THRESHOLD2
   };
 };
 
@@ -116549,25 +118022,25 @@ function GridSnapping(elementRegistry, eventBus, config) {
     if (!gridSnappingContext) {
       gridSnappingContext = context.gridSnappingContext = {};
     }
-    ["x", "y"].forEach(function(axis) {
+    ["x", "y"].forEach(function(axis2) {
       var options = {};
-      var snapOffset = getSnapOffset(event2, axis, elementRegistry);
+      var snapOffset = getSnapOffset(event2, axis2, elementRegistry);
       if (snapOffset) {
         options.offset = snapOffset;
       }
-      var snapConstraints = getSnapConstraints(event2, axis);
+      var snapConstraints = getSnapConstraints(event2, axis2);
       if (snapConstraints) {
         assign2(options, snapConstraints);
       }
-      if (!isSnapped(event2, axis)) {
-        self2.snapEvent(event2, axis, options);
+      if (!isSnapped(event2, axis2)) {
+        self2.snapEvent(event2, axis2, options);
       }
     });
   });
 }
-GridSnapping.prototype.snapEvent = function(event2, axis, options) {
-  var snappedValue = this.snapValue(event2[axis], options);
-  setSnapped(event2, axis, snappedValue);
+GridSnapping.prototype.snapEvent = function(event2, axis2, options) {
+  var snappedValue = this.snapValue(event2[axis2], options);
+  setSnapped(event2, axis2, snappedValue);
 };
 GridSnapping.prototype.getGridSpacing = function() {
   return SPACING;
@@ -116612,20 +118085,20 @@ GridSnapping.$inject = [
   "eventBus",
   "config.gridSnapping"
 ];
-function getSnapConstraints(event2, axis) {
+function getSnapConstraints(event2, axis2) {
   var context = event2.context, createConstraints = context.createConstraints, resizeConstraints = context.resizeConstraints || {}, gridSnappingContext = context.gridSnappingContext, snapConstraints = gridSnappingContext.snapConstraints;
-  if (snapConstraints && snapConstraints[axis]) {
-    return snapConstraints[axis];
+  if (snapConstraints && snapConstraints[axis2]) {
+    return snapConstraints[axis2];
   }
   if (!snapConstraints) {
     snapConstraints = gridSnappingContext.snapConstraints = {};
   }
-  if (!snapConstraints[axis]) {
-    snapConstraints[axis] = {};
+  if (!snapConstraints[axis2]) {
+    snapConstraints[axis2] = {};
   }
   var direction = context.direction;
   if (createConstraints) {
-    if (isHorizontal2(axis)) {
+    if (isHorizontal2(axis2)) {
       snapConstraints.x.min = createConstraints.left;
       snapConstraints.x.max = createConstraints.right;
     } else {
@@ -116635,7 +118108,7 @@ function getSnapConstraints(event2, axis) {
   }
   var minResizeConstraints = resizeConstraints.min, maxResizeConstraints = resizeConstraints.max;
   if (minResizeConstraints) {
-    if (isHorizontal2(axis)) {
+    if (isHorizontal2(axis2)) {
       if (isWest(direction)) {
         snapConstraints.x.max = minResizeConstraints.left;
       } else {
@@ -116650,7 +118123,7 @@ function getSnapConstraints(event2, axis) {
     }
   }
   if (maxResizeConstraints) {
-    if (isHorizontal2(axis)) {
+    if (isHorizontal2(axis2)) {
       if (isWest(direction)) {
         snapConstraints.x.min = maxResizeConstraints.left;
       } else {
@@ -116664,49 +118137,49 @@ function getSnapConstraints(event2, axis) {
       }
     }
   }
-  return snapConstraints[axis];
+  return snapConstraints[axis2];
 }
-function getSnapOffset(event2, axis, elementRegistry) {
+function getSnapOffset(event2, axis2, elementRegistry) {
   var context = event2.context, shape = event2.shape, gridSnappingContext = context.gridSnappingContext, snapLocation = gridSnappingContext.snapLocation, snapOffset = gridSnappingContext.snapOffset;
-  if (snapOffset && isNumber2(snapOffset[axis])) {
-    return snapOffset[axis];
+  if (snapOffset && isNumber2(snapOffset[axis2])) {
+    return snapOffset[axis2];
   }
   if (!snapOffset) {
     snapOffset = gridSnappingContext.snapOffset = {};
   }
-  if (!isNumber2(snapOffset[axis])) {
-    snapOffset[axis] = 0;
+  if (!isNumber2(snapOffset[axis2])) {
+    snapOffset[axis2] = 0;
   }
   if (!shape) {
-    return snapOffset[axis];
+    return snapOffset[axis2];
   }
   if (!elementRegistry.get(shape.id)) {
-    if (isHorizontal2(axis)) {
-      snapOffset[axis] += shape[axis] + shape.width / 2;
+    if (isHorizontal2(axis2)) {
+      snapOffset[axis2] += shape[axis2] + shape.width / 2;
     } else {
-      snapOffset[axis] += shape[axis] + shape.height / 2;
+      snapOffset[axis2] += shape[axis2] + shape.height / 2;
     }
   }
   if (!snapLocation) {
-    return snapOffset[axis];
+    return snapOffset[axis2];
   }
-  if (axis === "x") {
+  if (axis2 === "x") {
     if (/left/.test(snapLocation)) {
-      snapOffset[axis] -= shape.width / 2;
+      snapOffset[axis2] -= shape.width / 2;
     } else if (/right/.test(snapLocation)) {
-      snapOffset[axis] += shape.width / 2;
+      snapOffset[axis2] += shape.width / 2;
     }
   } else {
     if (/top/.test(snapLocation)) {
-      snapOffset[axis] -= shape.height / 2;
+      snapOffset[axis2] -= shape.height / 2;
     } else if (/bottom/.test(snapLocation)) {
-      snapOffset[axis] += shape.height / 2;
+      snapOffset[axis2] += shape.height / 2;
     }
   }
-  return snapOffset[axis];
+  return snapOffset[axis2];
 }
-function isHorizontal2(axis) {
-  return axis === "x";
+function isHorizontal2(axis2) {
+  return axis2 === "x";
 }
 function isNorth(direction) {
   return direction.indexOf("n") !== -1;
@@ -116815,9 +118288,9 @@ function SpaceToolBehavior2(eventBus, gridSnapping) {
     if (!context.initialized) {
       return;
     }
-    var axis = context.axis;
+    var axis2 = context.axis;
     var snapped;
-    if (axis === "x") {
+    if (axis2 === "x") {
       snapped = gridSnapping.snapValue(event2.dx);
       event2.x = event2.x + snapped - event2.dx;
       event2.dx = snapped;
@@ -116857,24 +118330,24 @@ function GridSnappingAutoPlaceBehavior(eventBus, gridSnapping, elementRegistry) 
   eventBus.on("autoPlace", HIGH_PRIORITY17, function(context) {
     var source = context.source, sourceMid = getMid(source), shape = context.shape;
     var position2 = getNewShapePosition2(source, shape, elementRegistry);
-    ["x", "y"].forEach(function(axis) {
+    ["x", "y"].forEach(function(axis2) {
       var options = {};
-      if (position2[axis] === sourceMid[axis]) {
+      if (position2[axis2] === sourceMid[axis2]) {
         return;
       }
-      if (position2[axis] > sourceMid[axis]) {
-        options.min = position2[axis];
+      if (position2[axis2] > sourceMid[axis2]) {
+        options.min = position2[axis2];
       } else {
-        options.max = position2[axis];
+        options.max = position2[axis2];
       }
       if (is2(shape, "bpmn:TextAnnotation")) {
-        if (isHorizontal3(axis)) {
+        if (isHorizontal3(axis2)) {
           options.offset = -shape.width / 2;
         } else {
           options.offset = -shape.height / 2;
         }
       }
-      position2[axis] = gridSnapping.snapValue(position2[axis], options);
+      position2[axis2] = gridSnapping.snapValue(position2[axis2], options);
     });
     return position2;
   });
@@ -116884,8 +118357,8 @@ GridSnappingAutoPlaceBehavior.$inject = [
   "gridSnapping",
   "elementRegistry"
 ];
-function isHorizontal3(axis) {
-  return axis === "x";
+function isHorizontal3(axis2) {
+  return axis2 === "x";
 }
 
 // node_modules/bpmn-js/lib/features/grid-snapping/behavior/GridSnappingParticipantBehavior.js
@@ -117375,10 +118848,10 @@ function boundsChanged2(shape, newBounds) {
   return shape.x !== newBounds.x || shape.y !== newBounds.y || shape.width !== newBounds.width || shape.height !== newBounds.height;
 }
 function getReferencePoint2(shape, direction) {
-  var mid4 = getMid(shape), trbl = asTRBL(shape);
+  var mid5 = getMid(shape), trbl = asTRBL(shape);
   var referencePoint = {
-    x: mid4.x,
-    y: mid4.y
+    x: mid5.x,
+    y: mid5.y
   };
   if (direction.indexOf("n") !== -1) {
     referencePoint.y = trbl.top;
@@ -117417,10 +118890,10 @@ function ResizePreview(eventBus, canvas, previewSupport) {
       canvas.addMarker(shape, MARKER_RESIZING2);
     }
     if (bounds.width > 5) {
-      attr3(frame, { x: bounds.x, width: bounds.width });
+      attr4(frame, { x: bounds.x, width: bounds.width });
     }
     if (bounds.height > 5) {
-      attr3(frame, { y: bounds.y, height: bounds.height });
+      attr4(frame, { y: bounds.y, height: bounds.height });
     }
     if (context.canExecute) {
       classes2(frame).remove(MARKER_RESIZE_NOT_OK);
@@ -117494,7 +118967,7 @@ ResizeHandles.prototype._createResizer = function(element, x5, y5, direction) {
   classes2(group).add(CLS_RESIZER + "-" + direction);
   append2(resizersParent, group);
   var visual = create2("rect");
-  attr3(visual, {
+  attr4(visual, {
     x: -HANDLE_SIZE / 2 + offset3.x,
     y: -HANDLE_SIZE / 2 + offset3.y,
     width: HANDLE_SIZE,
@@ -117503,7 +118976,7 @@ ResizeHandles.prototype._createResizer = function(element, x5, y5, direction) {
   classes2(visual).add(CLS_RESIZER + "-visual");
   append2(group, visual);
   var hit = create2("rect");
-  attr3(hit, {
+  attr4(hit, {
     x: -HANDLE_HIT_SIZE / 2 + offset3.x,
     y: -HANDLE_HIT_SIZE / 2 + offset3.y,
     width: HANDLE_HIT_SIZE,
@@ -117706,7 +119179,7 @@ LabelEditingProvider.prototype.getEditingBBox = function(element) {
   var canvas = this._canvas;
   var target = element.label || element;
   var bbox2 = canvas.getAbsoluteBBox(target);
-  var mid4 = {
+  var mid5 = {
     x: bbox2.x + bbox2.width / 2,
     y: bbox2.y + bbox2.height / 2
   };
@@ -117724,7 +119197,7 @@ LabelEditingProvider.prototype.getEditingBBox = function(element) {
       width: bbox2.height,
       height: 30 * zoom2,
       x: bbox2.x - bbox2.height / 2 + 15 * zoom2,
-      y: mid4.y - 30 * zoom2 / 2
+      y: mid5.y - 30 * zoom2 / 2
     } : {
       width: bbox2.width,
       height: 30 * zoom2
@@ -117748,8 +119221,8 @@ LabelEditingProvider.prototype.getEditingBBox = function(element) {
     } : {
       width: bbox2.height,
       height: bbox2.width,
-      x: mid4.x - bbox2.height / 2,
-      y: mid4.y - bbox2.width / 2
+      x: mid5.x - bbox2.height / 2,
+      y: mid5.y - bbox2.width / 2
     };
     assign2(bounds, poolBounds);
     assign2(style2, {
@@ -117874,8 +119347,8 @@ function isCollapsedPool2(element) {
 function isExpandedPool(element) {
   return is2(element, "bpmn:Participant") && isExpanded(element);
 }
-function isEmptyText2(label) {
-  return !label || !label.trim();
+function isEmptyText2(label2) {
+  return !label2 || !label2.trim();
 }
 
 // node_modules/bpmn-js/lib/features/label-editing/LabelEditingPreview.js
@@ -117902,7 +119375,7 @@ function LabelEditingPreview(eventBus, canvas, pathMap) {
         }
       });
       var path2 = self2.path = create2("path");
-      attr3(path2, {
+      attr4(path2, {
         d: textPathData,
         strokeWidth: 2,
         stroke: getStrokeColor2(element)
@@ -117931,7 +119404,7 @@ function LabelEditingPreview(eventBus, canvas, pathMap) {
           my: 0
         }
       });
-      attr3(self2.path, {
+      attr4(self2.path, {
         d: textPathData
       });
     }
@@ -117986,7 +119459,7 @@ function Outline(eventBus, styles) {
   var self2 = this;
   function createOutline(gfx) {
     var outline2 = create2("rect");
-    attr3(outline2, assign2({
+    attr4(outline2, assign2({
       x: 0,
       y: 0,
       rx: 4,
@@ -118023,7 +119496,7 @@ Outline.prototype.updateShapeOutline = function(outline2, element) {
     });
   }
   if (!updated) {
-    attr3(outline2, {
+    attr4(outline2, {
       x: -this.offset,
       y: -this.offset,
       width: element.width + this.offset * 2,
@@ -118033,7 +119506,7 @@ Outline.prototype.updateShapeOutline = function(outline2, element) {
 };
 Outline.prototype.updateConnectionOutline = function(outline2, connection2) {
   var bbox2 = getBBox(connection2);
-  attr3(outline2, {
+  attr4(outline2, {
     x: bbox2.x - this.offset,
     y: bbox2.y - this.offset,
     width: bbox2.width + this.offset * 2,
@@ -118097,7 +119570,7 @@ MultiSelectionOutline.prototype._updateMultiSelectionOutline = function(selectio
   }
   var bBox = addSelectionOutlinePadding(getBBox(selection));
   var rect2 = create2("rect");
-  attr3(rect2, assign2({
+  attr4(rect2, assign2({
     rx: 3
   }, bBox));
   classes2(rect2).add("djs-selection-outline");
@@ -118151,13 +119624,13 @@ function LabelLink(eventBus, canvas, graphicsFactory, outline2, selection) {
       }
     }
     if (allowedElements.length === 2) {
-      const label = allowedElements.find(isLabel);
-      const target = allowedElements.find((el4) => {
+      const label2 = allowedElements.find(isLabel);
+      const target = allowedElements.find((el3) => {
         var _a4;
-        return (_a4 = el4.labels) == null ? void 0 : _a4.includes(label);
+        return (_a4 = el3.labels) == null ? void 0 : _a4.includes(label2);
       });
-      if (label && target) {
-        createLink(label, target, newSelection);
+      if (label2 && target) {
+        createLink(label2, target, newSelection);
       }
     }
   });
@@ -118172,14 +119645,14 @@ function LabelLink(eventBus, canvas, graphicsFactory, outline2, selection) {
       createLink(element.labels[0], element, selection.get());
     }
   });
-  function createLink(label, target, selection2 = []) {
+  function createLink(label2, target, selection2 = []) {
     const line2 = createLine(
-      [getMid(target), getMid(label)],
+      [getMid(target), getMid(label2)],
       LINE_STYLE
     );
     const linePath2 = line2.getAttribute("d");
-    const labelSelected = selection2.includes(label);
-    const labelPath = labelSelected ? getElementOutlinePath(label) : getElementPath(label);
+    const labelSelected = selection2.includes(label2);
+    const labelPath = labelSelected ? getElementOutlinePath(label2) : getElementPath(label2);
     const labelInter = getElementLineIntersection(labelPath, linePath2);
     if (!labelInter) {
       return;
@@ -118236,8 +119709,8 @@ LabelLink.$inject = [
   "outline",
   "selection"
 ];
-function parseSvgNumAttr(node3, attr4) {
-  return parseFloat(attr3(node3, attr4) || 0);
+function parseSvgNumAttr(node3, attr5) {
+  return parseFloat(attr4(node3, attr5) || 0);
 }
 
 // node_modules/bpmn-js/lib/features/label-link/index.js
@@ -118267,11 +119740,11 @@ function createRoot2(parentNode) {
   parentNode.insertBefore(root2, parentNode.firstChild);
   return root2;
 }
-function setPosition2(el4, x5, y5) {
-  assign3(el4, { left: x5 + "px", top: y5 + "px" });
+function setPosition2(el3, x5, y5) {
+  assign3(el3, { left: x5 + "px", top: y5 + "px" });
 }
-function setVisible2(el4, visible) {
-  el4.style.display = visible === false ? "none" : "";
+function setVisible2(el3, visible) {
+  el3.style.display = visible === false ? "none" : "";
 }
 var tooltipClass = "djs-tooltip";
 var tooltipSelector = "." + tooltipClass;
@@ -118319,7 +119792,7 @@ Tooltips.prototype.add = function(tooltip) {
 };
 Tooltips.prototype.trigger = function(action, event2) {
   var node3 = event2.delegateTarget || event2.target;
-  var tooltip = this.get(attr2(node3, "data-tooltip-id"));
+  var tooltip = this.get(attr3(node3, "data-tooltip-id"));
   if (!tooltip) {
     return;
   }
@@ -118488,7 +119961,7 @@ var LOW_PRIORITY25 = 500;
 var MEDIUM_PRIORITY = 1250;
 var HIGH_PRIORITY20 = 1500;
 var round14 = Math.round;
-function mid3(element) {
+function mid4(element) {
   return {
     x: element.x + round14(element.width / 2),
     y: element.y + round14(element.height / 2)
@@ -118570,7 +120043,7 @@ function MoveEvents(eventBus, dragging, modeling, selection, rules) {
     if (classes2(event2.target).has("djs-hit-no-move")) {
       return;
     }
-    var referencePoint = mid3(element);
+    var referencePoint = mid4(element);
     dragging.init(event2, referencePoint, "shape.move", {
       cursor: "grabbing",
       autoActivate: activate,
@@ -118651,7 +120124,7 @@ function MovePreview(eventBus, canvas, styles, previewSupport) {
     var visuallyDraggedShapes = getVisualDragShapes(dragShapes);
     if (!context.dragGroup) {
       var dragGroup = create2("g");
-      attr3(dragGroup, styles.cls("djs-drag-group", ["no-events"]));
+      attr4(dragGroup, styles.cls("djs-drag-group", ["no-events"]));
       var activeLayer = canvas.getActiveLayer();
       append2(activeLayer, dragGroup);
       context.dragGroup = dragGroup;
@@ -118860,23 +120333,23 @@ Palette.prototype._update = function() {
     var container = query("[data-group=" + escapeCSS(grouping) + "]", entriesContainer);
     if (!container) {
       container = domify('<div class="group"></div>');
-      attr2(container, "data-group", grouping);
+      attr3(container, "data-group", grouping);
       entriesContainer.appendChild(container);
     }
     var html3 = entry.html || (entry.separator ? '<hr class="separator" />' : '<div class="entry" draggable="true"></div>');
     var control = domify(html3);
     container.appendChild(control);
     if (!entry.separator) {
-      attr2(control, "data-action", id);
+      attr3(control, "data-action", id);
       if (entry.title) {
-        attr2(control, "title", entry.title);
+        attr3(control, "title", entry.title);
       }
       if (entry.className) {
         addClasses2(control, entry.className);
       }
       if (entry.imageUrl) {
         var image = domify("<img>");
-        attr2(image, "src", entry.imageUrl);
+        attr3(image, "src", entry.imageUrl);
         control.appendChild(image);
       }
     }
@@ -118888,7 +120361,7 @@ Palette.prototype.trigger = function(action, event2, autoActivate) {
   if (!button) {
     return event2.preventDefault();
   }
-  entry = attr2(button, "data-action");
+  entry = attr3(button, "data-action");
   originalEvent = event2.originalEvent || event2;
   return this.triggerEntry(entry, action, originalEvent, autoActivate);
 };
@@ -119009,7 +120482,7 @@ function LassoTool(eventBus, canvas, dragging, elementRegistry, selection, toolM
     create: function(context) {
       var container = canvas.getActiveLayer();
       var frame = context.frame = create2("rect");
-      attr3(frame, {
+      attr4(frame, {
         class: "djs-lasso-overlay",
         width: 1,
         height: 1,
@@ -119026,7 +120499,7 @@ function LassoTool(eventBus, canvas, dragging, elementRegistry, selection, toolM
     update: function(context) {
       var frame = context.frame, bbox2 = context.bbox;
       if (frame && bbox2) {
-        attr3(frame, {
+        attr4(frame, {
           x: bbox2.x,
           y: bbox2.y,
           width: bbox2.width,
@@ -119651,7 +121124,7 @@ function BpmnReplacePreview(eventBus, elementRegistry, elementFactory, canvas, p
       canvas.addShape(tempShape, element.parent);
       var gfx = query('[data-element-id="' + escapeCSS(element.id) + '"]', context.dragGroup);
       if (gfx) {
-        attr3(gfx, { display: "none" });
+        attr4(gfx, { display: "none" });
       }
       var dragger = previewSupport.addDragger(tempShape, context.dragGroup);
       context.visualReplacements[id] = dragger;
@@ -119663,7 +121136,7 @@ function BpmnReplacePreview(eventBus, elementRegistry, elementFactory, canvas, p
     forEach(visualReplacements, function(dragger, id) {
       var originalGfx = query('[data-element-id="' + escapeCSS(id) + '"]', context.dragGroup);
       if (originalGfx) {
-        attr3(originalGfx, { display: "inline" });
+        attr4(originalGfx, { display: "inline" });
       }
       dragger.remove();
       if (visualReplacements[id]) {
@@ -119733,9 +121206,9 @@ function BpmnConnectSnapping(eventBus) {
       "bpmn:DataOutputAssociation",
       "bpmn:SequenceFlow"
     ])) {
-      context.connectionStart = mid(start);
+      context.connectionStart = mid2(start);
       if (isAny(hover, ["bpmn:Event", "bpmn:Gateway"])) {
-        snapToPosition(event2, mid(hover));
+        snapToPosition(event2, mid2(hover));
       }
       if (isAny(hover, ["bpmn:Task", "bpmn:SubProcess"])) {
         snapToTargetMid(event2, hover);
@@ -119745,10 +121218,10 @@ function BpmnConnectSnapping(eventBus) {
       }
     } else if (isType(canExecute, "bpmn:MessageFlow")) {
       if (is2(start, "bpmn:Event")) {
-        context.connectionStart = mid(start);
+        context.connectionStart = mid2(start);
       }
       if (is2(hover, "bpmn:Event")) {
-        snapToPosition(event2, mid(hover));
+        snapToPosition(event2, mid2(hover));
       }
     } else {
       context.connectionStart = context.initialConnectionStart;
@@ -119757,20 +121230,20 @@ function BpmnConnectSnapping(eventBus) {
 }
 BpmnConnectSnapping.$inject = ["eventBus"];
 function snapToShape(event2, target, padding) {
-  AXES.forEach(function(axis) {
-    var dimensionForAxis = getDimensionForAxis(axis, target);
-    if (event2[axis] < target[axis] + padding) {
-      setSnapped(event2, axis, target[axis] + padding);
-    } else if (event2[axis] > target[axis] + dimensionForAxis - padding) {
-      setSnapped(event2, axis, target[axis] + dimensionForAxis - padding);
+  AXES.forEach(function(axis2) {
+    var dimensionForAxis = getDimensionForAxis(axis2, target);
+    if (event2[axis2] < target[axis2] + padding) {
+      setSnapped(event2, axis2, target[axis2] + padding);
+    } else if (event2[axis2] > target[axis2] + dimensionForAxis - padding) {
+      setSnapped(event2, axis2, target[axis2] + dimensionForAxis - padding);
     }
   });
 }
 function snapToTargetMid(event2, target) {
-  var targetMid = mid(target);
-  AXES.forEach(function(axis) {
-    if (isMid(event2, target, axis)) {
-      setSnapped(event2, axis, targetMid[axis]);
+  var targetMid = mid2(target);
+  AXES.forEach(function(axis2) {
+    if (isMid(event2, target, axis2)) {
+      setSnapped(event2, axis2, targetMid[axis2]);
     }
   });
 }
@@ -119779,22 +121252,22 @@ function snapBoundaryEventLoop(event2) {
   if (isReverse3(context)) {
     return;
   }
-  var sourceMid = mid(source), orientation = getOrientation(sourceMid, target, -10), axes = [];
+  var sourceMid = mid2(source), orientation = getOrientation(sourceMid, target, -10), axes = [];
   if (/top|bottom/.test(orientation)) {
     axes.push("x");
   }
   if (/left|right/.test(orientation)) {
     axes.push("y");
   }
-  axes.forEach(function(axis) {
-    var coordinate = event2[axis], newCoordinate;
-    if (abs9(coordinate - sourceMid[axis]) < BOUNDARY_TO_HOST_THRESHOLD2) {
-      if (coordinate > sourceMid[axis]) {
-        newCoordinate = sourceMid[axis] + BOUNDARY_TO_HOST_THRESHOLD2;
+  axes.forEach(function(axis2) {
+    var coordinate = event2[axis2], newCoordinate;
+    if (abs9(coordinate - sourceMid[axis2]) < BOUNDARY_TO_HOST_THRESHOLD2) {
+      if (coordinate > sourceMid[axis2]) {
+        newCoordinate = sourceMid[axis2] + BOUNDARY_TO_HOST_THRESHOLD2;
       } else {
-        newCoordinate = sourceMid[axis] - BOUNDARY_TO_HOST_THRESHOLD2;
+        newCoordinate = sourceMid[axis2] - BOUNDARY_TO_HOST_THRESHOLD2;
       }
-      setSnapped(event2, axis, newCoordinate);
+      setSnapped(event2, axis2, newCoordinate);
     }
   });
 }
@@ -119810,8 +121283,8 @@ function isAnyType(attrs, types3) {
     return isType(attrs, type);
   });
 }
-function getDimensionForAxis(axis, element) {
-  return axis === "x" ? element.width : element.height;
+function getDimensionForAxis(axis2, element) {
+  return axis2 === "x" ? element.width : element.height;
 }
 function getTargetBoundsPadding(target) {
   if (is2(target, "bpmn:Task")) {
@@ -119820,8 +121293,8 @@ function getTargetBoundsPadding(target) {
     return TARGET_BOUNDS_PADDING;
   }
 }
-function isMid(event2, target, axis) {
-  return event2[axis] > target[axis] + TARGET_CENTER_PADDING && event2[axis] < target[axis] + getDimensionForAxis(axis, target) - TARGET_CENTER_PADDING;
+function isMid(event2, target, axis2) {
+  return event2[axis2] > target[axis2] + TARGET_CENTER_PADDING && event2[axis2] < target[axis2] + getDimensionForAxis(axis2, target) - TARGET_CENTER_PADDING;
 }
 function isReverse3(context) {
   var hover = context.hover, source = context.source;
@@ -119882,9 +121355,9 @@ SnapPoints.prototype.add = function(snapLocation, point) {
     snapValues.y.push(point.y);
   }
 };
-SnapPoints.prototype.snap = function(point, snapLocation, axis, tolerance) {
+SnapPoints.prototype.snap = function(point, snapLocation, axis2, tolerance) {
   var snappingValues = this._snapValues[snapLocation];
-  return snappingValues && snapTo(point[axis], snappingValues[axis], tolerance);
+  return snappingValues && snapTo(point[axis2], snappingValues[axis2], tolerance);
 };
 SnapPoints.prototype.initDefaults = function(defaultSnaps) {
   var self2 = this;
@@ -119948,11 +121421,11 @@ CreateMoveSnapping.prototype.initSnap = function(event2) {
   }
   var shapeMid;
   if (elementRegistry.get(shape.id)) {
-    shapeMid = mid(shape, event2);
+    shapeMid = mid2(shape, event2);
   } else {
     shapeMid = {
-      x: event2.x + mid(shape).x,
-      y: event2.y + mid(shape).y
+      x: event2.x + mid2(shape).x,
+      y: event2.y + mid2(shape).y
     };
   }
   var shapeTopLeft = {
@@ -119984,7 +121457,7 @@ CreateMoveSnapping.prototype.addSnapTargetPoints = function(snapPoints, shape, t
   forEach(snapTargets, function(snapTarget) {
     if (isLabel(snapTarget)) {
       if (isLabel(shape)) {
-        snapPoints.add("mid", mid(snapTarget));
+        snapPoints.add("mid", mid2(snapTarget));
       }
       return;
     }
@@ -119998,13 +121471,13 @@ CreateMoveSnapping.prototype.addSnapTargetPoints = function(snapPoints, shape, t
       });
       return;
     }
-    snapPoints.add("mid", mid(snapTarget));
+    snapPoints.add("mid", mid2(snapTarget));
   });
   if (!isNumber2(shape.x) || !isNumber2(shape.y)) {
     return snapPoints;
   }
   if (this._elementRegistry.get(shape.id)) {
-    snapPoints.add("mid", mid(shape));
+    snapPoints.add("mid", mid2(shape));
   }
   return snapPoints;
 };
@@ -120121,8 +121594,8 @@ function snapBoundaryEvent(event2, target) {
   }
 }
 function areAll(elements2, type) {
-  return elements2.every(function(el4) {
-    return is2(el4, type);
+  return elements2.every(function(el3) {
+    return is2(el3, type);
   });
 }
 function isContainer(element) {
@@ -120226,10 +121699,10 @@ ResizeSnapping.prototype.getSnapTargets = function(shape, target) {
   });
 };
 function getSnapOrigin(shape, direction) {
-  var mid4 = getMid(shape), trbl = asTRBL(shape);
+  var mid5 = getMid(shape), trbl = asTRBL(shape);
   var snapOrigin = {
-    x: mid4.x,
-    y: mid4.y
+    x: mid5.x,
+    y: mid5.y
   };
   if (direction.indexOf("n") !== -1) {
     snapOrigin.y = trbl.top;
@@ -120277,14 +121750,14 @@ Snapping.prototype.snap = function(event2, snapPoints) {
       x: event2.x + snapOrigin.x,
       y: event2.y + snapOrigin.y
     };
-    forEach(["x", "y"], function(axis) {
+    forEach(["x", "y"], function(axis2) {
       var locationSnapping;
-      if (!snapping[axis]) {
-        locationSnapping = snapPoints.snap(snapCurrent, location2, axis, SNAP_TOLERANCE);
+      if (!snapping[axis2]) {
+        locationSnapping = snapPoints.snap(snapCurrent, location2, axis2, SNAP_TOLERANCE);
         if (locationSnapping !== void 0) {
-          snapping[axis] = {
+          snapping[axis2] = {
             value: locationSnapping,
-            originValue: locationSnapping - snapOrigin[axis]
+            originValue: locationSnapping - snapOrigin[axis2]
           };
         }
       }
@@ -120295,31 +121768,31 @@ Snapping.prototype.snap = function(event2, snapPoints) {
   });
   this.showSnapLine("vertical", snapping.x && snapping.x.value);
   this.showSnapLine("horizontal", snapping.y && snapping.y.value);
-  forEach(["x", "y"], function(axis) {
-    var axisSnapping = snapping[axis];
+  forEach(["x", "y"], function(axis2) {
+    var axisSnapping = snapping[axis2];
     if (isObject2(axisSnapping)) {
-      setSnapped(event2, axis, axisSnapping.originValue);
+      setSnapped(event2, axis2, axisSnapping.originValue);
     }
   });
 };
 Snapping.prototype._createLine = function(orientation) {
   var root2 = this._canvas.getLayer("snap");
   var line2 = create2("path");
-  attr3(line2, { d: "M0,0 L0,0" });
+  attr4(line2, { d: "M0,0 L0,0" });
   classes2(line2).add("djs-snap-line");
   append2(root2, line2);
   return {
     update: function(position2) {
       if (!isNumber2(position2)) {
-        attr3(line2, { display: "none" });
+        attr4(line2, { display: "none" });
       } else {
         if (orientation === "horizontal") {
-          attr3(line2, {
+          attr4(line2, {
             d: "M-100000," + position2 + " L+100000," + position2,
             display: ""
           });
         } else {
-          attr3(line2, {
+          attr4(line2, {
             d: "M " + position2 + ",-100000 L " + position2 + ", +100000",
             display: ""
           });
@@ -120408,11 +121881,11 @@ SearchPad.$inject = [
 ];
 SearchPad.prototype._bindEvents = function() {
   var self2 = this;
-  function listen(el4, selector, type, fn2) {
+  function listen(el3, selector, type, fn2) {
     self2._eventMaps.push({
-      el: el4,
+      el: el3,
       type,
-      listener: delegate.bind(el4, selector, type, fn2)
+      listener: delegate.bind(el3, selector, type, fn2)
     });
   }
   listen(document, "html", "click", function(e5) {
@@ -120528,7 +122001,7 @@ SearchPad.prototype._createResultNode = function(result, id) {
     createInnerTextNode(node3, result.primaryTokens, SearchPad.RESULT_PRIMARY_HTML);
   }
   createInnerTextNode(node3, result.secondaryTokens, SearchPad.RESULT_SECONDARY_HTML);
-  attr2(node3, SearchPad.RESULT_ID_ATTRIBUTE, id);
+  attr3(node3, SearchPad.RESULT_ID_ATTRIBUTE, id);
   this._resultsContainer.appendChild(node3);
   return node3;
 };
@@ -120596,7 +122069,7 @@ SearchPad.prototype._preselect = function(node3) {
   if (selectedNode) {
     classes(selectedNode).remove(SearchPad.RESULT_SELECTED_CLASS);
   }
-  var id = attr2(node3, SearchPad.RESULT_ID_ATTRIBUTE);
+  var id = attr3(node3, SearchPad.RESULT_ID_ATTRIBUTE);
   var element = this._results[id].element;
   classes(node3).add(SearchPad.RESULT_SELECTED_CLASS);
   this._canvas.scrollToElement(element, {
@@ -120606,7 +122079,7 @@ SearchPad.prototype._preselect = function(node3) {
   this._eventBus.fire("searchPad.preselected", element);
 };
 SearchPad.prototype._select = function(node3) {
-  var id = attr2(node3, SearchPad.RESULT_ID_ATTRIBUTE);
+  var id = attr3(node3, SearchPad.RESULT_ID_ATTRIBUTE);
   var element = this._results[id].element;
   this._cachedSelection = null;
   this._cachedViewbox = null;
@@ -120766,7 +122239,7 @@ OutlineProvider.prototype.getOutline = function(element) {
   var outline2;
   if (isExternalLabel(element)) {
     outline2 = create2("rect");
-    attr3(outline2, assign2({
+    attr4(outline2, assign2({
       x: -DEFAULT_OFFSET,
       y: -DEFAULT_OFFSET,
       rx: 4,
@@ -120785,7 +122258,7 @@ OutlineProvider.prototype.getOutline = function(element) {
       "transform": "rotate(45deg)",
       "transform-origin": "center"
     });
-    attr3(outline2, assign2({
+    attr4(outline2, assign2({
       x: 2,
       y: 2,
       rx: 4,
@@ -120794,7 +122267,7 @@ OutlineProvider.prototype.getOutline = function(element) {
     }, OUTLINE_STYLE));
   } else if (isAny(element, ["bpmn:Task", "bpmn:SubProcess", "bpmn:Group", "bpmn:CallActivity"])) {
     outline2 = create2("rect");
-    attr3(outline2, assign2({
+    attr4(outline2, assign2({
       x: -DEFAULT_OFFSET,
       y: -DEFAULT_OFFSET,
       rx: 14,
@@ -120803,14 +122276,14 @@ OutlineProvider.prototype.getOutline = function(element) {
     }, OUTLINE_STYLE));
   } else if (is2(element, "bpmn:EndEvent")) {
     outline2 = create2("circle");
-    attr3(outline2, assign2({
+    attr4(outline2, assign2({
       cx: element.width / 2,
       cy: element.height / 2,
       r: element.width / 2 + DEFAULT_OFFSET + 1
     }, OUTLINE_STYLE));
   } else if (is2(element, "bpmn:Event")) {
     outline2 = create2("circle");
-    attr3(outline2, assign2({
+    attr4(outline2, assign2({
       cx: element.width / 2,
       cy: element.height / 2,
       r: element.width / 2 + DEFAULT_OFFSET
@@ -120835,7 +122308,7 @@ OutlineProvider.prototype.updateOutline = function(element, outline2) {
     return;
   }
   if (isAny(element, ["bpmn:SubProcess", "bpmn:Group"])) {
-    attr3(outline2, {
+    attr4(outline2, {
       width: element.width + DEFAULT_OFFSET * 2,
       height: element.height + DEFAULT_OFFSET * 2
     });
@@ -121325,6 +122798,7 @@ var BpmnNativeController = class {
 // src/bpmn-native/BpmnNativeView.ts
 init_boardSerde();
 init_import();
+init_export();
 
 // src/view/mergeBpmnCanvas.ts
 function mergeBpmnImport(oldCanvas, oldBpmnIds, newImport) {
@@ -121333,7 +122807,8 @@ function mergeBpmnImport(oldCanvas, oldBpmnIds, newImport) {
   return {
     model: {
       nodes: [...newImport.nodes, ...preservedNodes],
-      edges: [...newImport.edges, ...preservedEdges]
+      edges: [...newImport.edges, ...preservedEdges],
+      ...oldCanvas.appState ? { appState: oldCanvas.appState } : {}
     },
     preservedNodes: preservedNodes.length,
     preservedEdges: preservedEdges.length,
@@ -122736,7 +124211,7 @@ var MINIMAL_BPMN_FALLBACK = `<?xml version="1.0" encoding="UTF-8"?>
     <bpmndi:BPMNPlane id="pl_omniboard" bpmnElement="p_omniboard"/>
   </bpmndi:BPMNDiagram>
 </bpmn:definitions>`;
-var BpmnNativeView = class extends import_obsidian8.TextFileView {
+var BpmnNativeView = class extends import_obsidian7.TextFileView {
   constructor(leaf, plugin) {
     super(leaf);
     this.bpmnContainer = null;
@@ -122797,7 +124272,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
   async switchToBoardView() {
     if (!this.file || !this.isWrapper) return;
     await this.persistXml();
-    await this.leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: this.file.path } });
+    await this.leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: this.file.path } });
   }
   // ── TextFileView contract ──
   getViewData() {
@@ -122881,7 +124356,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
     let pinch = null;
     let pan = null;
     const dist = (t6) => Math.hypot(t6[0].clientX - t6[1].clientX, t6[0].clientY - t6[1].clientY);
-    const mid4 = (t6) => ({
+    const mid5 = (t6) => ({
       x: (t6[0].clientX + t6[1].clientX) / 2,
       y: (t6[0].clientY + t6[1].clientY) / 2
     });
@@ -122891,7 +124366,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
     };
     const onStart = (e5) => {
       if (e5.touches.length === 2) {
-        const m7 = mid4(e5.touches);
+        const m7 = mid5(e5.touches);
         const lp = localPoint(m7.x, m7.y);
         const local = this.controller.clientToLocal(lp.x, lp.y);
         pinch = {
@@ -122910,7 +124385,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
     const onMove = (e5) => {
       if (pinch && e5.touches.length === 2) {
         e5.preventDefault();
-        const m7 = mid4(e5.touches);
+        const m7 = mid5(e5.touches);
         const lp = localPoint(m7.x, m7.y);
         const nextScale = Math.min(4, Math.max(0.2, pinch.scale0 * (dist(e5.touches) / pinch.d0)));
         this.controller.zoom(nextScale);
@@ -122990,7 +124465,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
           void this.leaf.setViewState({ type: "markdown", state: { file: this.file.path } });
         }
       };
-      new import_obsidian8.Notice(`BPMN import l\u1ED7i: ${msg}`, 5e3);
+      new import_obsidian7.Notice(`BPMN import l\u1ED7i: ${msg}`, 5e3);
     }
   }
   async onModelerChanged() {
@@ -123069,7 +124544,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
     } catch (err2) {
       this.knownDisk = expected;
       console.error("[BpmnNative] Save failed:", err2);
-      new import_obsidian8.Notice(`L\u01B0u BPMN l\u1ED7i: ${err2.message}`, 6e3);
+      new import_obsidian7.Notice(`L\u01B0u BPMN l\u1ED7i: ${err2.message}`, 6e3);
       return false;
     }
   }
@@ -123162,7 +124637,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
           "[BpmnNative] Wrapper merge failed; preserving wrapper on disk (user BPMN edit kept in modeler only)",
           err2
         );
-        new import_obsidian8.Notice("L\u01B0u BPMN th\u1EA5t b\u1EA1i \u2014 wrapper tr\xEAn \u0111\u0129a \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.", 6e3);
+        new import_obsidian7.Notice("L\u01B0u BPMN th\u1EA5t b\u1EA1i \u2014 wrapper tr\xEAn \u0111\u0129a \u0111\u01B0\u1EE3c gi\u1EEF nguy\xEAn. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.", 6e3);
         return false;
       }
     }
@@ -123189,7 +124664,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
       document.head.appendChild(styleEl);
     } catch (err2) {
       console.error("[BpmnNative] Failed to inject BPMN CSS:", err2);
-      new import_obsidian8.Notice("Kh\xF4ng inject \u0111\u01B0\u1EE3c BPMN CSS.");
+      new import_obsidian7.Notice("Kh\xF4ng inject \u0111\u01B0\u1EE3c BPMN CSS.");
     }
   }
   buildTopBar() {
@@ -123201,39 +124676,39 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
       this.contentEl.insertBefore(bar, this.bpmnContainer);
     }
     const close = bar.createEl("button", { cls: "da-tb-close" });
-    (0, import_obsidian8.setIcon)(close, "x");
+    (0, import_obsidian7.setIcon)(close, "x");
     close.createSpan({ text: "\u0110\xF3ng" });
     close.onclick = () => this.leaf.detach();
     const badge = bar.createDiv({ cls: "da-tb-badge" });
-    (0, import_obsidian8.setIcon)(badge, "workflow");
+    (0, import_obsidian7.setIcon)(badge, "workflow");
     badge.createSpan({ text: "BPMN NATIVE" });
     this.boardTitleEl = bar.createDiv({ cls: "da-tb-title", text: (_b2 = (_a3 = this.file) == null ? void 0 : _a3.basename) != null ? _b2 : "BPMN Diagram" });
     bar.createDiv({ cls: "da-tb-grow" });
     const propsBtn = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian8.setIcon)(propsBtn, "sliders-horizontal");
+    (0, import_obsidian7.setIcon)(propsBtn, "sliders-horizontal");
     propsBtn.setAttribute("aria-label", "BPMN properties");
     propsBtn.title = "BPMN properties";
     propsBtn.onclick = () => this.openProperties();
     if (this.isWrapper) {
       const switchBtn = bar.createEl("button", { cls: "da-tb-ic" });
-      (0, import_obsidian8.setIcon)(switchBtn, "shapes");
+      (0, import_obsidian7.setIcon)(switchBtn, "shapes");
       switchBtn.setAttribute("aria-label", "Switch to Omniboard view");
       switchBtn.title = "Switch to Omniboard view";
       switchBtn.onclick = () => void this.switchToBoardView();
     }
     bar.createDiv({ cls: "da-tb-divider" });
     const imp = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian8.setIcon)(imp, "upload");
+    (0, import_obsidian7.setIcon)(imp, "upload");
     imp.setAttribute("aria-label", "Import .bpmn");
     imp.title = "Import .bpmn file";
     imp.onclick = () => void this.handleImportBpmn();
     const exp = bar.createEl("button", { cls: "da-tb-ic" });
-    (0, import_obsidian8.setIcon)(exp, "download");
+    (0, import_obsidian7.setIcon)(exp, "download");
     exp.setAttribute("aria-label", "Export");
     exp.title = "Export BPMN / SVG / PNG";
     exp.onclick = (e5) => this.showExportMenu(e5);
     const save = bar.createEl("button", { cls: "da-tb-save" });
-    (0, import_obsidian8.setIcon)(save, "check");
+    (0, import_obsidian7.setIcon)(save, "check");
     save.createSpan({ text: "L\u01B0u & \u0111\xF3ng" });
     save.onclick = async () => {
       await this.persistXml();
@@ -123251,7 +124726,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
     const widget = this.bpmnContainer.createDiv({ cls: "bpmn-nav-widget" });
     const btn = (icon, title2, onClick) => {
       const b4 = widget.createEl("button", { cls: "bpmn-nav-btn" });
-      (0, import_obsidian8.setIcon)(b4, icon);
+      (0, import_obsidian7.setIcon)(b4, icon);
       b4.title = title2;
       b4.onclick = onClick;
     };
@@ -123291,14 +124766,14 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
     moreBtn.className = "entry bpmn-custom-more-btn";
     moreBtn.setAttribute("title", "Create element");
     moreBtn.setAttribute("aria-label", "Create element");
-    (0, import_obsidian8.setIcon)(moreBtn, "more-horizontal");
+    (0, import_obsidian7.setIcon)(moreBtn, "more-horizontal");
     moreBtn.onclick = (e5) => {
       this.showCreateElementMenu(e5);
     };
     paletteEntries.appendChild(moreBtn);
   }
   showCreateElementMenu(e5) {
-    const menu = new import_obsidian8.Menu();
+    const menu = new import_obsidian7.Menu();
     const addShape = (title2, type, iconKey, attrs) => {
       menu.addItem((i6) => {
         i6.setTitle(title2).setIcon(iconKey).onClick(() => {
@@ -123357,7 +124832,7 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
     }
   }
   showExportMenu(e5) {
-    const menu = new import_obsidian8.Menu();
+    const menu = new import_obsidian7.Menu();
     menu.addItem(
       (i6) => i6.setTitle("Export as .bpmn (XML)").setIcon("file-code-2").onClick(() => void this.handleExportBpmn())
     );
@@ -123378,14 +124853,14 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
     try {
       const xml3 = await this.controller.saveXml();
       if (!xml3) {
-        new import_obsidian8.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c BPMN XML t\u1EEB modeler.");
+        new import_obsidian7.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c BPMN XML t\u1EEB modeler.");
         return;
       }
       const saved = await saveToLocal2(xml3, this.suggestedName(".bpmn"), "application/xml");
-      if (saved) new import_obsidian8.Notice(`\u0110\xE3 export BPMN: ${saved}`);
+      if (saved) new import_obsidian7.Notice(`\u0110\xE3 export BPMN: ${saved}`);
     } catch (err2) {
       console.error("[BpmnNative] Export BPMN failed:", err2);
-      new import_obsidian8.Notice("Export BPMN l\u1ED7i.");
+      new import_obsidian7.Notice("Export BPMN l\u1ED7i.");
     }
   }
   async handleImportBpmn() {
@@ -123401,10 +124876,10 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
       await this.mountModeler(xml3);
       this.dirty = true;
       await this.persistXml();
-      new import_obsidian8.Notice("\u0110\xE3 import BPMN.");
+      new import_obsidian7.Notice("\u0110\xE3 import BPMN.");
     } catch (err2) {
       console.error("[BpmnNative] Import BPMN failed:", err2);
-      new import_obsidian8.Notice("Import BPMN l\u1ED7i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
+      new import_obsidian7.Notice("Import BPMN l\u1ED7i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
   suggestedName(ext) {
@@ -123416,10 +124891,10 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
     try {
       const svg3 = await this.controller.saveSvg();
       const saved = await saveToLocal2(svg3, this.suggestedName(".svg"), "image/svg+xml");
-      if (saved) new import_obsidian8.Notice(`\u0110\xE3 export SVG: ${saved}`);
+      if (saved) new import_obsidian7.Notice(`\u0110\xE3 export SVG: ${saved}`);
     } catch (err2) {
       console.error("[BpmnNative] Export SVG failed:", err2);
-      new import_obsidian8.Notice("Export SVG l\u1ED7i.");
+      new import_obsidian7.Notice("Export SVG l\u1ED7i.");
     }
   }
   async handleExportPng() {
@@ -123428,10 +124903,10 @@ var BpmnNativeView = class extends import_obsidian8.TextFileView {
       const svg3 = await this.controller.saveSvg();
       const blob = await svgToPngBlob(svg3);
       const saved = await saveToLocal2(blob, this.suggestedName(".png"), "image/png");
-      if (saved) new import_obsidian8.Notice(`\u0110\xE3 export PNG: ${saved}`);
+      if (saved) new import_obsidian7.Notice(`\u0110\xE3 export PNG: ${saved}`);
     } catch (err2) {
       console.error("[BpmnNative] Export PNG failed:", err2);
-      new import_obsidian8.Notice("Export PNG l\u1ED7i.");
+      new import_obsidian7.Notice("Export PNG l\u1ED7i.");
     }
   }
 };
@@ -123558,17 +125033,17 @@ function svgToPngBlob(svgString) {
 }
 
 // src/bpmn-native/BpmnPropertiesView.ts
-var import_obsidian9 = require("obsidian");
+var import_obsidian8 = require("obsidian");
 var BPMN_PROPERTIES_VIEW_TYPE = "bpmn-properties";
-var SELECTION_EVENT2 = "bpmn-native-selection-change";
+var SELECTION_EVENT = "bpmn-native-selection-change";
 var BPMN_ID_RE = /^[A-Za-z_][A-Za-z0-9_.:-]*$/;
-function el3(tag, cls, text4) {
+function el2(tag, cls, text4) {
   const node3 = document.createElement(tag);
   if (cls) node3.className = cls;
   if (text4 !== void 0) node3.textContent = text4;
   return node3;
 }
-var BpmnPropertiesView = class extends import_obsidian9.ItemView {
+var BpmnPropertiesView = class extends import_obsidian8.ItemView {
   constructor(leaf) {
     super(leaf);
     this.onSelection = () => this.render();
@@ -123584,11 +125059,11 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
   }
   async onOpen() {
     this.contentEl.addClass("bpmn-properties-view");
-    window.addEventListener(SELECTION_EVENT2, this.onSelection);
+    window.addEventListener(SELECTION_EVENT, this.onSelection);
     this.render();
   }
   async onClose() {
-    window.removeEventListener(SELECTION_EVENT2, this.onSelection);
+    window.removeEventListener(SELECTION_EVENT, this.onSelection);
   }
   activeView() {
     var _a3, _b2;
@@ -123631,13 +125106,13 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
       s5.createDiv({ cls: "lk-psec-h", text: name2 });
       return s5;
     };
-    const field = (parent, label, control) => {
+    const field = (parent, label2, control) => {
       const wrap = parent.createDiv({ cls: "lk-pfield" });
-      wrap.createEl("label", { text: label });
+      wrap.createEl("label", { text: label2 });
       wrap.appendChild(control);
     };
     const textInput = (value, placeholder, onInput) => {
-      const input = el3("input", "lk-pinput");
+      const input = el2("input", "lk-pinput");
       input.value = value || "";
       input.placeholder = placeholder;
       input.oninput = () => onInput(input.value);
@@ -123665,10 +125140,10 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
         controller.updateProperties(element, { name: val });
       })
     );
-    const isTask = bo.$type && (bo.$type === "bpmn:Task" || bo.$type === "bpmn:UserTask" || bo.$type === "bpmn:ServiceTask" || bo.$type === "bpmn:ScriptTask" || bo.$type === "bpmn:SendTask" || bo.$type === "bpmn:ReceiveTask" || bo.$type === "bpmn:ManualTask" || bo.$type === "bpmn:BusinessRuleTask");
-    if (isTask) {
+    const isTask2 = bo.$type && (bo.$type === "bpmn:Task" || bo.$type === "bpmn:UserTask" || bo.$type === "bpmn:ServiceTask" || bo.$type === "bpmn:ScriptTask" || bo.$type === "bpmn:SendTask" || bo.$type === "bpmn:ReceiveTask" || bo.$type === "bpmn:ManualTask" || bo.$type === "bpmn:BusinessRuleTask");
+    if (isTask2) {
       const taskSec = section("Task Options");
-      const typeSelect = el3("select", "lk-pinput");
+      const typeSelect = el2("select", "lk-pinput");
       const types3 = [
         { val: "bpmn:Task", name: "None (Generic Task)" },
         { val: "bpmn:UserTask", name: "User Task" },
@@ -123690,12 +125165,12 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
         const newEl = controller.replaceElement(element, typeSelect.value);
         if (newEl) {
           setTimeout(() => {
-            window.dispatchEvent(new CustomEvent(SELECTION_EVENT2));
+            window.dispatchEvent(new CustomEvent(SELECTION_EVENT));
           }, 50);
         }
       };
       field(taskSec, "Task Type", typeSelect);
-      const loopSelect = el3("select", "lk-pinput");
+      const loopSelect = el2("select", "lk-pinput");
       const loops = [
         { val: "", name: "None" },
         { val: "standard", name: "Standard Loop" },
@@ -123715,10 +125190,10 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
       };
       field(taskSec, "Loop Type", loopSelect);
     }
-    const isGateway2 = bo.$type && (bo.$type === "bpmn:ExclusiveGateway" || bo.$type === "bpmn:ParallelGateway" || bo.$type === "bpmn:InclusiveGateway" || bo.$type === "bpmn:EventBasedGateway" || bo.$type === "bpmn:ComplexGateway");
-    if (isGateway2) {
+    const isGateway3 = bo.$type && (bo.$type === "bpmn:ExclusiveGateway" || bo.$type === "bpmn:ParallelGateway" || bo.$type === "bpmn:InclusiveGateway" || bo.$type === "bpmn:EventBasedGateway" || bo.$type === "bpmn:ComplexGateway");
+    if (isGateway3) {
       const gatewaySec = section("Gateway Options");
-      const gatewaySelect = el3("select", "lk-pinput");
+      const gatewaySelect = el2("select", "lk-pinput");
       const gateways = [
         { val: "bpmn:ExclusiveGateway", name: "Exclusive Gateway (XOR)" },
         { val: "bpmn:ParallelGateway", name: "Parallel Gateway (AND)" },
@@ -123737,7 +125212,7 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
         const newEl = controller.replaceElement(element, gatewaySelect.value);
         if (newEl) {
           setTimeout(() => {
-            window.dispatchEvent(new CustomEvent(SELECTION_EVENT2));
+            window.dispatchEvent(new CustomEvent(SELECTION_EVENT));
           }, 50);
         }
       };
@@ -123765,10 +125240,10 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
         })
       );
     }
-    const isEvent2 = bo.$type && (bo.$type === "bpmn:StartEvent" || bo.$type === "bpmn:EndEvent" || bo.$type === "bpmn:IntermediateCatchEvent" || bo.$type === "bpmn:IntermediateThrowEvent" || bo.$type === "bpmn:BoundaryEvent");
-    if (isEvent2) {
+    const isEvent3 = bo.$type && (bo.$type === "bpmn:StartEvent" || bo.$type === "bpmn:EndEvent" || bo.$type === "bpmn:IntermediateCatchEvent" || bo.$type === "bpmn:IntermediateThrowEvent" || bo.$type === "bpmn:BoundaryEvent");
+    if (isEvent3) {
       const eventSec = section("Event Options");
-      const typeSelect = el3("select", "lk-pinput");
+      const typeSelect = el2("select", "lk-pinput");
       const eventTypes = [
         { val: "bpmn:StartEvent", name: "Start Event" },
         { val: "bpmn:IntermediateCatchEvent", name: "Intermediate Catch Event" },
@@ -123787,12 +125262,12 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
         const newEl = controller.replaceElement(element, typeSelect.value);
         if (newEl) {
           setTimeout(() => {
-            window.dispatchEvent(new CustomEvent(SELECTION_EVENT2));
+            window.dispatchEvent(new CustomEvent(SELECTION_EVENT));
           }, 50);
         }
       };
       field(eventSec, "Event Type", typeSelect);
-      const eventSelect = el3("select", "lk-pinput");
+      const eventSelect = el2("select", "lk-pinput");
       const eventDefs = [
         { val: "", name: "None (Generic Event)" },
         { val: "bpmn:MessageEventDefinition", name: "Message" },
@@ -123814,13 +125289,13 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
       eventSelect.onchange = () => {
         controller.updateEventDefinition(element, eventSelect.value);
         setTimeout(() => {
-          window.dispatchEvent(new CustomEvent(SELECTION_EVENT2));
+          window.dispatchEvent(new CustomEvent(SELECTION_EVENT));
         }, 50);
       };
       field(eventSec, "Trigger Definition", eventSelect);
     }
     const docSec = section("Documentation");
-    const docTextArea = el3("textarea", "lk-pinput obp-textarea");
+    const docTextArea = el2("textarea", "lk-pinput obp-textarea");
     docTextArea.rows = 5;
     docTextArea.placeholder = "Enter documentation here...";
     docTextArea.value = (_h = (_g = (_f = bo.documentation) == null ? void 0 : _f[0]) == null ? void 0 : _g.text) != null ? _h : "";
@@ -123832,7 +125307,7 @@ var BpmnPropertiesView = class extends import_obsidian9.ItemView {
 };
 
 // src/bpmn-native/bpmn-icons.ts
-var import_obsidian10 = require("obsidian");
+var import_obsidian9 = require("obsidian");
 var svgWrap = (content5) => `<g transform="scale(4.167)">${content5}</g>`;
 function registerBpmnIcons() {
   const icons3 = {
@@ -123872,7 +125347,7 @@ function registerBpmnIcons() {
     "bpmn-text-annotation": svgWrap(`<path d="M9 4H5v16h4" fill="none" stroke="currentColor" stroke-width="2"/>`)
   };
   for (const [id, svgContent] of Object.entries(icons3)) {
-    (0, import_obsidian10.addIcon)(id, svgContent);
+    (0, import_obsidian9.addIcon)(id, svgContent);
   }
 }
 
@@ -123977,7 +125452,7 @@ async function saveToDisk(data2, suggestedName, mimeType) {
 }
 
 // src/view/FileBoardModal.ts
-var import_obsidian11 = require("obsidian");
+var import_obsidian10 = require("obsidian");
 
 // src/ui/boardSurface.ts
 function mountBoardSurface(container, opts) {
@@ -124016,7 +125491,7 @@ function mountBoardSurface(container, opts) {
 
 // src/view/FileBoardModal.ts
 init_boardSerde();
-var FileBoardModal = class extends import_obsidian11.Modal {
+var FileBoardModal = class extends import_obsidian10.Modal {
   constructor(app, plugin, file) {
     super(app);
     this.plugin = plugin;
@@ -124096,7 +125571,7 @@ var FileBoardModal = class extends import_obsidian11.Modal {
       await this.app.vault.modify(this.file, content5);
     } catch (e5) {
       console.error("[omniboard] FileBoardModal save failed", e5);
-      new import_obsidian11.Notice("L\u01B0u board th\u1EA5t b\u1EA1i \u2014 xem console.");
+      new import_obsidian10.Notice("L\u01B0u board th\u1EA5t b\u1EA1i \u2014 xem console.");
     }
   }
   onClose() {
@@ -124109,9 +125584,9 @@ var FileBoardModal = class extends import_obsidian11.Modal {
 };
 
 // src/ui/boardPickers.ts
-var import_obsidian12 = require("obsidian");
+var import_obsidian11 = require("obsidian");
 init_boardSerde();
-var BoardTypePicker = class extends import_obsidian12.SuggestModal {
+var BoardTypePicker = class extends import_obsidian11.SuggestModal {
   constructor(app, choices, onChoose) {
     super(app);
     this.choices = choices;
@@ -124123,17 +125598,17 @@ var BoardTypePicker = class extends import_obsidian12.SuggestModal {
     if (!q5) return this.choices;
     return this.choices.filter((c6) => c6.label.toLowerCase().includes(q5));
   }
-  renderSuggestion(choice, el4) {
-    el4.addClass("omniboard-type-suggestion");
-    const icon = el4.createSpan({ cls: "omniboard-type-suggestion-icon" });
-    (0, import_obsidian12.setIcon)(icon, choice.icon);
-    el4.createSpan({ cls: "omniboard-type-suggestion-label", text: choice.label });
+  renderSuggestion(choice, el3) {
+    el3.addClass("omniboard-type-suggestion");
+    const icon = el3.createSpan({ cls: "omniboard-type-suggestion-icon" });
+    (0, import_obsidian11.setIcon)(icon, choice.icon);
+    el3.createSpan({ cls: "omniboard-type-suggestion-label", text: choice.label });
   }
   onChooseSuggestion(choice) {
     this.onChoose(choice);
   }
 };
-var ExistingBoardPicker = class extends import_obsidian12.FuzzySuggestModal {
+var ExistingBoardPicker = class extends import_obsidian11.FuzzySuggestModal {
   constructor(app, onChoose) {
     super(app);
     this.onChoose = onChoose;
@@ -124239,6 +125714,7 @@ function BpmnRenderer2({ model }) {
 
 // src/adapters/bpmn/Editor.tsx
 init_import();
+init_export();
 function BpmnEditor({ initialModel, onSave, onClose }) {
   const [state, setState] = d2({ status: "loading" });
   const [saving, setSaving] = d2(false);
@@ -124330,6 +125806,7 @@ var bpmnPaletteItems = [
 
 // src/adapters/bpmn/index.ts
 init_import();
+init_export();
 
 // src/adapters/bpmn/sourceOps.ts
 var PROCESS_TAG_RE = /<bpmn:process\b(?:[^>"']|"[^"]*"|'[^']*')*>/;
@@ -124742,7 +126219,7 @@ var CLASS_OPEN_RE = /^(class|interface)\s+(\w+)\s*\{?\s*$/;
 var POS_RE = /^'\s*@pos\s+(\w+)\s*:\s*(-?\d+)\s*,\s*(-?\d+)/;
 var REL_RE = /^(\w+)\s*(<\|--|--\|>|\.\.>|<\.\.|o--|\*--|-->|<--|--|\.\.)\s*(\w+)\s*(?::\s*(.+))?$/;
 var W3 = 200;
-var HEAD2 = 40;
+var HEAD3 = 40;
 var BLOCK_PAD = 16;
 var LINE = 22;
 function parseUmlToCanvas(source) {
@@ -124780,15 +126257,15 @@ function parseUmlToCanvas(source) {
     }
     const rel = line2.match(REL_RE);
     if (rel) {
-      const [, from, op, to, label] = rel;
+      const [, from, op, to, label2] = rel;
       if (!classes3.has(from)) classes3.set(from, { kind: "uml-class", fields: [], methods: [] });
       if (!classes3.has(to)) classes3.set(to, { kind: "uml-class", fields: [], methods: [] });
-      rels.push({ from, to, op, label });
+      rels.push({ from, to, op, label: label2 });
     }
   }
   const model = { nodes: [], edges: [] };
   for (const [name2, c6] of classes3) {
-    const h5 = HEAD2 + (c6.fields.length ? BLOCK_PAD + c6.fields.length * LINE : 0) + (c6.methods.length ? BLOCK_PAD + c6.methods.length * LINE : 0) + 8;
+    const h5 = HEAD3 + (c6.fields.length ? BLOCK_PAD + c6.fields.length * LINE : 0) + (c6.methods.length ? BLOCK_PAD + c6.methods.length * LINE : 0) + 8;
     const p6 = positions[name2];
     model.nodes.push({
       id: name2,
@@ -124965,19 +126442,19 @@ function parseSequenceToCanvas(source) {
     if (!line2 || line2.startsWith("%%") || /^sequenceDiagram\b/.test(line2) || /^title\b/.test(line2) || line2 === "---") continue;
     const pm = line2.match(PARTICIPANT_RE);
     if (pm) {
-      const [, kw, id, label] = pm;
+      const [, kw, id, label2] = pm;
       ensure3(id);
       const ll = lifelines[order.get(id)];
-      ll.label = (label != null ? label : id).trim();
+      ll.label = (label2 != null ? label2 : id).trim();
       ll.kind = kw === "actor" ? "sq-actor" : "sq-participant";
       continue;
     }
     const mm = line2.match(MESSAGE_RE);
     if (mm) {
-      const [, from, arrow, to, label] = mm;
+      const [, from, arrow, to, label2] = mm;
       ensure3(from);
       ensure3(to);
-      messages2.push({ from, to, arrow, label: label.trim() });
+      messages2.push({ from, to, arrow, label: label2.trim() });
     }
   }
   const lifelineH = LIFELINE_H_BASE + messages2.length * MSG_STEP;
@@ -125191,14 +126668,14 @@ function parseStateToCanvas(source) {
     if (!line2 || line2.startsWith("%%") || /^stateDiagram/.test(line2) || line2 === "---") continue;
     const m7 = line2.match(TRANSITION_RE);
     if (!m7) continue;
-    const [, from, to, label] = m7;
+    const [, from, to, label2] = m7;
     const src = from === "[*]" ? ensureInitial() : ensureState(from);
     const tgt = to === "[*]" ? newFinal() : ensureState(to);
     model.edges.push({
       id: `e${model.edges.length}`,
       source: src,
       target: tgt,
-      ...label ? { label: label.trim() } : {}
+      ...label2 ? { label: label2.trim() } : {}
     });
   }
   const named = model.nodes.filter((n4) => n4.shape === "st-state");
@@ -125359,7 +126836,7 @@ function parseMindmapToCanvas(source) {
     const m7 = line2.match(HEADING_RE);
     if (!m7) continue;
     const level = m7[1].length;
-    const label = m7[2];
+    const label2 = m7[2];
     const id = `mm${counter++}`;
     let parent = null;
     for (let l5 = level - 1; l5 >= 1; l5--) {
@@ -125368,7 +126845,7 @@ function parseMindmapToCanvas(source) {
         break;
       }
     }
-    nodes.push({ id, level, label, parent, children: [], y: 0 });
+    nodes.push({ id, level, label: label2, parent, children: [], y: 0 });
     lastAtLevel[level] = id;
     for (let l5 = level + 1; l5 < lastAtLevel.length; l5++) lastAtLevel[l5] = null;
   }
@@ -125530,7 +127007,7 @@ var ALL_ADAPTERS = [
   stateAdapter,
   mindmapAdapter
 ];
-var DiagramsPlugin = class extends import_obsidian13.Plugin {
+var DiagramsPlugin = class extends import_obsidian12.Plugin {
   constructor() {
     super(...arguments);
     this.registry = new AdapterRegistry();
@@ -125541,9 +127018,12 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
   async onload() {
     await this.loadSettings();
     registerBpmnIcons();
-    this.registerView(BOARD_VIEW_TYPE3, (leaf) => new BoardView(leaf, this));
-    this.registerView(OMNIBOARD_PROPERTIES_VIEW_TYPE, (leaf) => new OmniboardPropertiesView(leaf));
-    this.registerView(OMNIBOARD_ISSUES_VIEW_TYPE, (leaf) => new BpmnIssuesView(leaf));
+    this.registerView(BOARD_VIEW_TYPE, (leaf) => new BoardView(leaf, this));
+    this.app.workspace.onLayoutReady(() => {
+      this.app.workspace.iterateAllLeaves((leaf) => {
+        if (["omniboard-bpmn-issues", "omniboard-properties"].includes(leaf.getViewState().type)) leaf.detach();
+      });
+    });
     this.registerView(BPMN_NATIVE_VIEW_TYPE, (leaf) => new BpmnNativeView(leaf, this));
     this.registerView(BPMN_PROPERTIES_VIEW_TYPE, (leaf) => new BpmnPropertiesView(leaf));
     this.registerExtensions(["bpmn"], BPMN_NATIVE_VIEW_TYPE);
@@ -125556,16 +127036,16 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file, source) => {
         var _a3;
-        if (!(file instanceof import_obsidian13.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
+        if (!(file instanceof import_obsidian12.TFile) || !file.path.endsWith(OMNIBOARD_SUFFIX)) return;
         const leaf = this.findLeafForFile(file);
-        const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE3;
+        const inBoardView = ((_a3 = leaf == null ? void 0 : leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE;
         menu.addItem((item) => {
           var _a4, _b2;
           (_b2 = (_a4 = item.setTitle(inBoardView ? "Open as Markdown" : "Open as Omniboard").setIcon(inBoardView ? "file-text" : "shapes")).setSection) == null ? void 0 : _b2.call(_a4, "pane").onClick(async () => {
             const target = leaf != null ? leaf : this.app.workspace.getLeaf("tab");
             if (!leaf) await target.openFile(file);
             await target.setViewState({
-              type: inBoardView ? "markdown" : BOARD_VIEW_TYPE3,
+              type: inBoardView ? "markdown" : BOARD_VIEW_TYPE,
               state: { file: file.path }
             });
           });
@@ -125596,12 +127076,32 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
       callback: () => this.pickTypeThen((choice) => void this.createAndOpenBoard(choice))
     });
     this.addCommand({
+      id: "find-on-board",
+      name: "T\xECm ph\u1EA7n t\u1EED tr\xEAn board",
+      checkCallback: (checking) => {
+        const view = this.app.workspace.getActiveViewOfType(BoardView);
+        if (!view) return false;
+        if (!checking) view.findOnBoard();
+        return true;
+      }
+    });
+    this.addCommand({
+      id: "switch-bpmn-diagram",
+      name: "Chuy\u1EC3n sang s\u01A1 \u0111\u1ED3 kh\xE1c c\u1EE7a file BPMN",
+      checkCallback: (checking) => {
+        const view = this.app.workspace.getActiveViewOfType(BoardView);
+        if (!view) return false;
+        if (!checking) void view.switchDiagram();
+        return true;
+      }
+    });
+    this.addCommand({
       id: "open-as-markdown",
       name: "Open current board as Markdown",
       checkCallback: (checking) => {
         var _a3;
         const leaf = this.app.workspace.activeLeaf;
-        if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== BOARD_VIEW_TYPE3) return false;
+        if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== BOARD_VIEW_TYPE) return false;
         if (checking) return true;
         void leaf.view.openAsMarkdown();
         return true;
@@ -125617,19 +127117,19 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
         const file = leaf.view.file;
         if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return false;
         if (checking) return true;
-        void leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: file.path } });
+        void leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
         return true;
       }
     });
     this.addCommand({
       id: "open-omniboard-properties",
       name: "Open Omniboard BPMN properties",
-      callback: async () => {
-        const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_PROPERTIES_VIEW_TYPE)[0];
-        const leaf = existing != null ? existing : this.app.workspace.getRightLeaf(false);
-        if (!leaf) return;
-        await leaf.setViewState({ type: OMNIBOARD_PROPERTIES_VIEW_TYPE, active: true });
-        this.app.workspace.revealLeaf(leaf);
+      checkCallback: (checking) => {
+        var _a3;
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== BOARD_VIEW_TYPE) return false;
+        if (!checking) leaf.view.showProperties();
+        return true;
       }
     });
     this.addCommand({
@@ -125646,12 +127146,12 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
     this.addCommand({
       id: "open-omniboard-bpmn-issues",
       name: "Open Omniboard BPMN issues",
-      callback: async () => {
-        const existing = this.app.workspace.getLeavesOfType(OMNIBOARD_ISSUES_VIEW_TYPE)[0];
-        const leaf = existing != null ? existing : this.app.workspace.getRightLeaf(false);
-        if (!leaf) return;
-        await leaf.setViewState({ type: OMNIBOARD_ISSUES_VIEW_TYPE, active: true });
-        this.app.workspace.revealLeaf(leaf);
+      checkCallback: (checking) => {
+        var _a3;
+        const leaf = this.app.workspace.activeLeaf;
+        if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== BOARD_VIEW_TYPE) return false;
+        if (!checking) leaf.view.showIssues();
+        return true;
       }
     });
     this.addCommand({
@@ -125688,7 +127188,7 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
       checkCallback: (checking) => {
         var _a3;
         const leaf = this.app.workspace.activeLeaf;
-        if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== BOARD_VIEW_TYPE3) return false;
+        if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) !== BOARD_VIEW_TYPE) return false;
         const file = leaf.view.file;
         if (!file || !file.path.endsWith(OMNIBOARD_SUFFIX)) return false;
         if (checking) return true;
@@ -125789,7 +127289,7 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
       const { model, sourceMeta } = await importBpmn(xml3);
       const basename = bpmnFile.basename;
       const dir = (_b2 = (_a3 = bpmnFile.parent) == null ? void 0 : _a3.path) != null ? _b2 : "";
-      const wrapperPath = (0, import_obsidian13.normalizePath)(
+      const wrapperPath = (0, import_obsidian12.normalizePath)(
         (dir ? dir + "/" : "") + `${basename}${OMNIBOARD_SUFFIX}`
       );
       const content5 = serializeBoard(model, "", sourceMeta, {
@@ -125797,8 +127297,8 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
         bpmnXml: xml3
       });
       const existing = this.app.vault.getAbstractFileByPath(wrapperPath);
-      if (existing instanceof import_obsidian13.TFile) {
-        new import_obsidian13.Notice(
+      if (existing instanceof import_obsidian12.TFile) {
+        new import_obsidian12.Notice(
           `\u0110\xE3 t\u1ED3n t\u1EA1i "${wrapperPath}". Xo\xE1 ho\u1EB7c \u0111\u1ED5i t\xEAn file \u0111\xF3 tr\u01B0\u1EDBc khi convert.`,
           7e3
         );
@@ -125809,19 +127309,19 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
         wrapperFile = await this.app.vault.create(wrapperPath, content5);
       } catch (createErr) {
         console.error("[omniboard] vault.create failed for wrapper", createErr);
-        new import_obsidian13.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
+        new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file wrapper .omniboard.md (xem console).");
         return;
       }
       const leaf = this.app.workspace.getLeaf(false);
       if (!leaf) {
-        new import_obsidian13.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
+        new import_obsidian12.Notice("Kh\xF4ng l\u1EA5y \u0111\u01B0\u1EE3c leaf \u0111\u1EC3 m\u1EDF wrapper. File \u0111\xE3 t\u1EA1o: " + wrapperFile.path);
         return;
       }
-      await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: wrapperFile.path } });
-      new import_obsidian13.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
+      await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: wrapperFile.path } });
+      new import_obsidian12.Notice(`\u0110\xE3 t\u1EA1o wrapper: ${wrapperFile.path}`);
     } catch (err2) {
       console.error("[omniboard] convertBpmnToWrapper failed", err2);
-      new import_obsidian13.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
+      new import_obsidian12.Notice("Convert BPMN \u2192 wrapper th\u1EA5t b\u1EA1i. Xem console \u0111\u1EC3 bi\u1EBFt chi ti\u1EBFt.");
     }
   }
   /**
@@ -125836,7 +127336,7 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
     const stamp = `${d4.getFullYear()}${pad(d4.getMonth() + 1)}${pad(d4.getDate())}-${pad(d4.getHours())}${pad(d4.getMinutes())}${pad(d4.getSeconds())}`;
     const name2 = ((baseName == null ? void 0 : baseName.trim()) || `Omniboard ${stamp}`).replace(/[\\/:*?"<>|]/g, "-");
     const dir = await this.ensureBoardFolder();
-    const path2 = (0, import_obsidian13.normalizePath)((dir ? dir + "/" : "") + `${name2}${OMNIBOARD_SUFFIX}`);
+    const path2 = (0, import_obsidian12.normalizePath)((dir ? dir + "/" : "") + `${name2}${OMNIBOARD_SUFFIX}`);
     const content5 = serializeBoard(seedModel != null ? seedModel : { nodes: [], edges: [] }, "", void 0, {
       compressDrawingData: this.settings.compressDrawingData
     });
@@ -125844,8 +127344,8 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
       return await this.app.vault.create(path2, content5);
     } catch (e5) {
       const existing = this.app.vault.getAbstractFileByPath(path2);
-      if (existing instanceof import_obsidian13.TFile) return existing;
-      new import_obsidian13.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
+      if (existing instanceof import_obsidian12.TFile) return existing;
+      new import_obsidian12.Notice("Kh\xF4ng t\u1EA1o \u0111\u01B0\u1EE3c file omniboard.");
       return null;
     }
   }
@@ -125855,7 +127355,7 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
     var _a3, _b2;
     const folder = (_b2 = (_a3 = this.settings.boardFolder) == null ? void 0 : _a3.trim()) != null ? _b2 : "";
     if (!folder) return "";
-    const dir = (0, import_obsidian13.normalizePath)(folder);
+    const dir = (0, import_obsidian12.normalizePath)(folder);
     if (!this.app.vault.getAbstractFileByPath(dir)) {
       try {
         await this.app.vault.createFolder(dir);
@@ -125906,7 +127406,7 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
   async openBoardFile(file) {
     var _a3;
     const leaf = (_a3 = this.findLeafForFile(file)) != null ? _a3 : this.app.workspace.getLeaf("tab");
-    await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: file.path } });
+    await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
     this.app.workspace.revealLeaf(leaf);
   }
   /** Open the popup board editor for `file` (edits the file in place). */
@@ -125925,8 +127425,8 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
     const ok = await this.hasOmniboardFrontmatter(file);
     if (!ok) return;
     const leaf = this.findLeafForFile(file);
-    if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE3) return;
-    await leaf.setViewState({ type: BOARD_VIEW_TYPE3, state: { file: file.path } });
+    if (!leaf || ((_a3 = leaf.view) == null ? void 0 : _a3.getViewType()) === BOARD_VIEW_TYPE) return;
+    await leaf.setViewState({ type: BOARD_VIEW_TYPE, state: { file: file.path } });
   }
   /** Auto-swap .bpmn files to the BPMN Native view. */
   async maybeSwapToBpmnNativeView(file) {
@@ -125984,7 +127484,7 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
     const src = host.getAttribute("src");
     if (!src) return;
     const file = this.app.metadataCache.getFirstLinkpathDest(src.replace(/#.*$/, ""), sourcePath);
-    if (!(file instanceof import_obsidian13.TFile)) return;
+    if (!(file instanceof import_obsidian12.TFile)) return;
     host.addClass("omniboard-embed-processed");
     const wrap = host.createDiv({ cls: "omniboard-embed-cardwrap" });
     let nodeCount = 0;
@@ -126015,7 +127515,7 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
         onEdit: () => this.openFileBoardEditor(file),
         onExportMenu: model ? (e5) => this.buildBoardExportMenu(model, file.basename).showAtMouseEvent(e5) : void 0,
         onMoreMenu: (e5) => this.buildBoardMoreMenu(file, model, sourcePath).showAtMouseEvent(e5),
-        setIcon: (el4, name2) => (0, import_obsidian13.setIcon)(el4, name2)
+        setIcon: (el3, name2) => (0, import_obsidian12.setIcon)(el3, name2)
       }),
       wrap
     );
@@ -126027,14 +127527,14 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
    *  Uses the standalone static renderer (self-contained SVG via collectPluginCss)
    *  so it works without a live canvas. */
   buildBoardExportMenu(model, baseName) {
-    const menu = new import_obsidian13.Menu();
+    const menu = new import_obsidian12.Menu();
     const run = async (fn2) => {
       try {
         const saved = await fn2();
-        if (saved) new import_obsidian13.Notice(`\u0110\xE3 export: ${saved}`);
+        if (saved) new import_obsidian12.Notice(`\u0110\xE3 export: ${saved}`);
       } catch (err2) {
         console.warn("[omniboard] board export failed", err2);
-        new import_obsidian13.Notice("Export th\u1EA5t b\u1EA1i \u2014 xem console.");
+        new import_obsidian12.Notice("Export th\u1EA5t b\u1EA1i \u2014 xem console.");
       }
     };
     menu.addItem(
@@ -126057,7 +127557,7 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
   /** Overflow (⋯) menu for a board embed card. `hostPath` is the note the
    *  embed lives in — used by "Xóa khỏi note" to remove the `![[...]]` line. */
   buildBoardMoreMenu(file, model, hostPath) {
-    const menu = new import_obsidian13.Menu();
+    const menu = new import_obsidian12.Menu();
     menu.addItem(
       (i6) => i6.setTitle("S\u1EEDa to\xE0n m\xE0n h\xECnh").setIcon("maximize-2").onClick(() => void this.openBoardFile(file))
     );
@@ -126072,9 +127572,9 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
           try {
             const png = await exportPng(model, 2);
             await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
-            new import_obsidian13.Notice("\u0110\xE3 copy v\xE0o clipboard");
+            new import_obsidian12.Notice("\u0110\xE3 copy v\xE0o clipboard");
           } catch (e5) {
-            new import_obsidian13.Notice("Copy clipboard th\u1EA5t b\u1EA1i (browser c\xF3 th\u1EC3 kh\xF4ng h\u1ED7 tr\u1EE3).");
+            new import_obsidian12.Notice("Copy clipboard th\u1EA5t b\u1EA1i (browser c\xF3 th\u1EC3 kh\xF4ng h\u1ED7 tr\u1EE3).");
           }
         })
       );
@@ -126094,8 +127594,8 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
   async removeEmbedFromNote(boardFile, hostPath) {
     var _a3, _b2;
     const host = this.app.vault.getAbstractFileByPath(hostPath);
-    if (!(host instanceof import_obsidian13.TFile)) {
-      new import_obsidian13.Notice("Kh\xF4ng t\xECm th\u1EA5y note ch\u1EE9a board.");
+    if (!(host instanceof import_obsidian12.TFile)) {
+      new import_obsidian12.Notice("Kh\xF4ng t\xECm th\u1EA5y note ch\u1EE9a board.");
       return;
     }
     const embeds = (_b2 = (_a3 = this.app.metadataCache.getFileCache(host)) == null ? void 0 : _a3.embeds) != null ? _b2 : [];
@@ -126107,7 +127607,7 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
       return (dest == null ? void 0 : dest.path) === boardFile.path;
     });
     if (!target) {
-      new import_obsidian13.Notice("Kh\xF4ng t\xECm th\u1EA5y embed c\u1EE7a board trong note n\xE0y.");
+      new import_obsidian12.Notice("Kh\xF4ng t\xECm th\u1EA5y embed c\u1EE7a board trong note n\xE0y.");
       return;
     }
     try {
@@ -126117,10 +127617,10 @@ var DiagramsPlugin = class extends import_obsidian13.Plugin {
       if (content5[after2] === "\n") after2 += 1;
       const next = content5.slice(0, start.offset) + content5.slice(after2);
       await this.app.vault.modify(host, next);
-      new import_obsidian13.Notice("\u0110\xE3 g\u1EE1 board kh\u1ECFi note.");
+      new import_obsidian12.Notice("\u0110\xE3 g\u1EE1 board kh\u1ECFi note.");
     } catch (e5) {
       console.error("[omniboard] removeEmbedFromNote failed", e5);
-      new import_obsidian13.Notice("G\u1EE1 board kh\u1ECFi note th\u1EA5t b\u1EA1i \u2014 xem console.");
+      new import_obsidian12.Notice("G\u1EE1 board kh\u1ECFi note th\u1EA5t b\u1EA1i \u2014 xem console.");
     }
   }
   async loadSettings() {

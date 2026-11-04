@@ -84180,6 +84180,10 @@ var CONTAINER_KINDS2 = /* @__PURE__ */ new Set([
   "bpmn-pool",
   "bpmn-group"
 ]);
+function minimapPaint(kind, fill2) {
+  if (CONTAINER_KINDS2.has(kind)) return `fill="none" stroke="#9aa7b4" stroke-width="0.75"`;
+  return `fill="${fill2 && fill2 !== "transparent" ? fill2 : "#cdd6df"}"`;
+}
 var BPMN_TRIGGER_LABEL = {
   none: "Kh\xF4ng",
   message: "Message",
@@ -86631,7 +86635,7 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     this.refreshMinimap();
   }
   refreshMinimap() {
-    var _a3, _b2;
+    var _a3;
     const box = this.minimap, svg3 = this.minimapSvg, vp = this.minimapVp;
     if (!box || !svg3 || !vp) return;
     const nodes = this.graph.getNodes();
@@ -86641,19 +86645,19 @@ var _OmniboardCanvas = class _OmniboardCanvas {
     }
     box.style.display = "block";
     const W4 = 190, H4 = 128, PAD2 = 8, innerW = W4 - 2 * PAD2, innerH = H4 - 2 * PAD2;
-    const bb = this.graph.getContentBBox();
+    const bb = (_a3 = this.graph.getCellsBBox(nodes)) != null ? _a3 : this.graph.getContentBBox();
     const scale2 = Math.min(innerW / Math.max(bb.width, 1), innerH / Math.max(bb.height, 1));
     const ox = PAD2 + (innerW - bb.width * scale2) / 2;
     const oy = PAD2 + (innerH - bb.height * scale2) / 2;
     this.mm = { scale: scale2, ox, oy, bx: bb.x, by: bb.y };
     svg3.setAttribute("viewBox", `0 0 ${W4} ${H4}`);
     let html3 = "";
-    for (const n4 of nodes) {
+    const isBox = (n4) => CONTAINER_KINDS2.has(this.nodeKind(n4));
+    for (const n4 of [...nodes.filter(isBox), ...nodes.filter((n5) => !isBox(n5))]) {
       const p6 = n4.getPosition();
       const s5 = n4.getSize();
-      const st3 = (_b2 = (_a3 = n4.getData()) == null ? void 0 : _a3.style) != null ? _b2 : {};
-      const fill2 = st3.fill && st3.fill !== "transparent" ? st3.fill : "#cdd6df";
-      html3 += `<rect x="${(ox + (p6.x - bb.x) * scale2).toFixed(1)}" y="${(oy + (p6.y - bb.y) * scale2).toFixed(1)}" width="${Math.max(2, s5.width * scale2).toFixed(1)}" height="${Math.max(2, s5.height * scale2).toFixed(1)}" rx="1.5" fill="${fill2}"/>`;
+      const paint = minimapPaint(this.nodeKind(n4), this.nodeStyle(n4).fill);
+      html3 += `<rect x="${(ox + (p6.x - bb.x) * scale2).toFixed(1)}" y="${(oy + (p6.y - bb.y) * scale2).toFixed(1)}" width="${Math.max(2, s5.width * scale2).toFixed(1)}" height="${Math.max(2, s5.height * scale2).toFixed(1)}" rx="1.5" ${paint}/>`;
     }
     svg3.innerHTML = html3;
     const sc = this.graph.scale().sx;

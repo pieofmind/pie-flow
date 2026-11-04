@@ -221,6 +221,12 @@ const CONTAINER_KINDS = new Set<string>([
   "bpmn-lane", "bpmn-pool", "bpmn-group",
 ]);
 
+/** Minimap paint for a node. Containers are outlines (drawn first) so the steps inside a pool stay visible. */
+export function minimapPaint(kind: string, fill?: string): string {
+  if (CONTAINER_KINDS.has(kind)) return `fill="none" stroke="#9aa7b4" stroke-width="0.75"`;
+  return `fill="${fill && fill !== "transparent" ? fill : "#cdd6df"}"`;
+}
+
 // BPMN Đợt D — context-bar pickers
 const BPMN_TRIGGER_LABEL: Record<string, string> = {
   none: "Không", message: "Message", timer: "Timer", signal: "Signal", error: "Error",
@@ -2575,18 +2581,19 @@ export class OmniboardCanvas {
     if (!nodes.length) { box.style.display = "none"; return; }
     box.style.display = "block";
     const W = 190, H = 128, PAD = 8, innerW = W - 2 * PAD, innerH = H - 2 * PAD;
-    const bb = this.graph.getContentBBox();
+    // From the node model, not getContentBBox(): that only measures cells rendered in the viewport.
+    const bb = this.graph.getCellsBBox(nodes) ?? this.graph.getContentBBox();
     const scale = Math.min(innerW / Math.max(bb.width, 1), innerH / Math.max(bb.height, 1));
     const ox = PAD + (innerW - bb.width * scale) / 2;
     const oy = PAD + (innerH - bb.height * scale) / 2;
     this.mm = { scale, ox, oy, bx: bb.x, by: bb.y };
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     let html = "";
-    for (const n of nodes) {
+    const isBox = (n: Node) => CONTAINER_KINDS.has(this.nodeKind(n));
+    for (const n of [...nodes.filter(isBox), ...nodes.filter((n) => !isBox(n))]) {
       const p = n.getPosition(); const s = n.getSize();
-      const st = (n.getData()?.style as NodeStyle) ?? {};
-      const fill = st.fill && st.fill !== "transparent" ? st.fill : "#cdd6df";
-      html += `<rect x="${(ox + (p.x - bb.x) * scale).toFixed(1)}" y="${(oy + (p.y - bb.y) * scale).toFixed(1)}" width="${Math.max(2, s.width * scale).toFixed(1)}" height="${Math.max(2, s.height * scale).toFixed(1)}" rx="1.5" fill="${fill}"/>`;
+      const paint = minimapPaint(this.nodeKind(n), this.nodeStyle(n).fill);
+      html += `<rect x="${(ox + (p.x - bb.x) * scale).toFixed(1)}" y="${(oy + (p.y - bb.y) * scale).toFixed(1)}" width="${Math.max(2, s.width * scale).toFixed(1)}" height="${Math.max(2, s.height * scale).toFixed(1)}" rx="1.5" ${paint}/>`;
     }
     svg.innerHTML = html;
     // Viewport rectangle = visible graph area mapped into minimap pixels.

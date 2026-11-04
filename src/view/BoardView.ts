@@ -227,7 +227,7 @@ export class BoardView extends TextFileView {
   /** True only inside our own save(), so getViewData knows it is being written. */
   private writing = false;
   /** A write is in flight; another save request waits for it. */
-  private saving = false;
+  private boardSaving = false;
   private saveAgain = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: DiagramsPlugin) {
@@ -586,7 +586,7 @@ export class BoardView extends TextFileView {
     const base = this as unknown as { data: string | null; lastSavedData: string | null; dirty: boolean };
     const file = this.file;
     if (!file || base.lastSavedData === null) return;      // not loaded yet
-    if (this.saving) { this.saveAgain = true; return; }
+    if (this.boardSaving) { this.saveAgain = true; return; }
     const expected = this.diskModel;
     this.writing = true;
     let text: string;
@@ -594,7 +594,7 @@ export class BoardView extends TextFileView {
     finally { this.writing = false; }
     base.dirty = false;
     if (text === base.lastSavedData) return;
-    this.saving = true;
+    this.boardSaving = true;
     try {
       const wrote = await writeIfUnchanged(this.app.vault, file, (disk) => {
         const fp = BoardView.fingerprint(disk);
@@ -615,7 +615,7 @@ export class BoardView extends TextFileView {
       console.error("[omniboard] save failed", err);
       notify("error", `Lưu board lỗi: ${(err as Error).message}`);
     } finally {
-      this.saving = false;
+      this.boardSaving = false;
       if (this.saveAgain) { this.saveAgain = false; void this.save(); }
     }
   }
